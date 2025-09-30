@@ -36,3 +36,9 @@ temp/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Application data
+recordings/
+sessions/
+exports/
+models/
