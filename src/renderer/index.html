@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScribeCat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="app-header">
+            <h1>ScribeCat</h1>
+            <div class="header-controls">
+                <button id="theme-toggle">Theme</button>
+                <button id="settings-btn">Settings</button>
+            </div>
+        </header>
+        
+        <main class="app-main">
+            <div class="recording-section">
+                <button id="record-btn" class="record-btn">Start Recording</button>
+                <div id="recording-status" class="recording-status"></div>
+            </div>
+            
+            <div class="editor-section">
+                <div class="toolbar">
+                    <!-- Toolbar will be added in Phase 2 -->
+                </div>
+                <div id="notes-editor" class="notes-editor" contenteditable="true">
+                    Start taking notes...
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
