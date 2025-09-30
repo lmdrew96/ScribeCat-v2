@@ -37,8 +37,16 @@ For detailed setup instructions, see [docs/SETUP.md](docs/SETUP.md).
 - Electron app architecture with security-first design
 - Basic UI scaffold
 
+**Phase 2: Core Functionality** ✅ Complete
+- Audio recording system with MediaRecorder API
+- Real-time VU meter visualization
+- Session management (create, load, save, delete)
+- File operations with export functionality
+- Transcription manager with Vosk/Whisper support
+- Enhanced UI with session list and info panels
+- Auto-save and menu shortcuts
+
 **Upcoming Phases:**
-- Phase 2: Audio Recording & Transcription
 - Phase 3: Rich Text Editor
 - Phase 4: AI Integration
 - Phase 5: Canvas LMS Integration
@@ -57,6 +65,9 @@ See [docs/SETUP.md](docs/SETUP.md) for detailed architecture information.
 
 - [Setup Guide](docs/SETUP.md) - Installation and development setup
 - [Architecture Overview](docs/SETUP.md#architecture) - Security and design patterns
+- [Phase 2 Summary](docs/PHASE2_SUMMARY.md) - Core functionality implementation
+- [Phase 2 Testing](PHASE2_TESTING.md) - Testing guide for Phase 2 features
+- [UI Layout](docs/PHASE2_UI_LAYOUT.md) - Visual layout documentation
 
 ## 🤝 Contributing
 
