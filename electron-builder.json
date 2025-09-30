@@ -1,0 +1,22 @@
+{
+  "appId": "com.scribecat.app",
+  "productName": "ScribeCat",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "dist/**/*",
+    "assets/**/*",
+    "node_modules/**/*"
+  ],
+  "mac": {
+    "category": "public.app-category.education",
+    "target": "dmg"
+  },
+  "win": {
+    "target": "nsis"
+  },
+  "linux": {
+    "target": "AppImage"
+  }
+}
