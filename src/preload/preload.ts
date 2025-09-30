@@ -3,16 +3,26 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Define the API interface
 interface ElectronAPI {
   recording: {
-    start: () => Promise<void>;
+    start: () => Promise<{ success: boolean; sessionId: string }>;
     stop: () => Promise<void>;
     pause: () => Promise<void>;
     resume: () => Promise<void>;
+    getStatus: () => Promise<any>;
+    saveAudio: (audioData: ArrayBuffer, sessionId: string) => Promise<string>;
   };
   files: {
     save: (data: any) => Promise<void>;
     load: (filename: string) => Promise<any>;
-    list: () => Promise<string[]>;
+    list: () => Promise<any[]>;
+    delete: (sessionId: string) => Promise<void>;
+    export: (sessionId: string, format: string) => Promise<string>;
   };
+  transcription: {
+    transcribe: (audioPath: string) => Promise<string>;
+    enhance: (text: string) => Promise<string>;
+    getStatus: () => Promise<any>;
+  };
+  on: (channel: string, callback: (data: any) => void) => void;
   themes: {
     getAvailable: () => Promise<string[]>;
     setActive: (themeId: string) => Promise<void>;
@@ -36,12 +46,24 @@ const electronAPI: ElectronAPI = {
     start: () => ipcRenderer.invoke('recording:start'),
     stop: () => ipcRenderer.invoke('recording:stop'),
     pause: () => ipcRenderer.invoke('recording:pause'),
-    resume: () => ipcRenderer.invoke('recording:resume')
+    resume: () => ipcRenderer.invoke('recording:resume'),
+    getStatus: () => ipcRenderer.invoke('recording:getStatus'),
+    saveAudio: (audioData, sessionId) => ipcRenderer.invoke('recording:saveAudio', audioData, sessionId)
   },
   files: {
     save: (data) => ipcRenderer.invoke('files:save', data),
     load: (filename) => ipcRenderer.invoke('files:load', filename),
-    list: () => ipcRenderer.invoke('files:list')
+    list: () => ipcRenderer.invoke('files:list'),
+    delete: (sessionId) => ipcRenderer.invoke('files:delete', sessionId),
+    export: (sessionId, format) => ipcRenderer.invoke('files:export', sessionId, format)
+  },
+  transcription: {
+    transcribe: (audioPath) => ipcRenderer.invoke('transcription:transcribe', audioPath),
+    enhance: (text) => ipcRenderer.invoke('transcription:enhance', text),
+    getStatus: () => ipcRenderer.invoke('transcription:getStatus')
+  },
+  on: (channel, callback) => {
+    ipcRenderer.on(channel, (event, data) => callback(data));
   },
   themes: {
     getAvailable: () => ipcRenderer.invoke('themes:available'),

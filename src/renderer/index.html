@@ -19,15 +19,33 @@
         <main class="app-main">
             <div class="recording-section">
                 <button id="record-btn" class="record-btn">Start Recording</button>
-                <div id="recording-status" class="recording-status"></div>
+                <div id="recording-status" class="recording-status">Ready to record</div>
+                <div class="vu-meter-container">
+                    <div id="vu-meter" class="vu-meter"></div>
+                </div>
             </div>
             
-            <div class="editor-section">
-                <div class="toolbar">
-                    <!-- Toolbar will be added in Phase 2 -->
+            <div class="content-area">
+                <div class="left-section">
+                    <div class="session-info" id="session-info">
+                        <h2>No session loaded</h2>
+                    </div>
+                    
+                    <div class="editor-section">
+                        <div class="toolbar">
+                            <!-- Toolbar will be added in Phase 3 -->
+                        </div>
+                        <div id="notes-editor" class="notes-editor" contenteditable="true">
+                            Start taking notes...
+                        </div>
+                    </div>
                 </div>
-                <div id="notes-editor" class="notes-editor" contenteditable="true">
-                    Start taking notes...
+                
+                <div class="session-list-section">
+                    <h3>Recent Sessions</h3>
+                    <div id="session-list" class="session-list">
+                        <!-- Sessions will be loaded here -->
+                    </div>
                 </div>
             </div>
         </main>

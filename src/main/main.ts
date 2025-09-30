@@ -1,8 +1,14 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import * as path from 'path';
+import { RecordingManager } from './recording-manager';
+import { FileManager } from './file-manager';
+import { TranscriptionManager } from './transcription-manager';
 
 class ScribeCatApp {
   private mainWindow: BrowserWindow | null = null;
+  private recordingManager: RecordingManager | null = null;
+  private fileManager: FileManager | null = null;
+  private transcriptionManager: TranscriptionManager | null = null;
 
   constructor() {
     this.initializeApp();
@@ -12,7 +18,9 @@ class ScribeCatApp {
     app.whenReady().then(() => {
       this.createWindow();
       this.setupSecurity();
+      this.setupManagers();
       this.setupIPC();
+      this.setupMenu();
     });
 
     app.on('window-all-closed', () => {
@@ -26,6 +34,12 @@ class ScribeCatApp {
         this.createWindow();
       }
     });
+  }
+
+  private setupManagers(): void {
+    this.recordingManager = new RecordingManager(this.mainWindow);
+    this.fileManager = new FileManager();
+    this.transcriptionManager = new TranscriptionManager();
   }
 
   private createWindow(): void {
@@ -63,7 +77,71 @@ class ScribeCatApp {
   }
 
   private setupIPC(): void {
-    // IPC handlers will be added here
+    // IPC handlers are now set up in the respective managers
+  }
+
+  private setupMenu(): void {
+    const template: Electron.MenuItemConstructorOptions[] = [
+      {
+        label: 'File',
+        submenu: [
+          {
+            label: 'New Session',
+            accelerator: 'CmdOrCtrl+N',
+            click: () => {
+              this.mainWindow?.webContents.send('menu:new-session');
+            }
+          },
+          {
+            label: 'Save Session',
+            accelerator: 'CmdOrCtrl+S',
+            click: () => {
+              this.mainWindow?.webContents.send('menu:save-session');
+            }
+          },
+          { type: 'separator' },
+          {
+            label: 'Export',
+            submenu: [
+              {
+                label: 'Export as Text',
+                click: () => {
+                  this.mainWindow?.webContents.send('menu:export-txt');
+                }
+              },
+              {
+                label: 'Export as PDF',
+                click: () => {
+                  this.mainWindow?.webContents.send('menu:export-pdf');
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        label: 'Recording',
+        submenu: [
+          {
+            label: 'Start Recording',
+            accelerator: 'CmdOrCtrl+R',
+            click: () => {
+              this.mainWindow?.webContents.send('menu:start-recording');
+            }
+          },
+          {
+            label: 'Stop Recording',
+            accelerator: 'CmdOrCtrl+Shift+R',
+            click: () => {
+              this.mainWindow?.webContents.send('menu:stop-recording');
+            }
+          }
+        ]
+      }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
   }
 }
 
