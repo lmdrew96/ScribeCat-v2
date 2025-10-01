@@ -1,16 +1,23 @@
 // Core application types
-export interface SessionData {
-  id: string;
-  title: string;
-  courseId?: string;
-  courseTitle?: string;
-  assignmentId?: string;
-  recordingPath?: string;
-  transcription?: string;
-  notes: string;
-  createdAt: Date;
-  updatedAt: Date;
-  duration?: number;
+// Note: SessionData is exported from domain/entities/Session.ts
+// Import it from there to maintain single source of truth
+export type { SessionData } from '../domain/entities/Session.js';
+
+/**
+ * Standard IPC response wrapper for consistent error handling
+ */
+export interface IPCResponse<T = void> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+/**
+ * IPC response for recording operations
+ */
+export interface RecordingStopResponse {
+  sessionId: string;
+  filePath: string;
 }
 
 export interface Course {
@@ -94,26 +101,10 @@ export interface ElectronAPI {
     pause: () => Promise<{ success: boolean; error?: string }>;
     resume: () => Promise<{ success: boolean; error?: string }>;
     getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;
-    onAudioLevel: (callback: (level: number) => void) => void;
   };
-  files: {
-    save: (data: any) => Promise<void>;
-    load: (filename: string) => Promise<any>;
-    list: () => Promise<string[]>;
-  };
-  themes: {
-    getAvailable: () => Promise<string[]>;
-    setActive: (themeId: string) => Promise<void>;
-    getActive: () => Promise<string>;
-  };
-  ai: {
-    enhanceTranscription: (text: string) => Promise<string>;
-    generateSummary: (notes: string) => Promise<string>;
-    createStudyAids: (content: string) => Promise<any[]>;
-  };
-  canvas: {
-    importCourses: () => Promise<any[]>;
-    linkToAssignment: (recordingId: string, assignmentId: string) => Promise<void>;
-    exportToCanvas: (sessionId: string, assignmentId: string) => Promise<void>;
-  };
+  // TODO: Add these interfaces when features are implemented
+  // files?: { ... };
+  // themes?: { ... };
+  // ai?: { ... };
+  // canvas?: { ... };
 }
