@@ -1,11 +1,12 @@
 {
   "name": "scribecat-v2",
   "version": "1.0.0",
+  "type": "module",
   "description": "ScribeCat scribes and is cat. A revolutionary multi-platform app that can be used to record and accurately transcribe speech, take rich text notes, and interact with AI to better understand the content of the recording and your notes.",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "npm run compile && electron .",
-    "compile": "tsc && cp src/renderer/index.html dist/renderer/ && cp src/renderer/styles.css dist/renderer/",
+    "compile": "tsc && tsc -p tsconfig.preload.json && cp src/renderer/index.html dist/renderer/ && cp src/renderer/styles.css dist/renderer/",
     "build": "npm run compile && electron-builder",
     "build:mac": "npm run compile && electron-builder --mac",
     "build:win": "npm run compile && electron-builder --win",

@@ -1,6 +1,6 @@
 // src/renderer/app.ts
 
-import { RecordingService } from './recording-service';
+import { RecordingService } from './recording-service.js';
 
 class ScribeCatApp {
   private recordBtn!: HTMLButtonElement;
@@ -58,7 +58,7 @@ class ScribeCatApp {
       await this.recordingService.start();
       
       // Notify main process (for any setup needed)
-      await window.electronAPI.recording.start();
+      await window.scribeCat.recording.start();
       
       // Update UI
       this.updateUI();
@@ -83,7 +83,7 @@ class ScribeCatApp {
       const status = this.recordingService.getStatus();
       
       // Send to main process to save
-      const result = await window.electronAPI.recording.stop(arrayBuffer, status.duration);
+      const result = await window.scribeCat.recording.stop(arrayBuffer, status.duration);
       
       if (result.success) {
         this.stopStatusUpdates();

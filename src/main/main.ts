@@ -1,6 +1,11 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import * as path from 'path';
-import { RecordingManager } from './recording-manager';
+import { fileURLToPath } from 'url';
+import { RecordingManager } from './recording-manager.js';
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class ScribeCatApp {
   private mainWindow: BrowserWindow | null = null;
@@ -55,17 +60,8 @@ class ScribeCatApp {
   }
 
   private setupSecurity(): void {
-    // Disable web security in development only
-    if (process.env.NODE_ENV === 'development') {
-      this.mainWindow?.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-        callback({
-          responseHeaders: {
-            ...details.responseHeaders,
-            'Content-Security-Policy': 'default-src \'self\' \'unsafe-inline\' \'unsafe-eval\' data:'
-          }
-        });
-      });
-    }
+    // Security is now handled by CSP meta tag in index.html
+    // This method can be used for additional security measures in the future
   }
 
   private setupIPC(): void {

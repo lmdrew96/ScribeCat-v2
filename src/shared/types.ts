@@ -86,3 +86,34 @@ export interface AudioConfig {
   format: string;
   codec: string;
 }
+
+export interface ElectronAPI {
+  recording: {
+    start: () => Promise<{ success: boolean; error?: string }>;
+    stop: (audioData: ArrayBuffer, duration: number) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
+    pause: () => Promise<{ success: boolean; error?: string }>;
+    resume: () => Promise<{ success: boolean; error?: string }>;
+    getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;
+    onAudioLevel: (callback: (level: number) => void) => void;
+  };
+  files: {
+    save: (data: any) => Promise<void>;
+    load: (filename: string) => Promise<any>;
+    list: () => Promise<string[]>;
+  };
+  themes: {
+    getAvailable: () => Promise<string[]>;
+    setActive: (themeId: string) => Promise<void>;
+    getActive: () => Promise<string>;
+  };
+  ai: {
+    enhanceTranscription: (text: string) => Promise<string>;
+    generateSummary: (notes: string) => Promise<string>;
+    createStudyAids: (content: string) => Promise<any[]>;
+  };
+  canvas: {
+    importCourses: () => Promise<any[]>;
+    linkToAssignment: (recordingId: string, assignmentId: string) => Promise<void>;
+    exportToCanvas: (sessionId: string, assignmentId: string) => Promise<void>;
+  };
+}
