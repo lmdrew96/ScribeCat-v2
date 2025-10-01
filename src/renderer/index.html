@@ -18,7 +18,23 @@
         
         <main class="app-main">
             <div class="recording-section">
-                <button id="record-btn" class="record-btn">Start Recording</button>
+                <div class="recording-controls">
+                    <button id="record-btn" class="record-btn">Start Recording</button>
+                    <button id="pause-btn" class="control-btn" disabled>Pause</button>
+                    <button id="resume-btn" class="control-btn" disabled>Resume</button>
+                </div>
+                <div class="recording-info">
+                    <div class="duration-container">
+                        <span>Duration: </span>
+                        <span id="duration-display" class="duration">00:00</span>
+                    </div>
+                    <div class="vu-meter-container">
+                        <span>Audio Level: </span>
+                        <div class="vu-meter-bg">
+                            <div id="vu-meter" class="vu-meter"></div>
+                        </div>
+                    </div>
+                </div>
                 <div id="recording-status" class="recording-status"></div>
             </div>
             

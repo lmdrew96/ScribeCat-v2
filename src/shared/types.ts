@@ -67,3 +67,22 @@ export interface RecordingState {
   audioLevel: number;
   startTime?: Date;
 }
+
+export interface RecordingStatus {
+  isRecording: boolean;
+  isPaused: boolean;
+  duration: number;
+  audioLevel: number;
+  startTime?: Date;
+  error?: string;
+}
+
+export interface AudioConfig {
+  sampleRate: number;
+  channelCount: number;
+  echoCancellation: boolean;
+  noiseSuppression: boolean;
+  autoGainControl: boolean;
+  format: string;
+  codec: string;
+}

@@ -1,10 +1,13 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import * as path from 'path';
+import { RecordingManager } from './recording-manager';
 
 class ScribeCatApp {
   private mainWindow: BrowserWindow | null = null;
+  private recordingManager: RecordingManager;
 
   constructor() {
+    this.recordingManager = new RecordingManager();
     this.initializeApp();
   }
 
@@ -46,6 +49,9 @@ class ScribeCatApp {
     this.mainWindow.once('ready-to-show', () => {
       this.mainWindow?.show();
     });
+
+    // Set the main window reference for the recording manager
+    this.recordingManager.setMainWindow(this.mainWindow);
   }
 
   private setupSecurity(): void {
@@ -63,7 +69,8 @@ class ScribeCatApp {
   }
 
   private setupIPC(): void {
-    // IPC handlers will be added here
+    // Recording manager handles its own IPC setup
+    // Additional IPC handlers can be added here
   }
 }
 

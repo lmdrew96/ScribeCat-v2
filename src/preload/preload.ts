@@ -3,10 +3,12 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Define the API interface
 interface ElectronAPI {
   recording: {
-    start: () => Promise<void>;
-    stop: () => Promise<void>;
-    pause: () => Promise<void>;
-    resume: () => Promise<void>;
+    start: () => Promise<{ success: boolean; error?: string }>;
+    stop: () => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
+    pause: () => Promise<{ success: boolean; error?: string }>;
+    resume: () => Promise<{ success: boolean; error?: string }>;
+    getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;
+    onAudioLevel: (callback: (level: number) => void) => void;
   };
   files: {
     save: (data: any) => Promise<void>;
@@ -36,7 +38,11 @@ const electronAPI: ElectronAPI = {
     start: () => ipcRenderer.invoke('recording:start'),
     stop: () => ipcRenderer.invoke('recording:stop'),
     pause: () => ipcRenderer.invoke('recording:pause'),
-    resume: () => ipcRenderer.invoke('recording:resume')
+    resume: () => ipcRenderer.invoke('recording:resume'),
+    getStatus: () => ipcRenderer.invoke('recording:getStatus'),
+    onAudioLevel: (callback: (level: number) => void) => {
+      ipcRenderer.on('recording:audioLevel', (_, level) => callback(level));
+    }
   },
   files: {
     save: (data) => ipcRenderer.invoke('files:save', data),
