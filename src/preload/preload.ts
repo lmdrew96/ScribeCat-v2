@@ -1,10 +1,12 @@
+// src/preload/preload.ts
+
 import { contextBridge, ipcRenderer } from 'electron';
 
 // Define the API interface
 interface ElectronAPI {
   recording: {
     start: () => Promise<{ success: boolean; error?: string }>;
-    stop: () => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
+    stop: (audioData: ArrayBuffer, duration: number) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
     pause: () => Promise<{ success: boolean; error?: string }>;
     resume: () => Promise<{ success: boolean; error?: string }>;
     getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;
@@ -36,7 +38,7 @@ interface ElectronAPI {
 const electronAPI: ElectronAPI = {
   recording: {
     start: () => ipcRenderer.invoke('recording:start'),
-    stop: () => ipcRenderer.invoke('recording:stop'),
+    stop: (audioData: ArrayBuffer, duration: number) => ipcRenderer.invoke('recording:stop', audioData, duration),
     pause: () => ipcRenderer.invoke('recording:pause'),
     resume: () => ipcRenderer.invoke('recording:resume'),
     getStatus: () => ipcRenderer.invoke('recording:getStatus'),

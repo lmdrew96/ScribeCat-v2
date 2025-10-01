@@ -1,3 +1,7 @@
+// src/renderer/app.ts
+
+import { RecordingService } from './recording-service';
+
 class ScribeCatApp {
   private recordBtn!: HTMLButtonElement;
   private pauseBtn!: HTMLButtonElement;
@@ -6,11 +10,11 @@ class ScribeCatApp {
   private recordingStatus!: HTMLElement;
   private vuMeter!: HTMLElement;
   private durationDisplay!: HTMLElement;
-  private isRecording: boolean = false;
-  private isPaused: boolean = false;
+  private recordingService: RecordingService;
   private statusUpdateInterval: number | null = null;
 
   constructor() {
+    this.recordingService = new RecordingService();
     this.initializeElements();
     this.setupEventListeners();
     this.setupAudioLevelListener();
@@ -33,13 +37,15 @@ class ScribeCatApp {
   }
 
   private setupAudioLevelListener(): void {
-    window.electronAPI.recording.onAudioLevel((level: number) => {
+    this.recordingService.onAudioLevel((level: number) => {
       this.updateVUMeter(level);
     });
   }
 
   private async toggleRecording(): Promise<void> {
-    if (this.isRecording) {
+    const status = this.recordingService.getStatus();
+    
+    if (status.isRecording) {
       await this.stopRecording();
     } else {
       await this.startRecording();
@@ -48,16 +54,17 @@ class ScribeCatApp {
 
   private async startRecording(): Promise<void> {
     try {
-      const result = await window.electronAPI.recording.start();
-      if (result.success) {
-        this.isRecording = true;
-        this.isPaused = false;
-        this.updateUI();
-        this.startStatusUpdates();
-        this.recordingStatus.textContent = 'Recording...';
-      } else {
-        throw new Error(result.error || 'Failed to start recording');
-      }
+      // Start recording in renderer process
+      await this.recordingService.start();
+      
+      // Notify main process (for any setup needed)
+      await window.electronAPI.recording.start();
+      
+      // Update UI
+      this.updateUI();
+      this.startStatusUpdates();
+      this.recordingStatus.textContent = 'Recording...';
+      
     } catch (error) {
       console.error('Failed to start recording:', error);
       this.recordingStatus.textContent = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -66,50 +73,52 @@ class ScribeCatApp {
 
   private async stopRecording(): Promise<void> {
     try {
-      const result = await window.electronAPI.recording.stop();
+      // Stop recording and get audio blob
+      const audioBlob = await this.recordingService.stop();
+      
+      // Convert blob to array buffer
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      
+      // Get final status
+      const status = this.recordingService.getStatus();
+      
+      // Send to main process to save
+      const result = await window.electronAPI.recording.stop(arrayBuffer, status.duration);
+      
       if (result.success) {
-        this.isRecording = false;
-        this.isPaused = false;
-        this.updateUI();
         this.stopStatusUpdates();
         this.recordingStatus.textContent = `Recording saved: ${result.filePath}`;
         this.durationDisplay.textContent = '00:00';
         this.updateVUMeter(0);
       } else {
-        throw new Error(result.error || 'Failed to stop recording');
+        throw new Error(result.error || 'Failed to save recording');
       }
+      
+      // Update UI
+      this.updateUI();
+      
     } catch (error) {
       console.error('Failed to stop recording:', error);
       this.recordingStatus.textContent = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
-  private async pauseRecording(): Promise<void> {
+  private pauseRecording(): void {
     try {
-      const result = await window.electronAPI.recording.pause();
-      if (result.success) {
-        this.isPaused = true;
-        this.updateUI();
-        this.recordingStatus.textContent = 'Recording paused...';
-      } else {
-        throw new Error(result.error || 'Failed to pause recording');
-      }
+      this.recordingService.pause();
+      this.updateUI();
+      this.recordingStatus.textContent = 'Recording paused...';
     } catch (error) {
       console.error('Failed to pause recording:', error);
       this.recordingStatus.textContent = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
-  private async resumeRecording(): Promise<void> {
+  private resumeRecording(): void {
     try {
-      const result = await window.electronAPI.recording.resume();
-      if (result.success) {
-        this.isPaused = false;
-        this.updateUI();
-        this.recordingStatus.textContent = 'Recording...';
-      } else {
-        throw new Error(result.error || 'Failed to resume recording');
-      }
+      this.recordingService.resume();
+      this.updateUI();
+      this.recordingStatus.textContent = 'Recording...';
     } catch (error) {
       console.error('Failed to resume recording:', error);
       this.recordingStatus.textContent = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -117,20 +126,18 @@ class ScribeCatApp {
   }
 
   private updateUI(): void {
-    this.recordBtn.textContent = this.isRecording ? 'Stop Recording' : 'Start Recording';
-    this.recordBtn.classList.toggle('recording', this.isRecording);
-    this.pauseBtn.disabled = !this.isRecording || this.isPaused;
-    this.resumeBtn.disabled = !this.isRecording || !this.isPaused;
+    const status = this.recordingService.getStatus();
+    
+    this.recordBtn.textContent = status.isRecording ? 'Stop Recording' : 'Start Recording';
+    this.recordBtn.classList.toggle('recording', status.isRecording);
+    this.pauseBtn.disabled = !status.isRecording || status.isPaused;
+    this.resumeBtn.disabled = !status.isRecording || !status.isPaused;
   }
 
   private startStatusUpdates(): void {
-    this.statusUpdateInterval = window.setInterval(async () => {
-      try {
-        const status = await window.electronAPI.recording.getStatus();
-        this.durationDisplay.textContent = this.formatDuration(status.duration);
-      } catch (error) {
-        console.error('Failed to get recording status:', error);
-      }
+    this.statusUpdateInterval = window.setInterval(() => {
+      const status = this.recordingService.getStatus();
+      this.durationDisplay.textContent = this.formatDuration(status.duration);
     }, 1000);
   }
 
