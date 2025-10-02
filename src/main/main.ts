@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, session, systemPreferences } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { RecordingManager } from './recording-manager.js';
@@ -81,6 +81,12 @@ class ScribeCatApp {
         console.error('Failed to initialize directories:', error);
       }
       
+      // Request microphone access on macOS
+      await this.requestMicrophoneAccess();
+      
+      // Set up media permission handler
+      this.setupMediaPermissions();
+      
       this.createWindow();
       this.setupSecurity();
       this.setupIPC();
@@ -120,6 +126,47 @@ class ScribeCatApp {
 
     // Set the main window reference for the recording manager
     this.recordingManager.setMainWindow(this.mainWindow);
+  }
+
+  /**
+   * Request microphone access on macOS
+   * 
+   * On macOS, we need to explicitly request system-level microphone permission.
+   * This ensures the OS knows ScribeCat (not VS Code) is requesting access.
+   */
+  private async requestMicrophoneAccess(): Promise<void> {
+    if (process.platform === 'darwin') {
+      try {
+        const micStatus = systemPreferences.getMediaAccessStatus('microphone');
+        console.log('Microphone access status:', micStatus);
+        
+        if (micStatus !== 'granted') {
+          console.log('Requesting microphone access...');
+          await systemPreferences.askForMediaAccess('microphone');
+        }
+      } catch (error) {
+        console.error('Failed to request microphone access:', error);
+      }
+    }
+  }
+
+  /**
+   * Set up media permission handler for the renderer process
+   * 
+   * This allows the renderer process to access the microphone via getUserMedia.
+   * Without this, the browser's media API won't have permission to capture audio.
+   */
+  private setupMediaPermissions(): void {
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+      // Grant permission for media devices (microphone/camera)
+      if (permission === 'media') {
+        console.log('Granting media permission to renderer process');
+        callback(true);
+      } else {
+        // Deny all other permissions by default
+        callback(false);
+      }
+    });
   }
 
   private setupSecurity(): void {

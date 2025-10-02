@@ -1,5 +1,7 @@
 // src/renderer/app.ts
 
+/// <reference path="../shared/window.d.ts" />
+
 import { RecordingService } from './recording-service.js';
 
 class ScribeCatApp {

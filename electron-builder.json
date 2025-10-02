@@ -11,7 +11,12 @@
   ],
   "mac": {
     "category": "public.app-category.education",
-    "target": "dmg"
+    "target": "dmg",
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "extendInfo": {
+      "NSMicrophoneUsageDescription": "ScribeCat needs access to your microphone to record audio for transcription."
+    }
   },
   "win": {
     "target": "nsis"

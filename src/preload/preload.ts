@@ -1,26 +1,7 @@
 // src/preload/preload.ts
+// Type declarations are in preload.d.ts
 
 const { contextBridge, ipcRenderer } = require('electron');
-
-// Type declaration for global window object
-declare global {
-  interface Window {
-    scribeCat: {
-      recording: {
-        start: () => Promise<{ success: boolean; error?: string }>;
-        stop: (audioData: ArrayBuffer, duration: number) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
-        pause: () => Promise<{ success: boolean; error?: string }>;
-        resume: () => Promise<{ success: boolean; error?: string }>;
-        getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;
-      };
-      // TODO: Add type declarations when features are implemented
-      // files?: { ... };
-      // themes?: { ... };
-      // ai?: { ... };
-      // canvas?: { ... };
-    };
-  }
-}
 
 // Expose the API to the renderer process
 const electronAPI = {
@@ -39,6 +20,3 @@ const electronAPI = {
 };
 
 contextBridge.exposeInMainWorld('scribeCat', electronAPI);
-
-// Export to make this a module
-export {};
