@@ -9,45 +9,108 @@
 </head>
 <body>
     <div id="app">
-        <header class="app-header">
-            <h1>ScribeCat</h1>
-            <div class="header-controls">
-                <button id="theme-toggle">Theme</button>
-                <button id="settings-btn">Settings</button>
+        <!-- Top Control Bar -->
+        <header class="top-bar">
+            <div class="app-title">
+                <span class="cat-emoji">🐱</span>
+                <h1>ScribeCat</h1>
+            </div>
+            
+            <div class="recording-controls">
+                <button id="record-btn" class="record-btn" title="Start Recording">
+                    <span class="record-icon"></span>
+                </button>
+                
+                <select id="microphone-select" class="device-select" title="Select Microphone">
+                    <option value="">Loading devices...</option>
+                </select>
+                
+                <div class="vu-meter-container">
+                    <div class="vu-meter-bg">
+                        <div id="vu-meter" class="vu-meter"></div>
+                    </div>
+                </div>
+                
+                <button id="settings-btn" class="icon-btn" title="Settings">
+                    <span class="settings-icon">⚙️</span>
+                </button>
             </div>
         </header>
         
-        <main class="app-main">
-            <div class="recording-section">
-                <div class="recording-controls">
-                    <button id="record-btn" class="record-btn">Start Recording</button>
-                    <button id="pause-btn" class="control-btn" disabled>Pause</button>
-                    <button id="resume-btn" class="control-btn" disabled>Resume</button>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Left Panel: Notes Editor -->
+            <div class="left-panel">
+                <div class="panel-header">
+                    <h2>Notes</h2>
                 </div>
-                <div class="recording-info">
-                    <div class="duration-container">
-                        <span>Duration: </span>
-                        <span id="duration-display" class="duration">00:00</span>
-                    </div>
-                    <div class="vu-meter-container">
-                        <span>Audio Level: </span>
-                        <div class="vu-meter-bg">
-                            <div id="vu-meter" class="vu-meter"></div>
-                        </div>
-                    </div>
+                
+                <div class="formatting-toolbar">
+                    <button id="bold-btn" class="toolbar-btn" title="Bold (Ctrl+B)">
+                        <strong>B</strong>
+                    </button>
+                    <button id="italic-btn" class="toolbar-btn" title="Italic (Ctrl+I)">
+                        <em>I</em>
+                    </button>
+                    <button id="underline-btn" class="toolbar-btn" title="Underline (Ctrl+U)">
+                        <u>U</u>
+                    </button>
+                    
+                    <div class="toolbar-divider"></div>
+                    
+                    <select id="font-size-select" class="toolbar-select" title="Font Size">
+                        <option value="12">12</option>
+                        <option value="14">14</option>
+                        <option value="16" selected>16</option>
+                        <option value="18">18</option>
+                        <option value="20">20</option>
+                        <option value="24">24</option>
+                    </select>
+                    
+                    <input type="color" id="text-color-picker" class="color-picker" value="#ffffff" title="Text Color">
                 </div>
-                <div id="recording-status" class="recording-status"></div>
+                
+                <div id="notes-editor" class="notes-editor" contenteditable="true" spellcheck="true">
+                    Start taking notes here...
+                </div>
+                
+                <div class="editor-footer">
+                    <span id="char-count" class="count-display">0 characters</span>
+                    <span class="count-separator">•</span>
+                    <span id="word-count" class="count-display">0 words</span>
+                </div>
             </div>
             
-            <div class="editor-section">
-                <div class="toolbar">
-                    <!-- Toolbar will be added in Phase 2 -->
+            <!-- Right Panel: Live Transcription -->
+            <div class="right-panel">
+                <div class="panel-header">
+                    <h2>Live Transcription</h2>
                 </div>
-                <div id="notes-editor" class="notes-editor" contenteditable="true">
-                    Start taking notes...
+                
+                <div id="transcription-container" class="transcription-container">
+                    <div class="transcription-placeholder">
+                        Waiting for transcription...
+                    </div>
                 </div>
             </div>
         </main>
+        
+        <!-- Bottom Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span class="status-label">Status:</span>
+                <span id="recording-status" class="status-value">Idle</span>
+            </div>
+            
+            <div class="status-center">
+                <span class="status-label">Time:</span>
+                <span id="elapsed-time" class="status-value time-display">00:00</span>
+            </div>
+            
+            <div class="status-right">
+                <span id="session-info" class="status-value"></span>
+            </div>
+        </footer>
     </div>
     
     <script type="module" src="app.js"></script>
