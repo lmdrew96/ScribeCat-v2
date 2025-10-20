@@ -11,6 +11,10 @@ const electronAPI = {
     pause: () => ipcRenderer.invoke('recording:pause'),
     resume: () => ipcRenderer.invoke('recording:resume'),
     getStatus: () => ipcRenderer.invoke('recording:getStatus')
+  },
+  audio: {
+    saveFile: (audioData: number[], fileName: string, folderPath: string) => 
+      ipcRenderer.invoke('audio:save-file', audioData, fileName, folderPath)
   }
   // TODO: Implement these features in future phases
   // files: { ... }

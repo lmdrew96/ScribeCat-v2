@@ -315,6 +315,29 @@ class ScribeCatApp {
         };
       }
     });
+    
+    // Audio: Save audio file handler
+    ipcMain.handle('audio:save-file', async (event, audioData: number[], fileName: string, folderPath: string) => {
+      try {
+        const fs = await import('fs');
+        const buffer = Buffer.from(audioData);
+        const outPath = path.join(folderPath, `${fileName}.webm`);
+        
+        // Ensure directory exists
+        await fs.promises.mkdir(folderPath, { recursive: true });
+        
+        // Write file
+        await fs.promises.writeFile(outPath, buffer);
+        
+        return { success: true, path: outPath };
+      } catch (error) {
+        console.error('Failed to save audio file:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
   }
 }
 
