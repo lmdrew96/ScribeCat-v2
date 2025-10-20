@@ -7,6 +7,7 @@
 
 import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
+import { VoskSetupDialog } from './components/vosk-setup-dialog.js';
 // TODO: Re-enable when vosk-browser is properly configured
 // import { VoskTranscriptionService } from './vosk-transcription-service.js';
 
@@ -68,8 +69,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize UI state
   updateUIState('idle');
   
+  // Check for first-run Vosk setup
+  await checkVoskSetup();
+  
   console.log('ScribeCat initialized successfully');
 });
+
+/**
+ * Check if Vosk model is installed and show setup dialog if needed
+ */
+async function checkVoskSetup(): Promise<void> {
+  try {
+    const check = await window.scribeCat.transcription.vosk.model.isInstalled();
+    
+    if (!check.isInstalled) {
+      // Check if user previously skipped
+      const skipped = localStorage.getItem('vosk-setup-skipped');
+      
+      if (!skipped) {
+        const setupDialog = new VoskSetupDialog();
+        await setupDialog.show();
+      }
+    }
+  } catch (error) {
+    console.error('Error checking Vosk setup:', error);
+  }
+}
 
 /**
  * Get references to all DOM elements

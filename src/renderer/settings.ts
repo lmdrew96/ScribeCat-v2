@@ -1,3 +1,5 @@
+import { VoskSettingsSection } from './components/vosk-settings.js';
+
 /**
  * Settings Manager
  * 
@@ -9,10 +11,14 @@ export class SettingsManager {
   private modelUrlModal: HTMLElement;
   private transcriptionMode: 'simulation' | 'vosk' = 'simulation';
   private modelUrl: string = '';
+  private voskSettingsSection: VoskSettingsSection | null = null;
 
   constructor() {
     this.settingsModal = document.getElementById('settings-modal')!;
     this.modelUrlModal = document.getElementById('model-url-modal')!;
+    
+    // Initialize Vosk settings section
+    this.voskSettingsSection = new VoskSettingsSection('vosk-model-settings-container');
     
     this.initializeEventListeners();
     this.loadSettings();
@@ -130,6 +136,10 @@ export class SettingsManager {
     this.settingsModal.classList.remove('hidden');
     // Reload settings to ensure UI is up to date
     this.updateUIFromSettings();
+    // Refresh Vosk settings section
+    if (this.voskSettingsSection) {
+      this.voskSettingsSection.refresh();
+    }
   }
 
   /**

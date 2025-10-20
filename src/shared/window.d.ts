@@ -21,6 +21,19 @@ declare global {
           onResult: (callback: (result: TranscriptionResult) => void) => void;
           removeResultListener: () => void;
         };
+        vosk: {
+          startServer: () => Promise<{ success: boolean; url?: string; error?: string }>;
+          stopServer: () => Promise<{ success: boolean; error?: string }>;
+          isServerRunning: () => Promise<{ isRunning: boolean; url?: string }>;
+          model: {
+            isInstalled: () => Promise<{ isInstalled: boolean; path?: string }>;
+            getPath: () => Promise<{ path: string | null }>;
+            download: () => Promise<{ success: boolean; error?: string }>;
+            delete: () => Promise<{ success: boolean; error?: string }>;
+            onDownloadProgress: (callback: (progress: DownloadProgress) => void) => void;
+            removeDownloadProgressListener: (callback: (progress: DownloadProgress) => void) => void;
+          };
+        };
       };
       settings: {
         getSimulationMode: () => Promise<{ success: boolean; simulationMode?: boolean; error?: string }>;
@@ -51,6 +64,23 @@ interface TranscriptionResult {
   
   /** Whether this is a final result (true) or partial/interim (false) */
   isFinal: boolean;
+}
+
+/**
+ * Download progress information for Vosk model download
+ */
+interface DownloadProgress {
+  /** Current stage: 'downloading', 'extracting', or 'validating' */
+  stage: 'downloading' | 'extracting' | 'validating';
+  
+  /** Progress percentage (0-100) */
+  percent: number;
+  
+  /** Bytes downloaded (only for 'downloading' stage) */
+  downloaded?: number;
+  
+  /** Total bytes to download (only for 'downloading' stage) */
+  total?: number;
 }
 
 export {};

@@ -146,42 +146,8 @@
                     </div>
                 </section>
                 
-                <!-- Vosk Model Settings Section -->
-                <section class="settings-section" id="vosk-settings">
-                    <h3>Vosk Model Configuration</h3>
-                    
-                    <div class="form-group">
-                        <label for="model-path-display">Model URL:</label>
-                        <div class="input-with-button">
-                            <input 
-                                type="text" 
-                                id="model-path-display" 
-                                class="text-input" 
-                                placeholder="http://localhost:8000/vosk-model-small-en-us-0.15"
-                                readonly
-                            >
-                            <button id="choose-model-btn" class="secondary-btn">Edit URL</button>
-                        </div>
-                        <small class="help-text">
-                            Model must be served via HTTP. 
-                            <a href="#" id="model-help-link" class="help-link">How to set up?</a>
-                        </small>
-                    </div>
-                    
-                    <div class="model-status">
-                        <span class="status-label">Model Status:</span>
-                        <span id="model-status-indicator" class="status-indicator status-unknown">
-                            <span class="status-icon">⚠️</span>
-                            <span class="status-text">Not configured</span>
-                        </span>
-                    </div>
-                    
-                    <div class="info-box">
-                        <p><strong>Download Vosk Models:</strong></p>
-                        <p>Visit <a href="https://alphacephei.com/vosk/models" target="_blank" class="external-link">alphacephei.com/vosk/models</a></p>
-                        <p class="small-text">Recommended: vosk-model-small-en-us-0.15 (40MB, fast)</p>
-                    </div>
-                </section>
+                <!-- Vosk Model Settings Section (Dynamic) -->
+                <div id="vosk-model-settings-container"></div>
                 
                 <!-- Audio Settings Section -->
                 <section class="settings-section">
