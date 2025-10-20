@@ -6,11 +6,18 @@
  */
 
 import { AudioManager } from './audio-manager.js';
+import { SettingsManager } from './settings.js';
+// TODO: Re-enable when vosk-browser is properly configured
+// import { VoskTranscriptionService } from './vosk-transcription-service.js';
 
 // ===== State Management =====
 let audioManager: AudioManager;
+let settingsManager: SettingsManager;
+// TODO: Re-enable when vosk-browser is properly configured
+// let voskService: VoskTranscriptionService | null = null;
 let isRecording = false;
 let transcriptionSessionId: string | null = null;
+let currentTranscriptionMode: 'simulation' | 'vosk' = 'simulation';
 let elapsedTimer: number | null = null;
 let startTime: number = 0;
 let vuMeterInterval: number | null = null;
@@ -23,6 +30,7 @@ let settingsBtn: HTMLButtonElement;
 let notesEditor: HTMLElement;
 let transcriptionContainer: HTMLElement;
 let recordingStatus: HTMLElement;
+let transcriptionMode: HTMLElement;
 let elapsedTime: HTMLElement;
 let sessionInfo: HTMLElement;
 let charCount: HTMLElement;
@@ -44,6 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Initialize audio manager
   audioManager = new AudioManager();
+  
+  // Initialize settings manager
+  settingsManager = new SettingsManager();
   
   // Load microphone devices
   await loadMicrophoneDevices();
@@ -76,6 +87,7 @@ function initializeDOMReferences(): void {
   
   // Status elements
   recordingStatus = document.getElementById('recording-status') as HTMLElement;
+  transcriptionMode = document.getElementById('transcription-mode') as HTMLElement;
   elapsedTime = document.getElementById('elapsed-time') as HTMLElement;
   sessionInfo = document.getElementById('session-info') as HTMLElement;
   charCount = document.getElementById('char-count') as HTMLElement;
@@ -94,12 +106,22 @@ function initializeDOMReferences(): void {
  */
 async function loadMicrophoneDevices(): Promise<void> {
   try {
-    const devices = await audioManager.getDevices();
+    console.log('Loading microphone devices...');
+    
+    // Request permission first
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => track.stop());
+    
+    // Enumerate devices using Web API directly (no IPC needed)
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const audioInputs = devices.filter(d => d.kind === 'audioinput');
+    
+    console.log('Found devices:', audioInputs);
     
     // Clear loading option
     microphoneSelect.innerHTML = '';
     
-    if (devices.length === 0) {
+    if (audioInputs.length === 0) {
       const option = document.createElement('option');
       option.value = '';
       option.textContent = 'No microphones found';
@@ -109,21 +131,21 @@ async function loadMicrophoneDevices(): Promise<void> {
     }
     
     // Add devices to dropdown
-    devices.forEach(device => {
+    audioInputs.forEach((device, i) => {
       const option = document.createElement('option');
       option.value = device.deviceId;
-      option.textContent = device.label || `Microphone ${device.deviceId.substring(0, 8)}`;
+      option.textContent = device.label || `Microphone ${i + 1}`;
       microphoneSelect.appendChild(option);
     });
     
-    console.log(`Loaded ${devices.length} microphone device(s)`);
+    console.log(`Loaded ${audioInputs.length} microphone device(s)`);
   } catch (error) {
     console.error('Failed to load microphone devices:', error);
     microphoneSelect.innerHTML = '<option value="">Error loading devices</option>';
     microphoneSelect.disabled = true;
     
     // Show user-friendly error
-    alert('Failed to access microphone devices. Please check permissions.');
+    alert('Failed to access microphone devices. Please check permissions and grant access in system settings.');
   }
 }
 
@@ -134,10 +156,8 @@ function setupEventListeners(): void {
   // Record button
   recordBtn.addEventListener('click', handleRecordToggle);
   
-  // Settings button (placeholder)
-  settingsBtn.addEventListener('click', () => {
-    alert('Settings panel coming soon!');
-  });
+  // Settings button is handled by SettingsManager
+  // No need to add listener here
   
   // Formatting toolbar
   boldBtn.addEventListener('click', () => applyFormat('bold'));
@@ -182,8 +202,11 @@ function setupEventListeners(): void {
  * Set up transcription result listener
  */
 function setupTranscriptionListener(): void {
+  // Simulation mode listener
   window.scribeCat.transcription.simulation.onResult((result) => {
-    addTranscriptionEntry(result.timestamp, result.text);
+    if (currentTranscriptionMode === 'simulation') {
+      addTranscriptionEntry(result.timestamp, result.text);
+    }
   });
 }
 
@@ -210,7 +233,11 @@ async function startRecording(): Promise<void> {
       return;
     }
     
-    console.log('Starting recording...');
+    // Get transcription mode from settings
+    const mode = await window.scribeCat.store.get('transcription-mode') as string || 'simulation';
+    currentTranscriptionMode = mode as 'simulation' | 'vosk';
+    
+    console.log(`Starting recording with ${currentTranscriptionMode} mode...`);
     
     // Start audio recording
     await audioManager.startRecording({
@@ -220,14 +247,12 @@ async function startRecording(): Promise<void> {
       autoGainControl: true
     });
     
-    // Start transcription
-    const transcriptionResult = await window.scribeCat.transcription.simulation.start();
-    
-    if (!transcriptionResult.success) {
-      throw new Error(transcriptionResult.error || 'Failed to start transcription');
+    // Start appropriate transcription service
+    if (currentTranscriptionMode === 'simulation') {
+      await startSimulationTranscription();
+    } else {
+      await startVoskTranscription();
     }
-    
-    transcriptionSessionId = transcriptionResult.sessionId!;
     
     // Update state
     isRecording = true;
@@ -245,9 +270,69 @@ async function startRecording(): Promise<void> {
     alert(`Failed to start recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
     
     // Clean up on error
+    await cleanupRecording();
     isRecording = false;
     updateUIState('idle');
   }
+}
+
+/**
+ * Start simulation transcription
+ */
+async function startSimulationTranscription(): Promise<void> {
+  const result = await window.scribeCat.transcription.simulation.start();
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to start simulation transcription');
+  }
+  
+  transcriptionSessionId = result.sessionId!;
+}
+
+/**
+ * Start Vosk transcription
+ */
+async function startVoskTranscription(): Promise<void> {
+  // Get model URL from settings
+  const modelUrl = await window.scribeCat.store.get('vosk-model-url') as string;
+  
+  if (!modelUrl) {
+    throw new Error('Vosk model URL not configured. Please set it in Settings.');
+  }
+  
+  // Get audio stream from recorder
+  const stream = audioManager['recorder'].getAudioStream();
+  if (!stream) {
+    throw new Error('Failed to get audio stream for transcription');
+  }
+  
+  // TODO: Re-enable when vosk-browser is properly configured
+  throw new Error('Vosk transcription not yet available. Please use Simulation mode.');
+  
+  /*
+  // Initialize Vosk service if not already done
+  if (!voskService) {
+    voskService = new VoskTranscriptionService();
+  }
+  
+  // Set up result listener
+  voskService.onResult((result) => {
+    if (currentTranscriptionMode === 'vosk') {
+      addTranscriptionEntry(result.timestamp, result.text);
+    }
+  });
+  
+  // Set up error listener
+  voskService.onError((error) => {
+    console.error('Vosk error:', error);
+    alert(`Transcription error: ${error.message}`);
+  });
+  
+  // Initialize and start with the audio stream
+  await voskService.initialize({ modelPath: modelUrl });
+  const sessionId = await voskService.start(stream);
+  transcriptionSessionId = sessionId;
+  */
 }
 
 /**
@@ -257,9 +342,15 @@ async function stopRecording(): Promise<void> {
   try {
     console.log('Stopping recording...');
     
-    // Stop transcription
+    // Stop appropriate transcription service
     if (transcriptionSessionId) {
-      await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
+      if (currentTranscriptionMode === 'simulation') {
+        await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
+      }
+      // TODO: Re-enable when vosk-browser is properly configured
+      // else if (voskService) {
+      //   await voskService.stop();
+      // }
       transcriptionSessionId = null;
     }
     
@@ -289,6 +380,28 @@ async function stopRecording(): Promise<void> {
 }
 
 /**
+ * Clean up recording resources
+ */
+async function cleanupRecording(): Promise<void> {
+  try {
+    if (transcriptionSessionId) {
+      if (currentTranscriptionMode === 'simulation') {
+        await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
+      }
+      // TODO: Re-enable when vosk-browser is properly configured
+      // else if (voskService) {
+      //   await voskService.stop();
+      // }
+      transcriptionSessionId = null;
+    }
+    
+    await audioManager.stopRecording();
+  } catch (error) {
+    console.error('Error during cleanup:', error);
+  }
+}
+
+/**
  * Update UI state based on recording status
  */
 function updateUIState(state: 'idle' | 'recording'): void {
@@ -302,6 +415,11 @@ function updateUIState(state: 'idle' | 'recording'): void {
     recordingStatus.classList.remove('idle');
     recordingStatus.classList.add('recording');
     
+    // Update transcription mode display
+    const modeText = currentTranscriptionMode === 'simulation' ? 'Simulation' : 'Vosk';
+    transcriptionMode.textContent = `Mode: ${modeText}`;
+    transcriptionMode.className = `mode-indicator ${currentTranscriptionMode}`;
+    
     // Disable device selection while recording
     microphoneSelect.disabled = true;
   } else {
@@ -313,6 +431,10 @@ function updateUIState(state: 'idle' | 'recording'): void {
     recordingStatus.textContent = 'Idle';
     recordingStatus.classList.remove('recording');
     recordingStatus.classList.add('idle');
+    
+    // Clear mode display
+    transcriptionMode.textContent = '';
+    transcriptionMode.className = 'mode-indicator';
     
     // Re-enable device selection
     microphoneSelect.disabled = false;
@@ -457,9 +579,17 @@ window.addEventListener('beforeunload', () => {
   }
   
   if (transcriptionSessionId) {
-    window.scribeCat.transcription.simulation.stop(transcriptionSessionId).catch(err => {
-      console.error('Error stopping transcription on unload:', err);
-    });
+    if (currentTranscriptionMode === 'simulation') {
+      window.scribeCat.transcription.simulation.stop(transcriptionSessionId).catch(err => {
+        console.error('Error stopping transcription on unload:', err);
+      });
+    }
+    // TODO: Re-enable when vosk-browser is properly configured
+    // else if (voskService) {
+    //   voskService.stop().catch(err => {
+    //     console.error('Error stopping Vosk on unload:', err);
+    //   });
+    // }
   }
   
   window.scribeCat.transcription.simulation.removeResultListener();

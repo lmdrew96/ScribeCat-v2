@@ -26,6 +26,10 @@ declare global {
         getSimulationMode: () => Promise<{ success: boolean; simulationMode?: boolean; error?: string }>;
         setSimulationMode: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
       };
+      store: {
+        get: (key: string) => Promise<unknown>;
+        set: (key: string, value: unknown) => Promise<void>;
+      };
       // TODO: Add type declarations when features are implemented
       // files?: { ... };
       // themes?: { ... };

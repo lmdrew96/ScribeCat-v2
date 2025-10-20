@@ -14,6 +14,8 @@ import { WhisperTranscriptionService } from '../infrastructure/services/transcri
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
 import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
 import { TranscriptionResult } from './services/transcription/ITranscriptionService.js';
+import { VoskModelServer } from './services/VoskModelServer.js';
+import { VoskModelManager, DownloadProgress } from './services/VoskModelManager.js';
 import Store from 'electron-store';
 
 // ES module equivalent of __dirname
@@ -43,6 +45,8 @@ class ScribeCatApp {
   
   // Transcription services
   private simulationTranscriptionService: SimulationTranscriptionService;
+  private voskModelServer: VoskModelServer;
+  private voskModelManager: VoskModelManager;
 
   constructor() {
     // Initialize directory manager
@@ -88,6 +92,12 @@ class ScribeCatApp {
     
     // Initialize simulation transcription service
     this.simulationTranscriptionService = new SimulationTranscriptionService();
+    
+    // Initialize Vosk model server
+    this.voskModelServer = new VoskModelServer();
+    
+    // Initialize Vosk model manager
+    this.voskModelManager = new VoskModelManager();
     
     this.recordingManager = new RecordingManager();
     this.initializeApp();
@@ -426,6 +436,140 @@ class ScribeCatApp {
           success: false, 
           error: error instanceof Error ? error.message : 'Unknown error' 
         };
+      }
+    });
+    
+    // Store: Get value
+    ipcMain.handle('store:get', async (event, key: string) => {
+      try {
+        const value = (this.store as any).get(key);
+        return value;
+      } catch (error) {
+        console.error(`Failed to get store value for key "${key}":`, error);
+        return undefined;
+      }
+    });
+    
+    // Store: Set value
+    ipcMain.handle('store:set', async (event, key: string, value: unknown) => {
+      try {
+        (this.store as any).set(key, value);
+      } catch (error) {
+        console.error(`Failed to set store value for key "${key}":`, error);
+        throw error;
+      }
+    });
+    
+    // Vosk Model Server: Start server
+    ipcMain.handle('vosk:server:start', async (event, modelPath: string, port?: number) => {
+      try {
+        const serverUrl = await this.voskModelServer.start(modelPath, port);
+        return { success: true, serverUrl };
+      } catch (error) {
+        console.error('Failed to start Vosk model server:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Vosk Model Server: Stop server
+    ipcMain.handle('vosk:server:stop', async () => {
+      try {
+        await this.voskModelServer.stop();
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to stop Vosk model server:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Vosk Model Server: Check if running
+    ipcMain.handle('vosk:server:isRunning', async () => {
+      try {
+        const isRunning = this.voskModelServer.isServerRunning();
+        const serverUrl = isRunning ? this.voskModelServer.getServerUrl() : null;
+        return { success: true, isRunning, serverUrl };
+      } catch (error) {
+        console.error('Failed to check Vosk server status:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Vosk Model Manager: Check if model is installed
+    ipcMain.handle('vosk:model:isInstalled', async () => {
+      try {
+        const isInstalled = await this.voskModelManager.isModelInstalled();
+        return { success: true, isInstalled };
+      } catch (error) {
+        console.error('Failed to check model installation:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Vosk Model Manager: Get model path
+    ipcMain.handle('vosk:model:getPath', async () => {
+      try {
+        const modelPath = this.voskModelManager.getModelPath();
+        const modelsDir = this.voskModelManager.getModelsDirectory();
+        return { success: true, modelPath, modelsDir };
+      } catch (error) {
+        console.error('Failed to get model path:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Vosk Model Manager: Download model
+    ipcMain.handle('vosk:model:download', async (event) => {
+      try {
+        // Set up progress callback
+        this.voskModelManager.onProgress((progress: DownloadProgress) => {
+          event.sender.send('vosk:model:downloadProgress', progress);
+        });
+        
+        await this.voskModelManager.downloadModel();
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to download model:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Vosk Model Manager: Delete model
+    ipcMain.handle('vosk:model:delete', async () => {
+      try {
+        await this.voskModelManager.deleteModel();
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to delete model:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Clean up Vosk server on app quit
+    app.on('before-quit', async () => {
+      if (this.voskModelServer.isServerRunning()) {
+        console.log('Stopping Vosk model server before quit...');
+        await this.voskModelServer.stop();
       }
     });
   }

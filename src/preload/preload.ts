@@ -26,11 +26,32 @@ const electronAPI = {
       removeResultListener: () => {
         ipcRenderer.removeAllListeners('transcription:result');
       }
+    },
+    vosk: {
+      startServer: (modelPath: string, port?: number) => ipcRenderer.invoke('vosk:server:start', modelPath, port),
+      stopServer: () => ipcRenderer.invoke('vosk:server:stop'),
+      isServerRunning: () => ipcRenderer.invoke('vosk:server:isRunning'),
+      model: {
+        isInstalled: () => ipcRenderer.invoke('vosk:model:isInstalled'),
+        getPath: () => ipcRenderer.invoke('vosk:model:getPath'),
+        download: () => ipcRenderer.invoke('vosk:model:download'),
+        delete: () => ipcRenderer.invoke('vosk:model:delete'),
+        onDownloadProgress: (callback: (progress: any) => void) => {
+          ipcRenderer.on('vosk:model:downloadProgress', (_event: any, progress: any) => callback(progress));
+        },
+        removeDownloadProgressListener: () => {
+          ipcRenderer.removeAllListeners('vosk:model:downloadProgress');
+        }
+      }
     }
   },
   settings: {
     getSimulationMode: () => ipcRenderer.invoke('settings:get-simulation-mode'),
     setSimulationMode: (enabled: boolean) => ipcRenderer.invoke('settings:set-simulation-mode', enabled)
+  },
+  store: {
+    get: (key: string) => ipcRenderer.invoke('store:get', key),
+    set: (key: string, value: unknown) => ipcRenderer.invoke('store:set', key, value)
   }
   // TODO: Implement these features in future phases
   // files: { ... }

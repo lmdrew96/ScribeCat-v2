@@ -56,9 +56,10 @@ export class VoskTranscriptionService implements ITranscriptionService {
 
     // Future implementation will look something like:
     /*
-    const vosk = require('vosk');
-    const model = new vosk.Model(this.modelPath);
-    const recognizer = new vosk.Recognizer({ model, sampleRate: 16000 });
+    // TODO: Re-enable when vosk is properly configured
+    // const vosk = require('vosk');
+    // const model = new vosk.Model(this.modelPath);
+    // const recognizer = new vosk.Recognizer({ model, sampleRate: 16000 });
     
     // Process audio file
     const audioBuffer = await fs.readFile(audioPath);
