@@ -152,19 +152,25 @@ export class VoskSettingsSection {
         // Auto-configure model URL after successful download
         try {
           const paths = await window.scribeCat.transcription.vosk.model.getPath();
+          console.log('Model paths received:', paths);
           
-          if (paths.path) {
-            const modelUrl = `http://localhost:8765/vosk-model-en-us-0.22`;
-            
-            // Save both URL and path to settings
-            await window.scribeCat.store.set('transcription.vosk.modelUrl', modelUrl);
-            await window.scribeCat.store.set('transcription.vosk.modelPath', paths.path);
-            
-            // Start the server with the model path
-            await window.scribeCat.transcription.vosk.startServer(paths.path);
-            
-            console.log('Vosk model configured:', { modelUrl, modelPath: paths.path });
+          // Extract the actual model path string
+          const modelPath = paths.modelPath;
+          
+          if (!modelPath || typeof modelPath !== 'string') {
+            throw new Error('Invalid model path received from server');
           }
+          
+          const modelUrl = `http://localhost:8765/vosk-model-en-us-0.22`;
+          
+          // Save both URL and path to settings
+          await window.scribeCat.store.set('transcription.vosk.modelUrl', modelUrl);
+          await window.scribeCat.store.set('transcription.vosk.modelPath', modelPath);
+          
+          // Start the server with the model path
+          await window.scribeCat.transcription.vosk.startServer(modelPath);
+          
+          console.log('Vosk model configured:', { modelUrl, modelPath });
         } catch (configError) {
           console.error('Failed to auto-configure model URL:', configError);
           // Don't fail the download, just log the error

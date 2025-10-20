@@ -27,7 +27,7 @@ declare global {
           isServerRunning: () => Promise<{ isRunning: boolean; url?: string }>;
           model: {
             isInstalled: () => Promise<{ isInstalled: boolean; path?: string }>;
-            getPath: () => Promise<{ path: string | null }>;
+            getPath: () => Promise<{ success: boolean; modelPath: string; modelsDir: string; error?: string }>;
             download: () => Promise<{ success: boolean; error?: string }>;
             delete: () => Promise<{ success: boolean; error?: string }>;
             onDownloadProgress: (callback: (progress: DownloadProgress) => void) => void;

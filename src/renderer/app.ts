@@ -322,7 +322,13 @@ async function startVoskTranscription(): Promise<void> {
   const modelUrl = await window.scribeCat.store.get('transcription.vosk.modelUrl') as string;
   const modelPath = await window.scribeCat.store.get('transcription.vosk.modelPath') as string;
   
-  if (!modelUrl || !modelPath) {
+  console.log('Retrieved model path from settings:', modelPath, typeof modelPath);
+  
+  if (!modelPath || typeof modelPath !== 'string') {
+    throw new Error('Invalid model path in settings. Please re-download the model in Settings.');
+  }
+  
+  if (!modelUrl || typeof modelUrl !== 'string') {
     throw new Error('Vosk model not configured. Please download the model in Settings.');
   }
   
