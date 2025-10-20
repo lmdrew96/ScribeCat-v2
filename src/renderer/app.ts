@@ -318,18 +318,19 @@ async function startSimulationTranscription(): Promise<void> {
  * Start Vosk transcription
  */
 async function startVoskTranscription(): Promise<void> {
-  // Get model URL from settings
+  // Get model URL and path from settings
   const modelUrl = await window.scribeCat.store.get('transcription.vosk.modelUrl') as string;
+  const modelPath = await window.scribeCat.store.get('transcription.vosk.modelPath') as string;
   
-  if (!modelUrl) {
-    throw new Error('Vosk model URL not configured. Please download the model in Settings.');
+  if (!modelUrl || !modelPath) {
+    throw new Error('Vosk model not configured. Please download the model in Settings.');
   }
   
-  // Make sure server is running
+  // Make sure server is running with the correct path
   const serverStatus = await window.scribeCat.transcription.vosk.isServerRunning();
   if (!serverStatus.isRunning) {
     console.log('Vosk server not running, starting it...');
-    const startResult = await window.scribeCat.transcription.vosk.startServer();
+    const startResult = await window.scribeCat.transcription.vosk.startServer(modelPath);
     if (!startResult.success) {
       throw new Error(`Failed to start Vosk server: ${startResult.error || 'Unknown error'}`);
     }

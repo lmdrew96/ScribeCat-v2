@@ -22,7 +22,7 @@ declare global {
           removeResultListener: () => void;
         };
         vosk: {
-          startServer: () => Promise<{ success: boolean; url?: string; error?: string }>;
+          startServer: (modelPath: string, port?: number) => Promise<{ success: boolean; url?: string; error?: string }>;
           stopServer: () => Promise<{ success: boolean; error?: string }>;
           isServerRunning: () => Promise<{ isRunning: boolean; url?: string }>;
           model: {
