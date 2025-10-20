@@ -148,6 +148,23 @@ export class VoskSettingsSection {
 
       if (result.success) {
         progressText.textContent = '✅ Download complete!';
+        
+        // Auto-configure model URL after successful download
+        try {
+          const modelUrl = `http://localhost:8765/vosk-model-en-us-0.22`;
+          
+          // Save to settings
+          await window.scribeCat.store.set('transcription.vosk.modelUrl', modelUrl);
+          
+          // Start the server
+          await window.scribeCat.transcription.vosk.startServer();
+          
+          console.log('Vosk model URL configured:', modelUrl);
+        } catch (configError) {
+          console.error('Failed to auto-configure model URL:', configError);
+          // Don't fail the download, just log the error
+        }
+        
         setTimeout(() => {
           this.render(); // Re-render to show installed state
         }, 1500);

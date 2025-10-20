@@ -319,10 +319,21 @@ async function startSimulationTranscription(): Promise<void> {
  */
 async function startVoskTranscription(): Promise<void> {
   // Get model URL from settings
-  const modelUrl = await window.scribeCat.store.get('vosk-model-url') as string;
+  const modelUrl = await window.scribeCat.store.get('transcription.vosk.modelUrl') as string;
   
   if (!modelUrl) {
-    throw new Error('Vosk model URL not configured. Please set it in Settings.');
+    throw new Error('Vosk model URL not configured. Please download the model in Settings.');
+  }
+  
+  // Make sure server is running
+  const serverStatus = await window.scribeCat.transcription.vosk.isServerRunning();
+  if (!serverStatus.isRunning) {
+    console.log('Vosk server not running, starting it...');
+    const startResult = await window.scribeCat.transcription.vosk.startServer();
+    if (!startResult.success) {
+      throw new Error(`Failed to start Vosk server: ${startResult.error || 'Unknown error'}`);
+    }
+    console.log('Vosk server started successfully');
   }
   
   // Get audio stream from recorder
@@ -354,7 +365,7 @@ async function startVoskTranscription(): Promise<void> {
   });
   
   // Initialize and start with the audio stream
-  await voskService.initialize({ modelPath: modelUrl });
+  await voskService.initialize({ modelUrl: modelUrl });
   const sessionId = await voskService.start(stream);
   transcriptionSessionId = sessionId;
   */
