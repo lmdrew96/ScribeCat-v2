@@ -15,6 +15,22 @@ const electronAPI = {
   audio: {
     saveFile: (audioData: number[], fileName: string, folderPath: string) => 
       ipcRenderer.invoke('audio:save-file', audioData, fileName, folderPath)
+  },
+  transcription: {
+    simulation: {
+      start: () => ipcRenderer.invoke('transcription:simulation:start'),
+      stop: (sessionId: string) => ipcRenderer.invoke('transcription:simulation:stop', sessionId),
+      onResult: (callback: (result: any) => void) => {
+        ipcRenderer.on('transcription:result', (_event: any, result: any) => callback(result));
+      },
+      removeResultListener: () => {
+        ipcRenderer.removeAllListeners('transcription:result');
+      }
+    }
+  },
+  settings: {
+    getSimulationMode: () => ipcRenderer.invoke('settings:get-simulation-mode'),
+    setSimulationMode: (enabled: boolean) => ipcRenderer.invoke('settings:set-simulation-mode', enabled)
   }
   // TODO: Implement these features in future phases
   // files: { ... }

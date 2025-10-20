@@ -12,15 +12,24 @@ import { ExportSessionUseCase } from '../application/use-cases/ExportSessionUseC
 import { VoskTranscriptionService } from '../infrastructure/services/transcription/VoskTranscriptionService.js';
 import { WhisperTranscriptionService } from '../infrastructure/services/transcription/WhisperTranscriptionService.js';
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
+import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
+import { TranscriptionResult } from './services/transcription/ITranscriptionService.js';
+import Store from 'electron-store';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Define store schema
+interface StoreSchema {
+  'simulation-mode': boolean;
+}
+
 class ScribeCatApp {
   private mainWindow: BrowserWindow | null = null;
   private recordingManager: RecordingManager;
   private directoryManager: DirectoryManager;
+  private store: Store<StoreSchema>;
   
   // Repositories
   private sessionRepository: FileSessionRepository;
@@ -31,10 +40,20 @@ class ScribeCatApp {
   private deleteSessionUseCase: DeleteSessionUseCase;
   private transcribeAudioUseCase: TranscribeAudioUseCase;
   private exportSessionUseCase: ExportSessionUseCase;
+  
+  // Transcription services
+  private simulationTranscriptionService: SimulationTranscriptionService;
 
   constructor() {
     // Initialize directory manager
     this.directoryManager = new DirectoryManager();
+    
+    // Initialize electron-store for settings
+    this.store = new Store<StoreSchema>({
+      defaults: {
+        'simulation-mode': true // Default to simulation mode
+      }
+    });
     
     // Initialize repositories
     this.sessionRepository = new FileSessionRepository();
@@ -66,6 +85,9 @@ class ScribeCatApp {
       this.sessionRepository,
       exportServices
     );
+    
+    // Initialize simulation transcription service
+    this.simulationTranscriptionService = new SimulationTranscriptionService();
     
     this.recordingManager = new RecordingManager();
     this.initializeApp();
@@ -332,6 +354,74 @@ class ScribeCatApp {
         return { success: true, path: outPath };
       } catch (error) {
         console.error('Failed to save audio file:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Transcription: Start simulation transcription
+    ipcMain.handle('transcription:simulation:start', async () => {
+      try {
+        // Initialize if not already initialized
+        if (!this.simulationTranscriptionService.isActive()) {
+          await this.simulationTranscriptionService.initialize();
+        }
+        
+        // Set up result callback to send to renderer
+        this.simulationTranscriptionService.onResult((result: TranscriptionResult) => {
+          this.mainWindow?.webContents.send('transcription:result', result);
+        });
+        
+        // Start transcription
+        const sessionId = await this.simulationTranscriptionService.start();
+        
+        return { success: true, sessionId };
+      } catch (error) {
+        console.error('Failed to start simulation transcription:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Transcription: Stop simulation transcription
+    ipcMain.handle('transcription:simulation:stop', async (event, sessionId: string) => {
+      try {
+        await this.simulationTranscriptionService.stop(sessionId);
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to stop simulation transcription:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Settings: Get simulation mode
+    ipcMain.handle('settings:get-simulation-mode', async () => {
+      try {
+        const simulationMode = (this.store as any).get('simulation-mode', true) as boolean;
+        return { success: true, simulationMode };
+      } catch (error) {
+        console.error('Failed to get simulation mode:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Settings: Set simulation mode
+    ipcMain.handle('settings:set-simulation-mode', async (event, enabled: boolean) => {
+      try {
+        (this.store as any).set('simulation-mode', enabled);
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to set simulation mode:', error);
         return { 
           success: false, 
           error: error instanceof Error ? error.message : 'Unknown error' 

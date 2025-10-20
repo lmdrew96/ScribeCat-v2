@@ -14,6 +14,18 @@ declare global {
       audio: {
         saveFile: (audioData: number[], fileName: string, folderPath: string) => Promise<{ success: boolean; path?: string; error?: string }>;
       };
+      transcription: {
+        simulation: {
+          start: () => Promise<{ success: boolean; sessionId?: string; error?: string }>;
+          stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+          onResult: (callback: (result: TranscriptionResult) => void) => void;
+          removeResultListener: () => void;
+        };
+      };
+      settings: {
+        getSimulationMode: () => Promise<{ success: boolean; simulationMode?: boolean; error?: string }>;
+        setSimulationMode: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
+      };
       // TODO: Add type declarations when features are implemented
       // files?: { ... };
       // themes?: { ... };
@@ -21,6 +33,20 @@ declare global {
       // canvas?: { ... };
     };
   }
+}
+
+/**
+ * Transcription result from simulation or real transcription service
+ */
+interface TranscriptionResult {
+  /** The transcribed text */
+  text: string;
+  
+  /** Timestamp in seconds from start of transcription */
+  timestamp: number;
+  
+  /** Whether this is a final result (true) or partial/interim (false) */
+  isFinal: boolean;
 }
 
 export {};
