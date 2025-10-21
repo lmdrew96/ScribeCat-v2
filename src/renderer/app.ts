@@ -322,7 +322,10 @@ async function startVoskTranscription(): Promise<void> {
   const modelUrl = await window.scribeCat.store.get('transcription.vosk.modelUrl') as string;
   const modelPath = await window.scribeCat.store.get('transcription.vosk.modelPath') as string;
   
-  console.log('Retrieved model path from settings:', modelPath, typeof modelPath);
+  console.log('=== VOSK DEBUG INFO ===');
+  console.log('Model URL:', modelUrl);
+  console.log('Model Path:', modelPath);
+  console.log('Model Path Type:', typeof modelPath);
   
   if (!modelPath || typeof modelPath !== 'string') {
     throw new Error('Invalid model path in settings. Please re-download the model in Settings.');
@@ -342,6 +345,34 @@ async function startVoskTranscription(): Promise<void> {
     }
     console.log('Vosk server started successfully');
   }
+  
+  // Test if server is accessible
+  try {
+    console.log('Testing server accessibility...');
+    const testResponse = await fetch('http://localhost:8765/debug/files');
+    const debugInfo = await testResponse.json();
+    console.log('Server debug info:', debugInfo);
+    console.log('Number of files found:', debugInfo.files?.length || 0);
+  } catch (e) {
+    console.error('Server not accessible:', e);
+  }
+  
+  // Test if model config is accessible
+  console.log('Attempting to fetch model config...');
+  try {
+    const configTest = await fetch(`${modelUrl}/conf/mfcc.conf`);
+    console.log('Config fetch status:', configTest.status);
+    if (configTest.ok) {
+      const configContent = await configTest.text();
+      console.log('Config content (first 200 chars):', configContent.substring(0, 200));
+    } else {
+      console.error('Config fetch failed with status:', configTest.status);
+    }
+  } catch (e) {
+    console.error('Config fetch failed:', e);
+  }
+  
+  console.log('=== END DEBUG ===');
   
   // Get audio stream from recorder
   const stream = audioManager['recorder'].getAudioStream();

@@ -110,6 +110,12 @@ export class VoskModelServer {
       const parsedUrl = new URL(req.url || '/', `http://localhost:${this.port}`);
       let filePath = parsedUrl.pathname;
 
+      // Debug endpoint to list all files
+      if (filePath === '/debug/files') {
+        this.handleDebugFiles(res);
+        return;
+      }
+
       // Remove leading slash
       if (filePath.startsWith('/')) {
         filePath = filePath.substring(1);
@@ -175,6 +181,47 @@ export class VoskModelServer {
       console.error('Error handling request:', error);
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end('Internal server error');
+    }
+  }
+
+  /**
+   * Handle debug endpoint to list all files in model directory
+   */
+  private handleDebugFiles(res: http.ServerResponse): void {
+    try {
+      const listFiles = (dir: string, prefix = ''): string[] => {
+        const files = fs.readdirSync(dir);
+        let result: string[] = [];
+        
+        for (const file of files) {
+          const fullPath = path.join(dir, file);
+          const relativePath = prefix + file;
+          const stat = fs.statSync(fullPath);
+          
+          if (stat.isDirectory()) {
+            result.push(relativePath + '/');
+            result = result.concat(listFiles(fullPath, relativePath + '/'));
+          } else {
+            result.push(relativePath);
+          }
+        }
+        return result;
+      };
+      
+      const files = listFiles(this.modelPath);
+      
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(JSON.stringify({ 
+        modelPath: this.modelPath,
+        files: files 
+      }, null, 2));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: errorMessage }));
     }
   }
 
