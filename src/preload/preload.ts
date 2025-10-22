@@ -43,6 +43,21 @@ const electronAPI = {
           ipcRenderer.removeAllListeners('vosk:model:downloadProgress');
         }
       }
+    },
+    whisper: {
+      model: {
+        isInstalled: (modelName?: string) => ipcRenderer.invoke('whisper:model:isInstalled', modelName),
+        getPath: (modelName?: string) => ipcRenderer.invoke('whisper:model:getPath', modelName),
+        download: (modelName?: string) => ipcRenderer.invoke('whisper:model:download', modelName),
+        delete: (modelName?: string) => ipcRenderer.invoke('whisper:model:delete', modelName),
+        getAvailable: () => ipcRenderer.invoke('whisper:model:getAvailable'),
+        onDownloadProgress: (callback: (progress: any) => void) => {
+          ipcRenderer.on('whisper:model:downloadProgress', (_event: any, progress: any) => callback(progress));
+        },
+        removeDownloadProgressListener: () => {
+          ipcRenderer.removeAllListeners('whisper:model:downloadProgress');
+        }
+      }
     }
   },
   settings: {

@@ -31,6 +31,7 @@
   "dependencies": {
     "electron-store": "^11.0.2",
     "unzipper": "^0.12.3",
-    "vosk-browser": "^0.0.8"
+    "vosk-browser": "^0.0.8",
+    "whisper-node": "^1.1.1"
   }
 }

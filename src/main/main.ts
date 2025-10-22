@@ -16,6 +16,7 @@ import { SimulationTranscriptionService } from './services/transcription/Simulat
 import { TranscriptionResult } from './services/transcription/ITranscriptionService.js';
 import { VoskModelServer } from './services/VoskModelServer.js';
 import { VoskModelManager, DownloadProgress } from './services/VoskModelManager.js';
+import { WhisperModelManager } from './services/WhisperModelManager.js';
 import Store from 'electron-store';
 
 // ES module equivalent of __dirname
@@ -47,6 +48,7 @@ class ScribeCatApp {
   private simulationTranscriptionService: SimulationTranscriptionService;
   private voskModelServer: VoskModelServer;
   private voskModelManager: VoskModelManager;
+  private whisperModelManager: WhisperModelManager;
 
   constructor() {
     // Initialize directory manager
@@ -98,6 +100,9 @@ class ScribeCatApp {
     
     // Initialize Vosk model manager
     this.voskModelManager = new VoskModelManager();
+    
+    // Initialize Whisper model manager
+    this.whisperModelManager = new WhisperModelManager();
     
     this.recordingManager = new RecordingManager();
     this.initializeApp();
@@ -558,6 +563,82 @@ class ScribeCatApp {
         return { success: true };
       } catch (error) {
         console.error('Failed to delete model:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Whisper Model Manager: Check if model is installed
+    ipcMain.handle('whisper:model:isInstalled', async (event, modelName) => {
+      try {
+        const isInstalled = await this.whisperModelManager.isModelInstalled(modelName || 'base');
+        return { success: true, isInstalled };
+      } catch (error) {
+        console.error('Failed to check Whisper model:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Whisper Model Manager: Get model path
+    ipcMain.handle('whisper:model:getPath', async (event, modelName) => {
+      try {
+        const modelPath = this.whisperModelManager.getModelPath(modelName || 'base');
+        const modelsDir = this.whisperModelManager.getModelsDirectory();
+        return { success: true, modelPath, modelsDir };
+      } catch (error) {
+        console.error('Failed to get Whisper model path:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Whisper Model Manager: Download model
+    ipcMain.handle('whisper:model:download', async (event, modelName) => {
+      try {
+        // Set up progress callback
+        this.whisperModelManager.onProgress((progress) => {
+          event.sender.send('whisper:model:downloadProgress', progress);
+        });
+        
+        await this.whisperModelManager.downloadModel(modelName || 'base');
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to download Whisper model:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Whisper Model Manager: Delete model
+    ipcMain.handle('whisper:model:delete', async (event, modelName) => {
+      try {
+        await this.whisperModelManager.deleteModel(modelName || 'base');
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to delete Whisper model:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Whisper Model Manager: Get available models
+    ipcMain.handle('whisper:model:getAvailable', async () => {
+      try {
+        const models = this.whisperModelManager.getAvailableModels();
+        return { success: true, models };
+      } catch (error) {
+        console.error('Failed to get available models:', error);
         return { 
           success: false, 
           error: error instanceof Error ? error.message : 'Unknown error' 
