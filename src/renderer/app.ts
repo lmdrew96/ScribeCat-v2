@@ -290,12 +290,13 @@ async function startRecording(): Promise<void> {
     console.log('Recording started successfully');
   } catch (error) {
     console.error('Failed to start recording:', error);
-    alert(`Failed to start recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
     
-    // Clean up on error
+    // IMPORTANT: Clean up on error to prevent "already recording" state
     await cleanupRecording();
     isRecording = false;
     updateUIState('idle');
+    
+    alert(`Failed to start recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

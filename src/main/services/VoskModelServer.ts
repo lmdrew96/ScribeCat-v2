@@ -138,11 +138,12 @@ export class VoskModelServer {
         return;
       }
 
-      // Check if it's a file (not a directory)
+      // Check if it's a file or directory
       const stats = fs.statSync(fullPath);
-      if (!stats.isFile()) {
-        res.writeHead(403, { 'Content-Type': 'text/plain' });
-        res.end('Forbidden: Not a file');
+      
+      // If it's a directory, serve a simple index
+      if (stats.isDirectory()) {
+        this.handleDirectoryListing(fullPath, filePath, res);
         return;
       }
 
@@ -181,6 +182,37 @@ export class VoskModelServer {
       console.error('Error handling request:', error);
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end('Internal server error');
+    }
+  }
+
+  /**
+   * Handle directory listing
+   */
+  private handleDirectoryListing(fullPath: string, relativePath: string, res: http.ServerResponse): void {
+    try {
+      const files = fs.readdirSync(fullPath);
+      const fileList = files.map(file => {
+        const filePath = path.join(fullPath, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          isDirectory: stats.isDirectory(),
+          size: stats.size
+        };
+      });
+
+      // Enable CORS
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        path: relativePath || '/',
+        files: fileList
+      }, null, 2));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end(`Error listing directory: ${errorMessage}`);
     }
   }
 
