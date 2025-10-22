@@ -22,9 +22,9 @@ declare global {
           removeResultListener: () => void;
         };
         vosk: {
-          startServer: (modelPath: string, port?: number) => Promise<{ success: boolean; url?: string; error?: string }>;
+          startServer: (modelPath: string, port?: number) => Promise<{ success: boolean; serverUrl?: string; error?: string }>;
           stopServer: () => Promise<{ success: boolean; error?: string }>;
-          isServerRunning: () => Promise<{ isRunning: boolean; url?: string }>;
+          isServerRunning: () => Promise<{ success: boolean; isRunning: boolean; serverUrl?: string; error?: string }>;
           model: {
             isInstalled: () => Promise<{ isInstalled: boolean; path?: string }>;
             getPath: () => Promise<{ success: boolean; modelPath: string; modelsDir: string; error?: string }>;

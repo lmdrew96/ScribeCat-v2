@@ -320,45 +320,78 @@ async function startSimulationTranscription(): Promise<void> {
 async function startVoskTranscription(): Promise<void> {
   const modelPath = await window.scribeCat.store.get('transcription.vosk.modelPath') as string;
   
+  console.log('=== VOSK STARTUP DEBUG ===');
+  console.log('Model Path:', modelPath);
+  
   if (!modelPath || typeof modelPath !== 'string') {
-    throw new Error('Invalid model path in settings. Please re-download the model in Settings.');
+    throw new Error('Vosk model path not configured. Please download a model in Settings.');
   }
   
-  // Make sure server is running
+  // Check if server is already running
+  console.log('Checking server status...');
   const serverStatus = await window.scribeCat.transcription.vosk.isServerRunning();
+  console.log('Server status:', serverStatus);
   
   let serverUrl: string;
+  
+  if (!serverStatus.success) {
+    throw new Error(`Failed to check server status: ${serverStatus.error || 'Unknown error'}`);
+  }
+  
   if (!serverStatus.isRunning) {
-    console.log('Vosk server not running, starting it...');
+    console.log('Server not running, starting it with path:', modelPath);
+    
+    // Start the server
     const startResult = await window.scribeCat.transcription.vosk.startServer(modelPath);
+    console.log('Start server result:', startResult);
+    
     if (!startResult.success) {
       throw new Error(`Failed to start Vosk server: ${startResult.error || 'Unknown error'}`);
     }
-    serverUrl = startResult.url!; // This is http://localhost:8765
+    
+    if (!startResult.serverUrl) {
+      console.error('Server started but no URL returned. Full result:', startResult);
+      throw new Error('Server started but no URL returned');
+    }
+    
+    serverUrl = startResult.serverUrl;
+    console.log('Server started successfully at:', serverUrl);
   } else {
-    serverUrl = serverStatus.url!; // This is http://localhost:8765
+    if (!serverStatus.serverUrl) {
+      throw new Error('Server is running but no URL available');
+    }
+    serverUrl = serverStatus.serverUrl;
+    console.log('Using already-running server at:', serverUrl);
   }
   
-  // NOW serverUrl is correct: http://localhost:8765
-  console.log('Using server URL:', serverUrl);
-  
-  // Test if server is accessible
+  // Verify server is accessible
+  console.log('Testing server accessibility...');
   try {
     const testResponse = await fetch(`${serverUrl}/debug/files`);
+    if (!testResponse.ok) {
+      throw new Error(`Server returned status ${testResponse.status}`);
+    }
     const debugInfo = await testResponse.json();
-    console.log('Server debug info:', debugInfo);
-    console.log('Number of files found:', debugInfo.files?.length || 0);
+    console.log('Server accessible! Files found:', debugInfo.files?.length || 0);
   } catch (e) {
-    throw new Error('Vosk server started but not accessible');
+    const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+    throw new Error(`Vosk server not accessible: ${errorMsg}`);
   }
   
   // Test if model config is accessible
-  const configTest = await fetch(`${serverUrl}/conf/mfcc.conf`);
-  if (!configTest.ok) {
-    throw new Error(`Model files not accessible. Status: ${configTest.status}`);
+  console.log('Testing model config...');
+  try {
+    const configTest = await fetch(`${serverUrl}/conf/mfcc.conf`);
+    if (!configTest.ok) {
+      throw new Error(`Config file not found (status ${configTest.status})`);
+    }
+    console.log('Model config verified!');
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+    throw new Error(`Model files not accessible: ${errorMsg}`);
   }
   
-  console.log('Vosk server and model verified successfully');
+  console.log('=== VOSK VERIFIED SUCCESSFULLY ===');
   
   // Get audio stream from recorder
   const stream = audioManager['recorder'].getAudioStream();
@@ -367,9 +400,8 @@ async function startVoskTranscription(): Promise<void> {
   }
   
   // TODO: Initialize vosk-browser with serverUrl
-  // const model = await createModel(serverUrl);
-  
-  throw new Error('Vosk transcription not yet available. Please use Simulation mode.');
+  // For now, throw error since vosk-browser isn't set up yet
+  throw new Error('Vosk transcription service ready but vosk-browser not yet integrated. Server is running at: ' + serverUrl);
   
   /*
   // Initialize Vosk service if not already done
