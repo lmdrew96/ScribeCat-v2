@@ -5,11 +5,14 @@
  * Processes audio in chunks and emits results via callback.
  */
 
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, exec } from 'child_process';
+import { promisify } from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { TranscriptionResult, ITranscriptionService, TranscriptionConfig } from './ITranscriptionService.js';
+
+const execAsync = promisify(exec);
 
 /**
  * Whisper Transcription Service
@@ -203,36 +206,157 @@ export class WhisperTranscriptionService implements ITranscriptionService {
   }
 
   /**
-   * Transcribe an audio file using whisper.cpp
+   * Transcribe an audio file using whisper-cli
    * @param audioPath Path to audio file
    * @returns Transcribed text
    */
   private async transcribeFile(audioPath: string): Promise<string> {
+    console.log('[Whisper] transcribeFile() called for:', audioPath);
+    
     return new Promise((resolve, reject) => {
-      // whisper-node uses whisper.cpp under the hood
-      // We need to spawn the whisper executable directly
+      // Try multiple possible paths for whisper-cli binary
+      const possibleCommands = [
+        '/opt/homebrew/bin/whisper-cli',  // Homebrew on Apple Silicon
+        '/opt/homebrew/Cellar/whisper-cpp/1.8.2/bin/whisper-cli',  // Specific version
+        '/usr/local/bin/whisper-cli',  // Homebrew on Intel Mac
+        'whisper-cli',  // If in PATH
+      ];
       
-      // For now, use a simple Node.js approach with whisper-node package
-      // This is a placeholder - we'll need to adapt based on whisper-node's actual API
-      
-      try {
-        const { whisper } = require('whisper-node');
-        
-        whisper(audioPath, {
-          modelPath: this.modelPath,
-          language: 'en',
-          outputFormat: 'txt'
-        })
-          .then((result: string) => {
-            resolve(result.trim());
-          })
-          .catch((error: Error) => {
-            reject(error);
-          });
-      } catch (error) {
-        reject(error);
+      let whisperBinary: string | null = null;
+      for (const cmd of possibleCommands) {
+        try {
+          if (fs.existsSync(cmd)) {
+            whisperBinary = cmd;
+            console.log('[Whisper] Found binary at:', whisperBinary);
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
       }
+      
+      // Fallback to 'whisper-cli' if file checks failed (might still be in PATH)
+      if (!whisperBinary) {
+        whisperBinary = 'whisper-cli';
+        console.log('[Whisper] Using binary from PATH: whisper-cli');
+      }
+      
+      // Build command - whisper-cli uses different flags than whisper-cpp
+      const outputBase = audioPath.replace('.wav', '');
+      const command = `${whisperBinary} -m "${this.modelPath}" -f "${audioPath}" --output-txt --output-file "${outputBase}"`;
+      
+      console.log('[Whisper] Executing:', command);
+      
+      exec(command, { 
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: 60000 // 60 second timeout
+      }, (error, stdout, stderr) => {
+        console.log('[Whisper] Command completed');
+        console.log('[Whisper] stdout:', stdout);
+        if (stderr) console.log('[Whisper] stderr:', stderr);
+        
+        if (error) {
+          console.error('[Whisper] Command failed:', error.message);
+          
+          // Check if it's a "not found" error
+          if (error.message.includes('not found') || error.message.includes('ENOENT') || error.code === 127) {
+            reject(new Error('whisper-cli not found. Install: brew install whisper-cpp'));
+          } else {
+            reject(new Error(`Whisper failed: ${error.message}`));
+          }
+          return;
+        }
+        
+        // Whisper outputs to a .txt file
+        const txtFile = audioPath.replace('.wav', '.txt');
+        
+        console.log('[Whisper] Looking for output file:', txtFile);
+        
+        if (fs.existsSync(txtFile)) {
+          try {
+            const transcription = fs.readFileSync(txtFile, 'utf-8').trim();
+            
+            // Clean up temp files
+            fs.unlinkSync(txtFile);
+            
+            console.log('[Whisper] Transcription result:', transcription);
+            
+            if (transcription && transcription.length > 0) {
+              resolve(transcription);
+            } else {
+              reject(new Error('Empty transcription result'));
+            }
+          } catch (e) {
+            console.error('[Whisper] Error reading transcription file:', e);
+            reject(e as Error);
+          }
+        } else {
+          // Try parsing from stdout
+          console.log('[Whisper] Output file not found, parsing stdout');
+          
+          // whisper-cli outputs the transcription in stdout
+          // Filter out the progress/info lines that start with [
+          const lines = stdout.split('\n');
+          const transcription = lines
+            .filter(line => !line.trim().startsWith('[') && line.trim().length > 0)
+            .join(' ')
+            .trim();
+          
+          console.log('[Whisper] Transcription from stdout:', transcription);
+          
+          if (transcription && transcription.length > 0) {
+            resolve(transcription);
+          } else {
+            reject(new Error('No transcription output found. Check that audio file has speech.'));
+          }
+        }
+      });
     });
+  }
+
+  /**
+   * Fallback method using whisper-node package
+   */
+  private async tryWhisperNode(audioPath: string): Promise<string> {
+    console.log('[Whisper] Trying whisper-node package...');
+    
+    try {
+      // Dynamic import for ES modules
+      // @ts-ignore - whisper-node doesn't have type definitions
+      const whisperModule = await import('whisper-node');
+      const whisper = (whisperModule as any).default || whisperModule;
+      
+      console.log('[Whisper] whisper-node loaded');
+      
+      if (!whisper || typeof whisper !== 'function') {
+        throw new Error('whisper-node not properly exported');
+      }
+      
+      const result = await whisper(audioPath, {
+        modelPath: this.modelPath,
+        language: 'en',
+        whisperOptions: {
+          outputFormat: ['txt']
+        }
+      });
+      
+      console.log('[Whisper] whisper-node result:', result);
+      
+      // Result format varies by version
+      if (typeof result === 'string') {
+        return result.trim();
+      } else if (result && result.transcription) {
+        return result.transcription.trim();
+      } else if (Array.isArray(result) && result.length > 0) {
+        return result.map((r: any) => r.text || r).join(' ').trim();
+      }
+      
+      throw new Error('Unexpected result format from whisper-node');
+      
+    } catch (error) {
+      console.error('[Whisper] whisper-node failed:', error);
+      throw new Error(`Both whisper-cpp and whisper-node failed. Please install whisper.cpp: brew install whisper-cpp`);
+    }
   }
 
   /**

@@ -9,9 +9,10 @@ import { VoskSettingsSection } from './components/vosk-settings.js';
 export class SettingsManager {
   private settingsModal: HTMLElement;
   private modelUrlModal: HTMLElement;
-  private transcriptionMode: 'simulation' | 'vosk' = 'simulation';
+  private transcriptionMode: 'simulation' | 'vosk' | 'whisper' = 'simulation';
   private modelUrl: string = '';
   private voskSettingsSection: VoskSettingsSection | null = null;
+  private whisperDownloadInProgress: boolean = false;
 
   constructor() {
     this.settingsModal = document.getElementById('settings-modal')!;
@@ -77,9 +78,13 @@ export class SettingsManager {
     modeRadios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         const target = e.target as HTMLInputElement;
-        this.updateVoskSettingsVisibility(target.value as 'simulation' | 'vosk');
+        this.updateSettingsSectionsVisibility(target.value as 'simulation' | 'vosk' | 'whisper');
       });
     });
+    
+    // Whisper download button
+    const downloadWhisperBtn = document.getElementById('download-whisper-model');
+    downloadWhisperBtn?.addEventListener('click', () => this.downloadWhisperModel());
   }
 
   /**
@@ -120,8 +125,8 @@ export class SettingsManager {
       modelPathDisplay.value = this.modelUrl;
     }
 
-    // Update Vosk settings visibility
-    this.updateVoskSettingsVisibility(this.transcriptionMode);
+    // Update settings sections visibility
+    this.updateSettingsSectionsVisibility(this.transcriptionMode);
 
     // Validate model if URL is set
     if (this.modelUrl) {
@@ -140,6 +145,8 @@ export class SettingsManager {
     if (this.voskSettingsSection) {
       this.voskSettingsSection.refresh();
     }
+    // Check Whisper model status
+    setTimeout(() => this.checkWhisperModelStatus(), 100);
   }
 
   /**
@@ -164,7 +171,7 @@ export class SettingsManager {
       await window.scribeCat.store.set('transcription-mode', mode);
       await window.scribeCat.store.set('vosk-model-url', this.modelUrl);
 
-      this.transcriptionMode = mode as 'simulation' | 'vosk';
+      this.transcriptionMode = mode as 'simulation' | 'vosk' | 'whisper';
 
       // Show confirmation
       this.showNotification('Settings saved successfully!', 'success');
@@ -268,10 +275,13 @@ export class SettingsManager {
   }
 
   /**
-   * Update Vosk settings section visibility
+   * Update settings sections visibility based on selected mode
    */
-  private updateVoskSettingsVisibility(mode: 'simulation' | 'vosk'): void {
+  private updateSettingsSectionsVisibility(mode: 'simulation' | 'vosk' | 'whisper'): void {
     const voskSettings = document.getElementById('vosk-settings');
+    const whisperSettings = document.getElementById('whisper-settings');
+    
+    // Update Vosk settings visibility
     if (voskSettings) {
       if (mode === 'vosk') {
         voskSettings.style.opacity = '1';
@@ -280,6 +290,109 @@ export class SettingsManager {
         voskSettings.style.opacity = '0.5';
         voskSettings.style.pointerEvents = 'none';
       }
+    }
+    
+    // Update Whisper settings visibility
+    if (whisperSettings) {
+      if (mode === 'whisper') {
+        whisperSettings.classList.add('active');
+      } else {
+        whisperSettings.classList.remove('active');
+      }
+    }
+  }
+  
+  /**
+   * Check Whisper model status
+   */
+  private async checkWhisperModelStatus(): Promise<void> {
+    const statusEl = document.getElementById('whisper-model-status');
+    const downloadBtn = document.getElementById('download-whisper-model') as HTMLButtonElement;
+    
+    if (!statusEl || !downloadBtn) return;
+    
+    try {
+      statusEl.textContent = 'Checking...';
+      
+      const result = await window.scribeCat.transcription.whisper.model.isInstalled('base');
+      
+      if (result.isInstalled) {
+        statusEl.textContent = '✅ Installed';
+        statusEl.style.color = '#27ae60';
+        downloadBtn.textContent = 'Re-download Model';
+      } else {
+        statusEl.textContent = '❌ Not installed';
+        statusEl.style.color = '#e74c3c';
+        downloadBtn.textContent = 'Download Base Model (~142MB)';
+      }
+    } catch (error) {
+      console.error('Error checking Whisper model status:', error);
+      statusEl.textContent = '⚠️ Error checking status';
+      statusEl.style.color = '#f39c12';
+    }
+  }
+  
+  /**
+   * Download Whisper model
+   */
+  private async downloadWhisperModel(): Promise<void> {
+    if (this.whisperDownloadInProgress) return;
+    
+    const downloadBtn = document.getElementById('download-whisper-model') as HTMLButtonElement;
+    const statusEl = document.getElementById('whisper-model-status');
+    const progressContainer = document.getElementById('whisper-download-progress');
+    const progressFill = document.getElementById('whisper-progress-fill') as HTMLElement;
+    const progressText = document.getElementById('whisper-progress-text');
+    
+    if (!downloadBtn || !statusEl || !progressContainer || !progressFill || !progressText) return;
+    
+    try {
+      this.whisperDownloadInProgress = true;
+      
+      // Disable button and show progress
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = 'Downloading...';
+      progressContainer.style.display = 'block';
+      statusEl.textContent = 'Downloading...';
+      statusEl.style.color = '#007acc';
+      
+      // Set up progress listener
+      window.scribeCat.transcription.whisper.model.onDownloadProgress((progress) => {
+        const percentage = progress.percent.toFixed(1);
+        progressFill.style.width = `${progress.percent}%`;
+        progressText.textContent = `${percentage}%`;
+      });
+      
+      // Download model
+      await window.scribeCat.transcription.whisper.model.download('base');
+      
+      // Success!
+      statusEl.textContent = '✅ Installed';
+      statusEl.style.color = '#27ae60';
+      downloadBtn.textContent = 'Re-download Model';
+      progressText.textContent = 'Download complete!';
+      
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+        progressFill.style.width = '0%';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error downloading Whisper model:', error);
+      statusEl.textContent = '❌ Download failed';
+      statusEl.style.color = '#e74c3c';
+      downloadBtn.textContent = 'Retry Download';
+      progressText.textContent = 'Error: ' + (error as Error).message;
+      
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+        progressFill.style.width = '0%';
+      }, 3000);
+      
+    } finally {
+      downloadBtn.disabled = false;
+      this.whisperDownloadInProgress = false;
+      window.scribeCat.transcription.whisper.model.removeDownloadProgressListener();
     }
   }
 
@@ -347,7 +460,7 @@ For more details, see the documentation.
   /**
    * Get current transcription mode
    */
-  public getTranscriptionMode(): 'simulation' | 'vosk' {
+  public getTranscriptionMode(): 'simulation' | 'vosk' | 'whisper' {
     return this.transcriptionMode;
   }
 

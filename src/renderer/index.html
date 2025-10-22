@@ -132,18 +132,56 @@
                             <input type="radio" name="transcription-mode" value="simulation" id="mode-simulation" checked>
                             <span class="radio-text">
                                 <strong>Simulation Mode</strong>
-                                <small>Uses simulated transcription for testing (no model required)</small>
+                                <small>Testing mode with fake transcription</small>
+                            </span>
+                        </label>
+                        
+                        <label class="radio-label">
+                            <input type="radio" name="transcription-mode" value="whisper" id="mode-whisper">
+                            <span class="radio-text">
+                                <strong>Whisper</strong>
+                                <small>Offline, high accuracy (~2-5s delay)</small>
                             </span>
                         </label>
                         
                         <label class="radio-label">
                             <input type="radio" name="transcription-mode" value="vosk" id="mode-vosk">
                             <span class="radio-text">
-                                <strong>Real Vosk Transcription</strong>
-                                <small>Uses Vosk for real-time speech-to-text (requires model)</small>
+                                <strong>Vosk</strong>
+                                <small>Real-time, experimental</small>
                             </span>
                         </label>
                     </div>
+                    <p class="help-text">
+                        Simulation mode is for testing. Whisper provides excellent accuracy offline. 
+                        Vosk is faster but less accurate.
+                    </p>
+                </section>
+                
+                <!-- Whisper Model Management Section -->
+                <section class="settings-section" id="whisper-settings">
+                    <h3>Whisper Model</h3>
+                    <div class="model-status-container">
+                        <div class="status-row">
+                            <label>Status:</label>
+                            <span id="whisper-model-status" class="status-text">Checking...</span>
+                        </div>
+                        <div class="button-row">
+                            <button id="download-whisper-model" class="button button-primary" type="button">
+                                Download Base Model (~142MB)
+                            </button>
+                        </div>
+                    </div>
+                    <div id="whisper-download-progress" class="progress-container" style="display: none;">
+                        <div class="progress-bar">
+                            <div id="whisper-progress-fill" class="progress-fill"></div>
+                        </div>
+                        <span id="whisper-progress-text" class="progress-text">0%</span>
+                    </div>
+                    <p class="help-text">
+                        The base model provides excellent transcription accuracy for English. 
+                        Download once and use offline.
+                    </p>
                 </section>
                 
                 <!-- Vosk Model Settings Section (Dynamic) -->
