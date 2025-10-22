@@ -45,6 +45,10 @@ const electronAPI = {
       }
     },
     whisper: {
+      start: (modelPath: string) => ipcRenderer.invoke('transcription:whisper:start', modelPath),
+      stop: (sessionId: string) => ipcRenderer.invoke('transcription:whisper:stop', sessionId),
+      processAudio: (sessionId: string, audioData: number[]) => 
+        ipcRenderer.invoke('transcription:whisper:processAudio', sessionId, audioData),
       model: {
         isInstalled: (modelName?: string) => ipcRenderer.invoke('whisper:model:isInstalled', modelName),
         getPath: (modelName?: string) => ipcRenderer.invoke('whisper:model:getPath', modelName),

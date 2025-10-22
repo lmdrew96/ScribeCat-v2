@@ -314,6 +314,43 @@ async function startSimulationTranscription(): Promise<void> {
 }
 
 /**
+ * Start Whisper transcription
+ */
+async function startWhisperTranscription(): Promise<void> {
+  // Get model path
+  const pathResult = await window.scribeCat.transcription.whisper.model.getPath('base');
+  
+  if (!pathResult.success) {
+    throw new Error('Failed to get Whisper model path');
+  }
+  
+  const modelPath = pathResult.modelPath;
+  
+  // Check if model is installed
+  const installedCheck = await window.scribeCat.transcription.whisper.model.isInstalled('base');
+  if (!installedCheck.isInstalled) {
+    throw new Error('Whisper model not installed. Please download it in Settings.');
+  }
+  
+  console.log('Starting Whisper transcription with model:', modelPath);
+  
+  // Start transcription
+  const result = await window.scribeCat.transcription.whisper.start(modelPath);
+  
+  if (!result.success) {
+    throw new Error(`Failed to start Whisper: ${result.error}`);
+  }
+  
+  transcriptionSessionId = result.sessionId!;
+  
+  // Note: Audio streaming to Whisper will be handled separately
+  // Whisper processes longer chunks (5-10 seconds) unlike Vosk
+  // For now, we'll need to implement audio chunk buffering and sending
+  
+  console.log('Whisper transcription started:', transcriptionSessionId);
+}
+
+/**
  * Start Vosk transcription
  */
 async function startVoskTranscription(): Promise<void> {

@@ -34,6 +34,20 @@ declare global {
             removeDownloadProgressListener: (callback: (progress: DownloadProgress) => void) => void;
           };
         };
+        whisper: {
+          start: (modelPath: string) => Promise<{ success: boolean; sessionId?: string; error?: string }>;
+          stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+          processAudio: (sessionId: string, audioData: number[]) => Promise<{ success: boolean; error?: string }>;
+          model: {
+            isInstalled: (modelName?: string) => Promise<{ success: boolean; isInstalled: boolean; error?: string }>;
+            getPath: (modelName?: string) => Promise<{ success: boolean; modelPath: string; modelsDir: string; error?: string }>;
+            download: (modelName?: string) => Promise<{ success: boolean; error?: string }>;
+            delete: (modelName?: string) => Promise<{ success: boolean; error?: string }>;
+            getAvailable: () => Promise<{ success: boolean; models: Array<{ name: string; size: string; description: string }>; error?: string }>;
+            onDownloadProgress: (callback: (progress: DownloadProgress) => void) => void;
+            removeDownloadProgressListener: () => void;
+          };
+        };
       };
       settings: {
         getSimulationMode: () => Promise<{ success: boolean; simulationMode?: boolean; error?: string }>;

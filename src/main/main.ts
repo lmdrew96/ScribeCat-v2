@@ -13,6 +13,7 @@ import { VoskTranscriptionService } from '../infrastructure/services/transcripti
 import { WhisperTranscriptionService } from '../infrastructure/services/transcription/WhisperTranscriptionService.js';
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
 import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
+import { WhisperTranscriptionService as WhisperTranscriptionServiceLocal } from './services/transcription/WhisperTranscriptionService.js';
 import { TranscriptionResult } from './services/transcription/ITranscriptionService.js';
 import { VoskModelServer } from './services/VoskModelServer.js';
 import { VoskModelManager, DownloadProgress } from './services/VoskModelManager.js';
@@ -49,6 +50,7 @@ class ScribeCatApp {
   private voskModelServer: VoskModelServer;
   private voskModelManager: VoskModelManager;
   private whisperModelManager: WhisperModelManager;
+  private activeWhisperServices: Map<string, WhisperTranscriptionServiceLocal>;
 
   constructor() {
     // Initialize directory manager
@@ -103,6 +105,9 @@ class ScribeCatApp {
     
     // Initialize Whisper model manager
     this.whisperModelManager = new WhisperModelManager();
+    
+    // Initialize active Whisper services map
+    this.activeWhisperServices = new Map();
     
     this.recordingManager = new RecordingManager();
     this.initializeApp();
@@ -639,6 +644,73 @@ class ScribeCatApp {
         return { success: true, models };
       } catch (error) {
         console.error('Failed to get available models:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Whisper Transcription: Start
+    ipcMain.handle('transcription:whisper:start', async (event, modelPath: string) => {
+      try {
+        const whisperService = new WhisperTranscriptionServiceLocal();
+        await whisperService.initialize({ modelPath });
+        
+        // Set up result callback
+        whisperService.onResult((result: TranscriptionResult) => {
+          event.sender.send('transcription:result', result);
+        });
+        
+        const sessionId = await whisperService.start();
+        
+        // Store service for audio processing
+        this.activeWhisperServices.set(sessionId, whisperService);
+        
+        return { success: true, sessionId };
+      } catch (error) {
+        console.error('Failed to start Whisper transcription:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Whisper Transcription: Process audio chunk
+    ipcMain.handle('transcription:whisper:processAudio', async (event, sessionId: string, audioData: number[]) => {
+      try {
+        const service = this.activeWhisperServices.get(sessionId);
+        if (!service) {
+          throw new Error('Session not found');
+        }
+        
+        const buffer = Buffer.from(audioData);
+        await service.processAudioChunk(buffer);
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to process audio:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    });
+    
+    // Whisper Transcription: Stop
+    ipcMain.handle('transcription:whisper:stop', async (event, sessionId: string) => {
+      try {
+        const service = this.activeWhisperServices.get(sessionId);
+        if (service) {
+          await service.stop(sessionId);
+          service.dispose();
+          this.activeWhisperServices.delete(sessionId);
+        }
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to stop Whisper transcription:', error);
         return { 
           success: false, 
           error: error instanceof Error ? error.message : 'Unknown error' 
