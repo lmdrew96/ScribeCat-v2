@@ -26,9 +26,11 @@ export class AudioAnalyzerService {
   private audioContext: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
+  private scriptProcessor: ScriptProcessorNode | null = null;
   private updateIntervalId: number | null = null;
   private isAnalyzing: boolean = false;
   private currentLevel: number = 0;
+  private audioDataCallback: ((data: Float32Array) => void) | null = null;
 
   /**
    * Initialize analyzer with audio stream
@@ -163,6 +165,51 @@ export class AudioAnalyzerService {
   }
 
   /**
+   * Set callback for raw audio data streaming
+   * Used for sending audio to transcription services
+   */
+  onAudioData(callback: (data: Float32Array) => void): void {
+    if (!this.isAnalyzing || !this.audioContext || !this.sourceNode) {
+      throw new Error('Analyzer not initialized. Call initialize() first.');
+    }
+
+    this.audioDataCallback = callback;
+
+    // Create script processor if not already created
+    if (!this.scriptProcessor) {
+      this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      
+      this.scriptProcessor.onaudioprocess = (event) => {
+        if (this.audioDataCallback) {
+          const audioData = event.inputBuffer.getChannelData(0);
+          this.audioDataCallback(new Float32Array(audioData));
+        }
+      };
+
+      // Connect: source -> analyzer -> scriptProcessor -> destination
+      if (this.analyserNode) {
+        this.analyserNode.connect(this.scriptProcessor);
+        this.scriptProcessor.connect(this.audioContext.destination);
+      }
+    }
+
+    console.log('Audio data streaming enabled');
+  }
+
+  /**
+   * Remove audio data callback
+   */
+  removeAudioDataCallback(): void {
+    this.audioDataCallback = null;
+    
+    if (this.scriptProcessor) {
+      this.scriptProcessor.disconnect();
+      this.scriptProcessor = null;
+      console.log('Audio data streaming disabled');
+    }
+  }
+
+  /**
    * Check if analyzer is active
    */
   isActive(): boolean {
@@ -181,6 +228,7 @@ export class AudioAnalyzerService {
    */
   cleanup(): void {
     this.stopMonitoring();
+    this.removeAudioDataCallback();
 
     if (this.sourceNode) {
       this.sourceNode.disconnect();

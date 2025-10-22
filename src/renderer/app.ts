@@ -16,10 +16,12 @@ let settingsManager: SettingsManager;
 let voskService: VoskTranscriptionService | null = null;
 let isRecording = false;
 let transcriptionSessionId: string | null = null;
-let currentTranscriptionMode: 'simulation' | 'vosk' = 'simulation';
+let currentTranscriptionMode: 'simulation' | 'vosk' | 'whisper' = 'simulation';
 let elapsedTimer: number | null = null;
 let startTime: number = 0;
 let vuMeterInterval: number | null = null;
+let whisperAudioBuffer: Float32Array[] = [];
+let whisperLastProcessTime: number = 0;
 
 // ===== DOM Elements =====
 let recordBtn: HTMLButtonElement;
@@ -258,7 +260,7 @@ async function startRecording(): Promise<void> {
     
     // Get transcription mode from settings
     const mode = await window.scribeCat.store.get('transcription-mode') as string || 'simulation';
-    currentTranscriptionMode = mode as 'simulation' | 'vosk';
+    currentTranscriptionMode = mode as 'simulation' | 'vosk' | 'whisper';
     
     console.log(`Starting recording with ${currentTranscriptionMode} mode...`);
     
@@ -273,6 +275,8 @@ async function startRecording(): Promise<void> {
     // Start appropriate transcription service
     if (currentTranscriptionMode === 'simulation') {
       await startSimulationTranscription();
+    } else if (currentTranscriptionMode === 'whisper') {
+      await startWhisperTranscription();
     } else {
       await startVoskTranscription();
     }
@@ -343,11 +347,83 @@ async function startWhisperTranscription(): Promise<void> {
   
   transcriptionSessionId = result.sessionId!;
   
-  // Note: Audio streaming to Whisper will be handled separately
-  // Whisper processes longer chunks (5-10 seconds) unlike Vosk
-  // For now, we'll need to implement audio chunk buffering and sending
+  // Start audio streaming
+  startWhisperAudioStreaming();
   
-  console.log('Whisper transcription started:', transcriptionSessionId);
+  console.log('Whisper transcription and audio streaming started');
+}
+
+/**
+ * Start streaming audio to Whisper transcription service
+ */
+function startWhisperAudioStreaming(): void {
+  whisperAudioBuffer = [];
+  whisperLastProcessTime = Date.now();
+  const PROCESS_INTERVAL = 5000; // Process every 5 seconds
+
+  // Set up audio data callback
+  audioManager.onAudioData((audioData: Float32Array) => {
+    if (currentTranscriptionMode !== 'whisper') return;
+
+    // Buffer audio data
+    whisperAudioBuffer.push(new Float32Array(audioData));
+
+    // Process every 5 seconds
+    const now = Date.now();
+    if (now - whisperLastProcessTime >= PROCESS_INTERVAL) {
+      processWhisperBuffer();
+      whisperLastProcessTime = now;
+    }
+  });
+
+  console.log('Whisper audio streaming enabled');
+}
+
+/**
+ * Process buffered audio and send to Whisper
+ */
+async function processWhisperBuffer(): Promise<void> {
+  if (whisperAudioBuffer.length === 0 || !transcriptionSessionId) return;
+
+  try {
+    // Combine all buffered audio
+    const totalLength = whisperAudioBuffer.reduce((sum, arr) => sum + arr.length, 0);
+    const combined = new Float32Array(totalLength);
+    let offset = 0;
+    for (const chunk of whisperAudioBuffer) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    // Convert Float32Array to Int16Array (PCM 16-bit)
+    const int16Data = new Int16Array(combined.length);
+    for (let i = 0; i < combined.length; i++) {
+      const s = Math.max(-1, Math.min(1, combined[i]));
+      int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+
+    // Send to main process
+    await window.scribeCat.transcription.whisper.processAudio(
+      transcriptionSessionId,
+      Array.from(int16Data)
+    );
+
+    // Clear buffer
+    whisperAudioBuffer = [];
+    
+    console.log('Sent audio chunk to Whisper for processing');
+  } catch (error) {
+    console.error('Error processing Whisper audio buffer:', error);
+  }
+}
+
+/**
+ * Stop Whisper audio streaming
+ */
+function stopWhisperAudioStreaming(): void {
+  audioManager.removeAudioDataCallback();
+  whisperAudioBuffer = [];
+  console.log('Whisper audio streaming stopped');
 }
 
 /**
@@ -478,6 +554,9 @@ async function stopRecording(): Promise<void> {
     if (transcriptionSessionId) {
       if (currentTranscriptionMode === 'simulation') {
         await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
+      } else if (currentTranscriptionMode === 'whisper') {
+        stopWhisperAudioStreaming();
+        await window.scribeCat.transcription.whisper.stop(transcriptionSessionId);
       } else if (voskService) {
         await voskService.stop();
       }
@@ -517,6 +596,9 @@ async function cleanupRecording(): Promise<void> {
     if (transcriptionSessionId) {
       if (currentTranscriptionMode === 'simulation') {
         await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
+      } else if (currentTranscriptionMode === 'whisper') {
+        stopWhisperAudioStreaming();
+        await window.scribeCat.transcription.whisper.stop(transcriptionSessionId);
       } else if (voskService) {
         await voskService.stop();
       }
@@ -544,7 +626,12 @@ function updateUIState(state: 'idle' | 'recording'): void {
     recordingStatus.classList.add('recording');
     
     // Update transcription mode display
-    const modeText = currentTranscriptionMode === 'simulation' ? 'Simulation' : 'Vosk';
+    let modeText = 'Simulation';
+    if (currentTranscriptionMode === 'whisper') {
+      modeText = 'Whisper';
+    } else if (currentTranscriptionMode === 'vosk') {
+      modeText = 'Vosk';
+    }
     transcriptionMode.textContent = `Mode: ${modeText}`;
     transcriptionMode.className = `mode-indicator ${currentTranscriptionMode}`;
     
@@ -710,6 +797,11 @@ window.addEventListener('beforeunload', () => {
     if (currentTranscriptionMode === 'simulation') {
       window.scribeCat.transcription.simulation.stop(transcriptionSessionId).catch(err => {
         console.error('Error stopping transcription on unload:', err);
+      });
+    } else if (currentTranscriptionMode === 'whisper') {
+      stopWhisperAudioStreaming();
+      window.scribeCat.transcription.whisper.stop(transcriptionSessionId).catch(err => {
+        console.error('Error stopping Whisper on unload:', err);
       });
     } else if (voskService) {
       voskService.stop().catch(err => {

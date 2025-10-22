@@ -119,6 +119,24 @@ export class AudioManager {
   }
 
   /**
+   * Set callback for raw audio data streaming
+   * Used for sending audio to transcription services
+   */
+  onAudioData(callback: (data: Float32Array) => void): void {
+    if (!this.isInitialized) {
+      throw new Error('Recording not started. Call startRecording() first.');
+    }
+    this.analyzer.onAudioData(callback);
+  }
+
+  /**
+   * Remove audio data callback
+   */
+  removeAudioDataCallback(): void {
+    this.analyzer.removeAudioDataCallback();
+  }
+
+  /**
    * Clean up all resources
    */
   cleanup(): void {
