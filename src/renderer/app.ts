@@ -8,14 +8,12 @@
 import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
 import { VoskSetupDialog } from './components/vosk-setup-dialog.js';
-// TODO: Re-enable when vosk-browser is properly configured
-// import { VoskTranscriptionService } from './vosk-transcription-service.js';
+import { VoskTranscriptionService } from './vosk-transcription-service.js';
 
 // ===== State Management =====
 let audioManager: AudioManager;
 let settingsManager: SettingsManager;
-// TODO: Re-enable when vosk-browser is properly configured
-// let voskService: VoskTranscriptionService | null = null;
+let voskService: VoskTranscriptionService | null = null;
 let isRecording = false;
 let transcriptionSessionId: string | null = null;
 let currentTranscriptionMode: 'simulation' | 'vosk' = 'simulation';
@@ -399,11 +397,6 @@ async function startVoskTranscription(): Promise<void> {
     throw new Error('Failed to get audio stream for transcription');
   }
   
-  // TODO: Initialize vosk-browser with serverUrl
-  // For now, throw error since vosk-browser isn't set up yet
-  throw new Error('Vosk transcription service ready but vosk-browser not yet integrated. Server is running at: ' + serverUrl);
-  
-  /*
   // Initialize Vosk service if not already done
   if (!voskService) {
     voskService = new VoskTranscriptionService();
@@ -412,21 +405,28 @@ async function startVoskTranscription(): Promise<void> {
   // Set up result listener
   voskService.onResult((result) => {
     if (currentTranscriptionMode === 'vosk') {
-      addTranscriptionEntry(result.timestamp, result.text);
+      // Only show final results in transcription panel
+      if (result.isFinal) {
+        addTranscriptionEntry(result.timestamp, result.text);
+      }
+      // Partial results are ignored for now, but could be shown in a separate area
     }
   });
   
   // Set up error listener
   voskService.onError((error) => {
-    console.error('Vosk error:', error);
+    console.error('Vosk transcription error:', error);
     alert(`Transcription error: ${error.message}`);
   });
   
-  // Initialize and start with the audio stream
-  await voskService.initialize({ modelUrl: modelUrl });
+  // Initialize with server URL
+  await voskService.initialize({ modelUrl: serverUrl });
+  
+  // Start transcription with audio stream
   const sessionId = await voskService.start(stream);
   transcriptionSessionId = sessionId;
-  */
+  
+  console.log('Real Vosk transcription started!');
 }
 
 /**
@@ -440,11 +440,9 @@ async function stopRecording(): Promise<void> {
     if (transcriptionSessionId) {
       if (currentTranscriptionMode === 'simulation') {
         await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
+      } else if (voskService) {
+        await voskService.stop();
       }
-      // TODO: Re-enable when vosk-browser is properly configured
-      // else if (voskService) {
-      //   await voskService.stop();
-      // }
       transcriptionSessionId = null;
     }
     
@@ -481,11 +479,9 @@ async function cleanupRecording(): Promise<void> {
     if (transcriptionSessionId) {
       if (currentTranscriptionMode === 'simulation') {
         await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
+      } else if (voskService) {
+        await voskService.stop();
       }
-      // TODO: Re-enable when vosk-browser is properly configured
-      // else if (voskService) {
-      //   await voskService.stop();
-      // }
       transcriptionSessionId = null;
     }
     
@@ -677,13 +673,11 @@ window.addEventListener('beforeunload', () => {
       window.scribeCat.transcription.simulation.stop(transcriptionSessionId).catch(err => {
         console.error('Error stopping transcription on unload:', err);
       });
+    } else if (voskService) {
+      voskService.stop().catch(err => {
+        console.error('Error stopping Vosk on unload:', err);
+      });
     }
-    // TODO: Re-enable when vosk-browser is properly configured
-    // else if (voskService) {
-    //   voskService.stop().catch(err => {
-    //     console.error('Error stopping Vosk on unload:', err);
-    //   });
-    // }
   }
   
   window.scribeCat.transcription.simulation.removeResultListener();

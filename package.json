@@ -6,7 +6,7 @@
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "npm run compile && electron .",
-    "compile": "tsc && tsc -p tsconfig.preload.json && cp src/renderer/index.html dist/renderer/ && cp src/renderer/styles.css dist/renderer/",
+    "compile": "tsc && tsc -p tsconfig.preload.json && node build-renderer.js",
     "build": "npm run compile && electron-builder",
     "build:mac": "npm run compile && electron-builder --mac",
     "build:win": "npm run compile && electron-builder --win",
@@ -25,6 +25,7 @@
     "@types/unzipper": "^0.10.11",
     "electron": "^38.2.0",
     "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.11",
     "typescript": "^5.9.3"
   },
   "dependencies": {
