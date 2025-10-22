@@ -318,61 +318,47 @@ async function startSimulationTranscription(): Promise<void> {
  * Start Vosk transcription
  */
 async function startVoskTranscription(): Promise<void> {
-  // Get model URL and path from settings
-  const modelUrl = await window.scribeCat.store.get('transcription.vosk.modelUrl') as string;
   const modelPath = await window.scribeCat.store.get('transcription.vosk.modelPath') as string;
-  
-  console.log('=== VOSK DEBUG INFO ===');
-  console.log('Model URL:', modelUrl);
-  console.log('Model Path:', modelPath);
-  console.log('Model Path Type:', typeof modelPath);
   
   if (!modelPath || typeof modelPath !== 'string') {
     throw new Error('Invalid model path in settings. Please re-download the model in Settings.');
   }
   
-  if (!modelUrl || typeof modelUrl !== 'string') {
-    throw new Error('Vosk model not configured. Please download the model in Settings.');
-  }
-  
-  // Make sure server is running with the correct path
+  // Make sure server is running
   const serverStatus = await window.scribeCat.transcription.vosk.isServerRunning();
+  
+  let serverUrl: string;
   if (!serverStatus.isRunning) {
     console.log('Vosk server not running, starting it...');
     const startResult = await window.scribeCat.transcription.vosk.startServer(modelPath);
     if (!startResult.success) {
       throw new Error(`Failed to start Vosk server: ${startResult.error || 'Unknown error'}`);
     }
-    console.log('Vosk server started successfully');
+    serverUrl = startResult.url!; // This is http://localhost:8765
+  } else {
+    serverUrl = serverStatus.url!; // This is http://localhost:8765
   }
+  
+  // NOW serverUrl is correct: http://localhost:8765
+  console.log('Using server URL:', serverUrl);
   
   // Test if server is accessible
   try {
-    console.log('Testing server accessibility...');
-    const testResponse = await fetch('http://localhost:8765/debug/files');
+    const testResponse = await fetch(`${serverUrl}/debug/files`);
     const debugInfo = await testResponse.json();
     console.log('Server debug info:', debugInfo);
     console.log('Number of files found:', debugInfo.files?.length || 0);
   } catch (e) {
-    console.error('Server not accessible:', e);
+    throw new Error('Vosk server started but not accessible');
   }
   
   // Test if model config is accessible
-  console.log('Attempting to fetch model config...');
-  try {
-    const configTest = await fetch(`${modelUrl}/conf/mfcc.conf`);
-    console.log('Config fetch status:', configTest.status);
-    if (configTest.ok) {
-      const configContent = await configTest.text();
-      console.log('Config content (first 200 chars):', configContent.substring(0, 200));
-    } else {
-      console.error('Config fetch failed with status:', configTest.status);
-    }
-  } catch (e) {
-    console.error('Config fetch failed:', e);
+  const configTest = await fetch(`${serverUrl}/conf/mfcc.conf`);
+  if (!configTest.ok) {
+    throw new Error(`Model files not accessible. Status: ${configTest.status}`);
   }
   
-  console.log('=== END DEBUG ===');
+  console.log('Vosk server and model verified successfully');
   
   // Get audio stream from recorder
   const stream = audioManager['recorder'].getAudioStream();
@@ -380,7 +366,9 @@ async function startVoskTranscription(): Promise<void> {
     throw new Error('Failed to get audio stream for transcription');
   }
   
-  // TODO: Re-enable when vosk-browser is properly configured
+  // TODO: Initialize vosk-browser with serverUrl
+  // const model = await createModel(serverUrl);
+  
   throw new Error('Vosk transcription not yet available. Please use Simulation mode.');
   
   /*
