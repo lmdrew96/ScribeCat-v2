@@ -81,7 +81,10 @@ export class AudioRecorderService {
       };
 
       // Get audio stream
-      this.audioStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const originalStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Clone the stream for recording to avoid conflicts with analyzer
+      this.audioStream = originalStream.clone();
 
       // ===== STREAM DEBUG CODE =====
       console.log('🎙️ STREAM DEBUG:');
