@@ -32,12 +32,20 @@ export class AudioManager {
   async startRecording(config: RecordingConfig = {}): Promise<void> {
     await this.recorder.startRecording(config);
     
-    // Initialize analyzer with the audio stream
-    const stream = this.recorder.getAudioStream();
-    if (stream) {
-      await this.analyzer.initialize(stream);
-      this.isInitialized = true;
-    }
+    // Get a separate stream for the analyzer to avoid conflicts
+    // This ensures MediaRecorder and Analyzer each have independent audio streams
+    const analyzerConstraints: MediaStreamConstraints = {
+      audio: {
+        deviceId: config.deviceId ? { exact: config.deviceId } : undefined,
+        echoCancellation: config.echoCancellation ?? true,
+        noiseSuppression: config.noiseSuppression ?? true,
+        autoGainControl: config.autoGainControl ?? true
+      }
+    };
+    
+    const analyzerStream = await navigator.mediaDevices.getUserMedia(analyzerConstraints);
+    await this.analyzer.initialize(analyzerStream);
+    this.isInitialized = true;
   }
 
   /**
