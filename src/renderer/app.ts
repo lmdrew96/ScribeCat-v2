@@ -652,6 +652,18 @@ async function stopRecording(): Promise<void> {
     const result = await audioManager.stopRecording();
     console.log('Recording stopped. Duration:', result.duration, 'seconds');
     
+    // Save the recording to disk
+    const saveResult = await window.scribeCat.recording.stop(
+      result.audioData.buffer as ArrayBuffer,
+      result.duration
+    );
+    
+    if (!saveResult.success) {
+      throw new Error(saveResult.error || 'Failed to save recording');
+    }
+    
+    console.log('Recording saved to:', saveResult.filePath);
+    
     // Update state
     isRecording = false;
     
