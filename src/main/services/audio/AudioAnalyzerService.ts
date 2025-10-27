@@ -186,10 +186,10 @@ export class AudioAnalyzerService {
         }
       };
 
-      // Connect: source -> analyzer -> scriptProcessor -> destination
+      // Connect: source -> analyzer -> scriptProcessor
+      // DO NOT connect to destination to avoid feedback loop!
       if (this.analyserNode) {
         this.analyserNode.connect(this.scriptProcessor);
-        this.scriptProcessor.connect(this.audioContext.destination);
       }
     }
 
