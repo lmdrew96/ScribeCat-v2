@@ -359,7 +359,7 @@ async function startWhisperTranscription(): Promise<void> {
 function startWhisperAudioStreaming(): void {
   whisperAudioBuffer = [];
   whisperLastProcessTime = Date.now();
-  const PROCESS_INTERVAL = 5000; // Process every 5 seconds
+  const PROCESS_INTERVAL = 5000; // Process every 5 seconds (reduced from 10 for faster response)
 
   // Set up audio data callback
   audioManager.onAudioData((audioData: Float32Array) => {
@@ -380,6 +380,31 @@ function startWhisperAudioStreaming(): void {
 }
 
 /**
+ * Resample audio from source sample rate to 16kHz for Whisper
+ */
+function resampleAudio(audioData: Float32Array, sourceSampleRate: number, targetSampleRate: number = 16000): Float32Array {
+  if (sourceSampleRate === targetSampleRate) {
+    return audioData;
+  }
+
+  const sampleRateRatio = sourceSampleRate / targetSampleRate;
+  const newLength = Math.round(audioData.length / sampleRateRatio);
+  const result = new Float32Array(newLength);
+
+  for (let i = 0; i < newLength; i++) {
+    const srcIndex = i * sampleRateRatio;
+    const srcIndexFloor = Math.floor(srcIndex);
+    const srcIndexCeil = Math.min(srcIndexFloor + 1, audioData.length - 1);
+    const t = srcIndex - srcIndexFloor;
+
+    // Linear interpolation
+    result[i] = audioData[srcIndexFloor] * (1 - t) + audioData[srcIndexCeil] * t;
+  }
+
+  return result;
+}
+
+/**
  * Process buffered audio and send to Whisper
  */
 async function processWhisperBuffer(): Promise<void> {
@@ -395,10 +420,70 @@ async function processWhisperBuffer(): Promise<void> {
       offset += chunk.length;
     }
 
+    // Get the actual sample rate from AudioContext
+    const sourceSampleRate = audioManager['analyzer']['audioContext']?.sampleRate || 48000;
+    
+    console.log('🔊 SAMPLE RATE DEBUG:');
+    console.log('  Source sample rate:', sourceSampleRate, 'Hz');
+    console.log('  Target sample rate: 16000 Hz');
+    console.log('  Original samples:', combined.length);
+
+    // Resample to 16kHz for Whisper
+    const resampled = resampleAudio(combined, sourceSampleRate, 16000);
+    
+    console.log('  Resampled samples:', resampled.length);
+    console.log('  Original duration:', (combined.length / sourceSampleRate).toFixed(2), 's');
+    console.log('  Resampled duration:', (resampled.length / 16000).toFixed(2), 's');
+
+    // ===== WAVEFORM DEBUG CODE =====
+    // Sample first 50 values to see waveform pattern
+    console.log('📊 WAVEFORM SAMPLE (first 50 values):');
+    const sampleValues = [];
+    for (let i = 0; i < Math.min(50, resampled.length); i++) {
+      sampleValues.push(resampled[i].toFixed(4));
+    }
+    console.log('  Values:', sampleValues.join(', '));
+
+    // Check if it's just noise (values should vary significantly for speech)
+    const firstHalf = resampled.slice(0, Math.floor(resampled.length / 2));
+    const secondHalf = resampled.slice(Math.floor(resampled.length / 2));
+    const firstAvg = firstHalf.reduce((sum, val) => sum + Math.abs(val), 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, val) => sum + Math.abs(val), 0) / secondHalf.length;
+
+    console.log('  First half avg:', firstAvg.toFixed(4));
+    console.log('  Second half avg:', secondAvg.toFixed(4));
+
+    if (Math.abs(firstAvg - secondAvg) < 0.001) {
+      console.warn('⚠️ Audio looks like uniform noise (both halves similar)');
+    } else {
+      console.log('  ✅ Audio has variation (likely real signal)');
+    }
+    // ===== END DEBUG CODE =====
+
+    // Check audio levels on resampled data
+    let maxLevel = 0;
+    let sumLevel = 0;
+    for (let i = 0; i < resampled.length; i++) {
+      const abs = Math.abs(resampled[i]);
+      if (abs > maxLevel) maxLevel = abs;
+      sumLevel += abs;
+    }
+    const avgLevel = sumLevel / resampled.length;
+    
+    console.log('🎤 AUDIO DEBUG (after resampling):');
+    console.log('  Max level:', maxLevel.toFixed(4));
+    console.log('  Avg level:', avgLevel.toFixed(4));
+    
+    if (maxLevel < 0.01) {
+      console.warn('⚠️ WARNING: Audio level is very low after resampling!');
+    } else {
+      console.log('  ✅ Audio levels look good!');
+    }
+
     // Convert Float32Array to Int16Array (PCM 16-bit)
-    const int16Data = new Int16Array(combined.length);
-    for (let i = 0; i < combined.length; i++) {
-      const s = Math.max(-1, Math.min(1, combined[i]));
+    const int16Data = new Int16Array(resampled.length);
+    for (let i = 0; i < resampled.length; i++) {
+      const s = Math.max(-1, Math.min(1, resampled[i]));
       int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
     }
 
@@ -411,7 +496,7 @@ async function processWhisperBuffer(): Promise<void> {
     // Clear buffer
     whisperAudioBuffer = [];
     
-    console.log('Sent audio chunk to Whisper for processing');
+    console.log('📤 Sent resampled audio chunk to Whisper for processing');
   } catch (error) {
     console.error('Error processing Whisper audio buffer:', error);
   }

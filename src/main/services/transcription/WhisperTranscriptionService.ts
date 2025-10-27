@@ -182,6 +182,14 @@ export class WhisperTranscriptionService implements ITranscriptionService {
       
       // Write WAV file
       await this.writeWavFile(this.tempAudioPath, combinedAudio);
+      console.log('[Whisper] WAV file written');
+
+      // DEBUG: Save a copy for inspection
+      const debugPath = path.join(os.homedir(), 'Desktop', 'whisper-debug.wav');
+      await fs.promises.copyFile(this.tempAudioPath, debugPath);
+      console.log('[Whisper] DEBUG: Saved copy to:', debugPath);
+
+      console.log('[Whisper] Starting transcription...');
 
       // Transcribe using whisper-node
       const transcription = await this.transcribeFile(this.tempAudioPath);
