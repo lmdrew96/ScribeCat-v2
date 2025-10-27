@@ -55,14 +55,18 @@ export class AudioAnalyzerService {
       this.analyserNode.fftSize = config.fftSize ?? 256;
       this.analyserNode.smoothingTimeConstant = config.smoothingTimeConstant ?? 0.8;
 
-      // Create source from stream
-      this.sourceNode = this.audioContext.createMediaStreamSource(stream);
+      // Clone the stream to avoid consuming the original
+      // This allows MediaRecorder to use the original stream while we analyze a copy
+      const clonedStream = stream.clone();
+      
+      // Create source from cloned stream
+      this.sourceNode = this.audioContext.createMediaStreamSource(clonedStream);
 
       // Connect nodes
       this.sourceNode.connect(this.analyserNode);
 
       this.isAnalyzing = true;
-      console.log('Audio analyzer initialized');
+      console.log('Audio analyzer initialized with cloned stream');
     } catch (error) {
       this.cleanup();
       console.error('Error initializing audio analyzer:', error);
