@@ -27,6 +27,7 @@ export class AudioAnalyzerService {
   private analyserNode: AnalyserNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private scriptProcessor: ScriptProcessorNode | null = null;
+  private gainNode: GainNode | null = null;
   private updateIntervalId: number | null = null;
   private isAnalyzing: boolean = false;
   private currentLevel: number = 0;
@@ -186,10 +187,16 @@ export class AudioAnalyzerService {
         }
       };
 
-      // Connect: source -> analyzer -> scriptProcessor
-      // DO NOT connect to destination to avoid feedback loop!
+      // Create a gain node set to 0 to prevent audio playback (no feedback)
+      // ScriptProcessor requires connection to destination to process audio
+      this.gainNode = this.audioContext.createGain();
+      this.gainNode.gain.value = 0; // Mute output to prevent feedback loop
+
+      // Connect: source -> analyzer -> scriptProcessor -> gain (muted) -> destination
       if (this.analyserNode) {
         this.analyserNode.connect(this.scriptProcessor);
+        this.scriptProcessor.connect(this.gainNode);
+        this.gainNode.connect(this.audioContext.destination);
       }
     }
 
@@ -201,6 +208,11 @@ export class AudioAnalyzerService {
    */
   removeAudioDataCallback(): void {
     this.audioDataCallback = null;
+    
+    if (this.gainNode) {
+      this.gainNode.disconnect();
+      this.gainNode = null;
+    }
     
     if (this.scriptProcessor) {
       this.scriptProcessor.disconnect();
@@ -229,6 +241,11 @@ export class AudioAnalyzerService {
   cleanup(): void {
     this.stopMonitoring();
     this.removeAudioDataCallback();
+
+    if (this.gainNode) {
+      this.gainNode.disconnect();
+      this.gainNode = null;
+    }
 
     if (this.sourceNode) {
       this.sourceNode.disconnect();
