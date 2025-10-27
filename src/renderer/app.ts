@@ -267,9 +267,9 @@ async function startRecording(): Promise<void> {
     // Start audio recording
     await audioManager.startRecording({
       deviceId: selectedDeviceId,
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true
+      echoCancellation: false,  // Disabled - was treating voice as noise
+      noiseSuppression: false,  // Disabled - was suppressing voice in quiet rooms
+      autoGainControl: false    // Disabled - designed for video calls, not transcription
     });
     
     // Start appropriate transcription service
