@@ -297,13 +297,15 @@ async function startSimulationTranscription(): Promise<void> {
  */
 async function startAssemblyAITranscription(): Promise<void> {
   // Get API key from settings
-  const apiKey = await window.scribeCat.store.get('assemblyai-api-key') as string;
+  const apiKey = (await window.scribeCat.store.get('assemblyai-api-key') as string || '').trim();
   
   if (!apiKey) {
     throw new Error('AssemblyAI API key not configured. Please add it in Settings.');
   }
 
   console.log('Starting AssemblyAI transcription...');
+  console.log('API key length:', apiKey.length);
+  console.log('API key starts with:', apiKey.substring(0, 10) + '...');
   
   // Start transcription
   const result = await window.scribeCat.transcription.assemblyai.start(apiKey);
