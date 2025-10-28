@@ -70,8 +70,8 @@ export class AssemblyAITranscriptionService implements ITranscriptionService {
         reject(error);
       });
 
-      this.ws.on('close', () => {
-        console.log('AssemblyAI WebSocket closed');
+      this.ws.on('close', (code: number, reason: Buffer) => {
+        console.log('AssemblyAI WebSocket closed:', code, reason.toString());
         this.isConnected = false;
       });
     });
@@ -128,8 +128,12 @@ export class AssemblyAITranscriptionService implements ITranscriptionService {
       throw new Error(`Session ID mismatch. Active: ${this.sessionId}, Requested: ${sessionId}`);
     }
 
-    if (this.ws) {
-      this.ws.send(JSON.stringify({ terminate_session: true }));
+    if (this.ws && this.isConnected) {
+      try {
+        this.ws.send(JSON.stringify({ terminate_session: true }));
+      } catch (error) {
+        console.error('Error sending terminate message:', error);
+      }
       this.ws.close();
       this.ws = null;
     }
