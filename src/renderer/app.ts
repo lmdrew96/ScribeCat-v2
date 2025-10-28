@@ -367,7 +367,7 @@ async function startWhisperTranscription(): Promise<void> {
 function startWhisperAudioStreaming(): void {
   whisperAudioBuffer = [];
   whisperLastProcessTime = Date.now();
-  const PROCESS_INTERVAL = 5000; // Process every 5 seconds (reduced from 10 for faster response)
+  const PROCESS_INTERVAL = 2000; // Process every 2 seconds (faster response!)
 
   // Set up audio data callback
   audioManager.onAudioData((audioData: Float32Array) => {
@@ -376,7 +376,7 @@ function startWhisperAudioStreaming(): void {
     // Buffer audio data
     whisperAudioBuffer.push(new Float32Array(audioData));
 
-    // Process every 5 seconds
+    // Process every 2 seconds
     const now = Date.now();
     if (now - whisperLastProcessTime >= PROCESS_INTERVAL) {
       processWhisperBuffer();

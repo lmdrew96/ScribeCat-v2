@@ -155,11 +155,11 @@ export class WhisperTranscriptionService implements ITranscriptionService {
 
     this.audioChunks.push(audioData);
 
-    // Process every ~10 seconds of audio (adjust based on your needs)
+    // Process every ~2 seconds of audio for near real-time results
     const totalSize = this.audioChunks.reduce((sum, chunk) => sum + chunk.length, 0);
     const estimatedSeconds = totalSize / (16000 * 2); // 16kHz, 16-bit
 
-    if (estimatedSeconds >= 10) {
+    if (estimatedSeconds >= 2) {
       await this.processAudioChunks();
       this.audioChunks = []; // Clear processed chunks
     }
