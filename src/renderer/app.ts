@@ -272,12 +272,12 @@ async function startRecording(): Promise<void> {
     
     console.log(`Starting recording with ${currentTranscriptionMode} mode...`);
     
-    // Start audio recording
+    // Start audio recording with optimized settings for transcription
     await audioManager.startRecording({
       deviceId: selectedDeviceId,
-      echoCancellation: false,  // Disabled - was treating voice as noise
-      noiseSuppression: false,  // Disabled - was suppressing voice in quiet rooms
-      autoGainControl: false    // Disabled - designed for video calls, not transcription
+      echoCancellation: true,   // ✅ Keep - removes echo
+      noiseSuppression: true,   // ✅ Keep - reduces background noise  
+      autoGainControl: false    // ❌ DISABLE - causes level fluctuations
     });
     
     // Start appropriate transcription service
@@ -428,6 +428,25 @@ async function processWhisperBuffer(): Promise<void> {
       offset += chunk.length;
     }
 
+    // 🎯 Calculate current audio level
+    let maxLevel = 0;
+    for (let i = 0; i < combined.length; i++) {
+      const abs = Math.abs(combined[i]);
+      if (abs > maxLevel) maxLevel = abs;
+    }
+    
+    // 🎯 Apply adaptive gain if audio is too quiet
+    const targetLevel = 0.3; // Target 30% of max range
+    if (maxLevel > 0 && maxLevel < targetLevel) {
+      const gain = targetLevel / maxLevel;
+      const safeGain = Math.min(gain, 4.0); // Limit to 4x boost max
+      console.log(`🔊 Boosting quiet audio: ${maxLevel.toFixed(3)} → ${(maxLevel * safeGain).toFixed(3)} (${safeGain.toFixed(1)}x gain)`);
+      
+      for (let i = 0; i < combined.length; i++) {
+        combined[i] = Math.max(-1, Math.min(1, combined[i] * safeGain));
+      }
+    }
+
     // Get the actual sample rate from AudioContext
     const sourceSampleRate = audioManager['analyzer']['audioContext']?.sampleRate || 48000;
     
@@ -469,20 +488,20 @@ async function processWhisperBuffer(): Promise<void> {
     // ===== END DEBUG CODE =====
 
     // Check audio levels on resampled data
-    let maxLevel = 0;
+    let resampledMaxLevel = 0;
     let sumLevel = 0;
     for (let i = 0; i < resampled.length; i++) {
       const abs = Math.abs(resampled[i]);
-      if (abs > maxLevel) maxLevel = abs;
+      if (abs > resampledMaxLevel) resampledMaxLevel = abs;
       sumLevel += abs;
     }
     const avgLevel = sumLevel / resampled.length;
     
     console.log('🎤 AUDIO DEBUG (after resampling):');
-    console.log('  Max level:', maxLevel.toFixed(4));
+    console.log('  Max level:', resampledMaxLevel.toFixed(4));
     console.log('  Avg level:', avgLevel.toFixed(4));
     
-    if (maxLevel < 0.01) {
+    if (resampledMaxLevel < 0.01) {
       console.warn('⚠️ WARNING: Audio level is very low after resampling!');
     } else {
       console.log('  ✅ Audio levels look good!');
