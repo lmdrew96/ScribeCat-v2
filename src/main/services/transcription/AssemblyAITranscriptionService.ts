@@ -46,13 +46,10 @@ export class AssemblyAITranscriptionService implements ITranscriptionService {
 
   private async connectWebSocket(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000`;
+      // Use the new Streaming STT API endpoint
+      const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${this.apiKey}`;
       
-      this.ws = new WebSocket(url, {
-        headers: {
-          'Authorization': this.apiKey
-        }
-      });
+      this.ws = new WebSocket(url);
 
       this.ws.on('open', () => {
         console.log('AssemblyAI WebSocket connected');
