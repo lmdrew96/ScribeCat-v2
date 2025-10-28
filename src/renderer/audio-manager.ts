@@ -2,8 +2,7 @@
  * AudioManager
  * 
  * Manages audio recording and analysis in the renderer process.
- * Coordinates between AudioRecorderService and AudioAnalyzerService.
- * Communicates with main process via IPC for persistence.
+ * Uses a single shared audio stream to avoid conflicts.
  */
 
 import { AudioRecorderService, AudioDevice, RecordingConfig, RecordingResult } from '../main/services/audio/AudioRecorderService.js';
@@ -30,22 +29,21 @@ export class AudioManager {
    * Start recording with optional configuration
    */
   async startRecording(config: RecordingConfig = {}): Promise<void> {
+    // Start recorder first - it creates the main stream
     await this.recorder.startRecording(config);
     
-    // Get a separate stream for the analyzer to avoid conflicts
-    // This ensures MediaRecorder and Analyzer each have independent audio streams
-    const analyzerConstraints: MediaStreamConstraints = {
-      audio: {
-        deviceId: config.deviceId ? { exact: config.deviceId } : undefined,
-        echoCancellation: config.echoCancellation ?? true,
-        noiseSuppression: config.noiseSuppression ?? true,
-        autoGainControl: config.autoGainControl ?? true
-      }
-    };
+    // Get the SAME stream that MediaRecorder is using
+    const sharedStream = this.recorder.getAudioStream();
     
-    const analyzerStream = await navigator.mediaDevices.getUserMedia(analyzerConstraints);
-    await this.analyzer.initialize(analyzerStream);
+    if (!sharedStream) {
+      throw new Error('Failed to get audio stream from recorder');
+    }
+    
+    // Initialize analyzer with the shared stream
+    await this.analyzer.initialize(sharedStream);
     this.isInitialized = true;
+    
+    console.log('✅ AudioManager: Using shared stream for recording and analysis');
   }
 
   /**

@@ -635,11 +635,15 @@ async function stopRecording(): Promise<void> {
   try {
     console.log('Stopping recording...');
     
-    // Stop appropriate transcription service
+    // Stop transcription first
     if (transcriptionSessionId) {
       if (currentTranscriptionMode === 'simulation') {
         await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
       } else if (currentTranscriptionMode === 'whisper') {
+        // Process any remaining buffered audio before stopping
+        if (whisperAudioBuffer.length > 0) {
+          await processWhisperBuffer();
+        }
         stopWhisperAudioStreaming();
         await window.scribeCat.transcription.whisper.stop(transcriptionSessionId);
       } else if (voskService) {
@@ -650,19 +654,20 @@ async function stopRecording(): Promise<void> {
     
     // Stop audio recording
     const result = await audioManager.stopRecording();
-    console.log('Recording stopped. Duration:', result.duration, 'seconds');
+    const durationSeconds = result.duration / 1000;
+    console.log('Recording stopped. Duration:', durationSeconds, 'seconds');
     
     // Save the recording to disk
     const saveResult = await window.scribeCat.recording.stop(
       result.audioData.buffer as ArrayBuffer,
-      result.duration
+      durationSeconds
     );
     
     if (!saveResult.success) {
       throw new Error(saveResult.error || 'Failed to save recording');
     }
     
-    console.log('Recording saved to:', saveResult.filePath);
+    console.log('✅ Recording saved to:', saveResult.filePath);
     
     // Update state
     isRecording = false;
@@ -672,8 +677,8 @@ async function stopRecording(): Promise<void> {
     stopElapsedTimer();
     stopVUMeterUpdates();
     
-    // Show completion message
-    sessionInfo.textContent = `Recording saved (${result.duration.toFixed(1)}s)`;
+    // Show completion message with session ID
+    sessionInfo.textContent = `Recording saved: ${saveResult.sessionId}`;
     setTimeout(() => {
       sessionInfo.textContent = '';
     }, 5000);
