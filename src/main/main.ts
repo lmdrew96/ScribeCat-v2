@@ -11,6 +11,8 @@ import { ExportSessionUseCase } from '../application/use-cases/ExportSessionUseC
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
 import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
 import { TranscriptionResult } from './services/transcription/ITranscriptionService.js';
+import { ClaudeAIService } from '../infrastructure/services/ai/ClaudeAIService.js';
+import type { ChatMessage } from '../shared/types.js';
 import Store from 'electron-store';
 
 // ES module equivalent of __dirname
@@ -39,6 +41,9 @@ class ScribeCatApp {
   
   // Transcription services
   private simulationTranscriptionService: SimulationTranscriptionService;
+  
+  // AI service
+  private aiService: ClaudeAIService | null = null;
 
   constructor() {
     // Initialize directory manager
@@ -462,6 +467,164 @@ class ScribeCatApp {
       } catch (error) {
         console.error(`Failed to set store value for key "${key}":`, error);
         throw error;
+      }
+    });
+    
+    // AI: Set API key
+    ipcMain.handle('ai:setApiKey', async (event, apiKey: string) => {
+      try {
+        if (!apiKey || apiKey.trim().length === 0) {
+          this.aiService = null;
+          return { success: true };
+        }
+        
+        this.aiService = new ClaudeAIService({ apiKey });
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to set AI API key:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // AI: Check if configured
+    ipcMain.handle('ai:isConfigured', async () => {
+      try {
+        const isConfigured = this.aiService ? await this.aiService.isConfigured() : false;
+        return { success: true, data: isConfigured };
+      } catch (error) {
+        console.error('Failed to check AI configuration:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // AI: Test connection
+    ipcMain.handle('ai:testConnection', async () => {
+      try {
+        console.log('🔍 AI test connection handler called');
+        
+        if (!this.aiService) {
+          console.log('❌ AI service not configured');
+          return { success: false, error: 'AI service not configured' };
+        }
+        
+        console.log('✅ AI service exists, calling testConnection...');
+        const connected = await this.aiService.testConnection();
+        console.log('📊 Test connection result:', connected);
+        
+        return { success: true, data: connected };
+      } catch (error) {
+        console.error('❌ Failed to test AI connection:', error);
+        if (error instanceof Error) {
+          console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          });
+        }
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // AI: Chat
+    ipcMain.handle('ai:chat', async (event, message: string, history: ChatMessage[], options?: any) => {
+      try {
+        if (!this.aiService) {
+          return { success: false, error: 'AI service not configured. Please set an API key.' };
+        }
+        
+        const response = await this.aiService.chat(message, history, options);
+        return { success: true, data: response };
+      } catch (error) {
+        console.error('AI chat failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // AI: Chat stream
+    ipcMain.handle('ai:chatStream', async (event, message: string, history: ChatMessage[], options: any) => {
+      try {
+        if (!this.aiService) {
+          return { success: false, error: 'AI service not configured. Please set an API key.' };
+        }
+        
+        await this.aiService.chatStream(message, history, options, (chunk: string) => {
+          // Send chunk to renderer via IPC
+          this.mainWindow?.webContents.send('ai:chatChunk', chunk);
+        });
+        
+        return { success: true };
+      } catch (error) {
+        console.error('AI chat stream failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // AI: Polish transcription
+    ipcMain.handle('ai:polishTranscription', async (event, text: string, options?: any) => {
+      try {
+        if (!this.aiService) {
+          return { success: false, error: 'AI service not configured. Please set an API key.' };
+        }
+        
+        const result = await this.aiService.polishTranscription(text, options);
+        return { success: true, data: result };
+      } catch (error) {
+        console.error('AI polish transcription failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // AI: Generate summary
+    ipcMain.handle('ai:generateSummary', async (event, transcription: string, notes?: string, options?: any) => {
+      try {
+        if (!this.aiService) {
+          return { success: false, error: 'AI service not configured. Please set an API key.' };
+        }
+        
+        const result = await this.aiService.generateSummary(transcription, notes, options);
+        return { success: true, data: result };
+      } catch (error) {
+        console.error('AI generate summary failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // AI: Generate title
+    ipcMain.handle('ai:generateTitle', async (event, transcription: string, notes?: string, options?: any) => {
+      try {
+        if (!this.aiService) {
+          return { success: false, error: 'AI service not configured. Please set an API key.' };
+        }
+        
+        const result = await this.aiService.generateTitle(transcription, notes, options);
+        return { success: true, data: result };
+      } catch (error) {
+        console.error('AI generate title failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
       }
     });
   }

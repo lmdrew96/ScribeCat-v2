@@ -94,6 +94,47 @@ export interface AudioConfig {
   codec: string;
 }
 
+/**
+ * AI-related types
+ */
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+export interface ChatOptions {
+  transcriptionContext?: string;
+  notesContext?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface ChatResponse {
+  message: string;
+  tokensUsed: number;
+}
+
+export interface PolishResult {
+  originalText: string;
+  polishedText: string;
+  changes: string[];
+  tokensUsed: number;
+}
+
+export interface SummaryResult {
+  summary: string;
+  keyPoints: string[];
+  actionItems?: string[];
+  tokensUsed: number;
+}
+
+export interface TitleResult {
+  title: string;
+  alternatives: string[];
+  tokensUsed: number;
+}
+
 export interface ElectronAPI {
   recording: {
     start: () => Promise<{ success: boolean; error?: string }>;
@@ -102,9 +143,18 @@ export interface ElectronAPI {
     resume: () => Promise<{ success: boolean; error?: string }>;
     getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;
   };
+  ai: {
+    chat: (message: string, history: ChatMessage[], options?: ChatOptions) => Promise<IPCResponse<ChatResponse>>;
+    chatStream: (message: string, history: ChatMessage[], options: ChatOptions, onChunk: (chunk: string) => void) => Promise<IPCResponse<void>>;
+    polishTranscription: (text: string, options?: { grammar?: boolean; punctuation?: boolean; clarity?: boolean; preserveMeaning?: boolean }) => Promise<IPCResponse<PolishResult>>;
+    generateSummary: (transcription: string, notes?: string, options?: { style?: string; maxLength?: number }) => Promise<IPCResponse<SummaryResult>>;
+    generateTitle: (transcription: string, notes?: string, options?: { maxLength?: number; format?: string }) => Promise<IPCResponse<TitleResult>>;
+    isConfigured: () => Promise<IPCResponse<boolean>>;
+    testConnection: () => Promise<IPCResponse<boolean>>;
+    setApiKey: (apiKey: string) => Promise<IPCResponse<void>>;
+  };
   // TODO: Add these interfaces when features are implemented
   // files?: { ... };
   // themes?: { ... };
-  // ai?: { ... };
   // canvas?: { ... };
 }

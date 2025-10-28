@@ -38,11 +38,32 @@ const electronAPI = {
   store: {
     get: (key: string) => ipcRenderer.invoke('store:get', key),
     set: (key: string, value: unknown) => ipcRenderer.invoke('store:set', key, value)
+  },
+  ai: {
+    chat: (message: string, history: any[], options?: any) => 
+      ipcRenderer.invoke('ai:chat', message, history, options),
+    chatStream: (message: string, history: any[], options: any, onChunk: (chunk: string) => void) => {
+      // Set up listener for chunks
+      ipcRenderer.on('ai:chatChunk', (_event: any, chunk: string) => onChunk(chunk));
+      // Start the stream
+      return ipcRenderer.invoke('ai:chatStream', message, history, options);
+    },
+    removeChatStreamListener: () => {
+      ipcRenderer.removeAllListeners('ai:chatChunk');
+    },
+    polishTranscription: (text: string, options?: any) => 
+      ipcRenderer.invoke('ai:polishTranscription', text, options),
+    generateSummary: (transcription: string, notes?: string, options?: any) => 
+      ipcRenderer.invoke('ai:generateSummary', transcription, notes, options),
+    generateTitle: (transcription: string, notes?: string, options?: any) => 
+      ipcRenderer.invoke('ai:generateTitle', transcription, notes, options),
+    isConfigured: () => ipcRenderer.invoke('ai:isConfigured'),
+    testConnection: () => ipcRenderer.invoke('ai:testConnection'),
+    setApiKey: (apiKey: string) => ipcRenderer.invoke('ai:setApiKey', apiKey)
   }
   // TODO: Implement these features in future phases
   // files: { ... }
   // themes: { ... }
-  // ai: { ... }
   // canvas: { ... }
 };
 

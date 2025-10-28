@@ -4,10 +4,23 @@
  * Handles the settings modal UI and persistence of user preferences.
  */
 
+declare const window: Window & {
+  scribeCat: {
+    store: {
+      get: (key: string) => Promise<any>;
+      set: (key: string, value: any) => Promise<void>;
+    };
+    ai: {
+      setApiKey: (apiKey: string) => Promise<any>;
+    };
+  };
+};
+
 export class SettingsManager {
   private settingsModal: HTMLElement;
   private transcriptionMode: 'simulation' | 'assemblyai' = 'simulation';
   private assemblyAIApiKey: string = '';
+  private claudeApiKey: string = '';
 
   constructor() {
     this.settingsModal = document.getElementById('settings-modal')!;
@@ -56,6 +69,13 @@ export class SettingsManager {
       this.assemblyAIApiKey = target.value.trim();
       this.updateAssemblyAIStatus();
     });
+    
+    // Claude API key input
+    const claudeApiKeyInput = document.getElementById('claude-api-key') as HTMLInputElement;
+    claudeApiKeyInput?.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      this.claudeApiKey = target.value.trim();
+    });
   }
 
   /**
@@ -70,6 +90,15 @@ export class SettingsManager {
       // Load AssemblyAI API key
       const apiKey = await window.scribeCat.store.get('assemblyai-api-key');
       this.assemblyAIApiKey = (apiKey as string) || '';
+      
+      // Load Claude API key
+      const claudeKey = await window.scribeCat.store.get('claude-api-key');
+      this.claudeApiKey = (claudeKey as string) || '';
+      
+      // Initialize AI service with stored key if it exists
+      if (this.claudeApiKey) {
+        await window.scribeCat.ai.setApiKey(this.claudeApiKey);
+      }
 
       // Update UI
       this.updateUIFromSettings();
@@ -94,6 +123,12 @@ export class SettingsManager {
     const assemblyAIApiKeyInput = document.getElementById('assemblyai-api-key') as HTMLInputElement;
     if (assemblyAIApiKeyInput) {
       assemblyAIApiKeyInput.value = this.assemblyAIApiKey;
+    }
+    
+    // Set Claude API key
+    const claudeApiKeyInput = document.getElementById('claude-api-key') as HTMLInputElement;
+    if (claudeApiKeyInput) {
+      claudeApiKeyInput.value = this.claudeApiKey;
     }
 
     // Update settings sections visibility
@@ -139,6 +174,13 @@ export class SettingsManager {
       // Save to store
       await window.scribeCat.store.set('transcription-mode', mode);
       await window.scribeCat.store.set('assemblyai-api-key', this.assemblyAIApiKey);
+      
+      // Save Claude API key if provided
+      if (this.claudeApiKey) {
+        await window.scribeCat.store.set('claude-api-key', this.claudeApiKey);
+        // Configure AI service with the new key
+        await window.scribeCat.ai.setApiKey(this.claudeApiKey);
+      }
 
       this.transcriptionMode = mode as 'simulation' | 'assemblyai';
 

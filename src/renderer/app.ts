@@ -8,10 +8,12 @@
 import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
 import { AssemblyAITranscriptionService } from './assemblyai-transcription-service.js';
+import { AIManager } from './ai-manager.js';
 
 // ===== State Management =====
 let audioManager: AudioManager;
 let settingsManager: SettingsManager;
+let aiManager: AIManager;
 let assemblyAIService: AssemblyAITranscriptionService | null = null;
 let isRecording = false;
 let transcriptionSessionId: string | null = null;
@@ -42,6 +44,26 @@ let underlineBtn: HTMLButtonElement;
 let fontSizeSelect: HTMLSelectElement;
 let textColorPicker: HTMLInputElement;
 
+// ===== Helper Functions for AI Manager =====
+
+/**
+ * Get current transcription text
+ */
+function getTranscriptionText(): string {
+  const flowingText = transcriptionContainer.querySelector('.flowing-transcription');
+  if (flowingText) {
+    return flowingText.textContent || '';
+  }
+  return '';
+}
+
+/**
+ * Get current notes text
+ */
+function getNotesText(): string {
+  return notesEditor.textContent || '';
+}
+
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('ScribeCat initializing...');
@@ -54,6 +76,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Initialize settings manager
   settingsManager = new SettingsManager();
+  
+  // Initialize AI manager
+  aiManager = new AIManager(
+    () => getTranscriptionText(),
+    () => getNotesText()
+  );
+  await aiManager.initialize();
   
   // Load microphone devices
   await loadMicrophoneDevices();
