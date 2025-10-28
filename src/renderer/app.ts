@@ -233,6 +233,14 @@ function setupTranscriptionListener(): void {
       addTranscriptionEntry(result.timestamp, result.text);
     }
   });
+  
+  // Whisper result listener
+  window.scribeCat.transcription.whisper.onResult((result) => {
+    if (currentTranscriptionMode === 'whisper') {
+      console.log('🎤 Whisper transcription:', result.text);
+      addTranscriptionEntry(result.timestamp, result.text);
+    }
+  });
 }
 
 /**
@@ -913,4 +921,5 @@ window.addEventListener('beforeunload', () => {
   }
   
   window.scribeCat.transcription.simulation.removeResultListener();
+  window.scribeCat.transcription.whisper.removeResultListener();
 });

@@ -49,6 +49,12 @@ const electronAPI = {
       stop: (sessionId: string) => ipcRenderer.invoke('transcription:whisper:stop', sessionId),
       processAudio: (sessionId: string, audioData: number[]) => 
         ipcRenderer.invoke('transcription:whisper:processAudio', sessionId, audioData),
+      onResult: (callback: (result: any) => void) => {
+        ipcRenderer.on('transcription:result', (_event: any, result: any) => callback(result));
+      },
+      removeResultListener: () => {
+        ipcRenderer.removeAllListeners('transcription:result');
+      },
       model: {
         isInstalled: (modelName?: string) => ipcRenderer.invoke('whisper:model:isInstalled', modelName),
         getPath: (modelName?: string) => ipcRenderer.invoke('whisper:model:getPath', modelName),

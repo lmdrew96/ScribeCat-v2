@@ -38,6 +38,8 @@ declare global {
           start: (modelPath: string) => Promise<{ success: boolean; sessionId?: string; error?: string }>;
           stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
           processAudio: (sessionId: string, audioData: number[]) => Promise<{ success: boolean; error?: string }>;
+          onResult: (callback: (result: TranscriptionResult) => void) => void;
+          removeResultListener: () => void;
           model: {
             isInstalled: (modelName?: string) => Promise<{ success: boolean; isInstalled: boolean; error?: string }>;
             getPath: (modelName?: string) => Promise<{ success: boolean; modelPath: string; modelsDir: string; error?: string }>;
