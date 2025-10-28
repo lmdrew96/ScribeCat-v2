@@ -2040,6 +2040,36 @@ body {
   text-align: center;
 }
 
+/* Status Indicator with Icon */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-indicator .status-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.status-indicator.status-text.configured .status-icon {
+  color: #27ae60;
+}
+
+.status-indicator.status-text.not-configured .status-icon {
+  color: #e74c3c;
+}
+
+.status-indicator.status-text.testing .status-icon {
+  color: #f1c40f;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Responsive adjustments for AI features */
 @media (max-width: 768px) {
   .panel-actions {

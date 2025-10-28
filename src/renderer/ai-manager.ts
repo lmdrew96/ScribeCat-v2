@@ -30,6 +30,8 @@ export class AIManager {
   private chatHistory: ChatMessage[] = [];
   private isConfigured: boolean = false;
   private isChatOpen: boolean = false;
+  private connectionTested: boolean = false;
+  private isTestingConnection: boolean = false;
   
   // UI Elements
   private chatDrawer: HTMLElement | null = null;
@@ -68,7 +70,106 @@ export class AIManager {
     this.setupUIElements();
     this.setupEventListeners();
     await this.loadApiKey();
-    await this.checkConfiguration();
+    
+    // Hybrid approach: Try background initialization, but don't block
+    this.initializeConnectionInBackground();
+  }
+  
+  /**
+   * Initialize AI connection in background (non-blocking)
+   */
+  private async initializeConnectionInBackground(): Promise<void> {
+    try {
+      // Check if API key exists
+      const apiKey = await window.scribeCat.store.get('claude-api-key');
+      
+      if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
+        // No API key - disable AI features
+        this.isConfigured = false;
+        this.connectionTested = true;
+        this.updateUIState();
+        this.updateConnectionStatus('not-configured', 'No API key configured');
+        return;
+      }
+      
+      // API key exists - test connection silently in background
+      console.log('Testing AI connection in background...');
+      this.isTestingConnection = true;
+      
+      const result = await window.scribeCat.ai.testConnection();
+      
+      if (result.success && result.data) {
+        // Connection successful
+        this.isConfigured = true;
+        this.connectionTested = true;
+        this.updateUIState();
+        this.updateConnectionStatus('connected', 'Connected');
+        console.log('✅ AI connection initialized successfully');
+      } else {
+        // Connection failed
+        this.isConfigured = false;
+        this.connectionTested = true;
+        this.updateUIState();
+        this.updateConnectionStatus('error', 'Connection failed - check API key');
+        console.warn('⚠️ AI connection test failed:', result.error);
+      }
+    } catch (error) {
+      // Silent failure - will retry on first use
+      console.warn('Background AI initialization failed:', error);
+      this.isConfigured = false;
+      this.connectionTested = false; // Allow retry on first use
+      this.updateUIState();
+      this.updateConnectionStatus('error', 'Connection test failed');
+    } finally {
+      this.isTestingConnection = false;
+    }
+  }
+  
+  /**
+   * Ensure AI is connected (lazy load fallback)
+   */
+  private async ensureConnected(): Promise<boolean> {
+    // Already tested and configured
+    if (this.connectionTested && this.isConfigured) {
+      return true;
+    }
+    
+    // Already tested but not configured
+    if (this.connectionTested && !this.isConfigured) {
+      return false;
+    }
+    
+    // Not tested yet - try now (lazy load)
+    if (!this.connectionTested && !this.isTestingConnection) {
+      console.log('Lazy loading AI connection...');
+      await this.initializeConnectionInBackground();
+    }
+    
+    return this.isConfigured;
+  }
+  
+  /**
+   * Update connection status in UI
+   */
+  private updateConnectionStatus(status: 'connected' | 'not-configured' | 'error' | 'testing', message: string): void {
+    if (!this.claudeStatusSpan) return;
+    
+    this.claudeStatusSpan.textContent = message;
+    
+    switch (status) {
+      case 'connected':
+        this.claudeStatusSpan.className = 'status-text configured';
+        break;
+      case 'not-configured':
+        this.claudeStatusSpan.className = 'status-text not-configured';
+        break;
+      case 'error':
+        this.claudeStatusSpan.className = 'status-text not-configured';
+        break;
+      case 'testing':
+        this.claudeStatusSpan.className = 'status-text testing';
+        break;
+    }
   }
   
   /**
@@ -166,50 +267,47 @@ export class AIManager {
   }
   
   /**
-   * Check if AI is configured
+   * Check if AI is configured (manual refresh)
    */
   async checkConfiguration(): Promise<void> {
-    try {
-      const result = await window.scribeCat.ai.isConfigured();
-      this.isConfigured = result.success && result.data;
-      
-      this.updateUIState();
-    } catch (error) {
-      console.error('Failed to check AI configuration:', error);
-      this.isConfigured = false;
-      this.updateUIState();
-    }
+    this.connectionTested = false;
+    await this.initializeConnectionInBackground();
   }
   
   /**
    * Update UI based on configuration state
    */
   private updateUIState(): void {
-    // Update status text
-    if (this.claudeStatusSpan) {
-      this.claudeStatusSpan.textContent = this.isConfigured ? 'Configured' : 'Not configured';
-      this.claudeStatusSpan.className = this.isConfigured ? 'status-text configured' : 'status-text not-configured';
-    }
+    const isAvailable = this.isConfigured && this.connectionTested;
     
     // Enable/disable chat input
     if (this.chatInput) {
-      this.chatInput.disabled = !this.isConfigured;
-      this.chatInput.placeholder = this.isConfigured 
-        ? 'Ask about your transcription or notes...'
-        : 'Configure Claude API key in settings to use AI chat';
+      this.chatInput.disabled = !isAvailable;
+      
+      if (this.isTestingConnection) {
+        this.chatInput.placeholder = 'Connecting to AI...';
+      } else if (isAvailable) {
+        this.chatInput.placeholder = 'Ask about your transcription or notes...';
+      } else if (!this.connectionTested) {
+        this.chatInput.placeholder = 'AI will connect on first use...';
+      } else {
+        this.chatInput.placeholder = 'Configure Claude API key in settings to use AI chat';
+      }
     }
     
     if (this.sendBtn) {
-      this.sendBtn.disabled = !this.isConfigured;
+      this.sendBtn.disabled = !isAvailable;
     }
     
     // Enable/disable action buttons
     if (this.polishBtn) {
-      this.polishBtn.disabled = !this.isConfigured;
+      this.polishBtn.disabled = !isAvailable;
+      this.polishBtn.title = isAvailable ? 'Polish transcription with AI' : 'Configure AI in settings';
     }
     
     if (this.summarizeBtn) {
-      this.summarizeBtn.disabled = !this.isConfigured;
+      this.summarizeBtn.disabled = !isAvailable;
+      this.summarizeBtn.title = isAvailable ? 'Generate AI summary' : 'Configure AI in settings';
     }
   }
   
@@ -324,7 +422,14 @@ export class AIManager {
    * Send a chat message
    */
   private async sendMessage(): Promise<void> {
-    if (!this.chatInput || !this.isConfigured) return;
+    if (!this.chatInput) return;
+    
+    // Ensure connection (lazy load if needed)
+    const connected = await this.ensureConnected();
+    if (!connected) {
+      alert('AI is not available. Please configure your Claude API key in Settings.');
+      return;
+    }
     
     const message = this.chatInput.value.trim();
     if (!message) return;
@@ -456,6 +561,13 @@ export class AIManager {
    * Polish the transcription
    */
   private async polishTranscription(): Promise<void> {
+    // Ensure connection (lazy load if needed)
+    const connected = await this.ensureConnected();
+    if (!connected) {
+      alert('AI is not available. Please configure your Claude API key in Settings.');
+      return;
+    }
+    
     const transcriptionText = this.getTranscriptionText();
     
     if (!transcriptionText || transcriptionText.trim().length === 0) {
@@ -562,6 +674,13 @@ export class AIManager {
    * Generate a summary
    */
   private async generateSummary(): Promise<void> {
+    // Ensure connection (lazy load if needed)
+    const connected = await this.ensureConnected();
+    if (!connected) {
+      alert('AI is not available. Please configure your Claude API key in Settings.');
+      return;
+    }
+    
     const transcriptionText = this.getTranscriptionText();
     const notesText = this.getNotesText();
     
