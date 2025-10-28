@@ -863,20 +863,25 @@ function clearTranscriptionPanel(): void {
  * Add transcription entry to panel
  */
 function addTranscriptionEntry(timestamp: number, text: string): void {
-  // Remove placeholder if it exists
-  const placeholder = transcriptionContainer.querySelector('.transcription-placeholder');
-  if (placeholder) {
-    placeholder.remove();
+  // Get or create the flowing text container
+  let flowingText = transcriptionContainer.querySelector('.flowing-transcription') as HTMLElement;
+  
+  if (!flowingText) {
+    // Remove placeholder if it exists
+    const placeholder = transcriptionContainer.querySelector('.transcription-placeholder');
+    if (placeholder) {
+      placeholder.remove();
+    }
+    
+    // Create flowing text container
+    flowingText = document.createElement('div');
+    flowingText.className = 'flowing-transcription';
+    transcriptionContainer.appendChild(flowingText);
   }
   
-  // Create entry element
-  const entry = document.createElement('div');
-  entry.className = 'transcription-entry';
-  
-  const timeStr = formatTime(Math.floor(timestamp));
-  entry.innerHTML = `<span class="timestamp">[${timeStr}]</span> ${escapeHtml(text)}`;
-  
-  transcriptionContainer.appendChild(entry);
+  // Append text with a space
+  const textNode = document.createTextNode(' ' + text);
+  flowingText.appendChild(textNode);
   
   // Auto-scroll to bottom
   transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;

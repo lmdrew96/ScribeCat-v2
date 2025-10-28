@@ -393,6 +393,16 @@ body {
   margin-right: 8px;
 }
 
+/* Flowing transcription style */
+.flowing-transcription {
+  color: #e0e0e0;
+  line-height: 1.6;
+  padding: 1rem;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 /* ===== Bottom Status Bar ===== */
 .status-bar {
   height: 40px;
