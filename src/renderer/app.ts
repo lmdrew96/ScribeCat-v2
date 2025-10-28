@@ -5,13 +5,13 @@
  * This is the main entry point for the renderer process.
  */
 
-import { AudioManager } from './audio-manager.js';
+import { SimpleAudioManager } from './simple-audio-manager.js';
 import { SettingsManager } from './settings.js';
 import { VoskSetupDialog } from './components/vosk-setup-dialog.js';
 import { VoskTranscriptionService } from './vosk-transcription-service.js';
 
 // ===== State Management =====
-let audioManager: AudioManager;
+let audioManager: SimpleAudioManager;
 let settingsManager: SettingsManager;
 let voskService: VoskTranscriptionService | null = null;
 let isRecording = false;
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeDOMReferences();
   
   // Initialize audio manager
-  audioManager = new AudioManager();
+  audioManager = new SimpleAudioManager();
   
   // Initialize settings manager
   settingsManager = new SettingsManager();
@@ -420,8 +420,8 @@ async function processWhisperBuffer(): Promise<void> {
       offset += chunk.length;
     }
 
-    // Get the actual sample rate from AudioContext
-    const sourceSampleRate = audioManager['analyzer']['audioContext']?.sampleRate || 48000;
+    // Get the actual sample rate from the recorder
+    const sourceSampleRate = audioManager.getSampleRate();
     
     console.log('🔊 SAMPLE RATE DEBUG:');
     console.log('  Source sample rate:', sourceSampleRate, 'Hz');
@@ -506,7 +506,8 @@ async function processWhisperBuffer(): Promise<void> {
  * Stop Whisper audio streaming
  */
 function stopWhisperAudioStreaming(): void {
-  audioManager.removeAudioDataCallback();
+  // Note: SimpleAudioRecorder doesn't need explicit callback removal
+  // It's handled automatically when recording stops
   whisperAudioBuffer = [];
   console.log('Whisper audio streaming stopped');
 }
@@ -591,7 +592,7 @@ async function startVoskTranscription(): Promise<void> {
   console.log('=== VOSK VERIFIED SUCCESSFULLY ===');
   
   // Get audio stream from recorder
-  const stream = audioManager['recorder'].getAudioStream();
+  const stream = audioManager.getAudioStream();
   if (!stream) {
     throw new Error('Failed to get audio stream for transcription');
   }
@@ -654,13 +655,16 @@ async function stopRecording(): Promise<void> {
     
     // Stop audio recording
     const result = await audioManager.stopRecording();
-    const durationSeconds = result.duration / 1000;
-    console.log('Recording stopped. Duration:', durationSeconds, 'seconds');
+    console.log('Recording stopped. Duration:', result.duration, 'seconds');
+    
+    // Convert Float32Array to ArrayBuffer for saving
+    // Note: result.audioData is already Float32Array from SimpleAudioRecorder
+    const arrayBuffer = result.audioData.buffer as ArrayBuffer;
     
     // Save the recording to disk
     const saveResult = await window.scribeCat.recording.stop(
-      result.audioData.buffer as ArrayBuffer,
-      durationSeconds
+      arrayBuffer,
+      result.duration
     );
     
     if (!saveResult.success) {
