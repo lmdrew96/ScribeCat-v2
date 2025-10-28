@@ -68,7 +68,20 @@ export class AssemblyAITranscriptionService implements ITranscriptionService {
       });
 
       this.ws.on('close', (code: number, reason: Buffer) => {
-        console.log('AssemblyAI WebSocket closed:', code, reason.toString());
+        const reasonText = reason.toString();
+        console.log('AssemblyAI WebSocket closed:', code, reasonText);
+        
+        if (code === 4001) {
+          console.error('❌ AssemblyAI Authentication Failed!');
+          console.error('   The API key is invalid or missing.');
+          console.error('   Please:');
+          console.error('   1. Get an API key from https://www.assemblyai.com/dashboard/signup');
+          console.error('   2. Open Settings in ScribeCat');
+          console.error('   3. Select AssemblyAI mode');
+          console.error('   4. Enter your API key');
+          console.error('   5. Save settings and try again');
+        }
+        
         this.isConnected = false;
       });
     });
