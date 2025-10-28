@@ -685,7 +685,13 @@ class ScribeCatApp {
           throw new Error('Session not found');
         }
         
-        const buffer = Buffer.from(audioData);
+        // Properly create Int16 buffer from number array
+        // Each number is a 2-byte Int16 value, not a single byte
+        const buffer = Buffer.allocUnsafe(audioData.length * 2); // 2 bytes per Int16
+        for (let i = 0; i < audioData.length; i++) {
+          buffer.writeInt16LE(audioData[i], i * 2);
+        }
+        
         await service.processAudioChunk(buffer);
         
         return { success: true };
