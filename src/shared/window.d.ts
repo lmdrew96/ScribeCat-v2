@@ -27,6 +27,7 @@ declare global {
           stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
           onResult: (callback: (result: TranscriptionResult) => void) => void;
           removeResultListener: () => void;
+          getToken: (apiKey: string) => Promise<{ success: boolean; token?: string; error?: string }>;
         };
       };
       settings: {

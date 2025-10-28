@@ -10,7 +10,6 @@ import { DeleteSessionUseCase } from '../application/use-cases/DeleteSessionUseC
 import { ExportSessionUseCase } from '../application/use-cases/ExportSessionUseCase.js';
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
 import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
-import { AssemblyAITranscriptionService } from './services/transcription/AssemblyAITranscriptionService.js';
 import { TranscriptionResult } from './services/transcription/ITranscriptionService.js';
 import Store from 'electron-store';
 
@@ -40,7 +39,6 @@ class ScribeCatApp {
   
   // Transcription services
   private simulationTranscriptionService: SimulationTranscriptionService;
-  private activeAssemblyAIServices: Map<string, AssemblyAITranscriptionService>;
 
   constructor() {
     // Initialize directory manager
@@ -75,9 +73,6 @@ class ScribeCatApp {
     
     // Initialize simulation transcription service
     this.simulationTranscriptionService = new SimulationTranscriptionService();
-    
-    // Initialize active AssemblyAI services map
-    this.activeAssemblyAIServices = new Map();
     
     this.recordingManager = new RecordingManager();
     this.initializeApp();
@@ -363,56 +358,61 @@ class ScribeCatApp {
       }
     });
     
-    // AssemblyAI: Start
-    ipcMain.handle('transcription:assemblyai:start', async (event, apiKey: string) => {
+    // AssemblyAI: Get temporary token
+    ipcMain.handle('transcription:assemblyai:getToken', async (event, apiKey: string) => {
       try {
-        const service = new AssemblyAITranscriptionService();
-        await service.initialize({ apiKey });
+        const https = await import('https');
         
-        service.onResult((result: TranscriptionResult) => {
-          event.sender.send('transcription:result', result);
+        return new Promise((resolve) => {
+          const options = {
+            hostname: 'streaming.assemblyai.com',
+            path: '/v3/token?expires_in_seconds=600',
+            method: 'GET',
+            headers: {
+              'Authorization': apiKey
+            }
+          };
+          
+          const req = https.request(options, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+              data += chunk;
+            });
+            
+            res.on('end', () => {
+              try {
+                const response = JSON.parse(data);
+                if (res.statusCode === 200 && response.token) {
+                  console.log('✅ AssemblyAI token generated successfully');
+                  resolve({ success: true, token: response.token });
+                } else {
+                  console.error('❌ AssemblyAI token error:', res.statusCode, response);
+                  resolve({ 
+                    success: false, 
+                    error: `Failed to get token: ${res.statusCode} - ${response.error || JSON.stringify(response)}` 
+                  });
+                }
+              } catch (error) {
+                console.error('❌ Failed to parse token response:', data);
+                resolve({ success: false, error: `Failed to parse token response: ${data}` });
+              }
+            });
+          });
+          
+          req.on('error', (error) => {
+            console.error('❌ Token request error:', error);
+            resolve({ success: false, error: error.message });
+          });
+          
+          req.end();
         });
-        
-        const sessionId = await service.start();
-        this.activeAssemblyAIServices.set(sessionId, service);
-        
-        return { success: true, sessionId };
       } catch (error) {
-        console.error('Failed to start AssemblyAI:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-      }
-    });
-
-    // AssemblyAI: Process audio
-    ipcMain.handle('transcription:assemblyai:processAudio', async (event, sessionId: string, audioData: number[]) => {
-      try {
-        const service = this.activeAssemblyAIServices.get(sessionId);
-        if (!service) throw new Error('Session not found');
-        
-        const buffer = Buffer.allocUnsafe(audioData.length * 2);
-        for (let i = 0; i < audioData.length; i++) {
-          buffer.writeInt16LE(audioData[i], i * 2);
-        }
-        
-        await service.processAudioChunk(buffer);
-        return { success: true };
-      } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-      }
-    });
-
-    // AssemblyAI: Stop
-    ipcMain.handle('transcription:assemblyai:stop', async (event, sessionId: string) => {
-      try {
-        const service = this.activeAssemblyAIServices.get(sessionId);
-        if (service) {
-          await service.stop(sessionId);
-          service.dispose();
-          this.activeAssemblyAIServices.delete(sessionId);
-        }
-        return { success: true };
-      } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        console.error('Failed to get AssemblyAI token:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
       }
     });
     

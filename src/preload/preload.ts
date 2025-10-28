@@ -28,16 +28,7 @@ const electronAPI = {
       }
     },
     assemblyai: {
-      start: (apiKey: string) => ipcRenderer.invoke('transcription:assemblyai:start', apiKey),
-      processAudio: (sessionId: string, audioData: number[]) => 
-        ipcRenderer.invoke('transcription:assemblyai:processAudio', sessionId, audioData),
-      stop: (sessionId: string) => ipcRenderer.invoke('transcription:assemblyai:stop', sessionId),
-      onResult: (callback: (result: any) => void) => {
-        ipcRenderer.on('transcription:result', (_event: any, result: any) => callback(result));
-      },
-      removeResultListener: () => {
-        ipcRenderer.removeAllListeners('transcription:result');
-      }
+      getToken: (apiKey: string) => ipcRenderer.invoke('transcription:assemblyai:getToken', apiKey)
     }
   },
   settings: {

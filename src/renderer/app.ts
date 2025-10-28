@@ -7,10 +7,12 @@
 
 import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
+import { AssemblyAITranscriptionService } from './assemblyai-transcription-service.js';
 
 // ===== State Management =====
 let audioManager: AudioManager;
 let settingsManager: SettingsManager;
+let assemblyAIService: AssemblyAITranscriptionService | null = null;
 let isRecording = false;
 let transcriptionSessionId: string | null = null;
 let currentTranscriptionMode: 'simulation' | 'assemblyai' = 'simulation';
@@ -202,14 +204,6 @@ function setupTranscriptionListener(): void {
       addTranscriptionEntry(result.timestamp, result.text);
     }
   });
-  
-  // AssemblyAI listener
-  window.scribeCat.transcription.assemblyai.onResult((result) => {
-    if (currentTranscriptionMode === 'assemblyai') {
-      console.log('🎤 AssemblyAI:', result.isFinal ? 'Final' : 'Partial', result.text);
-      updateFlowingTranscription(result.text, result.isFinal);
-    }
-  });
 }
 
 /**
@@ -296,25 +290,26 @@ async function startSimulationTranscription(): Promise<void> {
  * Start AssemblyAI transcription
  */
 async function startAssemblyAITranscription(): Promise<void> {
-  // Get API key from settings
-  const apiKey = (await window.scribeCat.store.get('assemblyai-api-key') as string || '').trim();
+  const apiKey = await window.scribeCat.store.get('assemblyai-api-key') as string;
   
   if (!apiKey) {
     throw new Error('AssemblyAI API key not configured. Please add it in Settings.');
   }
 
   console.log('Starting AssemblyAI transcription...');
-  console.log('API key length:', apiKey.length);
-  console.log('API key starts with:', apiKey.substring(0, 10) + '...');
   
-  // Start transcription
-  const result = await window.scribeCat.transcription.assemblyai.start(apiKey);
+  // Create and initialize service (runs in renderer)
+  assemblyAIService = new AssemblyAITranscriptionService();
+  await assemblyAIService.initialize(apiKey);
   
-  if (!result.success) {
-    throw new Error(`Failed to start AssemblyAI: ${result.error}`);
-  }
+  // Set up result callback
+  assemblyAIService.onResult((text: string, isFinal: boolean) => {
+    console.log('🎤 AssemblyAI:', isFinal ? 'Final' : 'Partial', text);
+    updateFlowingTranscription(text, isFinal);
+  });
   
-  transcriptionSessionId = result.sessionId!;
+  // Start session
+  transcriptionSessionId = await assemblyAIService.start();
   
   // Start audio streaming
   startAssemblyAIAudioStreaming();
@@ -335,7 +330,7 @@ function startAssemblyAIAudioStreaming(): void {
   });
 
   // Send buffered audio regularly
-  const intervalId = setInterval(async () => {
+  const intervalId = setInterval(() => {
     if (audioBuffer.length === 0 || currentTranscriptionMode !== 'assemblyai') return;
     
     // Combine buffered audio
@@ -359,11 +354,10 @@ function startAssemblyAIAudioStreaming(): void {
       int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
     }
 
-    // Send to AssemblyAI
-    await window.scribeCat.transcription.assemblyai.processAudio(
-      transcriptionSessionId!,
-      Array.from(int16Data)
-    );
+    // Send directly to service (no IPC!)
+    if (assemblyAIService) {
+      assemblyAIService.sendAudio(int16Data.buffer);
+    }
   }, CHUNK_INTERVAL);
 
   // Store interval ID for cleanup
@@ -404,6 +398,12 @@ function stopAssemblyAIAudioStreaming(): void {
     clearInterval(intervalId);
     delete (window as any).assemblyAIStreamingInterval;
   }
+  
+  if (assemblyAIService) {
+    assemblyAIService.stop();
+    assemblyAIService = null;
+  }
+  
   audioManager.removeAudioDataCallback();
   console.log('AssemblyAI audio streaming stopped');
 }
@@ -465,7 +465,6 @@ async function stopRecording(): Promise<void> {
         await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
       } else if (currentTranscriptionMode === 'assemblyai') {
         stopAssemblyAIAudioStreaming();
-        await window.scribeCat.transcription.assemblyai.stop(transcriptionSessionId);
       }
       transcriptionSessionId = null;
     }
@@ -710,12 +709,8 @@ window.addEventListener('beforeunload', () => {
       });
     } else if (currentTranscriptionMode === 'assemblyai') {
       stopAssemblyAIAudioStreaming();
-      window.scribeCat.transcription.assemblyai.stop(transcriptionSessionId).catch((err: Error) => {
-        console.error('Error stopping AssemblyAI on unload:', err);
-      });
     }
   }
   
   window.scribeCat.transcription.simulation.removeResultListener();
-  window.scribeCat.transcription.assemblyai.removeResultListener();
 });
