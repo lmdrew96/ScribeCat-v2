@@ -37,17 +37,41 @@ export class AssemblyAITranscriptionService implements ITranscriptionService {
     this.sessionId = `assemblyai-${Date.now()}`;
     this.startTime = Date.now();
 
-    // Connect to AssemblyAI real-time API
-    await this.connectWebSocket();
+    // Get temporary token from API key
+    const token = await this.getTemporaryToken();
+
+    // Connect to AssemblyAI real-time API with token
+    await this.connectWebSocket(token);
 
     console.log('AssemblyAI transcription session started:', this.sessionId);
     return this.sessionId;
   }
 
-  private async connectWebSocket(): Promise<void> {
+  /**
+   * Exchange API key for temporary token
+   */
+  private async getTemporaryToken(): Promise<string> {
+    const response = await fetch('https://api.assemblyai.com/v2/realtime/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': this.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ expires_in: 3600 }) // Token valid for 1 hour
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get temporary token: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.token;
+  }
+
+  private async connectWebSocket(token: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Use the new Streaming STT API endpoint
-      const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${this.apiKey}`;
+      // Use the new Streaming STT API endpoint with temporary token
+      const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${token}`;
       
       this.ws = new WebSocket(url);
 
