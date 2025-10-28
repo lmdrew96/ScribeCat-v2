@@ -403,6 +403,12 @@ body {
   word-wrap: break-word;
 }
 
+/* Partial text styling for AssemblyAI */
+.partial-text {
+  opacity: 0.6;
+  font-style: italic;
+}
+
 /* ===== Bottom Status Bar ===== */
 .status-bar {
   height: 40px;
@@ -1296,6 +1302,18 @@ body {
 }
 
 #whisper-settings.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* AssemblyAI Settings Section Visibility */
+#assemblyai-settings {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+#assemblyai-settings.active {
   opacity: 1;
   pointer-events: auto;
 }

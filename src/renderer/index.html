@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:* data: blob:; font-src 'self' data:; worker-src 'self' blob: data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:* wss://api.assemblyai.com data: blob:; font-src 'self' data:; worker-src 'self' blob: data:;">
     <title>ScribeCat</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -137,25 +137,37 @@
                         </label>
                         
                         <label class="radio-label">
-                            <input type="radio" name="transcription-mode" value="whisper" id="mode-whisper">
+                            <input type="radio" name="transcription-mode" value="assemblyai" id="mode-assemblyai">
                             <span class="radio-text">
-                                <strong>Whisper</strong>
-                                <small>Offline, high accuracy (~2-5s delay)</small>
-                            </span>
-                        </label>
-                        
-                        <label class="radio-label">
-                            <input type="radio" name="transcription-mode" value="vosk" id="mode-vosk">
-                            <span class="radio-text">
-                                <strong>Vosk</strong>
-                                <small>Real-time, experimental</small>
+                                <strong>AssemblyAI</strong>
+                                <small>Real-time streaming, word-by-word display</small>
                             </span>
                         </label>
                     </div>
                     <p class="help-text">
-                        Simulation mode is for testing. Whisper provides excellent accuracy offline. 
-                        Vosk is faster but less accurate.
+                        Simulation mode is for testing. AssemblyAI provides real-time streaming transcription with word-by-word display.
                     </p>
+                </section>
+                
+                <!-- AssemblyAI Settings Section -->
+                <section class="settings-section" id="assemblyai-settings">
+                    <h3>AssemblyAI Configuration</h3>
+                    <div class="form-group">
+                        <label for="assemblyai-api-key">API Key:</label>
+                        <input 
+                            type="password" 
+                            id="assemblyai-api-key" 
+                            class="text-input" 
+                            placeholder="Enter your AssemblyAI API key"
+                        >
+                        <small class="help-text">
+                            Get your API key from <a href="https://www.assemblyai.com/dashboard/signup" target="_blank">AssemblyAI Dashboard</a>
+                        </small>
+                    </div>
+                    <div class="status-row">
+                        <label>Status:</label>
+                        <span id="assemblyai-status" class="status-text">Not configured</span>
+                    </div>
                 </section>
                 
                 <!-- Whisper Model Management Section -->

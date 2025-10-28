@@ -21,34 +21,12 @@ declare global {
           onResult: (callback: (result: TranscriptionResult) => void) => void;
           removeResultListener: () => void;
         };
-        vosk: {
-          startServer: (modelPath: string, port?: number) => Promise<{ success: boolean; serverUrl?: string; error?: string }>;
-          stopServer: () => Promise<{ success: boolean; error?: string }>;
-          isServerRunning: () => Promise<{ success: boolean; isRunning: boolean; serverUrl?: string; error?: string }>;
-          model: {
-            isInstalled: () => Promise<{ isInstalled: boolean; path?: string }>;
-            getPath: () => Promise<{ success: boolean; modelPath: string; modelsDir: string; error?: string }>;
-            download: () => Promise<{ success: boolean; error?: string }>;
-            delete: () => Promise<{ success: boolean; error?: string }>;
-            onDownloadProgress: (callback: (progress: DownloadProgress) => void) => void;
-            removeDownloadProgressListener: (callback: (progress: DownloadProgress) => void) => void;
-          };
-        };
-        whisper: {
-          start: (modelPath: string) => Promise<{ success: boolean; sessionId?: string; error?: string }>;
-          stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+        assemblyai: {
+          start: (apiKey: string) => Promise<{ success: boolean; sessionId?: string; error?: string }>;
           processAudio: (sessionId: string, audioData: number[]) => Promise<{ success: boolean; error?: string }>;
+          stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
           onResult: (callback: (result: TranscriptionResult) => void) => void;
           removeResultListener: () => void;
-          model: {
-            isInstalled: (modelName?: string) => Promise<{ success: boolean; isInstalled: boolean; error?: string }>;
-            getPath: (modelName?: string) => Promise<{ success: boolean; modelPath: string; modelsDir: string; error?: string }>;
-            download: (modelName?: string) => Promise<{ success: boolean; error?: string }>;
-            delete: (modelName?: string) => Promise<{ success: boolean; error?: string }>;
-            getAvailable: () => Promise<{ success: boolean; models: Array<{ name: string; size: string; description: string }>; error?: string }>;
-            onDownloadProgress: (callback: (progress: DownloadProgress) => void) => void;
-            removeDownloadProgressListener: () => void;
-          };
         };
       };
       settings: {

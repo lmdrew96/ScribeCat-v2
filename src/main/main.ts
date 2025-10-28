@@ -7,17 +7,11 @@ import { FileSessionRepository } from '../infrastructure/repositories/FileSessio
 import { FileAudioRepository } from '../infrastructure/repositories/FileAudioRepository.js';
 import { ListSessionsUseCase } from '../application/use-cases/ListSessionsUseCase.js';
 import { DeleteSessionUseCase } from '../application/use-cases/DeleteSessionUseCase.js';
-import { TranscribeAudioUseCase } from '../application/use-cases/TranscribeAudioUseCase.js';
 import { ExportSessionUseCase } from '../application/use-cases/ExportSessionUseCase.js';
-import { VoskTranscriptionService } from '../infrastructure/services/transcription/VoskTranscriptionService.js';
-import { WhisperTranscriptionService } from '../infrastructure/services/transcription/WhisperTranscriptionService.js';
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
 import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
-import { WhisperTranscriptionService as WhisperTranscriptionServiceLocal } from './services/transcription/WhisperTranscriptionService.js';
+import { AssemblyAITranscriptionService } from './services/transcription/AssemblyAITranscriptionService.js';
 import { TranscriptionResult } from './services/transcription/ITranscriptionService.js';
-import { VoskModelServer } from './services/VoskModelServer.js';
-import { VoskModelManager, DownloadProgress } from './services/VoskModelManager.js';
-import { WhisperModelManager } from './services/WhisperModelManager.js';
 import Store from 'electron-store';
 
 // ES module equivalent of __dirname
@@ -42,15 +36,11 @@ class ScribeCatApp {
   // Use Cases
   private listSessionsUseCase: ListSessionsUseCase;
   private deleteSessionUseCase: DeleteSessionUseCase;
-  private transcribeAudioUseCase: TranscribeAudioUseCase;
   private exportSessionUseCase: ExportSessionUseCase;
   
   // Transcription services
   private simulationTranscriptionService: SimulationTranscriptionService;
-  private voskModelServer: VoskModelServer;
-  private voskModelManager: VoskModelManager;
-  private whisperModelManager: WhisperModelManager;
-  private activeWhisperServices: Map<string, WhisperTranscriptionServiceLocal>;
+  private activeAssemblyAIServices: Map<string, AssemblyAITranscriptionService>;
 
   constructor() {
     // Initialize directory manager
@@ -67,12 +57,6 @@ class ScribeCatApp {
     this.sessionRepository = new FileSessionRepository();
     this.audioRepository = new FileAudioRepository();
     
-    // Initialize transcription services
-    const voskService = new VoskTranscriptionService(
-      path.join(app.getPath('userData'), 'models')
-    );
-    const whisperService = new WhisperTranscriptionService(''); // API key will be set from settings
-    
     // Initialize export services
     const exportServices = new Map();
     exportServices.set('txt', new TextExportService());
@@ -84,11 +68,6 @@ class ScribeCatApp {
       this.sessionRepository,
       this.audioRepository
     );
-    this.transcribeAudioUseCase = new TranscribeAudioUseCase(
-      this.sessionRepository,
-      voskService,
-      whisperService
-    );
     this.exportSessionUseCase = new ExportSessionUseCase(
       this.sessionRepository,
       exportServices
@@ -97,17 +76,8 @@ class ScribeCatApp {
     // Initialize simulation transcription service
     this.simulationTranscriptionService = new SimulationTranscriptionService();
     
-    // Initialize Vosk model server
-    this.voskModelServer = new VoskModelServer();
-    
-    // Initialize Vosk model manager
-    this.voskModelManager = new VoskModelManager();
-    
-    // Initialize Whisper model manager
-    this.whisperModelManager = new WhisperModelManager();
-    
-    // Initialize active Whisper services map
-    this.activeWhisperServices = new Map();
+    // Initialize active AssemblyAI services map
+    this.activeAssemblyAIServices = new Map();
     
     this.recordingManager = new RecordingManager();
     this.initializeApp();
@@ -275,34 +245,6 @@ class ScribeCatApp {
       }
     });
     
-    // Transcription handler
-    ipcMain.handle('transcription:start', async (event, sessionId: string, options?: any) => {
-      try {
-        const session = await this.transcribeAudioUseCase.execute(sessionId, options);
-        return { success: true, session: session.toJSON() };
-      } catch (error) {
-        console.error('Failed to transcribe audio:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Re-transcription handler
-    ipcMain.handle('transcription:retry', async (event, sessionId: string, options?: any) => {
-      try {
-        const session = await this.transcribeAudioUseCase.reTranscribe(sessionId, options);
-        return { success: true, session: session.toJSON() };
-      } catch (error) {
-        console.error('Failed to re-transcribe audio:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
     // Export handler
     ipcMain.handle('session:export', async (event, sessionId: string, format: string, outputPath: string, options?: any) => {
       try {
@@ -421,6 +363,59 @@ class ScribeCatApp {
       }
     });
     
+    // AssemblyAI: Start
+    ipcMain.handle('transcription:assemblyai:start', async (event, apiKey: string) => {
+      try {
+        const service = new AssemblyAITranscriptionService();
+        await service.initialize({ apiKey });
+        
+        service.onResult((result: TranscriptionResult) => {
+          event.sender.send('transcription:result', result);
+        });
+        
+        const sessionId = await service.start();
+        this.activeAssemblyAIServices.set(sessionId, service);
+        
+        return { success: true, sessionId };
+      } catch (error) {
+        console.error('Failed to start AssemblyAI:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    });
+
+    // AssemblyAI: Process audio
+    ipcMain.handle('transcription:assemblyai:processAudio', async (event, sessionId: string, audioData: number[]) => {
+      try {
+        const service = this.activeAssemblyAIServices.get(sessionId);
+        if (!service) throw new Error('Session not found');
+        
+        const buffer = Buffer.allocUnsafe(audioData.length * 2);
+        for (let i = 0; i < audioData.length; i++) {
+          buffer.writeInt16LE(audioData[i], i * 2);
+        }
+        
+        await service.processAudioChunk(buffer);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    });
+
+    // AssemblyAI: Stop
+    ipcMain.handle('transcription:assemblyai:stop', async (event, sessionId: string) => {
+      try {
+        const service = this.activeAssemblyAIServices.get(sessionId);
+        if (service) {
+          await service.stop(sessionId);
+          service.dispose();
+          this.activeAssemblyAIServices.delete(sessionId);
+        }
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    });
+    
     // Settings: Get simulation mode
     ipcMain.handle('settings:get-simulation-mode', async () => {
       try {
@@ -467,268 +462,6 @@ class ScribeCatApp {
       } catch (error) {
         console.error(`Failed to set store value for key "${key}":`, error);
         throw error;
-      }
-    });
-    
-    // Vosk Model Server: Start server
-    ipcMain.handle('vosk:server:start', async (event, modelPath: string, port?: number) => {
-      try {
-        const serverUrl = await this.voskModelServer.start(modelPath, port);
-        return { success: true, serverUrl };
-      } catch (error) {
-        console.error('Failed to start Vosk model server:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Vosk Model Server: Stop server
-    ipcMain.handle('vosk:server:stop', async () => {
-      try {
-        await this.voskModelServer.stop();
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to stop Vosk model server:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Vosk Model Server: Check if running
-    ipcMain.handle('vosk:server:isRunning', async () => {
-      try {
-        const isRunning = this.voskModelServer.isServerRunning();
-        const serverUrl = isRunning ? this.voskModelServer.getServerUrl() : null;
-        return { success: true, isRunning, serverUrl };
-      } catch (error) {
-        console.error('Failed to check Vosk server status:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Vosk Model Manager: Check if model is installed
-    ipcMain.handle('vosk:model:isInstalled', async () => {
-      try {
-        const isInstalled = await this.voskModelManager.isModelInstalled();
-        return { success: true, isInstalled };
-      } catch (error) {
-        console.error('Failed to check model installation:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Vosk Model Manager: Get model path
-    ipcMain.handle('vosk:model:getPath', async () => {
-      try {
-        const modelPath = this.voskModelManager.getModelPath();
-        const modelsDir = this.voskModelManager.getModelsDirectory();
-        return { success: true, modelPath, modelsDir };
-      } catch (error) {
-        console.error('Failed to get model path:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Vosk Model Manager: Download model
-    ipcMain.handle('vosk:model:download', async (event) => {
-      try {
-        // Set up progress callback
-        this.voskModelManager.onProgress((progress: DownloadProgress) => {
-          event.sender.send('vosk:model:downloadProgress', progress);
-        });
-        
-        await this.voskModelManager.downloadModel();
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to download model:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Vosk Model Manager: Delete model
-    ipcMain.handle('vosk:model:delete', async () => {
-      try {
-        await this.voskModelManager.deleteModel();
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to delete model:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Whisper Model Manager: Check if model is installed
-    ipcMain.handle('whisper:model:isInstalled', async (event, modelName) => {
-      try {
-        const isInstalled = await this.whisperModelManager.isModelInstalled(modelName || 'base');
-        return { success: true, isInstalled };
-      } catch (error) {
-        console.error('Failed to check Whisper model:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Whisper Model Manager: Get model path
-    ipcMain.handle('whisper:model:getPath', async (event, modelName) => {
-      try {
-        const modelPath = this.whisperModelManager.getModelPath(modelName || 'base');
-        const modelsDir = this.whisperModelManager.getModelsDirectory();
-        return { success: true, modelPath, modelsDir };
-      } catch (error) {
-        console.error('Failed to get Whisper model path:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Whisper Model Manager: Download model
-    ipcMain.handle('whisper:model:download', async (event, modelName) => {
-      try {
-        // Set up progress callback
-        this.whisperModelManager.onProgress((progress) => {
-          event.sender.send('whisper:model:downloadProgress', progress);
-        });
-        
-        await this.whisperModelManager.downloadModel(modelName || 'base');
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to download Whisper model:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Whisper Model Manager: Delete model
-    ipcMain.handle('whisper:model:delete', async (event, modelName) => {
-      try {
-        await this.whisperModelManager.deleteModel(modelName || 'base');
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to delete Whisper model:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Whisper Model Manager: Get available models
-    ipcMain.handle('whisper:model:getAvailable', async () => {
-      try {
-        const models = this.whisperModelManager.getAvailableModels();
-        return { success: true, models };
-      } catch (error) {
-        console.error('Failed to get available models:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Whisper Transcription: Start
-    ipcMain.handle('transcription:whisper:start', async (event, modelPath: string) => {
-      try {
-        const whisperService = new WhisperTranscriptionServiceLocal();
-        await whisperService.initialize({ modelPath });
-        
-        // Set up result callback
-        whisperService.onResult((result: TranscriptionResult) => {
-          event.sender.send('transcription:result', result);
-        });
-        
-        const sessionId = await whisperService.start();
-        
-        // Store service for audio processing
-        this.activeWhisperServices.set(sessionId, whisperService);
-        
-        return { success: true, sessionId };
-      } catch (error) {
-        console.error('Failed to start Whisper transcription:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Whisper Transcription: Process audio chunk
-    ipcMain.handle('transcription:whisper:processAudio', async (event, sessionId: string, audioData: number[]) => {
-      try {
-        const service = this.activeWhisperServices.get(sessionId);
-        if (!service) {
-          throw new Error('Session not found');
-        }
-        
-        // Properly create Int16 buffer from number array
-        // Each number is a 2-byte Int16 value, not a single byte
-        const buffer = Buffer.allocUnsafe(audioData.length * 2); // 2 bytes per Int16
-        for (let i = 0; i < audioData.length; i++) {
-          buffer.writeInt16LE(audioData[i], i * 2);
-        }
-        
-        await service.processAudioChunk(buffer);
-        
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to process audio:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Whisper Transcription: Stop
-    ipcMain.handle('transcription:whisper:stop', async (event, sessionId: string) => {
-      try {
-        const service = this.activeWhisperServices.get(sessionId);
-        if (service) {
-          await service.stop(sessionId);
-          service.dispose();
-          this.activeWhisperServices.delete(sessionId);
-        }
-        
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to stop Whisper transcription:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        };
-      }
-    });
-    
-    // Clean up Vosk server on app quit
-    app.on('before-quit', async () => {
-      if (this.voskModelServer.isServerRunning()) {
-        console.log('Stopping Vosk model server before quit...');
-        await this.voskModelServer.stop();
       }
     });
   }

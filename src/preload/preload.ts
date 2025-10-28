@@ -27,46 +27,16 @@ const electronAPI = {
         ipcRenderer.removeAllListeners('transcription:result');
       }
     },
-    vosk: {
-      startServer: (modelPath: string, port?: number) => ipcRenderer.invoke('vosk:server:start', modelPath, port),
-      stopServer: () => ipcRenderer.invoke('vosk:server:stop'),
-      isServerRunning: () => ipcRenderer.invoke('vosk:server:isRunning'),
-      model: {
-        isInstalled: () => ipcRenderer.invoke('vosk:model:isInstalled'),
-        getPath: () => ipcRenderer.invoke('vosk:model:getPath'),
-        download: () => ipcRenderer.invoke('vosk:model:download'),
-        delete: () => ipcRenderer.invoke('vosk:model:delete'),
-        onDownloadProgress: (callback: (progress: any) => void) => {
-          ipcRenderer.on('vosk:model:downloadProgress', (_event: any, progress: any) => callback(progress));
-        },
-        removeDownloadProgressListener: () => {
-          ipcRenderer.removeAllListeners('vosk:model:downloadProgress');
-        }
-      }
-    },
-    whisper: {
-      start: (modelPath: string) => ipcRenderer.invoke('transcription:whisper:start', modelPath),
-      stop: (sessionId: string) => ipcRenderer.invoke('transcription:whisper:stop', sessionId),
+    assemblyai: {
+      start: (apiKey: string) => ipcRenderer.invoke('transcription:assemblyai:start', apiKey),
       processAudio: (sessionId: string, audioData: number[]) => 
-        ipcRenderer.invoke('transcription:whisper:processAudio', sessionId, audioData),
+        ipcRenderer.invoke('transcription:assemblyai:processAudio', sessionId, audioData),
+      stop: (sessionId: string) => ipcRenderer.invoke('transcription:assemblyai:stop', sessionId),
       onResult: (callback: (result: any) => void) => {
         ipcRenderer.on('transcription:result', (_event: any, result: any) => callback(result));
       },
       removeResultListener: () => {
         ipcRenderer.removeAllListeners('transcription:result');
-      },
-      model: {
-        isInstalled: (modelName?: string) => ipcRenderer.invoke('whisper:model:isInstalled', modelName),
-        getPath: (modelName?: string) => ipcRenderer.invoke('whisper:model:getPath', modelName),
-        download: (modelName?: string) => ipcRenderer.invoke('whisper:model:download', modelName),
-        delete: (modelName?: string) => ipcRenderer.invoke('whisper:model:delete', modelName),
-        getAvailable: () => ipcRenderer.invoke('whisper:model:getAvailable'),
-        onDownloadProgress: (callback: (progress: any) => void) => {
-          ipcRenderer.on('whisper:model:downloadProgress', (_event: any, progress: any) => callback(progress));
-        },
-        removeDownloadProgressListener: () => {
-          ipcRenderer.removeAllListeners('whisper:model:downloadProgress');
-        }
       }
     }
   },

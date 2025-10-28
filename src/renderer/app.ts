@@ -7,21 +7,17 @@
 
 import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
-import { VoskSetupDialog } from './components/vosk-setup-dialog.js';
-import { VoskTranscriptionService } from './vosk-transcription-service.js';
 
 // ===== State Management =====
 let audioManager: AudioManager;
 let settingsManager: SettingsManager;
-let voskService: VoskTranscriptionService | null = null;
 let isRecording = false;
 let transcriptionSessionId: string | null = null;
-let currentTranscriptionMode: 'simulation' | 'vosk' | 'whisper' = 'simulation';
+let currentTranscriptionMode: 'simulation' | 'assemblyai' = 'simulation';
 let elapsedTimer: number | null = null;
 let startTime: number = 0;
 let vuMeterInterval: number | null = null;
-let whisperAudioBuffer: Float32Array[] = [];
-let whisperLastProcessTime: number = 0;
+let lastPartialText = '';
 
 // ===== DOM Elements =====
 let recordBtn: HTMLButtonElement;
@@ -69,32 +65,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize UI state
   updateUIState('idle');
   
-  // Check for first-run Vosk setup
-  await checkVoskSetup();
-  
   console.log('ScribeCat initialized successfully');
 });
-
-/**
- * Check if Vosk model is installed and show setup dialog if needed
- */
-async function checkVoskSetup(): Promise<void> {
-  try {
-    const check = await window.scribeCat.transcription.vosk.model.isInstalled();
-    
-    if (!check.isInstalled) {
-      // Check if user previously skipped
-      const skipped = localStorage.getItem('vosk-setup-skipped');
-      
-      if (!skipped) {
-        const setupDialog = new VoskSetupDialog();
-        await setupDialog.show();
-      }
-    }
-  } catch (error) {
-    console.error('Error checking Vosk setup:', error);
-  }
-}
 
 /**
  * Get references to all DOM elements
@@ -181,9 +153,6 @@ function setupEventListeners(): void {
   // Record button
   recordBtn.addEventListener('click', handleRecordToggle);
   
-  // Settings button is handled by SettingsManager
-  // No need to add listener here
-  
   // Formatting toolbar
   boldBtn.addEventListener('click', () => applyFormat('bold'));
   italicBtn.addEventListener('click', () => applyFormat('italic'));
@@ -234,11 +203,11 @@ function setupTranscriptionListener(): void {
     }
   });
   
-  // Whisper result listener
-  window.scribeCat.transcription.whisper.onResult((result) => {
-    if (currentTranscriptionMode === 'whisper') {
-      console.log('🎤 Whisper transcription:', result.text);
-      addTranscriptionEntry(result.timestamp, result.text);
+  // AssemblyAI listener
+  window.scribeCat.transcription.assemblyai.onResult((result) => {
+    if (currentTranscriptionMode === 'assemblyai') {
+      console.log('🎤 AssemblyAI:', result.isFinal ? 'Final' : 'Partial', result.text);
+      updateFlowingTranscription(result.text, result.isFinal);
     }
   });
 }
@@ -268,25 +237,23 @@ async function startRecording(): Promise<void> {
     
     // Get transcription mode from settings
     const mode = await window.scribeCat.store.get('transcription-mode') as string || 'simulation';
-    currentTranscriptionMode = mode as 'simulation' | 'vosk' | 'whisper';
+    currentTranscriptionMode = mode as 'simulation' | 'assemblyai';
     
     console.log(`Starting recording with ${currentTranscriptionMode} mode...`);
     
     // Start audio recording with optimized settings for transcription
     await audioManager.startRecording({
       deviceId: selectedDeviceId,
-      echoCancellation: true,   // ✅ Keep - removes echo
-      noiseSuppression: true,   // ✅ Keep - reduces background noise  
-      autoGainControl: false    // ❌ DISABLE - causes level fluctuations
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: false
     });
     
     // Start appropriate transcription service
     if (currentTranscriptionMode === 'simulation') {
       await startSimulationTranscription();
-    } else if (currentTranscriptionMode === 'whisper') {
-      await startWhisperTranscription();
-    } else {
-      await startVoskTranscription();
+    } else if (currentTranscriptionMode === 'assemblyai') {
+      await startAssemblyAITranscription();
     }
     
     // Update state
@@ -303,7 +270,7 @@ async function startRecording(): Promise<void> {
   } catch (error) {
     console.error('Failed to start recording:', error);
     
-    // IMPORTANT: Clean up on error to prevent "already recording" state
+    // Clean up on error
     await cleanupRecording();
     isRecording = false;
     updateUIState('idle');
@@ -326,71 +293,87 @@ async function startSimulationTranscription(): Promise<void> {
 }
 
 /**
- * Start Whisper transcription
+ * Start AssemblyAI transcription
  */
-async function startWhisperTranscription(): Promise<void> {
-  // Get model path
-  const pathResult = await window.scribeCat.transcription.whisper.model.getPath('base');
+async function startAssemblyAITranscription(): Promise<void> {
+  // Get API key from settings
+  const apiKey = await window.scribeCat.store.get('assemblyai-api-key') as string;
   
-  if (!pathResult.success) {
-    throw new Error('Failed to get Whisper model path');
+  if (!apiKey) {
+    throw new Error('AssemblyAI API key not configured. Please add it in Settings.');
   }
-  
-  const modelPath = pathResult.modelPath;
-  
-  // Check if model is installed
-  const installedCheck = await window.scribeCat.transcription.whisper.model.isInstalled('base');
-  if (!installedCheck.isInstalled) {
-    throw new Error('Whisper model not installed. Please download it in Settings.');
-  }
-  
-  console.log('Starting Whisper transcription with model:', modelPath);
+
+  console.log('Starting AssemblyAI transcription...');
   
   // Start transcription
-  const result = await window.scribeCat.transcription.whisper.start(modelPath);
+  const result = await window.scribeCat.transcription.assemblyai.start(apiKey);
   
   if (!result.success) {
-    throw new Error(`Failed to start Whisper: ${result.error}`);
+    throw new Error(`Failed to start AssemblyAI: ${result.error}`);
   }
   
   transcriptionSessionId = result.sessionId!;
   
   // Start audio streaming
-  startWhisperAudioStreaming();
+  startAssemblyAIAudioStreaming();
   
-  console.log('Whisper transcription and audio streaming started');
+  console.log('AssemblyAI transcription started');
 }
 
 /**
- * Start streaming audio to Whisper transcription service
+ * Start streaming audio to AssemblyAI
  */
-function startWhisperAudioStreaming(): void {
-  whisperAudioBuffer = [];
-  whisperLastProcessTime = Date.now();
-  const PROCESS_INTERVAL = 2000; // Process every 2 seconds (faster response!)
+function startAssemblyAIAudioStreaming(): void {
+  const CHUNK_INTERVAL = 100; // Send audio every 100ms for low latency
+  let audioBuffer: Float32Array[] = [];
 
-  // Set up audio data callback
   audioManager.onAudioData((audioData: Float32Array) => {
-    if (currentTranscriptionMode !== 'whisper') return;
-
-    // Buffer audio data
-    whisperAudioBuffer.push(new Float32Array(audioData));
-
-    // Process every 2 seconds
-    const now = Date.now();
-    if (now - whisperLastProcessTime >= PROCESS_INTERVAL) {
-      processWhisperBuffer();
-      whisperLastProcessTime = now;
-    }
+    if (currentTranscriptionMode !== 'assemblyai') return;
+    audioBuffer.push(new Float32Array(audioData));
   });
 
-  console.log('Whisper audio streaming enabled');
+  // Send buffered audio regularly
+  const intervalId = setInterval(async () => {
+    if (audioBuffer.length === 0 || currentTranscriptionMode !== 'assemblyai') return;
+    
+    // Combine buffered audio
+    const totalLength = audioBuffer.reduce((sum, arr) => sum + arr.length, 0);
+    const combined = new Float32Array(totalLength);
+    let offset = 0;
+    for (const chunk of audioBuffer) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+    audioBuffer = [];
+
+    // Get sample rate and resample to 16kHz
+    const sourceSampleRate = (audioManager as any)['analyzer']['audioContext']?.sampleRate || 48000;
+    const resampled = resampleAudioForAssemblyAI(combined, sourceSampleRate, 16000);
+
+    // Convert to Int16 PCM
+    const int16Data = new Int16Array(resampled.length);
+    for (let i = 0; i < resampled.length; i++) {
+      const s = Math.max(-1, Math.min(1, resampled[i]));
+      int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+
+    // Send to AssemblyAI
+    await window.scribeCat.transcription.assemblyai.processAudio(
+      transcriptionSessionId!,
+      Array.from(int16Data)
+    );
+  }, CHUNK_INTERVAL);
+
+  // Store interval ID for cleanup
+  (window as any).assemblyAIStreamingInterval = intervalId;
+  
+  console.log('AssemblyAI audio streaming enabled');
 }
 
 /**
- * Resample audio from source sample rate to 16kHz for Whisper
+ * Resample audio for AssemblyAI (16kHz)
  */
-function resampleAudio(audioData: Float32Array, sourceSampleRate: number, targetSampleRate: number = 16000): Float32Array {
+function resampleAudioForAssemblyAI(audioData: Float32Array, sourceSampleRate: number, targetSampleRate: number = 16000): Float32Array {
   if (sourceSampleRate === targetSampleRate) {
     return audioData;
   }
@@ -404,8 +387,6 @@ function resampleAudio(audioData: Float32Array, sourceSampleRate: number, target
     const srcIndexFloor = Math.floor(srcIndex);
     const srcIndexCeil = Math.min(srcIndexFloor + 1, audioData.length - 1);
     const t = srcIndex - srcIndexFloor;
-
-    // Linear interpolation
     result[i] = audioData[srcIndexFloor] * (1 - t) + audioData[srcIndexCeil] * t;
   }
 
@@ -413,246 +394,60 @@ function resampleAudio(audioData: Float32Array, sourceSampleRate: number, target
 }
 
 /**
- * Process buffered audio and send to Whisper
+ * Stop AssemblyAI audio streaming
  */
-async function processWhisperBuffer(): Promise<void> {
-  if (whisperAudioBuffer.length === 0 || !transcriptionSessionId) return;
-
-  try {
-    // Combine all buffered audio
-    const totalLength = whisperAudioBuffer.reduce((sum, arr) => sum + arr.length, 0);
-    const combined = new Float32Array(totalLength);
-    let offset = 0;
-    for (const chunk of whisperAudioBuffer) {
-      combined.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    // 🎯 Calculate current audio level
-    let maxLevel = 0;
-    for (let i = 0; i < combined.length; i++) {
-      const abs = Math.abs(combined[i]);
-      if (abs > maxLevel) maxLevel = abs;
-    }
-    
-    // 🎯 Apply adaptive gain if audio is too quiet
-    const targetLevel = 0.3; // Target 30% of max range
-    if (maxLevel > 0 && maxLevel < targetLevel) {
-      const gain = targetLevel / maxLevel;
-      const safeGain = Math.min(gain, 4.0); // Limit to 4x boost max
-      console.log(`🔊 Boosting quiet audio: ${maxLevel.toFixed(3)} → ${(maxLevel * safeGain).toFixed(3)} (${safeGain.toFixed(1)}x gain)`);
-      
-      for (let i = 0; i < combined.length; i++) {
-        combined[i] = Math.max(-1, Math.min(1, combined[i] * safeGain));
-      }
-    }
-
-    // Get the actual sample rate from AudioContext
-    const sourceSampleRate = audioManager['analyzer']['audioContext']?.sampleRate || 48000;
-    
-    console.log('🔊 SAMPLE RATE DEBUG:');
-    console.log('  Source sample rate:', sourceSampleRate, 'Hz');
-    console.log('  Target sample rate: 16000 Hz');
-    console.log('  Original samples:', combined.length);
-
-    // Resample to 16kHz for Whisper
-    const resampled = resampleAudio(combined, sourceSampleRate, 16000);
-    
-    console.log('  Resampled samples:', resampled.length);
-    console.log('  Original duration:', (combined.length / sourceSampleRate).toFixed(2), 's');
-    console.log('  Resampled duration:', (resampled.length / 16000).toFixed(2), 's');
-
-    // ===== WAVEFORM DEBUG CODE =====
-    // Sample first 50 values to see waveform pattern
-    console.log('📊 WAVEFORM SAMPLE (first 50 values):');
-    const sampleValues = [];
-    for (let i = 0; i < Math.min(50, resampled.length); i++) {
-      sampleValues.push(resampled[i].toFixed(4));
-    }
-    console.log('  Values:', sampleValues.join(', '));
-
-    // Check if it's just noise (values should vary significantly for speech)
-    const firstHalf = resampled.slice(0, Math.floor(resampled.length / 2));
-    const secondHalf = resampled.slice(Math.floor(resampled.length / 2));
-    const firstAvg = firstHalf.reduce((sum, val) => sum + Math.abs(val), 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((sum, val) => sum + Math.abs(val), 0) / secondHalf.length;
-
-    console.log('  First half avg:', firstAvg.toFixed(4));
-    console.log('  Second half avg:', secondAvg.toFixed(4));
-
-    if (Math.abs(firstAvg - secondAvg) < 0.001) {
-      console.warn('⚠️ Audio looks like uniform noise (both halves similar)');
-    } else {
-      console.log('  ✅ Audio has variation (likely real signal)');
-    }
-    // ===== END DEBUG CODE =====
-
-    // Check audio levels on resampled data
-    let resampledMaxLevel = 0;
-    let sumLevel = 0;
-    for (let i = 0; i < resampled.length; i++) {
-      const abs = Math.abs(resampled[i]);
-      if (abs > resampledMaxLevel) resampledMaxLevel = abs;
-      sumLevel += abs;
-    }
-    const avgLevel = sumLevel / resampled.length;
-    
-    console.log('🎤 AUDIO DEBUG (after resampling):');
-    console.log('  Max level:', resampledMaxLevel.toFixed(4));
-    console.log('  Avg level:', avgLevel.toFixed(4));
-    
-    if (resampledMaxLevel < 0.01) {
-      console.warn('⚠️ WARNING: Audio level is very low after resampling!');
-    } else {
-      console.log('  ✅ Audio levels look good!');
-    }
-
-    // Convert Float32Array to Int16Array (PCM 16-bit)
-    const int16Data = new Int16Array(resampled.length);
-    for (let i = 0; i < resampled.length; i++) {
-      const s = Math.max(-1, Math.min(1, resampled[i]));
-      int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-    }
-
-    // Send to main process
-    await window.scribeCat.transcription.whisper.processAudio(
-      transcriptionSessionId,
-      Array.from(int16Data)
-    );
-
-    // Clear buffer
-    whisperAudioBuffer = [];
-    
-    console.log('📤 Sent resampled audio chunk to Whisper for processing');
-  } catch (error) {
-    console.error('Error processing Whisper audio buffer:', error);
+function stopAssemblyAIAudioStreaming(): void {
+  const intervalId = (window as any).assemblyAIStreamingInterval;
+  if (intervalId) {
+    clearInterval(intervalId);
+    delete (window as any).assemblyAIStreamingInterval;
   }
-}
-
-/**
- * Stop Whisper audio streaming
- */
-function stopWhisperAudioStreaming(): void {
   audioManager.removeAudioDataCallback();
-  whisperAudioBuffer = [];
-  console.log('Whisper audio streaming stopped');
+  console.log('AssemblyAI audio streaming stopped');
 }
 
 /**
- * Start Vosk transcription
+ * Update flowing transcription with partial/final results
  */
-async function startVoskTranscription(): Promise<void> {
-  const modelPath = await window.scribeCat.store.get('transcription.vosk.modelPath') as string;
+function updateFlowingTranscription(text: string, isFinal: boolean): void {
+  let flowingText = transcriptionContainer.querySelector('.flowing-transcription') as HTMLElement;
   
-  console.log('=== VOSK STARTUP DEBUG ===');
-  console.log('Model Path:', modelPath);
-  
-  if (!modelPath || typeof modelPath !== 'string') {
-    throw new Error('Vosk model path not configured. Please download a model in Settings.');
-  }
-  
-  // Check if server is already running
-  console.log('Checking server status...');
-  const serverStatus = await window.scribeCat.transcription.vosk.isServerRunning();
-  console.log('Server status:', serverStatus);
-  
-  let serverUrl: string;
-  
-  if (!serverStatus.success) {
-    throw new Error(`Failed to check server status: ${serverStatus.error || 'Unknown error'}`);
-  }
-  
-  if (!serverStatus.isRunning) {
-    console.log('Server not running, starting it with path:', modelPath);
+  if (!flowingText) {
+    const placeholder = transcriptionContainer.querySelector('.transcription-placeholder');
+    if (placeholder) placeholder.remove();
     
-    // Start the server
-    const startResult = await window.scribeCat.transcription.vosk.startServer(modelPath);
-    console.log('Start server result:', startResult);
-    
-    if (!startResult.success) {
-      throw new Error(`Failed to start Vosk server: ${startResult.error || 'Unknown error'}`);
+    flowingText = document.createElement('div');
+    flowingText.className = 'flowing-transcription';
+    transcriptionContainer.appendChild(flowingText);
+  }
+
+  if (isFinal) {
+    // Final text - append permanently and clear partial
+    if (lastPartialText) {
+      // Remove the partial span
+      const partialSpan = flowingText.querySelector('.partial-text');
+      if (partialSpan) partialSpan.remove();
+      lastPartialText = '';
     }
     
-    if (!startResult.serverUrl) {
-      console.error('Server started but no URL returned. Full result:', startResult);
-      throw new Error('Server started but no URL returned');
-    }
-    
-    serverUrl = startResult.serverUrl;
-    console.log('Server started successfully at:', serverUrl);
+    // Add final text
+    const textNode = document.createTextNode(' ' + text);
+    flowingText.appendChild(textNode);
   } else {
-    if (!serverStatus.serverUrl) {
-      throw new Error('Server is running but no URL available');
+    // Partial text - update the temporary span
+    let partialSpan = flowingText.querySelector('.partial-text') as HTMLElement;
+    
+    if (!partialSpan) {
+      partialSpan = document.createElement('span');
+      partialSpan.className = 'partial-text';
+      flowingText.appendChild(partialSpan);
     }
-    serverUrl = serverStatus.serverUrl;
-    console.log('Using already-running server at:', serverUrl);
+    
+    partialSpan.textContent = ' ' + text;
+    lastPartialText = text;
   }
-  
-  // Verify server is accessible
-  console.log('Testing server accessibility...');
-  try {
-    const testResponse = await fetch(`${serverUrl}/debug/files`);
-    if (!testResponse.ok) {
-      throw new Error(`Server returned status ${testResponse.status}`);
-    }
-    const debugInfo = await testResponse.json();
-    console.log('Server accessible! Files found:', debugInfo.files?.length || 0);
-  } catch (e) {
-    const errorMsg = e instanceof Error ? e.message : 'Unknown error';
-    throw new Error(`Vosk server not accessible: ${errorMsg}`);
-  }
-  
-  // Test if model config is accessible
-  console.log('Testing model config...');
-  try {
-    const configTest = await fetch(`${serverUrl}/conf/mfcc.conf`);
-    if (!configTest.ok) {
-      throw new Error(`Config file not found (status ${configTest.status})`);
-    }
-    console.log('Model config verified!');
-  } catch (e) {
-    const errorMsg = e instanceof Error ? e.message : 'Unknown error';
-    throw new Error(`Model files not accessible: ${errorMsg}`);
-  }
-  
-  console.log('=== VOSK VERIFIED SUCCESSFULLY ===');
-  
-  // Get audio stream from recorder
-  const stream = audioManager['recorder'].getAudioStream();
-  if (!stream) {
-    throw new Error('Failed to get audio stream for transcription');
-  }
-  
-  // Initialize Vosk service if not already done
-  if (!voskService) {
-    voskService = new VoskTranscriptionService();
-  }
-  
-  // Set up result listener
-  voskService.onResult((result) => {
-    if (currentTranscriptionMode === 'vosk') {
-      // Only show final results in transcription panel
-      if (result.isFinal) {
-        addTranscriptionEntry(result.timestamp, result.text);
-      }
-      // Partial results are ignored for now, but could be shown in a separate area
-    }
-  });
-  
-  // Set up error listener
-  voskService.onError((error) => {
-    console.error('Vosk transcription error:', error);
-    alert(`Transcription error: ${error.message}`);
-  });
-  
-  // Initialize with server URL
-  await voskService.initialize({ modelUrl: serverUrl });
-  
-  // Start transcription with audio stream
-  const sessionId = await voskService.start(stream);
-  transcriptionSessionId = sessionId;
-  
-  console.log('Real Vosk transcription started!');
+
+  transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;
 }
 
 /**
@@ -666,15 +461,9 @@ async function stopRecording(): Promise<void> {
     if (transcriptionSessionId) {
       if (currentTranscriptionMode === 'simulation') {
         await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
-      } else if (currentTranscriptionMode === 'whisper') {
-        // Process any remaining buffered audio before stopping
-        if (whisperAudioBuffer.length > 0) {
-          await processWhisperBuffer();
-        }
-        stopWhisperAudioStreaming();
-        await window.scribeCat.transcription.whisper.stop(transcriptionSessionId);
-      } else if (voskService) {
-        await voskService.stop();
+      } else if (currentTranscriptionMode === 'assemblyai') {
+        stopAssemblyAIAudioStreaming();
+        await window.scribeCat.transcription.assemblyai.stop(transcriptionSessionId);
       }
       transcriptionSessionId = null;
     }
@@ -725,11 +514,9 @@ async function cleanupRecording(): Promise<void> {
     if (transcriptionSessionId) {
       if (currentTranscriptionMode === 'simulation') {
         await window.scribeCat.transcription.simulation.stop(transcriptionSessionId);
-      } else if (currentTranscriptionMode === 'whisper') {
-        stopWhisperAudioStreaming();
-        await window.scribeCat.transcription.whisper.stop(transcriptionSessionId);
-      } else if (voskService) {
-        await voskService.stop();
+      } else if (currentTranscriptionMode === 'assemblyai') {
+        stopAssemblyAIAudioStreaming();
+        await window.scribeCat.transcription.assemblyai.stop(transcriptionSessionId);
       }
       transcriptionSessionId = null;
     }
@@ -755,12 +542,7 @@ function updateUIState(state: 'idle' | 'recording'): void {
     recordingStatus.classList.add('recording');
     
     // Update transcription mode display
-    let modeText = 'Simulation';
-    if (currentTranscriptionMode === 'whisper') {
-      modeText = 'Whisper';
-    } else if (currentTranscriptionMode === 'vosk') {
-      modeText = 'Vosk';
-    }
+    const modeText = currentTranscriptionMode === 'assemblyai' ? 'AssemblyAI' : 'Simulation';
     transcriptionMode.textContent = `Mode: ${modeText}`;
     transcriptionMode.className = `mode-indicator ${currentTranscriptionMode}`;
     
@@ -857,10 +639,11 @@ function updateVUMeter(level: number): void {
  */
 function clearTranscriptionPanel(): void {
   transcriptionContainer.innerHTML = '';
+  lastPartialText = '';
 }
 
 /**
- * Add transcription entry to panel
+ * Add transcription entry to panel (for simulation mode)
  */
 function addTranscriptionEntry(timestamp: number, text: string): void {
   // Get or create the flowing text container
@@ -885,15 +668,6 @@ function addTranscriptionEntry(timestamp: number, text: string): void {
   
   // Auto-scroll to bottom
   transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;
-}
-
-/**
- * Escape HTML to prevent XSS
- */
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 /**
@@ -929,21 +703,17 @@ window.addEventListener('beforeunload', () => {
   
   if (transcriptionSessionId) {
     if (currentTranscriptionMode === 'simulation') {
-      window.scribeCat.transcription.simulation.stop(transcriptionSessionId).catch(err => {
+      window.scribeCat.transcription.simulation.stop(transcriptionSessionId).catch((err: Error) => {
         console.error('Error stopping transcription on unload:', err);
       });
-    } else if (currentTranscriptionMode === 'whisper') {
-      stopWhisperAudioStreaming();
-      window.scribeCat.transcription.whisper.stop(transcriptionSessionId).catch(err => {
-        console.error('Error stopping Whisper on unload:', err);
-      });
-    } else if (voskService) {
-      voskService.stop().catch(err => {
-        console.error('Error stopping Vosk on unload:', err);
+    } else if (currentTranscriptionMode === 'assemblyai') {
+      stopAssemblyAIAudioStreaming();
+      window.scribeCat.transcription.assemblyai.stop(transcriptionSessionId).catch((err: Error) => {
+        console.error('Error stopping AssemblyAI on unload:', err);
       });
     }
   }
   
   window.scribeCat.transcription.simulation.removeResultListener();
-  window.scribeCat.transcription.whisper.removeResultListener();
+  window.scribeCat.transcription.assemblyai.removeResultListener();
 });
