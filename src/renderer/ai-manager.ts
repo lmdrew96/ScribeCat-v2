@@ -32,6 +32,9 @@ export class AIManager {
   private isChatOpen: boolean = false;
   private connectionTested: boolean = false;
   private isTestingConnection: boolean = false;
+  private retryCount: number = 0;
+  private maxRetries: number = 3;
+  private retryDelays: number[] = [2000, 5000, 10000]; // 2s, 5s, 10s
   
   // UI Elements
   private chatDrawer: HTMLElement | null = null;
@@ -76,7 +79,7 @@ export class AIManager {
   }
   
   /**
-   * Initialize AI connection in background (non-blocking)
+   * Initialize AI connection in background (non-blocking) with retry logic
    */
   private async initializeConnectionInBackground(): Promise<void> {
     try {
@@ -85,44 +88,104 @@ export class AIManager {
       
       if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
         // No API key - disable AI features
+        console.log('🔑 No Claude API key found - AI features disabled');
         this.isConfigured = false;
         this.connectionTested = true;
+        this.retryCount = 0;
         this.updateUIState();
         this.updateConnectionStatus('not-configured', 'No API key configured');
         return;
       }
       
-      // API key exists - test connection silently in background
-      console.log('Testing AI connection in background...');
-      this.isTestingConnection = true;
+      // API key exists - test connection with retry logic
+      await this.attemptConnectionWithRetry();
       
-      const result = await window.scribeCat.ai.testConnection();
-      
-      if (result.success && result.data) {
-        // Connection successful
-        this.isConfigured = true;
-        this.connectionTested = true;
-        this.updateUIState();
-        this.updateConnectionStatus('connected', 'Connected');
-        console.log('✅ AI connection initialized successfully');
-      } else {
-        // Connection failed
-        this.isConfigured = false;
-        this.connectionTested = true;
-        this.updateUIState();
-        this.updateConnectionStatus('error', 'Connection failed - check API key');
-        console.warn('⚠️ AI connection test failed:', result.error);
-      }
     } catch (error) {
-      // Silent failure - will retry on first use
-      console.warn('Background AI initialization failed:', error);
+      console.error('❌ Fatal error during AI initialization:', error);
       this.isConfigured = false;
-      this.connectionTested = false; // Allow retry on first use
+      this.connectionTested = true;
       this.updateUIState();
-      this.updateConnectionStatus('error', 'Connection test failed');
+      this.updateConnectionStatus('error', 'Initialization error');
     } finally {
       this.isTestingConnection = false;
     }
+  }
+  
+  /**
+   * Attempt connection with exponential backoff retry
+   */
+  private async attemptConnectionWithRetry(): Promise<void> {
+    this.isTestingConnection = true;
+    
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const attemptNum = attempt + 1;
+        console.log(`🔄 AI connection attempt ${attemptNum}/${this.maxRetries + 1}...`);
+        
+        if (attempt > 0) {
+          this.updateConnectionStatus('testing', `Retrying... (${attemptNum}/${this.maxRetries + 1})`);
+        } else {
+          this.updateConnectionStatus('testing', 'Testing connection...');
+        }
+        
+        const result = await window.scribeCat.ai.testConnection();
+        
+        if (result.success && result.data) {
+          // Connection successful
+          this.isConfigured = true;
+          this.connectionTested = true;
+          this.retryCount = 0;
+          this.updateUIState();
+          this.updateConnectionStatus('connected', 'Connected');
+          console.log(`✅ AI connection established on attempt ${attemptNum}`);
+          return;
+        } else {
+          // Connection failed
+          const errorMsg = result.error || 'Unknown error';
+          console.warn(`⚠️ AI connection attempt ${attemptNum} failed:`, errorMsg);
+          
+          // If this is the last attempt, mark as failed
+          if (attempt === this.maxRetries) {
+            this.isConfigured = false;
+            this.connectionTested = true;
+            this.retryCount = 0;
+            this.updateUIState();
+            this.updateConnectionStatus('error', `Failed after ${this.maxRetries + 1} attempts`);
+            console.error(`❌ AI connection failed after ${this.maxRetries + 1} attempts. Last error:`, errorMsg);
+            return;
+          }
+          
+          // Wait before retry with exponential backoff
+          const delay = this.retryDelays[attempt];
+          console.log(`⏳ Waiting ${delay}ms before retry...`);
+          await this.sleep(delay);
+        }
+      } catch (error) {
+        console.error(`❌ Exception during AI connection attempt ${attempt + 1}:`, error);
+        
+        // If this is the last attempt, mark as failed
+        if (attempt === this.maxRetries) {
+          this.isConfigured = false;
+          this.connectionTested = true;
+          this.retryCount = 0;
+          this.updateUIState();
+          this.updateConnectionStatus('error', 'Connection error');
+          return;
+        }
+        
+        // Wait before retry
+        const delay = this.retryDelays[attempt];
+        console.log(`⏳ Waiting ${delay}ms before retry after exception...`);
+        await this.sleep(delay);
+      }
+    }
+  }
+  
+  /**
+   * Sleep utility for retry delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
   
   /**
