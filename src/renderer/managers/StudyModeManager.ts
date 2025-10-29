@@ -333,10 +333,180 @@ export class StudyModeManager {
   /**
    * Open session detail view
    */
-  private openSessionDetail(sessionId: string): void {
-    console.log('Opening session detail:', sessionId);
-    // TODO: Implement session detail view in Phase 2
-    alert(`Session detail view coming soon!\nSession ID: ${sessionId}`);
+  private async openSessionDetail(sessionId: string): Promise<void> {
+    const session = this.sessions.find(s => s.id === sessionId);
+    if (!session) {
+      console.error('Session not found:', sessionId);
+      return;
+    }
+    
+    // Hide session list, show detail view
+    this.sessionListContainer.innerHTML = '';
+    this.renderSessionDetail(session);
+  }
+  
+  /**
+   * Render session detail view
+   */
+  private renderSessionDetail(session: Session): void {
+    const date = new Date(session.createdAt);
+    const formattedDate = date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    const formattedTime = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+    
+    const duration = this.formatDuration(session.duration);
+    
+    // Get course tags
+    const courseTags = session.tags?.filter(tag => 
+      tag.includes('course') || tag.includes('class')
+    ) || [];
+    const courseTagsHtml = courseTags.length > 0
+      ? courseTags.map(tag => `<span class="course-badge">${this.escapeHtml(tag)}</span>`).join('')
+      : '';
+    
+    const detailHtml = `
+      <div class="session-detail-view">
+        <!-- Back Button -->
+        <button class="back-to-list-btn secondary-btn">
+          ← Back to Sessions
+        </button>
+        
+        <!-- Session Header -->
+        <div class="session-detail-header">
+          <div class="session-detail-title-row">
+            <h2 class="session-detail-title">${this.escapeHtml(session.title)}</h2>
+            ${courseTagsHtml}
+          </div>
+          <div class="session-detail-meta">
+            <span>📅 ${formattedDate} at ${formattedTime}</span>
+            <span>⏱️ ${duration}</span>
+          </div>
+        </div>
+        
+        <!-- Audio Player -->
+        <div class="audio-player-container">
+          <h3>🎧 Recording</h3>
+          <div class="audio-player">
+            <audio id="session-audio" controls preload="metadata">
+              <source src="file://${session.recordingPath}" type="audio/webm">
+              Your browser does not support the audio element.
+            </audio>
+            <div class="playback-controls">
+              <label>Playback Speed:</label>
+              <button class="speed-btn" data-speed="0.5">0.5x</button>
+              <button class="speed-btn" data-speed="0.75">0.75x</button>
+              <button class="speed-btn active" data-speed="1">1x</button>
+              <button class="speed-btn" data-speed="1.25">1.25x</button>
+              <button class="speed-btn" data-speed="1.5">1.5x</button>
+              <button class="speed-btn" data-speed="2">2x</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Content Tabs -->
+        <div class="session-content-tabs">
+          <button class="content-tab active" data-tab="transcription">📝 Transcription</button>
+          <button class="content-tab" data-tab="notes">✍️ Notes</button>
+        </div>
+        
+        <!-- Transcription Content -->
+        <div class="session-content-panel active" data-panel="transcription">
+          <div class="content-panel-inner">
+            ${session.transcription 
+              ? `<div class="transcription-text">${this.escapeHtml(session.transcription.fullText)}</div>`
+              : '<div class="empty-content">No transcription available for this session.</div>'
+            }
+          </div>
+        </div>
+        
+        <!-- Notes Content -->
+        <div class="session-content-panel" data-panel="notes">
+          <div class="content-panel-inner">
+            ${session.notes 
+              ? `<div class="notes-text">${this.escapeHtml(session.notes)}</div>`
+              : '<div class="empty-content">No notes available for this session.</div>'
+            }
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="session-detail-actions">
+          <button class="action-btn export-session-detail-btn" data-session-id="${session.id}">
+            📤 Export Session
+          </button>
+        </div>
+      </div>
+    `;
+    
+    this.sessionListContainer.innerHTML = detailHtml;
+    
+    // Attach event handlers
+    this.attachDetailViewHandlers(session);
+  }
+  
+  /**
+   * Attach event handlers for detail view
+   */
+  private attachDetailViewHandlers(session: Session): void {
+    // Back button
+    const backBtn = document.querySelector('.back-to-list-btn');
+    backBtn?.addEventListener('click', () => {
+      this.renderSessionList();
+    });
+    
+    // Audio player speed controls
+    const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
+    const speedButtons = document.querySelectorAll('.speed-btn');
+    
+    speedButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const speed = parseFloat((btn as HTMLElement).dataset.speed || '1');
+        if (audioElement) {
+          audioElement.playbackRate = speed;
+        }
+        
+        // Update active state
+        speedButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+    
+    // Content tabs
+    const tabs = document.querySelectorAll('.content-tab');
+    const panels = document.querySelectorAll('.session-content-panel');
+    
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = (tab as HTMLElement).dataset.tab;
+        
+        // Update active tab
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Update active panel
+        panels.forEach(p => {
+          const panel = p as HTMLElement;
+          if (panel.dataset.panel === tabName) {
+            panel.classList.add('active');
+          } else {
+            panel.classList.remove('active');
+          }
+        });
+      });
+    });
+    
+    // Export button
+    const exportBtn = document.querySelector('.export-session-detail-btn');
+    exportBtn?.addEventListener('click', () => {
+      this.exportSession(session.id);
+    });
   }
 
   /**
