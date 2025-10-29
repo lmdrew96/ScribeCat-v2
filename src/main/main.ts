@@ -8,6 +8,7 @@ import { FileAudioRepository } from '../infrastructure/repositories/FileAudioRep
 import { ListSessionsUseCase } from '../application/use-cases/ListSessionsUseCase.js';
 import { DeleteSessionUseCase } from '../application/use-cases/DeleteSessionUseCase.js';
 import { ExportSessionUseCase } from '../application/use-cases/ExportSessionUseCase.js';
+import { UpdateSessionUseCase } from '../application/use-cases/UpdateSessionUseCase.js';
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
 import { DocxExportService } from '../infrastructure/services/export/DocxExportService.js';
 import { PdfExportService } from '../infrastructure/services/export/PdfExportService.js';
@@ -51,6 +52,10 @@ class ScribeCatApp {
   private listSessionsUseCase: ListSessionsUseCase;
   private deleteSessionUseCase: DeleteSessionUseCase;
   private exportSessionUseCase: ExportSessionUseCase;
+  private updateSessionUseCase: UpdateSessionUseCase;
+  
+  // Export services
+  private exportServices: Map<string, any>;
   
   // Transcription services
   private simulationTranscriptionService: SimulationTranscriptionService;
@@ -80,11 +85,11 @@ class ScribeCatApp {
     this.audioRepository = new FileAudioRepository();
     
     // Initialize export services
-    const exportServices = new Map();
-    exportServices.set('txt', new TextExportService());
-    exportServices.set('docx', new DocxExportService());
-    exportServices.set('pdf', new PdfExportService());
-    exportServices.set('html', new HtmlExportService());
+    this.exportServices = new Map();
+    this.exportServices.set('txt', new TextExportService());
+    this.exportServices.set('docx', new DocxExportService());
+    this.exportServices.set('pdf', new PdfExportService());
+    this.exportServices.set('html', new HtmlExportService());
     
     // Initialize use cases
     this.listSessionsUseCase = new ListSessionsUseCase(this.sessionRepository);
@@ -94,8 +99,9 @@ class ScribeCatApp {
     );
     this.exportSessionUseCase = new ExportSessionUseCase(
       this.sessionRepository,
-      exportServices
+      this.exportServices
     );
+    this.updateSessionUseCase = new UpdateSessionUseCase(this.sessionRepository);
     
     // Initialize simulation transcription service
     this.simulationTranscriptionService = new SimulationTranscriptionService();
@@ -238,7 +244,8 @@ class ScribeCatApp {
     registry.add(new SessionHandlers(
       this.listSessionsUseCase,
       this.deleteSessionUseCase,
-      this.exportSessionUseCase
+      this.exportSessionUseCase,
+      this.updateSessionUseCase
     ));
     
     registry.add(new AudioHandlers());

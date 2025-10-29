@@ -57,6 +57,7 @@ declare global {
         listWithTags: (tags: string[], sortOrder?: 'asc' | 'desc') => Promise<{ success: boolean; data?: any[]; sessions?: any[]; error?: string }>;
         delete: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
         deleteMultiple: (sessionIds: string[]) => Promise<{ success: boolean; result?: any; error?: string }>;
+        update: (sessionId: string, updates: { title?: string; notes?: string; tags?: string[] }) => Promise<{ success: boolean; error?: string }>;
         export: (sessionId: string, format: string, outputPath: string, options?: any) => Promise<{ success: boolean; filePath?: string; format?: string; error?: string }>;
         exportWithDefaults: (sessionId: string, format: string, outputPath: string) => Promise<{ success: boolean; filePath?: string; format?: string; error?: string }>;
         updateTranscription: (sessionId: string, transcriptionText: string, provider?: string) => Promise<{ success: boolean; error?: string }>;

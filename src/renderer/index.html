@@ -259,7 +259,22 @@
             </div>
             
             <div class="study-mode-filters">
-                <!-- Filters will be added in future iterations -->
+                <input 
+                    type="text" 
+                    id="study-search-input" 
+                    class="filter-input" 
+                    placeholder="🔍 Search sessions..."
+                    aria-label="Search sessions"
+                >
+                <select id="study-course-filter" class="filter-select" aria-label="Filter by course">
+                    <option value="">All Courses</option>
+                </select>
+                <select id="study-sort-select" class="filter-select" aria-label="Sort sessions">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="longest">Longest First</option>
+                    <option value="shortest">Shortest First</option>
+                </select>
             </div>
             
             <div id="session-list" class="session-list">

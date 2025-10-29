@@ -3,17 +3,19 @@ import { BaseHandler } from '../BaseHandler.js';
 import { ListSessionsUseCase } from '../../../application/use-cases/ListSessionsUseCase.js';
 import { DeleteSessionUseCase } from '../../../application/use-cases/DeleteSessionUseCase.js';
 import { ExportSessionUseCase } from '../../../application/use-cases/ExportSessionUseCase.js';
+import { UpdateSessionUseCase } from '../../../application/use-cases/UpdateSessionUseCase.js';
 
 /**
  * Handles session-related IPC channels
  * 
- * Manages session listing, deletion, and export operations.
+ * Manages session listing, deletion, update, and export operations.
  */
 export class SessionHandlers extends BaseHandler {
   constructor(
     private listSessionsUseCase: ListSessionsUseCase,
     private deleteSessionUseCase: DeleteSessionUseCase,
-    private exportSessionUseCase: ExportSessionUseCase
+    private exportSessionUseCase: ExportSessionUseCase,
+    private updateSessionUseCase: UpdateSessionUseCase
   ) {
     super();
   }
@@ -41,6 +43,12 @@ export class SessionHandlers extends BaseHandler {
     this.handle(ipcMain, 'sessions:deleteMultiple', async (event, sessionIds: string[]) => {
       const result = await this.deleteSessionUseCase.executeMultiple(sessionIds);
       return { success: true, result };
+    });
+
+    // Session update handler
+    this.handle(ipcMain, 'sessions:update', async (event, sessionId: string, updates: { title?: string; notes?: string; tags?: string[] }) => {
+      const success = await this.updateSessionUseCase.execute(sessionId, updates);
+      return { success };
     });
 
     // Export handler

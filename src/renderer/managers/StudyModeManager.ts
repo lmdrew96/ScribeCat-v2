@@ -24,6 +24,11 @@ export class StudyModeManager {
   private searchQuery: string = '';
   private selectedTags: string[] = [];
   private sortOrder: 'newest' | 'oldest' | 'longest' | 'shortest' = 'newest';
+  
+  // Filter UI elements
+  private searchInput: HTMLInputElement | null = null;
+  private courseFilter: HTMLSelectElement | null = null;
+  private sortSelect: HTMLSelectElement | null = null;
 
   constructor() {
     // Get UI elements
@@ -57,6 +62,46 @@ export class StudyModeManager {
     
     // Back to record mode
     this.backToRecordBtn.addEventListener('click', () => this.hide());
+    
+    // Initialize filter controls
+    this.initializeFilterControls();
+  }
+  
+  /**
+   * Initialize filter controls
+   */
+  private initializeFilterControls(): void {
+    // Get filter elements
+    this.searchInput = document.getElementById('study-search-input') as HTMLInputElement;
+    this.courseFilter = document.getElementById('study-course-filter') as HTMLSelectElement;
+    this.sortSelect = document.getElementById('study-sort-select') as HTMLSelectElement;
+    
+    // Search input
+    if (this.searchInput) {
+      this.searchInput.addEventListener('input', (e) => {
+        this.searchQuery = (e.target as HTMLInputElement).value;
+        this.applyFilters();
+        this.renderSessionList();
+      });
+    }
+    
+    // Course filter
+    if (this.courseFilter) {
+      this.courseFilter.addEventListener('change', (e) => {
+        this.selectedCourse = (e.target as HTMLSelectElement).value;
+        this.applyFilters();
+        this.renderSessionList();
+      });
+    }
+    
+    // Sort select
+    if (this.sortSelect) {
+      this.sortSelect.addEventListener('change', (e) => {
+        this.sortOrder = (e.target as HTMLSelectElement).value as any;
+        this.applyFilters();
+        this.renderSessionList();
+      });
+    }
   }
 
   /**
@@ -97,6 +142,9 @@ export class StudyModeManager {
     
     // Update button state
     this.studyModeBtn.classList.add('active');
+    
+    // Populate course filter
+    this.populateCourseFilter();
     
     // Render session list
     this.renderSessionList();
@@ -193,6 +241,9 @@ export class StudyModeManager {
     
     // Add click handlers to session cards
     this.attachSessionCardHandlers();
+    
+    // Add title edit handlers
+    this.attachTitleEditHandlers();
   }
 
   /**
@@ -225,6 +276,34 @@ export class StudyModeManager {
     }
   }
 
+  /**
+   * Populate course filter dropdown
+   */
+  private populateCourseFilter(): void {
+    if (!this.courseFilter) return;
+    
+    // Get unique courses from sessions
+    const courses = new Set<string>();
+    this.sessions.forEach(session => {
+      if (session.tags) {
+        session.tags.forEach(tag => {
+          if (tag.toLowerCase().includes('course') || tag.toLowerCase().includes('class')) {
+            courses.add(tag);
+          }
+        });
+      }
+    });
+    
+    // Clear and populate dropdown
+    this.courseFilter.innerHTML = '<option value="">All Courses</option>';
+    Array.from(courses).sort().forEach(course => {
+      const option = document.createElement('option');
+      option.value = course;
+      option.textContent = course;
+      this.courseFilter!.appendChild(option);
+    });
+  }
+  
   /**
    * Create HTML for a session card
    */
@@ -263,7 +342,8 @@ export class StudyModeManager {
     return `
       <div class="session-card" data-session-id="${session.id}">
         <div class="session-card-header">
-          <h3 class="session-title">${this.escapeHtml(session.title)}</h3>
+          <h3 class="session-title" data-session-id="${session.id}">${this.escapeHtml(session.title)}</h3>
+          <button class="edit-title-btn" data-session-id="${session.id}" title="Edit title">✏️</button>
           ${courseTag}
         </div>
         
@@ -336,12 +416,120 @@ export class StudyModeManager {
     // Card click (same as view button)
     const cards = document.querySelectorAll('.session-card');
     cards.forEach(card => {
-      card.addEventListener('click', () => {
+      card.addEventListener('click', (e) => {
+        // Don't trigger if clicking on buttons or title
+        const target = e.target as HTMLElement;
+        if (target.closest('.action-btn') || target.closest('.edit-title-btn') || target.closest('.session-title')) {
+          return;
+        }
+        
         const sessionId = (card as HTMLElement).dataset.sessionId;
         if (sessionId) {
           this.openSessionDetail(sessionId);
         }
       });
+    });
+  }
+  
+  /**
+   * Attach title edit handlers
+   */
+  private attachTitleEditHandlers(): void {
+    // Edit buttons
+    const editButtons = document.querySelectorAll('.edit-title-btn');
+    editButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sessionId = (btn as HTMLElement).dataset.sessionId;
+        if (sessionId) {
+          this.startTitleEdit(sessionId);
+        }
+      });
+    });
+    
+    // Title click to edit
+    const titles = document.querySelectorAll('.session-title');
+    titles.forEach(title => {
+      title.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sessionId = (title as HTMLElement).dataset.sessionId;
+        if (sessionId) {
+          this.startTitleEdit(sessionId);
+        }
+      });
+    });
+  }
+  
+  /**
+   * Start editing a session title
+   */
+  private startTitleEdit(sessionId: string): void {
+    const session = this.sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    const titleElement = document.querySelector(`.session-title[data-session-id="${sessionId}"]`) as HTMLElement;
+    if (!titleElement) return;
+    
+    const currentTitle = session.title;
+    
+    // Create input element
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTitle;
+    input.className = 'title-edit-input';
+    input.style.cssText = `
+      width: 100%;
+      padding: 4px 8px;
+      font-size: 18px;
+      font-weight: 600;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 2px solid var(--accent);
+      border-radius: 4px;
+      outline: none;
+    `;
+    
+    // Replace title with input
+    titleElement.replaceWith(input);
+    input.focus();
+    input.select();
+    
+    // Save on blur or Enter
+    const saveTitle = async () => {
+      const newTitle = input.value.trim();
+      
+      if (newTitle && newTitle !== currentTitle) {
+        try {
+          // Update session title via IPC
+          const result = await window.scribeCat.session.update(sessionId, { title: newTitle });
+          
+          if (result.success) {
+            // Update local session
+            session.title = newTitle;
+            console.log('Title updated successfully');
+          } else {
+            console.error('Failed to update title:', result.error);
+            alert(`Failed to update title: ${result.error}`);
+          }
+        } catch (error) {
+          console.error('Error updating title:', error);
+          alert('An error occurred while updating the title.');
+        }
+      }
+      
+      // Re-render the session list
+      this.renderSessionList();
+    };
+    
+    input.addEventListener('blur', saveTitle);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        input.blur();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        this.renderSessionList();
+      }
     });
   }
 
@@ -396,7 +584,8 @@ export class StudyModeManager {
         <!-- Session Header -->
         <div class="session-detail-header">
           <div class="session-detail-title-row">
-            <h2 class="session-detail-title">${this.escapeHtml(session.title)}</h2>
+            <h2 class="session-detail-title" data-session-id="${session.id}">${this.escapeHtml(session.title)}</h2>
+            <button class="edit-title-btn-detail" data-session-id="${session.id}" title="Edit title">✏️</button>
             ${courseTagsHtml}
           </div>
           <div class="session-detail-meta">
@@ -467,6 +656,91 @@ export class StudyModeManager {
     
     // Attach event handlers
     this.attachDetailViewHandlers(session);
+    
+    // Attach title edit handler for detail view
+    const editTitleBtn = document.querySelector('.edit-title-btn-detail');
+    editTitleBtn?.addEventListener('click', () => {
+      this.startDetailTitleEdit(session.id);
+    });
+    
+    // Title click to edit in detail view
+    const detailTitle = document.querySelector('.session-detail-title');
+    detailTitle?.addEventListener('click', () => {
+      this.startDetailTitleEdit(session.id);
+    });
+  }
+  
+  /**
+   * Start editing title in detail view
+   */
+  private startDetailTitleEdit(sessionId: string): void {
+    const session = this.sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    const titleElement = document.querySelector('.session-detail-title') as HTMLElement;
+    if (!titleElement) return;
+    
+    const currentTitle = session.title;
+    
+    // Create input element
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTitle;
+    input.className = 'title-edit-input-detail';
+    input.style.cssText = `
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 28px;
+      font-weight: 600;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 2px solid var(--accent);
+      border-radius: 4px;
+      outline: none;
+    `;
+    
+    // Replace title with input
+    titleElement.replaceWith(input);
+    input.focus();
+    input.select();
+    
+    // Save on blur or Enter
+    const saveTitle = async () => {
+      const newTitle = input.value.trim();
+      
+      if (newTitle && newTitle !== currentTitle) {
+        try {
+          // Update session title via IPC
+          const result = await window.scribeCat.session.update(sessionId, { title: newTitle });
+          
+          if (result.success) {
+            // Update local session
+            session.title = newTitle;
+            console.log('Title updated successfully');
+          } else {
+            console.error('Failed to update title:', result.error);
+            alert(`Failed to update title: ${result.error}`);
+          }
+        } catch (error) {
+          console.error('Error updating title:', error);
+          alert('An error occurred while updating the title.');
+        }
+      }
+      
+      // Re-render the detail view
+      this.renderSessionDetail(session);
+    };
+    
+    input.addEventListener('blur', saveTitle);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        input.blur();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        this.renderSessionDetail(session);
+      }
+    });
   }
   
   /**
