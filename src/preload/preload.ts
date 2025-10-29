@@ -76,6 +76,14 @@ const electronAPI = {
     setApiKey: (apiKey: string) => ipcRenderer.invoke('ai:setApiKey', apiKey)
   },
     session: {
+      list: (sortOrder?: 'asc' | 'desc') =>
+        ipcRenderer.invoke('sessions:list', sortOrder),
+      listWithTags: (tags: string[], sortOrder?: 'asc' | 'desc') =>
+        ipcRenderer.invoke('sessions:listWithTags', tags, sortOrder),
+      delete: (sessionId: string) =>
+        ipcRenderer.invoke('sessions:delete', sessionId),
+      deleteMultiple: (sessionIds: string[]) =>
+        ipcRenderer.invoke('sessions:deleteMultiple', sessionIds),
       export: (sessionId: string, format: string, outputPath: string, options?: any) =>
         ipcRenderer.invoke('session:export', sessionId, format, outputPath, options),
       exportWithDefaults: (sessionId: string, format: string, outputPath: string) =>
@@ -83,7 +91,9 @@ const electronAPI = {
       updateTranscription: (sessionId: string, transcriptionText: string, provider?: string) =>
         ipcRenderer.invoke('session:updateTranscription', sessionId, transcriptionText, provider),
       updateNotes: (sessionId: string, notes: string) =>
-        ipcRenderer.invoke('session:updateNotes', sessionId, notes)
+        ipcRenderer.invoke('session:updateNotes', sessionId, notes),
+      getAvailableFormats: () =>
+        ipcRenderer.invoke('export:getAvailableFormats')
     },
   drive: {
     configure: (config: any) => ipcRenderer.invoke('drive:configure', config),

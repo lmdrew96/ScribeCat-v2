@@ -16,6 +16,7 @@ import { RecordingManager } from './managers/RecordingManager.js';
 import { DeviceManager } from './managers/DeviceManager.js';
 import { CourseManager } from './managers/CourseManager.js';
 import { ThemeManager } from './themes/ThemeManager.js';
+import { StudyModeManager } from './managers/StudyModeManager.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -29,6 +30,7 @@ let transcriptionManager: TranscriptionManager;
 let recordingManager: RecordingManager;
 let deviceManager: DeviceManager;
 let courseManager: CourseManager;
+let studyModeManager: StudyModeManager;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -78,6 +80,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Expose courseManager globally for settings to access
   (window as any).courseManager = courseManager;
+  
+  // Initialize study mode manager
+  studyModeManager = new StudyModeManager();
+  await studyModeManager.initialize();
   
   // Set up event listeners
   setupEventListeners();

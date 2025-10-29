@@ -53,10 +53,15 @@ declare global {
         removeChatStreamListener: () => void;
       };
       session: {
+        list: (sortOrder?: 'asc' | 'desc') => Promise<{ success: boolean; data?: any[]; sessions?: any[]; error?: string }>;
+        listWithTags: (tags: string[], sortOrder?: 'asc' | 'desc') => Promise<{ success: boolean; data?: any[]; sessions?: any[]; error?: string }>;
+        delete: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+        deleteMultiple: (sessionIds: string[]) => Promise<{ success: boolean; result?: any; error?: string }>;
         export: (sessionId: string, format: string, outputPath: string, options?: any) => Promise<{ success: boolean; filePath?: string; format?: string; error?: string }>;
         exportWithDefaults: (sessionId: string, format: string, outputPath: string) => Promise<{ success: boolean; filePath?: string; format?: string; error?: string }>;
         updateTranscription: (sessionId: string, transcriptionText: string, provider?: string) => Promise<{ success: boolean; error?: string }>;
         updateNotes: (sessionId: string, notes: string) => Promise<{ success: boolean; error?: string }>;
+        getAvailableFormats: () => Promise<{ success: boolean; formats?: string[]; error?: string }>;
       };
       drive: {
         configure: (config: any) => Promise<{ success: boolean; data?: any; error?: string }>;

@@ -35,6 +35,10 @@
                     </div>
                 </div>
                 
+                <button id="study-mode-btn" class="icon-btn" title="Study Mode">
+                    <span class="study-icon">📚</span>
+                </button>
+                
                 <button id="settings-btn" class="icon-btn" title="Settings">
                     <span class="settings-icon">⚙️</span>
                 </button>
@@ -246,6 +250,22 @@
                 </div>
             </div>
         </main>
+        
+        <!-- Study Mode View -->
+        <div id="study-mode-view" class="study-mode-view hidden">
+            <div class="study-mode-header">
+                <h2>📚 Study Mode</h2>
+                <button id="back-to-record-btn" class="secondary-btn">← Back to Recording</button>
+            </div>
+            
+            <div class="study-mode-filters">
+                <!-- Filters will be added in future iterations -->
+            </div>
+            
+            <div id="session-list" class="session-list">
+                <!-- Session cards will be populated by JavaScript -->
+            </div>
+        </div>
         
         <!-- Bottom Status Bar -->
         <footer class="status-bar">
