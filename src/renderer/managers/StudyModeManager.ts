@@ -420,7 +420,7 @@ export class StudyModeManager {
         <div class="session-content-panel active" data-panel="transcription">
           <div class="content-panel-inner">
             ${session.transcription 
-              ? `<div class="transcription-text">${this.escapeHtml(session.transcription.fullText)}</div>`
+              ? this.renderTranscriptionSegments(session.transcription)
               : '<div class="empty-content">No transcription available for this session.</div>'
             }
           </div>
@@ -507,8 +507,55 @@ export class StudyModeManager {
     exportBtn?.addEventListener('click', () => {
       this.exportSession(session.id);
     });
+    
+    // Timestamp click handlers - seek audio to segment time
+    const segments = document.querySelectorAll('.transcription-segment');
+    segments.forEach(segment => {
+      segment.addEventListener('click', () => {
+        const startTime = parseFloat((segment as HTMLElement).dataset.startTime || '0');
+        if (audioElement && !isNaN(startTime)) {
+          audioElement.currentTime = startTime;
+          // Auto-play if not already playing
+          if (audioElement.paused) {
+            audioElement.play().catch(err => console.error('Playback failed:', err));
+          }
+        }
+      });
+    });
   }
 
+  /**
+   * Render transcription segments with clickable timestamps
+   */
+  private renderTranscriptionSegments(transcription: any): string {
+    // If no segments, fall back to full text
+    if (!transcription.segments || transcription.segments.length === 0) {
+      return `<div class="transcription-text">${this.escapeHtml(transcription.fullText)}</div>`;
+    }
+    
+    // Render each segment with timestamp
+    const segmentsHtml = transcription.segments.map((segment: any, index: number) => {
+      const timestamp = this.formatTimestamp(segment.startTime);
+      return `
+        <div class="transcription-segment" data-start-time="${segment.startTime}" data-end-time="${segment.endTime}" data-segment-index="${index}">
+          <span class="segment-timestamp">[${timestamp}]</span>
+          <span class="segment-text">${this.escapeHtml(segment.text)}</span>
+        </div>
+      `;
+    }).join('');
+    
+    return `<div class="transcription-segments">${segmentsHtml}</div>`;
+  }
+  
+  /**
+   * Format timestamp from seconds to MM:SS format
+   */
+  private formatTimestamp(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+  
   /**
    * Export a session
    */
