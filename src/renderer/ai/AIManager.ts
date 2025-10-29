@@ -155,6 +155,58 @@ export class AIManager {
     this.chatHistory = [];
     this.chatUI.clearHistory();
   }
+  
+  /**
+   * Start auto-polish if enabled
+   */
+  async startAutoPolish(): Promise<void> {
+    try {
+      // Check if auto-polish is enabled
+      const enabled = await (window as any).scribeCat.store.get('auto-polish-enabled');
+      if (!enabled) {
+        console.log('Auto-polish is disabled in settings');
+        return;
+      }
+      
+      // Check if AI is configured
+      if (!this.isConfigured) {
+        console.log('Auto-polish skipped: AI not configured');
+        return;
+      }
+      
+      // Load settings
+      const interval = await (window as any).scribeCat.store.get('auto-polish-interval') || 30;
+      const jitter = await (window as any).scribeCat.store.get('auto-polish-jitter') || 5;
+      const minWords = await (window as any).scribeCat.store.get('auto-polish-min-words') || 50;
+      const fullInterval = await (window as any).scribeCat.store.get('auto-polish-full-interval') || 5;
+      
+      // Start auto-polish
+      await this.polishFeature.startAutoPolish({
+        interval,
+        jitter,
+        minWords,
+        fullInterval
+      });
+      
+      console.log('✅ Auto-polish started');
+    } catch (error) {
+      console.error('Failed to start auto-polish:', error);
+    }
+  }
+  
+  /**
+   * Stop auto-polish
+   */
+  stopAutoPolish(): void {
+    this.polishFeature.stopAutoPolish();
+  }
+  
+  /**
+   * Check if auto-polish is running
+   */
+  isAutoPolishRunning(): boolean {
+    return this.polishFeature.isAutoPolishRunning();
+  }
 
   // ===== Private Methods =====
 

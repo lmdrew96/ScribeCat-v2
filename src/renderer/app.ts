@@ -43,22 +43,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   transcriptionManager = new TranscriptionManager();
   deviceManager = new DeviceManager();
   
+  // Initialize AI manager first (needed by recording manager)
+  aiManager = new AIManager(
+    () => transcriptionManager.getText(),
+    () => editorManager.getNotesText()
+  );
+  await aiManager.initialize();
+  
   // Initialize recording manager (coordinates everything)
   recordingManager = new RecordingManager(
     audioManager,
     transcriptionManager,
     viewManager,
     editorManager,
-    exportManager
+    exportManager,
+    aiManager
   );
   recordingManager.initialize();
-  
-  // Initialize AI manager
-  aiManager = new AIManager(
-    () => transcriptionManager.getText(),
-    () => editorManager.getNotesText()
-  );
-  await aiManager.initialize();
   
   // Initialize editor
   editorManager.initialize();

@@ -34,6 +34,13 @@ export class SettingsManager {
   private canvasUrl: string = '';
   private canvasToken: string = '';
   private canvasConfigured: boolean = false;
+  
+  // Auto-polish settings
+  private autoPolishEnabled: boolean = false;
+  private autoPolishInterval: number = 30;
+  private autoPolishJitter: number = 5;
+  private autoPolishMinWords: number = 50;
+  private autoPolishFullInterval: number = 5;
 
   constructor() {
     this.settingsModal = document.getElementById('settings-modal')!;
@@ -130,6 +137,42 @@ export class SettingsManager {
       e.preventDefault();
       this.showExtensionHelp();
     });
+    
+    // Auto-polish enabled toggle
+    const autoPolishEnabledCheckbox = document.getElementById('auto-polish-enabled') as HTMLInputElement;
+    autoPolishEnabledCheckbox?.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      this.autoPolishEnabled = target.checked;
+      this.updateAutoPolishOptionsVisibility();
+    });
+    
+    // Auto-polish interval input
+    const autoPolishIntervalInput = document.getElementById('auto-polish-interval') as HTMLInputElement;
+    autoPolishIntervalInput?.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      this.autoPolishInterval = parseInt(target.value, 10);
+    });
+    
+    // Auto-polish jitter input
+    const autoPolishJitterInput = document.getElementById('auto-polish-jitter') as HTMLInputElement;
+    autoPolishJitterInput?.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      this.autoPolishJitter = parseInt(target.value, 10);
+    });
+    
+    // Auto-polish min words input
+    const autoPolishMinWordsInput = document.getElementById('auto-polish-min-words') as HTMLInputElement;
+    autoPolishMinWordsInput?.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      this.autoPolishMinWords = parseInt(target.value, 10);
+    });
+    
+    // Auto-polish full interval input
+    const autoPolishFullIntervalInput = document.getElementById('auto-polish-full-interval') as HTMLInputElement;
+    autoPolishFullIntervalInput?.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      this.autoPolishFullInterval = parseInt(target.value, 10);
+    });
   }
 
   /**
@@ -159,6 +202,13 @@ export class SettingsManager {
       
       // Check Canvas connection status
       await this.checkCanvasConnection();
+      
+      // Load auto-polish settings
+      this.autoPolishEnabled = await window.scribeCat.store.get('auto-polish-enabled') as boolean || false;
+      this.autoPolishInterval = await window.scribeCat.store.get('auto-polish-interval') as number || 30;
+      this.autoPolishJitter = await window.scribeCat.store.get('auto-polish-jitter') as number || 5;
+      this.autoPolishMinWords = await window.scribeCat.store.get('auto-polish-min-words') as number || 50;
+      this.autoPolishFullInterval = await window.scribeCat.store.get('auto-polish-full-interval') as number || 5;
 
       // Update UI
       this.updateUIFromSettings();
@@ -202,6 +252,34 @@ export class SettingsManager {
     
     // Update Canvas status
     this.updateCanvasConnectionUI();
+    
+    // Update auto-polish settings
+    const autoPolishEnabledCheckbox = document.getElementById('auto-polish-enabled') as HTMLInputElement;
+    if (autoPolishEnabledCheckbox) {
+      autoPolishEnabledCheckbox.checked = this.autoPolishEnabled;
+    }
+    
+    const autoPolishIntervalInput = document.getElementById('auto-polish-interval') as HTMLInputElement;
+    if (autoPolishIntervalInput) {
+      autoPolishIntervalInput.value = this.autoPolishInterval.toString();
+    }
+    
+    const autoPolishJitterInput = document.getElementById('auto-polish-jitter') as HTMLInputElement;
+    if (autoPolishJitterInput) {
+      autoPolishJitterInput.value = this.autoPolishJitter.toString();
+    }
+    
+    const autoPolishMinWordsInput = document.getElementById('auto-polish-min-words') as HTMLInputElement;
+    if (autoPolishMinWordsInput) {
+      autoPolishMinWordsInput.value = this.autoPolishMinWords.toString();
+    }
+    
+    const autoPolishFullIntervalInput = document.getElementById('auto-polish-full-interval') as HTMLInputElement;
+    if (autoPolishFullIntervalInput) {
+      autoPolishFullIntervalInput.value = this.autoPolishFullInterval.toString();
+    }
+    
+    this.updateAutoPolishOptionsVisibility();
   }
 
   /**
@@ -244,6 +322,13 @@ export class SettingsManager {
       if (this.claudeApiKey) {
         await window.scribeCat.ai.setApiKey(this.claudeApiKey);
       }
+      
+      // Save auto-polish settings
+      await window.scribeCat.store.set('auto-polish-enabled', this.autoPolishEnabled);
+      await window.scribeCat.store.set('auto-polish-interval', this.autoPolishInterval);
+      await window.scribeCat.store.set('auto-polish-jitter', this.autoPolishJitter);
+      await window.scribeCat.store.set('auto-polish-min-words', this.autoPolishMinWords);
+      await window.scribeCat.store.set('auto-polish-full-interval', this.autoPolishFullInterval);
 
       this.showNotification('Settings saved successfully!', 'success');
       this.closeSettings();
@@ -328,6 +413,16 @@ export class SettingsManager {
    */
   public getAssemblyAIApiKey(): string {
     return this.assemblyAIApiKey;
+  }
+  
+  /**
+   * Update auto-polish options visibility
+   */
+  private updateAutoPolishOptionsVisibility(): void {
+    const optionsContainer = document.getElementById('auto-polish-options');
+    if (optionsContainer) {
+      optionsContainer.style.display = this.autoPolishEnabled ? 'block' : 'none';
+    }
   }
   
   /**

@@ -265,6 +265,91 @@
                     </p>
                 </section>
                 
+                <!-- Auto-Polish Settings Section -->
+                <section class="settings-section" id="auto-polish-settings">
+                    <h3>Auto-Polish Transcription</h3>
+                    <p class="help-text">
+                        Automatically polish live transcription at regular intervals during recording. 
+                        Requires Claude AI to be configured.
+                    </p>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="auto-polish-enabled">
+                            <span>Enable Auto-Polish</span>
+                        </label>
+                        <small class="help-text">
+                            When enabled, transcription will be automatically polished during recording
+                        </small>
+                    </div>
+                    
+                    <div id="auto-polish-options" class="auto-polish-options" style="display: none;">
+                        <div class="form-group">
+                            <label for="auto-polish-interval">Polish Interval (seconds):</label>
+                            <input 
+                                type="number" 
+                                id="auto-polish-interval" 
+                                class="text-input" 
+                                value="30"
+                                min="15"
+                                max="120"
+                                step="5"
+                            >
+                            <small class="help-text">
+                                How often to polish new transcription (default: 30 seconds)
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="auto-polish-jitter">Jitter Range (seconds):</label>
+                            <input 
+                                type="number" 
+                                id="auto-polish-jitter" 
+                                class="text-input" 
+                                value="5"
+                                min="0"
+                                max="15"
+                                step="1"
+                            >
+                            <small class="help-text">
+                                Random variation in timing (±5 seconds prevents predictable patterns)
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="auto-polish-min-words">Minimum Words:</label>
+                            <input 
+                                type="number" 
+                                id="auto-polish-min-words" 
+                                class="text-input" 
+                                value="50"
+                                min="10"
+                                max="200"
+                                step="10"
+                            >
+                            <small class="help-text">
+                                Minimum new words required before polishing (default: 50 words)
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="auto-polish-full-interval">Full Polish Interval (cycles):</label>
+                            <input 
+                                type="number" 
+                                id="auto-polish-full-interval" 
+                                class="text-input" 
+                                value="5"
+                                min="3"
+                                max="10"
+                                step="1"
+                            >
+                            <small class="help-text">
+                                Re-polish entire transcription every N cycles for consistency (default: 5 cycles ≈ 2.5 min)
+                            </small>
+                        </div>
+                    </div>
+                </section>
+                
                 <!-- Google Drive Settings Section -->
                 <section class="settings-section" id="google-drive-settings">
                     <h3>Google Drive Integration</h3>

@@ -16,6 +16,7 @@ export class RecordingManager {
   private viewManager: ViewManager;
   private editorManager: EditorManager;
   private exportManager: ExportManager;
+  private aiManager: any; // AIManager type
   
   private isRecording: boolean = false;
   private transcriptionSessionId: string | null = null;
@@ -30,13 +31,15 @@ export class RecordingManager {
     transcriptionManager: TranscriptionManager,
     viewManager: ViewManager,
     editorManager: EditorManager,
-    exportManager: ExportManager
+    exportManager: ExportManager,
+    aiManager: any
   ) {
     this.audioManager = audioManager;
     this.transcriptionManager = transcriptionManager;
     this.viewManager = viewManager;
     this.editorManager = editorManager;
     this.exportManager = exportManager;
+    this.aiManager = aiManager;
   }
 
   /**
@@ -89,6 +92,11 @@ export class RecordingManager {
     this.transcriptionManager.clear();
     this.startElapsedTimer();
     this.startVUMeterUpdates();
+    
+    // Start auto-polish if enabled
+    if (this.aiManager) {
+      await this.aiManager.startAutoPolish();
+    }
 
     console.log('Recording started successfully');
   }
@@ -98,6 +106,11 @@ export class RecordingManager {
    */
   async stop(): Promise<void> {
     console.log('Stopping recording...');
+    
+    // Stop auto-polish if running
+    if (this.aiManager) {
+      this.aiManager.stopAutoPolish();
+    }
 
     // Stop transcription first
     if (this.transcriptionSessionId) {
