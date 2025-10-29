@@ -285,6 +285,9 @@ export class StudyModeManager {
           <button class="action-btn export-session-btn" data-session-id="${session.id}">
             Export
           </button>
+          <button class="action-btn delete-session-btn" data-session-id="${session.id}">
+            🗑️ Delete
+          </button>
         </div>
       </div>
     `;
@@ -314,6 +317,18 @@ export class StudyModeManager {
         const sessionId = (btn as HTMLElement).dataset.sessionId;
         if (sessionId) {
           this.exportSession(sessionId);
+        }
+      });
+    });
+    
+    // Delete session buttons
+    const deleteButtons = document.querySelectorAll('.delete-session-btn');
+    deleteButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sessionId = (btn as HTMLElement).dataset.sessionId;
+        if (sessionId) {
+          this.deleteSession(sessionId);
         }
       });
     });
@@ -441,6 +456,9 @@ export class StudyModeManager {
           <button class="action-btn export-session-detail-btn" data-session-id="${session.id}">
             📤 Export Session
           </button>
+          <button class="action-btn delete-session-detail-btn" data-session-id="${session.id}">
+            🗑️ Delete Session
+          </button>
         </div>
       </div>
     `;
@@ -513,6 +531,16 @@ export class StudyModeManager {
     const exportBtn = document.querySelector('.export-session-detail-btn');
     exportBtn?.addEventListener('click', () => {
       this.exportSession(session.id);
+    });
+    
+    // Delete button
+    const deleteBtn = document.querySelector('.delete-session-detail-btn');
+    deleteBtn?.addEventListener('click', async () => {
+      await this.deleteSession(session.id);
+      // If delete was successful, go back to list
+      if (!this.sessions.find(s => s.id === session.id)) {
+        this.renderSessionList();
+      }
     });
     
     // Timestamp click handlers - seek audio to segment time
@@ -626,6 +654,46 @@ export class StudyModeManager {
     console.log('Exporting session:', sessionId);
     // TODO: Integrate with ExportManager
     alert(`Export functionality coming soon!\nSession ID: ${sessionId}`);
+  }
+  
+  /**
+   * Delete a session with confirmation
+   */
+  private async deleteSession(sessionId: string): Promise<void> {
+    const session = this.sessions.find(s => s.id === sessionId);
+    if (!session) {
+      console.error('Session not found:', sessionId);
+      return;
+    }
+    
+    // Show confirmation dialog
+    const confirmed = confirm(
+      `Delete "${session.title}"?\n\n` +
+      `This will permanently delete the recording, transcription, and notes.\n` +
+      `This action cannot be undone.`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      // Delete via IPC
+      const result = await window.scribeCat.session.delete(sessionId);
+      
+      if (result.success) {
+        console.log('Session deleted successfully');
+        // Refresh the session list
+        await this.loadSessions();
+        this.renderSessionList();
+      } else {
+        console.error('Failed to delete session:', result.error);
+        alert(`Failed to delete session: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      alert('An error occurred while deleting the session.');
+    }
   }
 
   /**

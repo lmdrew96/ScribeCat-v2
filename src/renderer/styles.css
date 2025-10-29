@@ -2641,6 +2641,18 @@ body {
   transform: translateY(0);
 }
 
+.delete-session-btn {
+  background-color: transparent;
+  border-color: var(--border);
+  color: var(--record-color);
+}
+
+.delete-session-btn:hover {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-color: var(--record-color);
+  transform: translateY(0);
+}
+
 /* Empty State */
 .session-list .empty-state {
   grid-column: 1 / -1;
