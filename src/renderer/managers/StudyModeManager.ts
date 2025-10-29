@@ -478,6 +478,13 @@ export class StudyModeManager {
       });
     });
     
+    // Active segment highlighting - listen to audio timeupdate
+    if (audioElement && session.transcription?.segments) {
+      audioElement.addEventListener('timeupdate', () => {
+        this.updateActiveSegment(audioElement.currentTime);
+      });
+    }
+    
     // Content tabs
     const tabs = document.querySelectorAll('.content-tab');
     const panels = document.querySelectorAll('.session-content-panel');
@@ -522,6 +529,56 @@ export class StudyModeManager {
         }
       });
     });
+  }
+  
+  /**
+   * Update active segment based on current audio time
+   */
+  private updateActiveSegment(currentTime: number): void {
+    const segments = document.querySelectorAll('.transcription-segment');
+    let activeSegment: Element | null = null;
+    
+    segments.forEach(segment => {
+      const startTime = parseFloat((segment as HTMLElement).dataset.startTime || '0');
+      const endTime = parseFloat((segment as HTMLElement).dataset.endTime || '0');
+      
+      // Check if current time is within this segment's range
+      if (currentTime >= startTime && currentTime < endTime) {
+        segment.classList.add('active');
+        activeSegment = segment;
+      } else {
+        segment.classList.remove('active');
+      }
+    });
+    
+    // Auto-scroll to active segment
+    if (activeSegment) {
+      this.scrollToActiveSegment(activeSegment as HTMLElement);
+    }
+  }
+  
+  /**
+   * Scroll to keep active segment visible
+   */
+  private scrollToActiveSegment(segment: HTMLElement): void {
+    const panel = document.querySelector('.session-content-panel.active');
+    if (!panel) return;
+    
+    const panelRect = panel.getBoundingClientRect();
+    const segmentRect = segment.getBoundingClientRect();
+    
+    // Check if segment is out of view
+    const isAboveView = segmentRect.top < panelRect.top;
+    const isBelowView = segmentRect.bottom > panelRect.bottom;
+    
+    if (isAboveView || isBelowView) {
+      // Scroll segment into view with smooth behavior
+      segment.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+      });
+    }
   }
 
   /**
