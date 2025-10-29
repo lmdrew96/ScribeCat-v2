@@ -282,16 +282,13 @@
                     </p>
                 </section>
                 
-                <!-- Vosk Model Settings Section (Dynamic) -->
-                <div id="vosk-model-settings-container"></div>
-                
                 <!-- Audio Settings Section -->
                 <section class="settings-section">
                     <h3>Audio Configuration</h3>
                     
                     <div class="info-row">
                         <span class="info-label">Sample Rate:</span>
-                        <span class="info-value" id="sample-rate-display">16000 Hz (Vosk required)</span>
+                        <span class="info-value" id="sample-rate-display">16000 Hz</span>
                     </div>
                     
                     <div class="info-row">
@@ -304,37 +301,6 @@
             <div class="modal-footer">
                 <button id="cancel-settings-btn" class="secondary-btn">Cancel</button>
                 <button id="save-settings-btn" class="primary-btn">Save Settings</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Model URL Edit Modal -->
-    <div id="model-url-modal" class="modal hidden">
-        <div class="modal-overlay"></div>
-        <div class="modal-content modal-small">
-            <div class="modal-header">
-                <h2>Edit Model URL</h2>
-                <button id="close-model-url-btn" class="close-btn" title="Close">×</button>
-            </div>
-            
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="model-url-input">Model URL:</label>
-                    <input 
-                        type="text" 
-                        id="model-url-input" 
-                        class="text-input" 
-                        placeholder="http://localhost:8000/vosk-model-small-en-us-0.15"
-                    >
-                    <small class="help-text">
-                        Enter the HTTP URL where your Vosk model is served
-                    </small>
-                </div>
-            </div>
-            
-            <div class="modal-footer">
-                <button id="cancel-model-url-btn" class="secondary-btn">Cancel</button>
-                <button id="save-model-url-btn" class="primary-btn">Save URL</button>
             </div>
         </div>
     </div>

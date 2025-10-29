@@ -174,9 +174,8 @@ export class RecordingManager {
 
     ipcMain.handle('session:updateTranscription', async (event, sessionId: string, transcriptionText: string, provider?: string) => {
       try {
-        // Map UI provider names to domain provider names
-        // 'simulation' -> 'vosk', otherwise use the provider as-is
-        const transcriptionProvider = (provider === 'simulation' ? 'vosk' : provider || 'vosk') as 'vosk' | 'whisper' | 'assemblyai';
+        // Use the provider as-is, defaulting to 'simulation'
+        const transcriptionProvider = (provider || 'simulation') as 'assemblyai' | 'simulation';
         const success = await this.updateSessionTranscriptionUseCase.execute(
           sessionId,
           transcriptionText,

@@ -21,7 +21,7 @@ export class UpdateSessionTranscriptionUseCase {
   async execute(
     sessionId: string,
     transcriptionText: string,
-    provider: 'vosk' | 'whisper' | 'assemblyai' = 'vosk'
+    provider: 'assemblyai' | 'simulation' = 'simulation'
   ): Promise<boolean> {
     try {
       // Load the session

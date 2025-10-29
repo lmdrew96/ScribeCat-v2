@@ -92,21 +92,4 @@ interface TranscriptionResult {
   isFinal: boolean;
 }
 
-/**
- * Download progress information for Vosk model download
- */
-interface DownloadProgress {
-  /** Current stage: 'downloading', 'extracting', or 'validating' */
-  stage: 'downloading' | 'extracting' | 'validating';
-  
-  /** Progress percentage (0-100) */
-  percent: number;
-  
-  /** Bytes downloaded (only for 'downloading' stage) */
-  downloaded?: number;
-  
-  /** Total bytes to download (only for 'downloading' stage) */
-  total?: number;
-}
-
 export {};
