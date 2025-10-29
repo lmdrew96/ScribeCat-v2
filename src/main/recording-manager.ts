@@ -4,6 +4,7 @@ import { ipcMain, BrowserWindow } from 'electron';
 import { SaveRecordingUseCase } from '../application/use-cases/SaveRecordingUseCase.js';
 import { LoadSessionUseCase } from '../application/use-cases/LoadSessionUseCase.js';
 import { UpdateSessionNotesUseCase } from '../application/use-cases/UpdateSessionNotesUseCase.js';
+import { UpdateSessionTranscriptionUseCase } from '../application/use-cases/UpdateSessionTranscriptionUseCase.js';
 import { FileAudioRepository } from '../infrastructure/repositories/FileAudioRepository.js';
 import { FileSessionRepository } from '../infrastructure/repositories/FileSessionRepository.js';
 
@@ -21,6 +22,7 @@ export class RecordingManager {
   private saveRecordingUseCase: SaveRecordingUseCase;
   private loadSessionUseCase: LoadSessionUseCase;
   private updateSessionNotesUseCase: UpdateSessionNotesUseCase;
+  private updateSessionTranscriptionUseCase: UpdateSessionTranscriptionUseCase;
 
   constructor() {
     // Initialize repositories
@@ -34,6 +36,9 @@ export class RecordingManager {
     );
     this.loadSessionUseCase = new LoadSessionUseCase(sessionRepository);
     this.updateSessionNotesUseCase = new UpdateSessionNotesUseCase(
+      sessionRepository
+    );
+    this.updateSessionTranscriptionUseCase = new UpdateSessionTranscriptionUseCase(
       sessionRepository
     );
 
@@ -155,6 +160,33 @@ export class RecordingManager {
           return {
             success: false,
             error: 'Session not found'
+          };
+        }
+
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    ipcMain.handle('session:updateTranscription', async (event, sessionId: string, transcriptionText: string, provider?: string) => {
+      try {
+        // Map UI provider names to domain provider names
+        // 'simulation' -> 'vosk', otherwise use the provider as-is
+        const transcriptionProvider = (provider === 'simulation' ? 'vosk' : provider || 'vosk') as 'vosk' | 'whisper' | 'assemblyai';
+        const success = await this.updateSessionTranscriptionUseCase.execute(
+          sessionId,
+          transcriptionText,
+          transcriptionProvider
+        );
+        
+        if (!success) {
+          return {
+            success: false,
+            error: 'Session not found or transcription update failed'
           };
         }
 

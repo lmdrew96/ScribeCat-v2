@@ -5,6 +5,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose the API to the renderer process
 const electronAPI = {
+  dialog: {
+    showSaveDialog: (options: any) => ipcRenderer.invoke('dialog:showSaveDialog', options)
+  },
   recording: {
     start: () => ipcRenderer.invoke('recording:start'),
     stop: (audioData: ArrayBuffer, duration: number) => ipcRenderer.invoke('recording:stop', audioData, duration),
@@ -42,11 +45,22 @@ const electronAPI = {
   ai: {
     chat: (message: string, history: any[], options?: any) => 
       ipcRenderer.invoke('ai:chat', message, history, options),
-    chatStream: (message: string, history: any[], options: any, onChunk: (chunk: string) => void) => {
+    chatStream: async (message: string, history: any[], options: any, onChunk: (chunk: string) => void) => {
+      // Remove any existing listeners first to prevent leaks
+      ipcRenderer.removeAllListeners('ai:chatChunk');
+      
       // Set up listener for chunks
-      ipcRenderer.on('ai:chatChunk', (_event: any, chunk: string) => onChunk(chunk));
-      // Start the stream
-      return ipcRenderer.invoke('ai:chatStream', message, history, options);
+      const chunkHandler = (_event: any, chunk: string) => onChunk(chunk);
+      ipcRenderer.on('ai:chatChunk', chunkHandler);
+      
+      try {
+        // Start the stream
+        const result = await ipcRenderer.invoke('ai:chatStream', message, history, options);
+        return result;
+      } finally {
+        // Clean up listener after stream completes
+        ipcRenderer.removeListener('ai:chatChunk', chunkHandler);
+      }
     },
     removeChatStreamListener: () => {
       ipcRenderer.removeAllListeners('ai:chatChunk');
@@ -60,6 +74,31 @@ const electronAPI = {
     isConfigured: () => ipcRenderer.invoke('ai:isConfigured'),
     testConnection: () => ipcRenderer.invoke('ai:testConnection'),
     setApiKey: (apiKey: string) => ipcRenderer.invoke('ai:setApiKey', apiKey)
+  },
+    session: {
+      export: (sessionId: string, format: string, outputPath: string, options?: any) =>
+        ipcRenderer.invoke('session:export', sessionId, format, outputPath, options),
+      exportWithDefaults: (sessionId: string, format: string, outputPath: string) =>
+        ipcRenderer.invoke('session:exportWithDefaults', sessionId, format, outputPath),
+      updateTranscription: (sessionId: string, transcriptionText: string, provider?: string) =>
+        ipcRenderer.invoke('session:updateTranscription', sessionId, transcriptionText, provider),
+      updateNotes: (sessionId: string, notes: string) =>
+        ipcRenderer.invoke('session:updateNotes', sessionId, notes)
+    },
+  drive: {
+    configure: (config: any) => ipcRenderer.invoke('drive:configure', config),
+    isAuthenticated: () => ipcRenderer.invoke('drive:isAuthenticated'),
+    getAuthUrl: () => ipcRenderer.invoke('drive:getAuthUrl'),
+    exchangeCodeForTokens: (code: string) => ipcRenderer.invoke('drive:exchangeCodeForTokens', code),
+    setCredentials: (config: any) => ipcRenderer.invoke('drive:setCredentials', config),
+    getUserEmail: () => ipcRenderer.invoke('drive:getUserEmail'),
+    disconnect: () => ipcRenderer.invoke('drive:disconnect'),
+    uploadFile: (filePath: string, options: any) => 
+      ipcRenderer.invoke('drive:uploadFile', filePath, options),
+    listFiles: (folderId?: string) => 
+      ipcRenderer.invoke('drive:listFiles', folderId),
+    createFolder: (name: string, parentId?: string) => 
+      ipcRenderer.invoke('drive:createFolder', name, parentId)
   }
   // TODO: Implement these features in future phases
   // files: { ... }

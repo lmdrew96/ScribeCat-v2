@@ -13,6 +13,14 @@ declare const window: Window & {
     ai: {
       setApiKey: (apiKey: string) => Promise<any>;
     };
+    drive: {
+      configure: (config: any) => Promise<any>;
+      isAuthenticated: () => Promise<any>;
+      getAuthUrl: () => Promise<any>;
+      setCredentials: (config: any) => Promise<any>;
+      disconnect: () => Promise<any>;
+      getUserEmail: () => Promise<any>;
+    };
   };
 };
 
@@ -21,6 +29,8 @@ export class SettingsManager {
   private transcriptionMode: 'simulation' | 'assemblyai' = 'simulation';
   private assemblyAIApiKey: string = '';
   private claudeApiKey: string = '';
+  private driveConnected: boolean = false;
+  private driveUserEmail: string = '';
 
   constructor() {
     this.settingsModal = document.getElementById('settings-modal')!;
@@ -76,6 +86,14 @@ export class SettingsManager {
       const target = e.target as HTMLInputElement;
       this.claudeApiKey = target.value.trim();
     });
+    
+    // Google Drive connect button
+    const connectDriveBtn = document.getElementById('connect-drive-btn');
+    connectDriveBtn?.addEventListener('click', () => this.connectGoogleDrive());
+    
+    // Google Drive disconnect button
+    const disconnectDriveBtn = document.getElementById('disconnect-drive-btn');
+    disconnectDriveBtn?.addEventListener('click', () => this.disconnectGoogleDrive());
   }
 
   /**
@@ -99,6 +117,9 @@ export class SettingsManager {
       if (this.claudeApiKey) {
         await window.scribeCat.ai.setApiKey(this.claudeApiKey);
       }
+      
+      // Check Google Drive connection status
+      await this.checkDriveConnection();
 
       // Update UI
       this.updateUIFromSettings();
@@ -136,6 +157,9 @@ export class SettingsManager {
 
     // Update AssemblyAI status
     this.updateAssemblyAIStatus();
+    
+    // Update Google Drive status
+    this.updateDriveConnectionUI();
   }
 
   /**
@@ -159,42 +183,33 @@ export class SettingsManager {
    */
   private async saveSettings(): Promise<void> {
     try {
-      // Get selected transcription mode
+      // Save transcription mode
       const modeRadio = document.querySelector(
         'input[name="transcription-mode"]:checked'
       ) as HTMLInputElement;
-      const mode = modeRadio?.value || 'simulation';
-
-      // Validate AssemblyAI API key if that mode is selected
-      if (mode === 'assemblyai' && !this.assemblyAIApiKey) {
-        this.showNotification('Please enter an AssemblyAI API key', 'error');
-        return;
+      if (modeRadio) {
+        this.transcriptionMode = modeRadio.value as 'simulation' | 'assemblyai';
+        await window.scribeCat.store.set('transcription-mode', this.transcriptionMode);
       }
 
-      // Save to store
-      await window.scribeCat.store.set('transcription-mode', mode);
+      // Save AssemblyAI API key
       await window.scribeCat.store.set('assemblyai-api-key', this.assemblyAIApiKey);
       
-      // Save Claude API key if provided
+      // Save Claude API key
+      await window.scribeCat.store.set('claude-api-key', this.claudeApiKey);
+      
+      // Update AI service with new key
       if (this.claudeApiKey) {
-        await window.scribeCat.store.set('claude-api-key', this.claudeApiKey);
-        // Configure AI service with the new key
         await window.scribeCat.ai.setApiKey(this.claudeApiKey);
       }
 
-      this.transcriptionMode = mode as 'simulation' | 'assemblyai';
-
-      // Show confirmation
       this.showNotification('Settings saved successfully!', 'success');
-
-      // Close modal
       this.closeSettings();
     } catch (error) {
       console.error('Failed to save settings:', error);
       this.showNotification('Failed to save settings', 'error');
     }
   }
-
 
   /**
    * Update settings sections visibility based on selected mode
@@ -271,6 +286,226 @@ export class SettingsManager {
    */
   public getAssemblyAIApiKey(): string {
     return this.assemblyAIApiKey;
+  }
+  
+  /**
+   * Check Google Drive connection status
+   */
+  private async checkDriveConnection(): Promise<void> {
+    try {
+      const result = await window.scribeCat.drive.isAuthenticated();
+      this.driveConnected = result.data || false;
+      
+      if (this.driveConnected) {
+        // Try to get user email
+        const emailResult = await window.scribeCat.drive.getUserEmail();
+        this.driveUserEmail = emailResult.data || '';
+      }
+    } catch (error) {
+      console.error('Failed to check Drive connection:', error);
+      this.driveConnected = false;
+      this.driveUserEmail = '';
+    }
+  }
+  
+  /**
+   * Update Google Drive connection UI
+   */
+  private updateDriveConnectionUI(): void {
+    const statusEl = document.getElementById('drive-status');
+    const connectBtn = document.getElementById('connect-drive-btn') as HTMLButtonElement;
+    const disconnectBtn = document.getElementById('disconnect-drive-btn') as HTMLButtonElement;
+    
+    if (!statusEl || !connectBtn || !disconnectBtn) return;
+    
+    if (this.driveConnected) {
+      statusEl.textContent = this.driveUserEmail 
+        ? `Connected as ${this.driveUserEmail}` 
+        : 'Connected';
+      statusEl.style.color = '#27ae60';
+      connectBtn.style.display = 'none';
+      disconnectBtn.style.display = 'inline-block';
+    } else {
+      statusEl.textContent = 'Not connected';
+      statusEl.style.color = '#95a5a6';
+      connectBtn.style.display = 'inline-block';
+      disconnectBtn.style.display = 'none';
+    }
+  }
+  
+  /**
+   * Show a custom input dialog (replacement for prompt())
+   */
+  private showInputDialog(title: string, message: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      // Create modal overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      `;
+      
+      // Create dialog
+      const dialog = document.createElement('div');
+      dialog.style.cssText = `
+        background: #2c2c2c;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      `;
+      
+      dialog.innerHTML = `
+        <h3 style="margin: 0 0 16px 0; color: #fff; font-size: 18px;">${title}</h3>
+        <p style="margin: 0 0 16px 0; color: #ccc; font-size: 14px;">${message}</p>
+        <input type="text" id="custom-input-field" style="
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #555;
+          border-radius: 4px;
+          background: #1e1e1e;
+          color: #fff;
+          font-size: 14px;
+          box-sizing: border-box;
+          margin-bottom: 16px;
+        " placeholder="Paste authorization code here">
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button id="custom-input-cancel" style="
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #555;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+          ">Cancel</button>
+          <button id="custom-input-ok" style="
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #27ae60;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+          ">OK</button>
+        </div>
+      `;
+      
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      
+      const inputField = document.getElementById('custom-input-field') as HTMLInputElement;
+      const cancelBtn = document.getElementById('custom-input-cancel');
+      const okBtn = document.getElementById('custom-input-ok');
+      
+      // Focus input field
+      setTimeout(() => inputField?.focus(), 100);
+      
+      // Handle cancel
+      const handleCancel = () => {
+        document.body.removeChild(overlay);
+        resolve(null);
+      };
+      
+      // Handle OK
+      const handleOk = () => {
+        const value = inputField?.value.trim() || '';
+        document.body.removeChild(overlay);
+        resolve(value || null);
+      };
+      
+      // Event listeners
+      cancelBtn?.addEventListener('click', handleCancel);
+      okBtn?.addEventListener('click', handleOk);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) handleCancel();
+      });
+      inputField?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleOk();
+        if (e.key === 'Escape') handleCancel();
+      });
+    });
+  }
+  
+  /**
+   * Connect to Google Drive
+   */
+  private async connectGoogleDrive(): Promise<void> {
+    try {
+      // Get auth URL
+      const result = await window.scribeCat.drive.getAuthUrl();
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to get auth URL');
+      }
+      
+      const authUrl = result.data.authUrl || result.data;
+      
+      // Open auth URL in browser
+      window.open(authUrl, '_blank');
+      
+      // Show custom input dialog
+      const code = await this.showInputDialog(
+        'Google Drive Authorization',
+        'Please sign in with Google in the browser, then paste the authorization code here:'
+      );
+      
+      if (!code) {
+        this.showNotification('Connection cancelled', 'error');
+        return;
+      }
+      
+      // Exchange authorization code for tokens (this calls Google's API)
+      const exchangeResult = await window.scribeCat.drive.exchangeCodeForTokens(code);
+      if (!exchangeResult.success) {
+        throw new Error(exchangeResult.error || 'Failed to authenticate');
+      }
+      
+      // Store user email if available
+      if (exchangeResult.email) {
+        this.driveUserEmail = exchangeResult.email;
+      }
+      
+      this.driveConnected = true;
+      this.updateDriveConnectionUI();
+      this.showNotification('Google Drive connected successfully!', 'success');
+      
+    } catch (error) {
+      console.error('Google Drive connection failed:', error);
+      this.showNotification(
+        `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'error'
+      );
+    }
+  }
+  
+  /**
+   * Disconnect from Google Drive
+   */
+  private async disconnectGoogleDrive(): Promise<void> {
+    try {
+      const confirmed = confirm('Are you sure you want to disconnect Google Drive?');
+      if (!confirmed) return;
+      
+      await window.scribeCat.drive.disconnect();
+      
+      this.driveConnected = false;
+      this.driveUserEmail = '';
+      this.updateDriveConnectionUI();
+      this.showNotification('Google Drive disconnected', 'success');
+      
+    } catch (error) {
+      console.error('Failed to disconnect Google Drive:', error);
+      this.showNotification('Failed to disconnect', 'error');
+    }
   }
 }
 

@@ -9,11 +9,13 @@ import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
 import { AssemblyAITranscriptionService } from './assemblyai-transcription-service.js';
 import { AIManager } from './ai-manager.js';
+import { ExportManager } from './export-manager.js';
 
 // ===== State Management =====
 let audioManager: AudioManager;
 let settingsManager: SettingsManager;
 let aiManager: AIManager;
+let exportManager: ExportManager;
 let assemblyAIService: AssemblyAITranscriptionService | null = null;
 let isRecording = false;
 let transcriptionSessionId: string | null = null;
@@ -83,6 +85,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     () => getNotesText()
   );
   await aiManager.initialize();
+  
+  // Initialize export manager
+  exportManager = new ExportManager();
   
   // Load microphone devices
   await loadMicrophoneDevices();
@@ -515,6 +520,41 @@ async function stopRecording(): Promise<void> {
     
     console.log('✅ Recording saved to:', saveResult.filePath);
     
+    // Save transcription to session
+    if (saveResult.sessionId) {
+      const transcriptionText = getTranscriptionText();
+      if (transcriptionText && transcriptionText.trim().length > 0) {
+        console.log('Saving transcription to session...');
+        const transcriptionResult = await window.scribeCat.session.updateTranscription(
+          saveResult.sessionId,
+          transcriptionText,
+          currentTranscriptionMode
+        );
+        
+        if (transcriptionResult.success) {
+          console.log('✅ Transcription saved to session');
+        } else {
+          console.error('❌ Failed to save transcription:', transcriptionResult.error);
+        }
+      }
+      
+      // Save notes to session if any
+      const notes = getNotesText();
+      if (notes && notes.trim().length > 0) {
+        console.log('Saving notes to session...');
+        const notesResult = await window.scribeCat.session.updateNotes(
+          saveResult.sessionId,
+          notes
+        );
+        
+        if (notesResult.success) {
+          console.log('✅ Notes saved to session');
+        } else {
+          console.error('❌ Failed to save notes:', notesResult.error);
+        }
+      }
+    }
+    
     // Update state
     isRecording = false;
     
@@ -528,6 +568,11 @@ async function stopRecording(): Promise<void> {
     setTimeout(() => {
       sessionInfo.textContent = '';
     }, 5000);
+    
+    // Enable export for this session
+    if (saveResult.sessionId) {
+      exportManager.enableExport(saveResult.sessionId);
+    }
     
     console.log('Recording stopped successfully');
   } catch (error) {

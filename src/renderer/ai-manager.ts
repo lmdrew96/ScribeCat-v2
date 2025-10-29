@@ -521,6 +521,13 @@ export class AIManager {
       contentDiv.classList.add('streaming');
     }
     
+    // Add the assistant message to the UI immediately
+    if (this.chatMessages) {
+      this.chatMessages.appendChild(assistantMessageDiv);
+      // Scroll to bottom
+      this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+    
     try {
       // Use streaming for real-time response
       let fullResponse = '';
@@ -613,9 +620,6 @@ export class AIManager {
     
     messageDiv.appendChild(headerDiv);
     messageDiv.appendChild(contentDiv);
-    
-    if (!this.chatMessages) return messageDiv;
-    this.chatMessages.appendChild(messageDiv);
     
     return messageDiv;
   }

@@ -135,6 +135,43 @@ export interface TitleResult {
   tokensUsed: number;
 }
 
+/**
+ * Google Drive configuration
+ */
+export interface GoogleDriveConfig {
+  clientId?: string;
+  clientSecret?: string;
+  refreshToken?: string;
+}
+
+/**
+ * Google Drive upload options
+ */
+export interface GoogleDriveUploadOptions {
+  fileName: string;
+  mimeType: string;
+  folderId?: string;
+}
+
+/**
+ * Google Drive upload result
+ */
+export interface GoogleDriveUploadResult {
+  success: boolean;
+  fileId?: string;
+  webViewLink?: string;
+  error?: string;
+}
+
+/**
+ * Google Drive auth result
+ */
+export interface GoogleDriveAuthResult {
+  success: boolean;
+  authUrl?: string;
+  error?: string;
+}
+
 export interface ElectronAPI {
   recording: {
     start: () => Promise<{ success: boolean; error?: string }>;
@@ -152,6 +189,15 @@ export interface ElectronAPI {
     isConfigured: () => Promise<IPCResponse<boolean>>;
     testConnection: () => Promise<IPCResponse<boolean>>;
     setApiKey: (apiKey: string) => Promise<IPCResponse<void>>;
+  };
+  drive: {
+    configure: (config: GoogleDriveConfig) => Promise<IPCResponse<void>>;
+    isAuthenticated: () => Promise<IPCResponse<boolean>>;
+    getAuthUrl: () => Promise<IPCResponse<GoogleDriveAuthResult>>;
+    setCredentials: (config: GoogleDriveConfig) => Promise<IPCResponse<void>>;
+    uploadFile: (filePath: string, options: GoogleDriveUploadOptions) => Promise<IPCResponse<GoogleDriveUploadResult>>;
+    listFiles: (folderId?: string) => Promise<IPCResponse<any[]>>;
+    createFolder: (name: string, parentId?: string) => Promise<IPCResponse<string>>;
   };
   // TODO: Add these interfaces when features are implemented
   // files?: { ... };

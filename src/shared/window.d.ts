@@ -4,6 +4,9 @@
 declare global {
   interface Window {
     scribeCat: {
+      dialog: {
+        showSaveDialog: (options: any) => Promise<{ success: boolean; data?: { canceled: boolean; filePath?: string }; error?: string }>;
+      };
       recording: {
         start: () => Promise<{ success: boolean; error?: string }>;
         stop: (audioData: ArrayBuffer, duration: number) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
@@ -38,10 +41,38 @@ declare global {
         get: (key: string) => Promise<unknown>;
         set: (key: string, value: unknown) => Promise<void>;
       };
+      ai: {
+        chat: (message: string, history: any[], options?: any) => Promise<any>;
+        chatStream: (message: string, history: any[], options: any, onChunk: (chunk: string) => void) => Promise<any>;
+        polishTranscription: (text: string, options?: any) => Promise<any>;
+        generateSummary: (transcription: string, notes?: string, options?: any) => Promise<any>;
+        generateTitle: (transcription: string, notes?: string, options?: any) => Promise<any>;
+        isConfigured: () => Promise<any>;
+        testConnection: () => Promise<any>;
+        setApiKey: (apiKey: string) => Promise<any>;
+        removeChatStreamListener: () => void;
+      };
+      session: {
+        export: (sessionId: string, format: string, outputPath: string, options?: any) => Promise<{ success: boolean; filePath?: string; format?: string; error?: string }>;
+        exportWithDefaults: (sessionId: string, format: string, outputPath: string) => Promise<{ success: boolean; filePath?: string; format?: string; error?: string }>;
+        updateTranscription: (sessionId: string, transcriptionText: string, provider?: string) => Promise<{ success: boolean; error?: string }>;
+        updateNotes: (sessionId: string, notes: string) => Promise<{ success: boolean; error?: string }>;
+      };
+      drive: {
+        configure: (config: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        isAuthenticated: () => Promise<{ success: boolean; data?: boolean; error?: string }>;
+        getAuthUrl: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        exchangeCodeForTokens: (code: string) => Promise<{ success: boolean; email?: string; error?: string }>;
+        setCredentials: (config: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getUserEmail: () => Promise<{ success: boolean; data?: string; error?: string }>;
+        disconnect: () => Promise<{ success: boolean; error?: string }>;
+        uploadFile: (filePath: string, options: any) => Promise<{ success: boolean; fileId?: string; webViewLink?: string; error?: string }>;
+        listFiles: (folderId?: string) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        createFolder: (name: string, parentId?: string) => Promise<{ success: boolean; data?: string; error?: string }>;
+      };
       // TODO: Add type declarations when features are implemented
       // files?: { ... };
       // themes?: { ... };
-      // ai?: { ... };
       // canvas?: { ... };
     };
   }

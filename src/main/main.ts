@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, session, systemPreferences } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, session, systemPreferences, dialog } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { RecordingManager } from './recording-manager.js';
@@ -9,10 +9,14 @@ import { ListSessionsUseCase } from '../application/use-cases/ListSessionsUseCas
 import { DeleteSessionUseCase } from '../application/use-cases/DeleteSessionUseCase.js';
 import { ExportSessionUseCase } from '../application/use-cases/ExportSessionUseCase.js';
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
+import { DocxExportService } from '../infrastructure/services/export/DocxExportService.js';
+import { PdfExportService } from '../infrastructure/services/export/PdfExportService.js';
+import { HtmlExportService } from '../infrastructure/services/export/HtmlExportService.js';
 import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
 import { TranscriptionResult } from './services/transcription/ITranscriptionService.js';
 import { ClaudeAIService } from '../infrastructure/services/ai/ClaudeAIService.js';
-import type { ChatMessage } from '../shared/types.js';
+import { GoogleDriveService } from '../infrastructure/services/drive/GoogleDriveService.js';
+import type { ChatMessage, GoogleDriveConfig } from '../shared/types.js';
 import Store from 'electron-store';
 
 // ES module equivalent of __dirname
@@ -22,6 +26,7 @@ const __dirname = path.dirname(__filename);
 // Define store schema
 interface StoreSchema {
   'simulation-mode': boolean;
+  'google-drive-credentials'?: string;
 }
 
 class ScribeCatApp {
@@ -44,6 +49,9 @@ class ScribeCatApp {
   
   // AI service
   private aiService: ClaudeAIService | null = null;
+  
+  // Google Drive service
+  private googleDriveService: GoogleDriveService | null = null;
 
   constructor() {
     // Initialize directory manager
@@ -56,6 +64,9 @@ class ScribeCatApp {
       }
     });
     
+    // Initialize Google Drive service with pre-configured credentials
+    this.initializeGoogleDrive();
+    
     // Initialize repositories
     this.sessionRepository = new FileSessionRepository();
     this.audioRepository = new FileAudioRepository();
@@ -63,7 +74,9 @@ class ScribeCatApp {
     // Initialize export services
     const exportServices = new Map();
     exportServices.set('txt', new TextExportService());
-    // Future: Add PDF, DOCX, HTML export services
+    exportServices.set('docx', new DocxExportService());
+    exportServices.set('pdf', new PdfExportService());
+    exportServices.set('html', new HtmlExportService());
     
     // Initialize use cases
     this.listSessionsUseCase = new ListSessionsUseCase(this.sessionRepository);
@@ -81,6 +94,26 @@ class ScribeCatApp {
     
     this.recordingManager = new RecordingManager();
     this.initializeApp();
+  }
+
+  /**
+   * Initialize Google Drive service with stored credentials
+   */
+  private initializeGoogleDrive(): void {
+    try {
+      // Load stored credentials if they exist
+      const storedCreds = (this.store as any).get('google-drive-credentials');
+      const config: GoogleDriveConfig = storedCreds ? JSON.parse(storedCreds) : {};
+      
+      // Initialize service (it will work with or without stored credentials)
+      this.googleDriveService = new GoogleDriveService(config);
+      
+      console.log('Google Drive service initialized');
+    } catch (error) {
+      console.error('Failed to initialize Google Drive service:', error);
+      // Initialize with empty config as fallback
+      this.googleDriveService = new GoogleDriveService();
+    }
   }
 
   private initializeApp(): void {
@@ -188,6 +221,24 @@ class ScribeCatApp {
 
   private setupIPC(): void {
     // Recording manager handles its own IPC setup
+    
+    // Dialog: Show save dialog
+    ipcMain.handle('dialog:showSaveDialog', async (event, options) => {
+      try {
+        if (!this.mainWindow) {
+          return { success: false, error: 'Main window not available' };
+        }
+        
+        const result = await dialog.showSaveDialog(this.mainWindow, options);
+        return { success: true, data: result };
+      } catch (error) {
+        console.error('Failed to show save dialog:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
     
     // Session list handler
     ipcMain.handle('sessions:list', async (event, sortOrder?: 'asc' | 'desc') => {
@@ -627,6 +678,200 @@ class ScribeCatApp {
         };
       }
     });
+    
+    // Google Drive: Configure
+    ipcMain.handle('drive:configure', async (event, config: GoogleDriveConfig) => {
+      try {
+        this.googleDriveService = new GoogleDriveService(config);
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to configure Google Drive:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: Check if authenticated
+    ipcMain.handle('drive:isAuthenticated', async () => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: true, data: false };
+        }
+        
+        const isAuthenticated = await this.googleDriveService.isAuthenticated();
+        return { success: true, data: isAuthenticated };
+      } catch (error) {
+        console.error('Failed to check Google Drive authentication:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: Get auth URL
+    ipcMain.handle('drive:getAuthUrl', async () => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: false, error: 'Google Drive not configured' };
+        }
+        
+        const authUrl = await this.googleDriveService.getAuthUrl();
+        return { success: true, data: authUrl };
+      } catch (error) {
+        console.error('Failed to get Google Drive auth URL:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: Exchange authorization code for tokens
+    ipcMain.handle('drive:exchangeCodeForTokens', async (event, code: string) => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: false, error: 'Google Drive not configured' };
+        }
+        
+        const result = await this.googleDriveService.exchangeCodeForTokens(code);
+        
+        if (result.success && this.googleDriveService) {
+          // Store the refresh token for persistence
+          const config = { refreshToken: (this.googleDriveService as any).config.refreshToken };
+          (this.store as any).set('google-drive-credentials', JSON.stringify(config));
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('Failed to exchange code for tokens:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: Set credentials
+    ipcMain.handle('drive:setCredentials', async (event, config: GoogleDriveConfig) => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: false, error: 'Google Drive not configured' };
+        }
+        
+        await this.googleDriveService.setCredentials(config);
+        
+        // Store credentials for persistence
+        (this.store as any).set('google-drive-credentials', JSON.stringify(config));
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to set Google Drive credentials:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: Upload file
+    ipcMain.handle('drive:uploadFile', async (event, filePath: string, options?: any) => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: false, error: 'Google Drive not configured' };
+        }
+        
+        // GoogleDriveService.uploadFile already returns { success, fileId, webViewLink, error }
+        // So we return it directly instead of wrapping it
+        const result = await this.googleDriveService.uploadFile(filePath, options);
+        return result;
+      } catch (error) {
+        console.error('Failed to upload file to Google Drive:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: List files
+    ipcMain.handle('drive:listFiles', async (event, folderId?: string) => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: false, error: 'Google Drive not configured' };
+        }
+        
+        const files = await this.googleDriveService.listFiles(folderId);
+        return { success: true, data: files };
+      } catch (error) {
+        console.error('Failed to list Google Drive files:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: Create folder
+    ipcMain.handle('drive:createFolder', async (event, name: string, parentId?: string) => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: false, error: 'Google Drive not configured' };
+        }
+        
+        const folder = await this.googleDriveService.createFolder(name, parentId);
+        return { success: true, data: folder };
+      } catch (error) {
+        console.error('Failed to create Google Drive folder:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: Get user email
+    ipcMain.handle('drive:getUserEmail', async () => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: false, error: 'Google Drive not configured' };
+        }
+        
+        const email = await this.googleDriveService.getUserEmail();
+        return { success: true, data: email };
+      } catch (error) {
+        console.error('Failed to get Google Drive user email:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Google Drive: Disconnect
+    ipcMain.handle('drive:disconnect', async () => {
+      try {
+        if (!this.googleDriveService) {
+          return { success: false, error: 'Google Drive not configured' };
+        }
+        
+        await this.googleDriveService.disconnect();
+        
+        // Clear stored credentials
+        (this.store as any).delete('google-drive-credentials');
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to disconnect Google Drive:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
   }
 }
 
