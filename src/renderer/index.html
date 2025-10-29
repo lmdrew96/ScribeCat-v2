@@ -50,28 +50,168 @@
                 </div>
                 
                 <div class="formatting-toolbar">
-                    <button id="bold-btn" class="toolbar-btn" title="Bold (Ctrl+B)">
-                        <strong>B</strong>
-                    </button>
-                    <button id="italic-btn" class="toolbar-btn" title="Italic (Ctrl+I)">
-                        <em>I</em>
-                    </button>
-                    <button id="underline-btn" class="toolbar-btn" title="Underline (Ctrl+U)">
-                        <u>U</u>
-                    </button>
+                    <!-- Text Style Group -->
+                    <div class="toolbar-group">
+                        <button id="bold-btn" class="toolbar-btn" title="Bold • Ctrl+B" data-command="bold">
+                            <span class="btn-icon bold-icon">B</span>
+                        </button>
+                        <button id="italic-btn" class="toolbar-btn" title="Italic • Ctrl+I" data-command="italic">
+                            <span class="btn-icon italic-icon">I</span>
+                        </button>
+                        <button id="underline-btn" class="toolbar-btn" title="Underline • Ctrl+U" data-command="underline">
+                            <span class="btn-icon underline-icon">U</span>
+                        </button>
+                    </div>
                     
                     <div class="toolbar-divider"></div>
                     
-                    <select id="font-size-select" class="toolbar-select" title="Font Size">
-                        <option value="12">12</option>
-                        <option value="14">14</option>
-                        <option value="16" selected>16</option>
-                        <option value="18">18</option>
-                        <option value="20">20</option>
-                        <option value="24">24</option>
-                    </select>
+                    <!-- Font Group -->
+                    <div class="toolbar-group">
+                        <div class="select-wrapper">
+                            <select id="font-family-select" class="toolbar-select toolbar-select-font" title="Font Family">
+                                <optgroup label="Sans-Serif">
+                                    <option value="Arial" selected>Arial</option>
+                                    <option value="Calibri">Calibri</option>
+                                    <option value="Century Gothic">Century Gothic</option>
+                                    <option value="Franklin Gothic">Franklin Gothic</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Lato">Lato</option>
+                                    <option value="Open Sans">Open Sans</option>
+                                    <option value="Roboto">Roboto</option>
+                                    <option value="Segoe UI">Segoe UI</option>
+                                    <option value="-apple-system">System Font</option>
+                                    <option value="Tahoma">Tahoma</option>
+                                    <option value="Trebuchet MS">Trebuchet MS</option>
+                                    <option value="Verdana">Verdana</option>
+                                </optgroup>
+                                <optgroup label="Serif">
+                                    <option value="Baskerville">Baskerville</option>
+                                    <option value="Book Antiqua">Book Antiqua</option>
+                                    <option value="Bookman">Bookman</option>
+                                    <option value="Cambria">Cambria</option>
+                                    <option value="Garamond">Garamond</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Palatino">Palatino</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                </optgroup>
+                                <optgroup label="Monospace">
+                                    <option value="Consolas">Consolas</option>
+                                    <option value="Courier New">Courier New</option>
+                                    <option value="Menlo">Menlo</option>
+                                    <option value="Monaco">Monaco</option>
+                                    <option value="Source Code Pro">Source Code Pro</option>
+                                </optgroup>
+                            </select>
+                            <span class="select-arrow">▼</span>
+                        </div>
+                        
+                        <div class="select-wrapper">
+                            <select id="font-size-select" class="toolbar-select toolbar-select-small" title="Font Size">
+                                <option value="12">12</option>
+                                <option value="14">14</option>
+                                <option value="16" selected>16</option>
+                                <option value="18">18</option>
+                                <option value="20">20</option>
+                                <option value="24">24</option>
+                            </select>
+                            <span class="select-arrow">▼</span>
+                        </div>
+                    </div>
                     
-                    <input type="color" id="text-color-picker" class="color-picker" value="#ffffff" title="Text Color">
+                    <div class="toolbar-divider"></div>
+                    
+                    <!-- Color Group -->
+                    <div class="toolbar-group">
+                        <button id="text-color-btn" class="toolbar-btn color-btn" title="Text Color">
+                            <span class="btn-icon">A</span>
+                            <span class="color-indicator" id="text-color-indicator"></span>
+                            <input type="color" id="text-color-picker" class="color-picker-hidden" value="#ffffff">
+                        </button>
+                        <button id="highlight-color-btn" class="toolbar-btn color-btn" title="Highlight Color">
+                            <span class="btn-icon">🖍</span>
+                            <span class="color-indicator" id="highlight-color-indicator"></span>
+                            <input type="color" id="highlight-color-picker" class="color-picker-hidden" value="#ffff00">
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-divider"></div>
+                    
+                    <!-- List Group -->
+                    <div class="toolbar-group">
+                        <button id="bullet-list-btn" class="toolbar-btn" title="Bullet List" data-command="insertUnorderedList">
+                            <span class="btn-icon list-icon">
+                                <span class="list-bullet">•</span>
+                                <span class="list-lines">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </span>
+                            </span>
+                        </button>
+                        <button id="numbered-list-btn" class="toolbar-btn" title="Numbered List" data-command="insertOrderedList">
+                            <span class="btn-icon list-icon">
+                                <span class="list-number">1.</span>
+                                <span class="list-lines">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </span>
+                            </span>
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-divider"></div>
+                    
+                    <!-- Alignment Group -->
+                    <div class="toolbar-group">
+                        <button id="align-left-btn" class="toolbar-btn" title="Align Left" data-command="justifyLeft">
+                            <span class="btn-icon align-icon align-left">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                        <button id="align-center-btn" class="toolbar-btn" title="Align Center" data-command="justifyCenter">
+                            <span class="btn-icon align-icon align-center">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                        <button id="align-right-btn" class="toolbar-btn" title="Align Right" data-command="justifyRight">
+                            <span class="btn-icon align-icon align-right">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                        <button id="align-justify-btn" class="toolbar-btn" title="Justify" data-command="justifyFull">
+                            <span class="btn-icon align-icon align-justify">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-divider"></div>
+                    
+                    <!-- History Group -->
+                    <div class="toolbar-group">
+                        <button id="undo-btn" class="toolbar-btn" title="Undo • Ctrl+Z">
+                            <span class="btn-icon">↶</span>
+                        </button>
+                        <button id="redo-btn" class="toolbar-btn" title="Redo • Ctrl+Y">
+                            <span class="btn-icon">↷</span>
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-divider"></div>
+                    
+                    <!-- Clear Format -->
+                    <button id="clear-format-btn" class="toolbar-btn" title="Clear Formatting">
+                        <span class="btn-icon">✕</span>
+                    </button>
                 </div>
                 
                 <div id="notes-editor" class="notes-editor" contenteditable="true" spellcheck="true">
@@ -446,6 +586,31 @@
                             <h5>Imported Courses (<span id="imported-courses-count">0</span>)</h5>
                             <div id="imported-courses-list" class="courses-list"></div>
                         </div>
+                    </div>
+                </section>
+                
+                <!-- Theme Settings Section -->
+                <section class="settings-section">
+                    <h3>Theme</h3>
+                    <p class="help-text">
+                        Choose a theme that matches your mood and enhances your focus. 
+                        Each theme is designed using color theory to evoke specific emotions.
+                    </p>
+                    
+                    <div class="form-group">
+                        <label for="theme-category-filter">Filter by Category:</label>
+                        <select id="theme-category-filter" class="text-input">
+                            <option value="all">All Themes</option>
+                            <option value="calm">Calm & Peaceful</option>
+                            <option value="energetic">Energetic & Motivated</option>
+                            <option value="focus">Focus & Productivity</option>
+                            <option value="creative">Creative & Inspired</option>
+                            <option value="balanced">Balanced & Harmonious</option>
+                        </select>
+                    </div>
+                    
+                    <div id="theme-grid" class="theme-grid">
+                        <!-- Themes will be populated by JavaScript -->
                     </div>
                 </section>
                 

@@ -15,10 +15,12 @@ import { TranscriptionManager } from './managers/TranscriptionManager.js';
 import { RecordingManager } from './managers/RecordingManager.js';
 import { DeviceManager } from './managers/DeviceManager.js';
 import { CourseManager } from './managers/CourseManager.js';
+import { ThemeManager } from './themes/ThemeManager.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
 let settingsManager: SettingsManager;
+let themeManager: ThemeManager;
 let aiManager: AIManager;
 let exportManager: ExportManager;
 let viewManager: ViewManager;
@@ -32,9 +34,13 @@ let courseManager: CourseManager;
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('ScribeCat initializing...');
   
+  // Initialize theme manager first
+  themeManager = new ThemeManager();
+  await themeManager.initialize();
+  
   // Initialize core managers
   audioManager = new AudioManager();
-  settingsManager = new SettingsManager();
+  settingsManager = new SettingsManager(themeManager);
   exportManager = new ExportManager();
   
   // Initialize UI managers

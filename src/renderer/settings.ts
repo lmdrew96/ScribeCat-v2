@@ -4,6 +4,9 @@
  * Handles the settings modal UI and persistence of user preferences.
  */
 
+import { ThemeManager } from './themes/ThemeManager.js';
+import type { Theme } from './themes/types.js';
+
 declare const window: Window & {
   scribeCat: {
     store: {
@@ -41,8 +44,13 @@ export class SettingsManager {
   private autoPolishJitter: number = 5;
   private autoPolishMinWords: number = 50;
   private autoPolishFullInterval: number = 5;
+  
+  // Theme manager
+  private themeManager: ThemeManager;
+  private selectedThemeId: string = '';
 
-  constructor() {
+  constructor(themeManager: ThemeManager) {
+    this.themeManager = themeManager;
     this.settingsModal = document.getElementById('settings-modal')!;
     
     this.initializeEventListeners();
@@ -173,6 +181,13 @@ export class SettingsManager {
       const target = e.target as HTMLInputElement;
       this.autoPolishFullInterval = parseInt(target.value, 10);
     });
+    
+    // Theme category filter
+    const themeCategoryFilter = document.getElementById('theme-category-filter') as HTMLSelectElement;
+    themeCategoryFilter?.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      this.filterThemes(target.value);
+    });
   }
 
   /**
@@ -289,6 +304,8 @@ export class SettingsManager {
     this.settingsModal.classList.remove('hidden');
     // Reload settings to ensure UI is up to date
     this.updateUIFromSettings();
+    // Populate themes
+    this.populateThemes();
   }
 
   /**
@@ -1049,6 +1066,106 @@ export class SettingsManager {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) handleClose();
     });
+  }
+  
+  /**
+   * Populate themes in the settings modal
+   */
+  private populateThemes(): void {
+    const themeGrid = document.getElementById('theme-grid');
+    if (!themeGrid) return;
+    
+    const currentTheme = this.themeManager.getCurrentTheme();
+    this.selectedThemeId = currentTheme.id;
+    
+    // Get all themes
+    const themes = this.themeManager.getThemes();
+    
+    // Build theme cards HTML
+    themeGrid.innerHTML = themes.map(theme => {
+      const metadata = this.themeManager.getThemeMetadata(theme);
+      const isSelected = theme.id === this.selectedThemeId;
+      
+      return `
+        <div class="theme-card ${isSelected ? 'selected' : ''}" data-theme-id="${theme.id}" data-category="${theme.category}">
+          <div class="theme-preview">
+            ${metadata.previewColors.map(color => `
+              <div class="theme-preview-color" style="background-color: ${color};"></div>
+            `).join('')}
+          </div>
+          <div class="theme-info">
+            <h4 class="theme-name">${theme.name}</h4>
+            <span class="theme-category ${theme.category}">${theme.category}</span>
+            <p class="theme-description">${theme.description}</p>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Add click handlers to theme cards
+    themeGrid.querySelectorAll('.theme-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const themeId = card.getAttribute('data-theme-id');
+        if (themeId) {
+          this.selectTheme(themeId);
+        }
+      });
+    });
+  }
+  
+  /**
+   * Filter themes by category
+   */
+  private filterThemes(category: string): void {
+    const themeGrid = document.getElementById('theme-grid');
+    if (!themeGrid) return;
+    
+    const themeCards = themeGrid.querySelectorAll('.theme-card');
+    
+    themeCards.forEach(card => {
+      const cardCategory = card.getAttribute('data-category');
+      
+      if (category === 'all' || cardCategory === category) {
+        (card as HTMLElement).style.display = 'block';
+      } else {
+        (card as HTMLElement).style.display = 'none';
+      }
+    });
+  }
+  
+  /**
+   * Select a theme
+   */
+  private async selectTheme(themeId: string): Promise<void> {
+    try {
+      // Load the theme
+      const success = await this.themeManager.loadTheme(themeId);
+      
+      if (!success) {
+        this.showNotification('Failed to load theme', 'error');
+        return;
+      }
+      
+      // Update selected theme ID
+      this.selectedThemeId = themeId;
+      
+      // Update UI to show selected state
+      const themeGrid = document.getElementById('theme-grid');
+      if (themeGrid) {
+        themeGrid.querySelectorAll('.theme-card').forEach(card => {
+          if (card.getAttribute('data-theme-id') === themeId) {
+            card.classList.add('selected');
+          } else {
+            card.classList.remove('selected');
+          }
+        });
+      }
+      
+      this.showNotification('Theme applied successfully!', 'success');
+    } catch (error) {
+      console.error('Failed to select theme:', error);
+      this.showNotification('Failed to apply theme', 'error');
+    }
   }
 }
 
