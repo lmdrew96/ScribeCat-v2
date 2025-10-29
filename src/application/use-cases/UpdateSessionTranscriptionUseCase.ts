@@ -37,14 +37,13 @@ export class UpdateSessionTranscriptionUseCase {
         return true;
       }
 
-      // Create a single segment for the entire transcription
-      // Since we don't have timing info, use the session duration
-      const segments = [{
-        text: transcriptionText.trim(),
-        startTime: 0,
-        endTime: session.duration,
-        confidence: undefined
-      }];
+      // Split transcription into segments
+      // Since we don't have word-level timestamps, split by sentences
+      // and distribute evenly across the recording duration
+      const segments = this.createSegmentsFromText(
+        transcriptionText.trim(),
+        session.duration
+      );
 
       // Create transcription entity
       const transcription = new Transcription(
@@ -67,5 +66,59 @@ export class UpdateSessionTranscriptionUseCase {
       console.error('Failed to update session transcription:', error);
       return false;
     }
+  }
+
+  /**
+   * Create segments from transcription text
+   * Splits text into sentences and distributes timing evenly
+   */
+  private createSegmentsFromText(
+    text: string,
+    totalDuration: number
+  ): Array<{ text: string; startTime: number; endTime: number; confidence?: number }> {
+    // Split by sentence endings (., !, ?)
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    
+    // If only one sentence or very short, create chunks by word count
+    if (sentences.length === 1 || text.length < 100) {
+      return this.createChunkSegments(text, totalDuration);
+    }
+
+    // Calculate time per segment
+    const timePerSegment = totalDuration / sentences.length;
+    
+    // Create segments with evenly distributed timing
+    return sentences.map((sentence, index) => ({
+      text: sentence.trim(),
+      startTime: index * timePerSegment,
+      endTime: (index + 1) * timePerSegment,
+      confidence: undefined
+    }));
+  }
+
+  /**
+   * Create segments by splitting text into word chunks
+   * Used when sentence splitting doesn't work well
+   */
+  private createChunkSegments(
+    text: string,
+    totalDuration: number
+  ): Array<{ text: string; startTime: number; endTime: number; confidence?: number }> {
+    const words = text.split(/\s+/);
+    const wordsPerChunk = Math.max(10, Math.floor(words.length / 10)); // ~10 chunks
+    const chunks: string[] = [];
+    
+    for (let i = 0; i < words.length; i += wordsPerChunk) {
+      chunks.push(words.slice(i, i + wordsPerChunk).join(' '));
+    }
+    
+    const timePerChunk = totalDuration / chunks.length;
+    
+    return chunks.map((chunk, index) => ({
+      text: chunk.trim(),
+      startTime: index * timePerChunk,
+      endTime: (index + 1) * timePerChunk,
+      confidence: undefined
+    }));
   }
 }

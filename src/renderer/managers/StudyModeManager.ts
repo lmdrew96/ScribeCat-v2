@@ -537,8 +537,10 @@ export class StudyModeManager {
   private updateActiveSegment(currentTime: number): void {
     const segments = document.querySelectorAll('.transcription-segment');
     let activeSegment: Element | null = null;
+    let previousActiveSegment: Element | null = null;
     
     segments.forEach(segment => {
+      const wasActive = segment.classList.contains('active');
       const startTime = parseFloat((segment as HTMLElement).dataset.startTime || '0');
       const endTime = parseFloat((segment as HTMLElement).dataset.endTime || '0');
       
@@ -547,12 +549,15 @@ export class StudyModeManager {
         segment.classList.add('active');
         activeSegment = segment;
       } else {
+        if (wasActive) {
+          previousActiveSegment = segment;
+        }
         segment.classList.remove('active');
       }
     });
     
-    // Auto-scroll to active segment
-    if (activeSegment) {
+    // Only auto-scroll if the active segment changed (not on every timeupdate)
+    if (activeSegment && activeSegment !== previousActiveSegment) {
       this.scrollToActiveSegment(activeSegment as HTMLElement);
     }
   }
@@ -567,9 +572,10 @@ export class StudyModeManager {
     const panelRect = panel.getBoundingClientRect();
     const segmentRect = segment.getBoundingClientRect();
     
-    // Check if segment is out of view
-    const isAboveView = segmentRect.top < panelRect.top;
-    const isBelowView = segmentRect.bottom > panelRect.bottom;
+    // Add buffer zone - only scroll if segment is significantly out of view
+    const buffer = 100; // pixels
+    const isAboveView = segmentRect.top < (panelRect.top + buffer);
+    const isBelowView = segmentRect.bottom > (panelRect.bottom - buffer);
     
     if (isAboveView || isBelowView) {
       // Scroll segment into view with smooth behavior
