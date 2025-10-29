@@ -14,6 +14,7 @@ import { EditorManager } from './managers/EditorManager.js';
 import { TranscriptionManager } from './managers/TranscriptionManager.js';
 import { RecordingManager } from './managers/RecordingManager.js';
 import { DeviceManager } from './managers/DeviceManager.js';
+import { CourseManager } from './managers/CourseManager.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -25,6 +26,7 @@ let editorManager: EditorManager;
 let transcriptionManager: TranscriptionManager;
 let recordingManager: RecordingManager;
 let deviceManager: DeviceManager;
+let courseManager: CourseManager;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -63,6 +65,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Load microphone devices
   await deviceManager.loadDevices();
+  
+  // Initialize course manager
+  courseManager = new CourseManager();
+  
+  // Expose courseManager globally for settings to access
+  (window as any).courseManager = courseManager;
   
   // Set up event listeners
   setupEventListeners();

@@ -25,6 +25,7 @@ import { AIHandlers } from './ipc/handlers/AIHandlers.js';
 import { DriveHandlers } from './ipc/handlers/DriveHandlers.js';
 import { SettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
+import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -260,6 +261,8 @@ class ScribeCatApp {
     registry.add(new SettingsHandlers(this.store));
     
     registry.add(new DialogHandlers(() => this.mainWindow));
+    
+    registry.add(new CanvasHandlers());
     
     // Register all handlers with ipcMain
     registry.registerAll(ipcMain);

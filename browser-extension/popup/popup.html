@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScribeCat Canvas Course Collector</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-text">SC</div>
+                <h1>ScribeCat</h1>
+            </div>
+            <div class="subtitle">Canvas Course Collector</div>
+        </header>
+
+        <main class="main">
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value" id="status">Checking...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Courses Found:</span>
+                    <span class="status-value" id="course-count">0</span>
+                </div>
+                <div class="status-item" id="last-collection-item" style="display: none;">
+                    <span class="status-label">Last Collected:</span>
+                    <span class="status-value" id="last-collection">Never</span>
+                </div>
+            </div>
+
+            <div class="actions-section">
+                <button id="collect-btn" class="btn btn-primary">
+                    <span class="btn-icon">🔍</span>
+                    Collect Courses
+                </button>
+                
+                <button id="refresh-btn" class="btn btn-secondary">
+                    <span class="btn-icon">🔄</span>
+                    Refresh
+                </button>
+                
+                <button id="clear-data-btn" class="btn btn-secondary" style="display: none;">
+                    <span class="btn-icon">🗑️</span>
+                    Clear Data
+                </button>
+            </div>
+
+            <div class="course-list-section">
+                <h3>Collected Courses</h3>
+                <div class="course-list" id="course-list">
+                    <div class="no-courses" id="no-courses">
+                        No courses collected yet. Click "Collect Courses" to scan the Canvas dashboard.
+                    </div>
+                </div>
+            </div>
+
+            <div class="export-section">
+                <h3>Export Options</h3>
+                <div class="export-controls">
+                    <select id="export-format" class="select">
+                        <option value="json">JSON Format</option>
+                        <option value="csv">CSV Format</option>
+                    </select>
+                    
+                    <button id="export-btn" class="btn btn-export" disabled>
+                        <span class="btn-icon">📄</span>
+                        Export
+                    </button>
+                </div>
+                
+                <button id="copy-btn" class="btn btn-copy" disabled>
+                    <span class="btn-icon">📋</span>
+                    Copy for ScribeCat
+                </button>
+            </div>
+
+            <div class="instructions-section">
+                <details class="instructions">
+                    <summary>How to use</summary>
+                    <ol>
+                        <li>Navigate to your Canvas dashboard</li>
+                        <li>Click "Collect Courses" to scan for courses</li>
+                        <li>Export or copy the data</li>
+                        <li>Import into ScribeCat desktop app</li>
+                    </ol>
+                </details>
+                
+                <details class="instructions" id="debug-section" style="display: none;">
+                    <summary>Debug Tools</summary>
+                    <button id="test-selectors-btn" class="btn btn-secondary" style="width: 100%; margin-top: 8px;">
+                        <span class="btn-icon">🔧</span>
+                        Test Selectors
+                    </button>
+                </details>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="version">v1.1.0</div>
+            <div class="privacy">
+                <a href="#" id="privacy-link">Privacy Policy</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal for displaying copy data -->
+    <div class="modal" id="copy-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Data for ScribeCat</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Copy this data and paste it into ScribeCat's course import feature:</p>
+                <textarea class="copy-data" id="copy-data" readonly></textarea>
+                <button class="btn btn-primary" id="copy-to-clipboard">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

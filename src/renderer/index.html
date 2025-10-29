@@ -21,6 +21,10 @@
                     <span class="record-icon"></span>
                 </button>
                 
+                <select id="course-select" class="device-select" title="Select Course (Optional)">
+                    <option value="">No Course Selected</option>
+                </select>
+                
                 <select id="microphone-select" class="device-select" title="Select Microphone">
                     <option value="">Loading devices...</option>
                 </select>
@@ -280,6 +284,84 @@
                         Connect your Google Drive to automatically upload exported sessions. 
                         You'll be asked to sign in with your Google account.
                     </p>
+                </section>
+                
+                <!-- Canvas LMS Settings Section -->
+                <section class="settings-section" id="canvas-settings">
+                    <h3>Canvas LMS Integration</h3>
+                    
+                    <!-- API Connection Method -->
+                    <div class="canvas-method">
+                        <h4>Method 1: Canvas API (Recommended)</h4>
+                        <div class="form-group">
+                            <label for="canvas-url">Canvas URL:</label>
+                            <input 
+                                type="text" 
+                                id="canvas-url" 
+                                class="text-input" 
+                                placeholder="https://canvas.instructure.com"
+                            >
+                            <small class="help-text">
+                                Enter your institution's Canvas URL (e.g., https://canvas.university.edu)
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label for="canvas-token">API Token:</label>
+                            <input 
+                                type="password" 
+                                id="canvas-token" 
+                                class="text-input" 
+                                placeholder="Enter your Canvas API token"
+                            >
+                            <small class="help-text">
+                                Get your API token from Canvas: Account → Settings → New Access Token
+                            </small>
+                        </div>
+                        <div class="status-row">
+                            <label>Status:</label>
+                            <span id="canvas-status" class="status-text">Not configured</span>
+                        </div>
+                        <div class="button-row">
+                            <button id="test-canvas-btn" class="button button-secondary" type="button">
+                                Test Connection
+                            </button>
+                            <button id="disconnect-canvas-btn" class="button button-secondary" type="button" style="display: none;">
+                                Disconnect
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Browser Extension Import Method -->
+                    <div class="canvas-method" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #444;">
+                        <h4>Method 2: Browser Extension Import</h4>
+                        <p class="help-text">
+                            If your university blocks Canvas API access, use our browser extension to import courses.
+                            <a href="#" id="extension-help-link" style="color: #3498db;">Learn more</a>
+                        </p>
+                        <div class="form-group">
+                            <label for="canvas-import-json">Paste JSON from Extension:</label>
+                            <textarea 
+                                id="canvas-import-json" 
+                                class="text-input" 
+                                rows="4"
+                                placeholder='{"source": "ScribeCat Canvas Browser Extension", "format": "scribecat_course_import_v1", "courses": [...]}'
+                            ></textarea>
+                            <small class="help-text">
+                                Install the extension, visit your Canvas dashboard, export courses, then paste the JSON here.
+                            </small>
+                        </div>
+                        <div class="button-row">
+                            <button id="import-canvas-courses-btn" class="button button-primary" type="button">
+                                Import Courses
+                            </button>
+                        </div>
+                        
+                        <!-- Imported Courses List -->
+                        <div id="imported-courses-container" style="margin-top: 20px; display: none;">
+                            <h5>Imported Courses (<span id="imported-courses-count">0</span>)</h5>
+                            <div id="imported-courses-list" class="courses-list"></div>
+                        </div>
+                    </div>
                 </section>
                 
                 <!-- Audio Settings Section -->

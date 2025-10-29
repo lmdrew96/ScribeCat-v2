@@ -99,11 +99,22 @@ const electronAPI = {
       ipcRenderer.invoke('drive:listFiles', folderId),
     createFolder: (name: string, parentId?: string) => 
       ipcRenderer.invoke('drive:createFolder', name, parentId)
+  },
+  canvas: {
+    configure: (config: { baseUrl: string; apiToken: string }) => 
+      ipcRenderer.invoke('canvas:configure', config),
+    testConnection: () => ipcRenderer.invoke('canvas:test-connection'),
+    getCourses: () => ipcRenderer.invoke('canvas:get-courses'),
+    isConfigured: () => ipcRenderer.invoke('canvas:is-configured'),
+    getConfig: () => ipcRenderer.invoke('canvas:get-config'),
+    disconnect: () => ipcRenderer.invoke('canvas:disconnect'),
+    importCourses: (jsonData: string) => ipcRenderer.invoke('canvas:import-courses', jsonData),
+    getImportedCourses: () => ipcRenderer.invoke('canvas:get-imported-courses'),
+    deleteImportedCourse: (courseId: string) => ipcRenderer.invoke('canvas:delete-imported-course', courseId)
   }
   // TODO: Implement these features in future phases
   // files: { ... }
   // themes: { ... }
-  // canvas: { ... }
 };
 
 contextBridge.exposeInMainWorld('scribeCat', electronAPI);

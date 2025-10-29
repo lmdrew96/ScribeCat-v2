@@ -70,10 +70,20 @@ declare global {
         listFiles: (folderId?: string) => Promise<{ success: boolean; data?: any[]; error?: string }>;
         createFolder: (name: string, parentId?: string) => Promise<{ success: boolean; data?: string; error?: string }>;
       };
+    canvas: {
+      configure: (config: { baseUrl: string; apiToken: string }) => Promise<any>;
+      testConnection: () => Promise<any>;
+      getCourses: () => Promise<any>;
+      isConfigured: () => Promise<any>;
+      getConfig: () => Promise<any>;
+      disconnect: () => Promise<any>;
+      importCourses: (jsonData: string) => Promise<any>;
+      getImportedCourses: () => Promise<any>;
+      deleteImportedCourse: (courseId: string) => Promise<any>;
+    };
       // TODO: Add type declarations when features are implemented
       // files?: { ... };
       // themes?: { ... };
-      // canvas?: { ... };
     };
   }
 }
