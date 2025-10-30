@@ -1627,56 +1627,22 @@ export class StudyModeManager {
    */
   private updateActiveSegment(currentTime: number): void {
     const segments = document.querySelectorAll('.transcription-segment');
-    let activeSegment: Element | null = null;
-    let previousActiveSegment: Element | null = null;
     
     segments.forEach(segment => {
-      const wasActive = segment.classList.contains('active');
       const startTime = parseFloat((segment as HTMLElement).dataset.startTime || '0');
       const endTime = parseFloat((segment as HTMLElement).dataset.endTime || '0');
       
       // Check if current time is within this segment's range
       if (currentTime >= startTime && currentTime < endTime) {
         segment.classList.add('active');
-        activeSegment = segment;
       } else {
-        if (wasActive) {
-          previousActiveSegment = segment;
-        }
         segment.classList.remove('active');
       }
     });
     
-    // Only auto-scroll if the active segment changed (not on every timeupdate)
-    if (activeSegment && activeSegment !== previousActiveSegment) {
-      this.scrollToActiveSegment(activeSegment as HTMLElement);
-    }
+    // No auto-scroll - let users manually scroll while listening
   }
   
-  /**
-   * Scroll to keep active segment visible
-   */
-  private scrollToActiveSegment(segment: HTMLElement): void {
-    const panel = document.querySelector('.session-content-panel.active');
-    if (!panel) return;
-    
-    const panelRect = panel.getBoundingClientRect();
-    const segmentRect = segment.getBoundingClientRect();
-    
-    // Add buffer zone - only scroll if segment is significantly out of view
-    const buffer = 100; // pixels
-    const isAboveView = segmentRect.top < (panelRect.top + buffer);
-    const isBelowView = segmentRect.bottom > (panelRect.bottom - buffer);
-    
-    if (isAboveView || isBelowView) {
-      // Scroll segment into view with smooth behavior
-      segment.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest'
-      });
-    }
-  }
 
   /**
    * Render transcription segments with clickable timestamps
