@@ -73,8 +73,8 @@ body {
 
 /* Record Button */
 .record-btn {
-  width: 48px;
-  height: 48px;
+  width: clamp(32px, 5vw, 40px);
+  height: clamp(32px, 5vw, 40px);
   border-radius: 50%;
   border: none;
   background-color: var(--record-color);
@@ -84,6 +84,7 @@ body {
   justify-content: center;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+  flex-shrink: 0;
 }
 
 .record-btn:hover {
@@ -101,30 +102,35 @@ body {
 }
 
 .record-icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   background-color: white;
   border-radius: 50%;
   transition: all 0.3s ease;
 }
 
 .record-btn.recording .record-icon {
-  border-radius: 4px;
-  width: 16px;
-  height: 16px;
+  border-radius: 3px;
+  width: 12px;
+  height: 12px;
 }
 
 /* Device Select */
 .device-select {
-  min-width: 200px;
-  padding: 8px 12px;
+  flex: 1 1 auto;
+  min-width: 80px;
+  max-width: 250px;
+  padding: 6px 8px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: 4px;
-  font-size: 14px;
+  font-size: clamp(11px, 1.2vw, 13px);
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .device-select:hover {
@@ -139,7 +145,9 @@ body {
 
 /* VU Meter */
 .vu-meter-container {
-  width: 150px;
+  flex: 0 1 auto;
+  width: clamp(60px, 15%, 120px);
+  min-width: 60px;
 }
 
 .vu-meter-bg {
@@ -192,22 +200,35 @@ body {
 
 /* Left Panel: Notes Editor */
 .left-panel {
-  flex: 0 0 60%;
+  flex: 2;
+  min-width: 400px;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
   border-right: 1px solid var(--border);
 }
 
-/* Panel Course Selector */
-.panel-course-selector {
-  padding: 12px 20px;
+.panel-header {
+  padding: 15px 20px;
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .course-select-dropdown {
-  width: 100%;
+  min-width: 200px;
+  max-width: 300px;
   padding: 8px 12px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
@@ -226,18 +247,6 @@ body {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
-}
-
-.panel-header {
-  padding: 15px 20px;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-}
-
-.panel-header h2 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 /* Formatting Toolbar */
@@ -583,7 +592,8 @@ body {
 
 /* Right Panel: Transcription */
 .right-panel {
-  flex: 0 0 40%;
+  flex: 1;
+  min-width: 350px;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
@@ -591,12 +601,13 @@ body {
 
 /* Panel Recording Controls */
 .panel-recording-controls {
-  padding: 12px 20px;
+  padding: 10px 20px;
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 10px;
+  flex-wrap: nowrap;
 }
 
 .transcription-container {
@@ -1395,22 +1406,25 @@ body {
 /* Panel Actions (Polish, Summarize buttons) */
 .panel-actions {
   display: flex;
-  gap: 8px;
+  gap: clamp(4px, 1vw, 8px);
   margin-left: auto;
+  flex-wrap: nowrap;
 }
 
 .action-btn {
-  padding: 6px 12px;
+  padding: clamp(4px, 0.8vw, 6px) clamp(8px, 1.5vw, 12px);
   border-radius: 4px;
   border: 1px solid var(--border);
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: clamp(11px, 1.2vw, 13px);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: clamp(2px, 0.5vw, 4px);
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .action-btn:hover:not(:disabled) {
@@ -2654,6 +2668,31 @@ body {
   background: var(--border);
 }
 
+/* Session Detail Container */
+.session-detail {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.session-detail::-webkit-scrollbar {
+  width: 10px;
+}
+
+.session-detail::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.session-detail::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 5px;
+}
+
+.session-detail::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+
 /* Session Card */
 .session-card {
   background-color: var(--bg-secondary);
@@ -2924,8 +2963,7 @@ body {
 
 .session-detail-container {
   padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -2934,7 +2972,7 @@ body {
 /* Two Column Layout for Session Detail */
 .session-detail-content {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: 1fr 1fr;
   gap: 24px;
   align-items: start;
 }
@@ -3716,7 +3754,7 @@ body {
 /* Responsive Session Detail */
 @media (max-width: 1200px) {
   .session-detail-content {
-    grid-template-columns: 1fr 350px;
+    grid-template-columns: 1fr 1fr;
   }
   
   .study-tool-buttons {
