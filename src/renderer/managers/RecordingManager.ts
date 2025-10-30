@@ -161,7 +161,7 @@ export class RecordingManager {
       }
 
       // Save notes to session if any
-      const notes = this.editorManager.getNotesText();
+      const notes = this.editorManager.getNotesHTML();
       if (notes && notes.trim().length > 0) {
         console.log('Saving notes to session...');
         const notesResult = await window.scribeCat.session.updateNotes(
