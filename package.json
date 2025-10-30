@@ -33,6 +33,11 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
+    "@tiptap/core": "^3.9.1",
+    "@tiptap/extension-highlight": "^3.9.1",
+    "@tiptap/extension-link": "^3.9.1",
+    "@tiptap/extension-placeholder": "^3.9.1",
+    "@tiptap/starter-kit": "^3.9.1",
     "@types/pdfkit": "^0.17.3",
     "docx": "^9.5.1",
     "dompurify": "^3.3.0",

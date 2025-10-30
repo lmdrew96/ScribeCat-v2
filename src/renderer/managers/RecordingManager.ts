@@ -7,22 +7,25 @@ import { AudioManager } from '../audio-manager.js';
 import { AssemblyAITranscriptionService } from '../assemblyai-transcription-service.js';
 import { TranscriptionManager } from './TranscriptionManager.js';
 import { ViewManager } from './ViewManager.js';
-import { EditorManager } from './EditorManager.js';
+import { TiptapEditorManager } from './TiptapEditorManager.js';
 import { ExportManager } from '../export-manager.js';
 
 export class RecordingManager {
   private audioManager: AudioManager;
   private transcriptionManager: TranscriptionManager;
   private viewManager: ViewManager;
-  private editorManager: EditorManager;
+  private editorManager: TiptapEditorManager;
   private exportManager: ExportManager;
   private aiManager: any; // AIManager type
   
   private isRecording: boolean = false;
+  private isPaused: boolean = false;
   private transcriptionSessionId: string | null = null;
   private currentTranscriptionMode: 'simulation' | 'assemblyai' = 'simulation';
   private assemblyAIService: AssemblyAITranscriptionService | null = null;
   private startTime: number = 0;
+  private pauseStartTime: number = 0;
+  private totalPausedTime: number = 0;
   private elapsedTimer: number | null = null;
   private vuMeterInterval: number | null = null;
 
@@ -30,7 +33,7 @@ export class RecordingManager {
     audioManager: AudioManager,
     transcriptionManager: TranscriptionManager,
     viewManager: ViewManager,
-    editorManager: EditorManager,
+    editorManager: TiptapEditorManager,
     exportManager: ExportManager,
     aiManager: any
   ) {
@@ -194,10 +197,102 @@ export class RecordingManager {
   }
 
   /**
+   * Pause recording
+   */
+  async pause(): Promise<void> {
+    if (!this.isRecording || this.isPaused) {
+      return;
+    }
+
+    console.log('Pausing recording...');
+
+    // Pause audio recording
+    this.audioManager.pauseRecording();
+
+    // Pause transcription
+    if (this.currentTranscriptionMode === 'simulation' && this.transcriptionSessionId) {
+      // For simulation, we can just stop sending data (it's already paused with audio)
+    } else if (this.currentTranscriptionMode === 'assemblyai') {
+      // For AssemblyAI, stop audio streaming but keep WebSocket open
+      const intervalId = (window as any).assemblyAIStreamingInterval;
+      if (intervalId) {
+        clearInterval(intervalId);
+        delete (window as any).assemblyAIStreamingInterval;
+      }
+      this.audioManager.removeAudioDataCallback();
+    }
+
+    // Pause timers
+    this.stopElapsedTimer();
+    this.stopVUMeterUpdates();
+
+    // Pause auto-polish
+    if (this.aiManager) {
+      this.aiManager.stopAutoPolish();
+    }
+
+    // Track pause time
+    this.pauseStartTime = Date.now();
+    this.isPaused = true;
+
+    // Update UI
+    this.viewManager.updatePausedState(true);
+
+    console.log('Recording paused');
+  }
+
+  /**
+   * Resume recording
+   */
+  async resume(): Promise<void> {
+    if (!this.isRecording || !this.isPaused) {
+      return;
+    }
+
+    console.log('Resuming recording...');
+
+    // Calculate total paused time
+    this.totalPausedTime += Date.now() - this.pauseStartTime;
+
+    // Resume audio recording
+    this.audioManager.resumeRecording();
+
+    // Resume transcription
+    if (this.currentTranscriptionMode === 'assemblyai') {
+      // Restart audio streaming for AssemblyAI
+      this.startAssemblyAIAudioStreaming();
+    }
+
+    // Resume timers
+    this.startElapsedTimer();
+    this.startVUMeterUpdates();
+
+    // Resume auto-polish
+    if (this.aiManager) {
+      await this.aiManager.startAutoPolish();
+    }
+
+    // Update state
+    this.isPaused = false;
+
+    // Update UI
+    this.viewManager.updatePausedState(false);
+
+    console.log('Recording resumed');
+  }
+
+  /**
    * Check if currently recording
    */
   getIsRecording(): boolean {
     return this.isRecording;
+  }
+
+  /**
+   * Check if currently paused
+   */
+  getIsPaused(): boolean {
+    return this.isPaused;
   }
 
   /**
@@ -376,7 +471,10 @@ export class RecordingManager {
    * Update elapsed time display
    */
   private updateElapsedTime(): void {
-    const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+    // Calculate elapsed time excluding paused time
+    const currentPausedTime = this.isPaused ? (Date.now() - this.pauseStartTime) : 0;
+    const totalElapsed = Date.now() - this.startTime - this.totalPausedTime - currentPausedTime;
+    const elapsed = Math.floor(totalElapsed / 1000);
     this.viewManager.updateElapsedTime(elapsed);
   }
 

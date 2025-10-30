@@ -23,21 +23,10 @@ export class ExportManager {
    * Initialize export UI elements
    */
   private initializeUI(): void {
-    // Create export button in the right panel header
-    const rightPanelHeader = document.querySelector('.right-panel .panel-header');
-    if (rightPanelHeader) {
-      this.exportBtn = document.createElement('button');
-      this.exportBtn.id = 'export-btn';
-      this.exportBtn.className = 'action-btn';
-      this.exportBtn.title = 'Export session';
-      this.exportBtn.textContent = '📤 Export';
-      this.exportBtn.disabled = true;
+    // Get reference to existing export button in the HTML
+    this.exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
+    if (this.exportBtn) {
       this.exportBtn.addEventListener('click', () => this.showExportModal());
-      
-      const actionsDiv = rightPanelHeader.querySelector('.panel-actions');
-      if (actionsDiv) {
-        actionsDiv.appendChild(this.exportBtn);
-      }
     }
 
     // Create export modal

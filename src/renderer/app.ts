@@ -10,7 +10,7 @@ import { SettingsManager } from './settings.js';
 import { AIManager } from './ai/AIManager.js';
 import { ExportManager } from './export-manager.js';
 import { ViewManager } from './managers/ViewManager.js';
-import { EditorManager } from './managers/EditorManager.js';
+import { TiptapEditorManager } from './managers/TiptapEditorManager.js';
 import { TranscriptionManager } from './managers/TranscriptionManager.js';
 import { RecordingManager } from './managers/RecordingManager.js';
 import { DeviceManager } from './managers/DeviceManager.js';
@@ -25,7 +25,7 @@ let themeManager: ThemeManager;
 let aiManager: AIManager;
 let exportManager: ExportManager;
 let viewManager: ViewManager;
-let editorManager: EditorManager;
+let editorManager: TiptapEditorManager;
 let transcriptionManager: TranscriptionManager;
 let recordingManager: RecordingManager;
 let deviceManager: DeviceManager;
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Initialize UI managers
   viewManager = new ViewManager();
-  editorManager = new EditorManager();
+  editorManager = new TiptapEditorManager();
   transcriptionManager = new TranscriptionManager();
   deviceManager = new DeviceManager();
   
@@ -98,6 +98,10 @@ function setupEventListeners(): void {
   // Record button
   const recordBtn = document.getElementById('record-btn') as HTMLButtonElement;
   recordBtn.addEventListener('click', handleRecordToggle);
+  
+  // Pause button
+  const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
+  pauseBtn.addEventListener('click', handlePauseToggle);
 }
 
 /**
@@ -108,6 +112,17 @@ async function handleRecordToggle(): Promise<void> {
     await startRecording();
   } else {
     await stopRecording();
+  }
+}
+
+/**
+ * Handle pause button toggle
+ */
+async function handlePauseToggle(): Promise<void> {
+  if (!recordingManager.getIsPaused()) {
+    await pauseRecording();
+  } else {
+    await resumeRecording();
   }
 }
 
@@ -140,6 +155,30 @@ async function stopRecording(): Promise<void> {
   } catch (error) {
     console.error('Failed to stop recording:', error);
     alert(`Failed to stop recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Pause recording
+ */
+async function pauseRecording(): Promise<void> {
+  try {
+    await recordingManager.pause();
+  } catch (error) {
+    console.error('Failed to pause recording:', error);
+    alert(`Failed to pause recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Resume recording
+ */
+async function resumeRecording(): Promise<void> {
+  try {
+    await recordingManager.resume();
+  } catch (error) {
+    console.error('Failed to resume recording:', error);
+    alert(`Failed to resume recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

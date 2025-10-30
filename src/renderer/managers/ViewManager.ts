@@ -5,6 +5,7 @@
 
 export class ViewManager {
   private recordBtn: HTMLButtonElement;
+  private pauseBtn: HTMLButtonElement;
   private microphoneSelect: HTMLSelectElement;
   private vuMeter: HTMLElement;
   private recordingStatus: HTMLElement;
@@ -14,6 +15,7 @@ export class ViewManager {
 
   constructor() {
     this.recordBtn = document.getElementById('record-btn') as HTMLButtonElement;
+    this.pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
     this.microphoneSelect = document.getElementById('microphone-select') as HTMLSelectElement;
     this.vuMeter = document.getElementById('vu-meter') as HTMLElement;
     this.recordingStatus = document.getElementById('recording-status') as HTMLElement;
@@ -30,6 +32,9 @@ export class ViewManager {
       // Update record button
       this.recordBtn.classList.add('recording');
       this.recordBtn.title = 'Stop Recording';
+      
+      // Enable pause button
+      this.pauseBtn.disabled = false;
       
       // Update status
       this.recordingStatus.textContent = 'Recording';
@@ -50,6 +55,10 @@ export class ViewManager {
       this.recordBtn.classList.remove('recording');
       this.recordBtn.title = 'Start Recording';
       
+      // Disable pause button
+      this.pauseBtn.disabled = true;
+      this.pauseBtn.classList.remove('paused');
+      
       // Update status
       this.recordingStatus.textContent = 'Idle';
       this.recordingStatus.classList.remove('recording');
@@ -64,6 +73,41 @@ export class ViewManager {
       
       // Reset VU meter
       this.vuMeter.style.width = '0%';
+    }
+  }
+
+  /**
+   * Update UI state based on paused status
+   */
+  updatePausedState(isPaused: boolean): void {
+    if (isPaused) {
+      // Update pause button
+      this.pauseBtn.classList.add('paused');
+      this.pauseBtn.title = 'Resume Recording';
+      const pauseIcon = this.pauseBtn.querySelector('.pause-icon');
+      if (pauseIcon) {
+        pauseIcon.textContent = '▶';
+      }
+      
+      // Update status
+      this.recordingStatus.textContent = 'Paused';
+      
+      // Dim VU meter
+      this.vuMeter.style.opacity = '0.3';
+    } else {
+      // Update pause button
+      this.pauseBtn.classList.remove('paused');
+      this.pauseBtn.title = 'Pause Recording';
+      const pauseIcon = this.pauseBtn.querySelector('.pause-icon');
+      if (pauseIcon) {
+        pauseIcon.textContent = '⏸';
+      }
+      
+      // Update status
+      this.recordingStatus.textContent = 'Recording';
+      
+      // Restore VU meter
+      this.vuMeter.style.opacity = '1';
     }
   }
 

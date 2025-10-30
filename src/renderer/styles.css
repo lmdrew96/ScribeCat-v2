@@ -1,5 +1,6 @@
-/* ===== Color Palette ===== */
+/* ===== Color Palette & Design System ===== */
 :root {
+  /* Colors */
   --bg-primary: #1e1e1e;
   --bg-secondary: #2d2d2d;
   --bg-tertiary: #3d3d3d;
@@ -13,6 +14,34 @@
   --success: #27ae60;
   --border: #404040;
   --shadow: rgba(0, 0, 0, 0.3);
+  
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 50%;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.25);
 }
 
 /* ===== Reset & Base Styles ===== */
@@ -113,6 +142,54 @@ body {
   border-radius: 3px;
   width: 12px;
   height: 12px;
+}
+
+/* Pause Button */
+.pause-btn {
+  width: clamp(32px, 5vw, 40px);
+  height: clamp(32px, 5vw, 40px);
+  border-radius: 50%;
+  border: none;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.pause-btn:hover:not(:disabled) {
+  background-color: var(--accent);
+  transform: scale(1.05);
+}
+
+.pause-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.pause-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pause-btn.paused {
+  background-color: #f39c12;
+  box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+}
+
+.pause-btn.paused:hover {
+  background-color: #e67e22;
+}
+
+.pause-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
 }
 
 /* Device Select */
@@ -536,20 +613,148 @@ body {
   pointer-events: none;
 }
 
-/* Notes Editor */
-.notes-editor {
+/* Tiptap Editor Container */
+.tiptap-editor {
   flex: 1;
-  padding: 20px;
   overflow-y: auto;
+  outline: none;
+}
+
+/* Tiptap Content Styles */
+.tiptap-content {
+  padding: 20px;
   font-size: 16px;
   line-height: 1.6;
   color: var(--text-primary);
   outline: none;
+  min-height: 100%;
 }
 
-.notes-editor:empty:before {
-  content: attr(placeholder);
+/* Tiptap Placeholder */
+.tiptap-content .ProseMirror-placeholder {
   color: var(--text-tertiary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Tiptap Typography */
+.tiptap-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.tiptap-content h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1.25rem 0 0.75rem 0;
+  color: var(--text-primary);
+}
+
+.tiptap-content p {
+  margin: 0.75rem 0;
+}
+
+.tiptap-content p:first-child {
+  margin-top: 0;
+}
+
+.tiptap-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Tiptap Text Formatting */
+.tiptap-content strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tiptap-content em {
+  font-style: italic;
+}
+
+.tiptap-content u {
+  text-decoration: underline;
+}
+
+/* Tiptap Highlight */
+.tiptap-content mark {
+  background-color: rgba(255, 255, 0, 0.4);
+  color: var(--text-primary);
+  padding: 0.125em 0.25em;
+  border-radius: 2px;
+}
+
+/* Tiptap Links */
+.tiptap-content a.editor-link {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.tiptap-content a.editor-link:hover {
+  color: var(--accent-hover);
+}
+
+/* Tiptap Lists */
+.tiptap-content ul,
+.tiptap-content ol {
+  padding-left: 1.5rem;
+  margin: 0.75rem 0;
+}
+
+.tiptap-content ul {
+  list-style-type: disc;
+}
+
+.tiptap-content ol {
+  list-style-type: decimal;
+}
+
+.tiptap-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+
+.tiptap-content li p {
+  margin: 0.25rem 0;
+}
+
+/* Nested lists */
+.tiptap-content ul ul,
+.tiptap-content ol ul {
+  list-style-type: circle;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.tiptap-content ul ol,
+.tiptap-content ol ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Tiptap Focus */
+.tiptap-content:focus {
+  outline: none;
+}
+
+/* Selection styling */
+.tiptap-content ::selection {
+  background-color: rgba(0, 122, 204, 0.3);
 }
 
 /* Custom Scrollbar */
@@ -599,15 +804,16 @@ body {
   background-color: var(--bg-primary);
 }
 
-/* Panel Recording Controls */
-.panel-recording-controls {
-  padding: 10px 20px;
+/* Recording Controls Bar - New unified location */
+.recording-controls-bar {
+  padding: 16px 20px;
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .transcription-container {
@@ -1403,12 +1609,12 @@ body {
 
 /* ===== AI Features Styles ===== */
 
-/* Panel Actions (Polish, Summarize buttons) */
+/* Panel Actions (Polish, Summarize, Export buttons) */
 .panel-actions {
   display: flex;
   gap: clamp(4px, 1vw, 8px);
   margin-left: auto;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .action-btn {
@@ -1425,6 +1631,41 @@ body {
   gap: clamp(2px, 0.5vw, 4px);
   white-space: nowrap;
   min-width: 0;
+  position: relative;
+}
+
+.action-btn-icon {
+  padding: 8px;
+  font-size: 18px;
+  min-width: 36px;
+  min-height: 36px;
+  justify-content: center;
+}
+
+/* Tooltip for action buttons */
+.action-btn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background-color: rgba(0, 0, 0, 0.95);
+  color: white;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.action-btn:hover::after {
+  opacity: 1;
+  transition-delay: 0.5s;
 }
 
 .action-btn:hover:not(:disabled) {
