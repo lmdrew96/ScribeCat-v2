@@ -104,25 +104,27 @@ body {
 .record-btn {
   width: clamp(32px, 5vw, 40px);
   height: clamp(32px, 5vw, 40px);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: none;
   background-color: var(--record-color);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm), 0 0 0 0 rgba(231, 76, 60, 0.4);
   flex-shrink: 0;
 }
 
 .record-btn:hover {
   background-color: var(--record-hover);
-  transform: scale(1.05);
+  transform: scale(1.08) translateY(-1px);
+  box-shadow: var(--shadow-md), 0 0 0 4px rgba(231, 76, 60, 0.2);
 }
 
 .record-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
 }
 
 .record-btn.recording {
@@ -248,7 +250,7 @@ body {
 .icon-btn {
   width: 40px;
   height: 40px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
@@ -256,12 +258,34 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity var(--transition-base);
 }
 
 .icon-btn:hover {
   background-color: var(--bg-secondary);
   border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.icon-btn:hover::before {
+  opacity: 0.1;
+}
+
+.icon-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .settings-icon {
@@ -1301,26 +1325,51 @@ body {
 /* Buttons */
 .primary-btn,
 .secondary-btn {
-  padding: 10px 20px;
-  border-radius: 4px;
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
   border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-btn::before,
+.secondary-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width var(--transition-slow), height var(--transition-slow);
 }
 
 .primary-btn {
   background-color: var(--accent);
   color: white;
+  box-shadow: var(--shadow-sm);
 }
 
 .primary-btn:hover {
   background-color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.primary-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .primary-btn:active {
-  transform: scale(0.98);
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .secondary-btn {
@@ -1332,10 +1381,18 @@ body {
 .secondary-btn:hover {
   background-color: var(--bg-primary);
   border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.secondary-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .secondary-btn:active {
-  transform: scale(0.98);
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 /* ===== Utility Classes ===== */
