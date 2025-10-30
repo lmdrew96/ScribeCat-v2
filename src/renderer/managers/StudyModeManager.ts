@@ -7,6 +7,7 @@
 
 import type { Session } from '../../domain/entities/Session.js';
 import { AIClient } from '../ai/AIClient.js';
+import { renderMarkdown } from '../markdown-renderer.js';
 
 export class StudyModeManager {
   private aiClient: AIClient;
@@ -878,14 +879,21 @@ export class StudyModeManager {
       );
       
       if (result.success && result.data) {
-        // result.data is already a string from the AI service
-        const summary = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+        // Extract summary from SummaryResult object
+        let summary: string;
+        if (typeof result.data === 'string') {
+          summary = result.data;
+        } else if (result.data && typeof result.data === 'object' && 'summary' in result.data) {
+          summary = result.data.summary;
+        } else {
+          summary = JSON.stringify(result.data);
+        }
         
         contentArea.innerHTML = `
           <div class="study-summary">
             <div class="summary-section">
               <h5>📋 Summary</h5>
-              <p>${this.escapeHtml(summary)}</p>
+              <div>${renderMarkdown(summary)}</div>
             </div>
           </div>
         `;
@@ -1017,7 +1025,7 @@ export class StudyModeManager {
         const conceptsHtml = concepts.map(concept => `
           <div class="concept-item">
             <div class="concept-term">${this.escapeHtml(concept.term)}</div>
-            <div class="concept-definition">${this.escapeHtml(concept.definition)}</div>
+            <div class="concept-definition">${renderMarkdown(concept.definition)}</div>
           </div>
         `).join('');
         
