@@ -20,6 +20,7 @@ export class StudyModeManager {
   private studyModeBtn: HTMLButtonElement;
   private backToRecordBtn: HTMLButtonElement;
   private sessionListContainer: HTMLElement;
+  private sessionDetailContainer: HTMLElement;
   
   // Filter state
   private selectedCourse: string = '';
@@ -47,6 +48,7 @@ export class StudyModeManager {
     this.studyModeBtn = document.getElementById('study-mode-btn') as HTMLButtonElement;
     this.backToRecordBtn = document.getElementById('back-to-record-btn') as HTMLButtonElement;
     this.sessionListContainer = document.getElementById('session-list') as HTMLElement;
+    this.sessionDetailContainer = document.getElementById('session-detail') as HTMLElement;
     
     // Initialize AI client
     this.aiClient = new AIClient();
@@ -602,7 +604,8 @@ export class StudyModeManager {
     }
     
     // Hide session list, show detail view
-    this.sessionListContainer.innerHTML = '';
+    this.sessionListContainer.classList.add('hidden');
+    this.sessionDetailContainer.classList.remove('hidden');
     this.renderSessionDetail(session);
   }
   
@@ -755,7 +758,7 @@ export class StudyModeManager {
       </div>
     `;
     
-    this.sessionListContainer.innerHTML = detailHtml;
+    this.sessionDetailContainer.innerHTML = detailHtml;
     
     // Attach event handlers
     this.attachDetailViewHandlers(session);
@@ -1533,7 +1536,9 @@ export class StudyModeManager {
     // Back button
     const backBtn = document.querySelector('.back-to-list-btn');
     backBtn?.addEventListener('click', () => {
-      this.renderSessionList();
+      // Hide detail view, show list view
+      this.sessionDetailContainer.classList.add('hidden');
+      this.sessionListContainer.classList.remove('hidden');
     });
     
     // Audio player speed controls
@@ -1615,6 +1620,7 @@ export class StudyModeManager {
       });
     });
   }
+  
   
   /**
    * Update active segment based on current audio time
