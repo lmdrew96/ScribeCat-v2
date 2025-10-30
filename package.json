@@ -44,6 +44,7 @@
     "electron-store": "^11.0.2",
     "googleapis": "^164.1.0",
     "marked": "^16.4.1",
+    "music-metadata": "^11.9.0",
     "pdfkit": "^0.17.2",
     "unzipper": "^0.12.3",
     "ws": "^8.18.3"

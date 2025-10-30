@@ -16,6 +16,7 @@ declare global {
       };
       audio: {
         saveFile: (audioData: number[], fileName: string, folderPath: string) => Promise<{ success: boolean; path?: string; error?: string }>;
+        getMetadata: (filePath: string) => Promise<{ success: boolean; data?: { duration: number; bitrate?: number; sampleRate?: number; numberOfChannels?: number; codec?: string }; error?: string }>;
       };
       transcription: {
         simulation: {

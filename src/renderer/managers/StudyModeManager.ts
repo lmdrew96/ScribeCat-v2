@@ -663,10 +663,40 @@ export class StudyModeManager {
             <div class="audio-player-container">
               <h3>🎧 Recording</h3>
               <div class="audio-player">
-                <audio id="session-audio" controls preload="metadata">
+                <audio id="session-audio" preload="metadata" style="display: none;">
                   <source src="file://${session.recordingPath}" type="audio/webm">
                   Your browser does not support the audio element.
                 </audio>
+                
+                <!-- Custom Audio Controls -->
+                <div class="custom-audio-controls">
+                  <!-- Play/Pause Button -->
+                  <button class="audio-control-btn play-pause-btn" id="play-pause-btn" title="Play/Pause">
+                    <span class="play-icon">▶</span>
+                  </button>
+                  
+                  <!-- Time Display -->
+                  <div class="audio-time-display">
+                    <span id="current-time">0:00</span>
+                    <span class="time-separator">/</span>
+                    <span id="total-duration">0:00</span>
+                  </div>
+                  
+                  <!-- Progress Bar -->
+                  <div class="audio-progress-container" id="audio-progress-container">
+                    <div class="audio-progress-bar">
+                      <div class="audio-progress-buffered" id="audio-progress-buffered"></div>
+                      <div class="audio-progress-played" id="audio-progress-played"></div>
+                      <div class="audio-progress-handle" id="audio-progress-handle"></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Volume Control -->
+                  <button class="audio-control-btn volume-btn" id="volume-btn" title="Mute/Unmute">
+                    <span class="volume-icon">🔊</span>
+                  </button>
+                </div>
+                
                 <div class="playback-controls">
                   <label>Playback Speed:</label>
                   <button class="speed-btn" data-speed="0.5">0.5x</button>
@@ -1541,28 +1571,35 @@ export class StudyModeManager {
       this.sessionListContainer.classList.remove('hidden');
     });
     
-    // Audio player speed controls
+    // Audio player setup
     const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
-    const speedButtons = document.querySelectorAll('.speed-btn');
     
-    speedButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const speed = parseFloat((btn as HTMLElement).dataset.speed || '1');
-        if (audioElement) {
-          audioElement.playbackRate = speed;
-        }
-        
-        // Update active state
-        speedButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    if (audioElement) {
+      // Initialize custom audio controls with the session duration
+      this.initializeCustomAudioControls(audioElement, session.duration);
+      
+      // Audio player speed controls
+      const speedButtons = document.querySelectorAll('.speed-btn');
+      
+      speedButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const speed = parseFloat((btn as HTMLElement).dataset.speed || '1');
+          if (audioElement) {
+            audioElement.playbackRate = speed;
+          }
+          
+          // Update active state
+          speedButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
       });
-    });
-    
-    // Active segment highlighting - listen to audio timeupdate
-    if (audioElement && session.transcription?.segments) {
-      audioElement.addEventListener('timeupdate', () => {
-        this.updateActiveSegment(audioElement.currentTime);
-      });
+      
+      // Active segment highlighting - listen to audio timeupdate
+      if (session.transcription?.segments) {
+        audioElement.addEventListener('timeupdate', () => {
+          this.updateActiveSegment(audioElement.currentTime);
+        });
+      }
     }
     
     // Content tabs
@@ -1621,6 +1658,195 @@ export class StudyModeManager {
     });
   }
   
+  
+  /**
+   * Initialize custom audio controls
+   */
+  private async initializeCustomAudioControls(audioElement: HTMLAudioElement, sessionDuration: number): Promise<void> {
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const volumeBtn = document.getElementById('volume-btn');
+    const progressContainer = document.getElementById('audio-progress-container');
+    const progressPlayed = document.getElementById('audio-progress-played');
+    const progressHandle = document.getElementById('audio-progress-handle');
+    const progressBuffered = document.getElementById('audio-progress-buffered');
+    const currentTimeDisplay = document.getElementById('current-time');
+    const totalDurationDisplay = document.getElementById('total-duration');
+    
+    if (!playPauseBtn || !progressContainer || !progressPlayed || !progressHandle) {
+      console.error('Custom audio control elements not found');
+      return;
+    }
+    
+    console.log('🎵 Initializing custom audio controls');
+    console.log('Session duration:', sessionDuration);
+    
+    let isDragging = false;
+    
+    // Use session duration directly (stored when recording was created)
+    const actualDuration = sessionDuration;
+    
+    // Set the duration display immediately
+    if (totalDurationDisplay && actualDuration) {
+      totalDurationDisplay.textContent = this.formatTime(actualDuration);
+      console.log('✅ Set duration display:', this.formatTime(actualDuration));
+    }
+    
+    // Play/Pause button
+    playPauseBtn.addEventListener('click', () => {
+      if (audioElement.paused) {
+        audioElement.play().catch(err => console.error('Playback failed:', err));
+      } else {
+        audioElement.pause();
+      }
+    });
+    
+    // Update play/pause button icon
+    audioElement.addEventListener('play', () => {
+      const icon = playPauseBtn.querySelector('.play-icon');
+      if (icon) icon.textContent = '⏸';
+      playPauseBtn.classList.add('playing');
+    });
+    
+    audioElement.addEventListener('pause', () => {
+      const icon = playPauseBtn.querySelector('.play-icon');
+      if (icon) icon.textContent = '▶';
+      playPauseBtn.classList.remove('playing');
+    });
+    
+    // Volume button
+    if (volumeBtn) {
+      volumeBtn.addEventListener('click', () => {
+        audioElement.muted = !audioElement.muted;
+        const icon = volumeBtn.querySelector('.volume-icon');
+        if (icon) {
+          icon.textContent = audioElement.muted ? '🔇' : '🔊';
+        }
+      });
+    }
+    
+    // Update duration when metadata loads (but don't overwrite if we already have actualDuration)
+    audioElement.addEventListener('loadedmetadata', () => {
+      console.log('✅ Audio metadata loaded');
+      console.log('Duration from audio element:', audioElement.duration);
+      // Only update if we don't have actualDuration or if audio element has valid duration
+      if (totalDurationDisplay && !actualDuration && audioElement.duration && isFinite(audioElement.duration)) {
+        totalDurationDisplay.textContent = this.formatTime(audioElement.duration);
+      }
+    });
+    
+    // Add error handling
+    audioElement.addEventListener('error', (e) => {
+      console.error('❌ Audio error:', e);
+      console.error('Error code:', audioElement.error?.code);
+      console.error('Error message:', audioElement.error?.message);
+    });
+    
+    audioElement.addEventListener('canplay', () => {
+      console.log('✅ Audio can play');
+    });
+    
+    // Update progress bar and time display
+    audioElement.addEventListener('timeupdate', () => {
+      if (!isDragging && actualDuration && isFinite(actualDuration)) {
+        const progress = (audioElement.currentTime / actualDuration) * 100;
+        
+        if (progressPlayed) {
+          progressPlayed.style.width = `${progress}%`;
+        }
+        if (progressHandle) {
+          progressHandle.style.left = `${progress}%`;
+        }
+      }
+      
+      if (currentTimeDisplay) {
+        currentTimeDisplay.textContent = this.formatTime(audioElement.currentTime);
+      }
+    });
+    
+    // Force initial update
+    if (audioElement.readyState >= 1) {
+      console.log('Audio already has metadata, updating duration');
+      if (totalDurationDisplay && audioElement.duration) {
+        totalDurationDisplay.textContent = this.formatTime(audioElement.duration);
+      }
+    }
+    
+    // Update buffered progress
+    audioElement.addEventListener('progress', () => {
+      if (audioElement.buffered.length > 0 && progressBuffered) {
+        const bufferedEnd = audioElement.buffered.end(audioElement.buffered.length - 1);
+        const bufferedProgress = (bufferedEnd / audioElement.duration) * 100;
+        progressBuffered.style.width = `${bufferedProgress}%`;
+      }
+    });
+    
+    // Progress bar click to seek
+    const seek = (e: MouseEvent) => {
+      const rect = progressContainer.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      const seekTime = pos * actualDuration;
+      
+      if (!isNaN(seekTime) && isFinite(seekTime)) {
+        audioElement.currentTime = seekTime;
+      }
+    };
+    
+    progressContainer.addEventListener('click', seek);
+    
+    // Progress bar drag to seek
+    const startDrag = (e: MouseEvent) => {
+      isDragging = true;
+      seek(e);
+    };
+    
+    const drag = (e: MouseEvent) => {
+      if (isDragging) {
+        seek(e);
+      }
+    };
+    
+    const endDrag = () => {
+      isDragging = false;
+    };
+    
+    progressContainer.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', endDrag);
+    
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      // Only handle if audio player is visible
+      if (!this.sessionDetailContainer.classList.contains('hidden')) {
+        if (e.code === 'Space' && e.target === document.body) {
+          e.preventDefault();
+          if (audioElement.paused) {
+            audioElement.play().catch(err => console.error('Playback failed:', err));
+          } else {
+            audioElement.pause();
+          }
+        } else if (e.code === 'ArrowLeft') {
+          e.preventDefault();
+          audioElement.currentTime = Math.max(0, audioElement.currentTime - 5);
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          audioElement.currentTime = Math.min(audioElement.duration, audioElement.currentTime + 5);
+        }
+      }
+    });
+  }
+  
+  /**
+   * Format time in MM:SS format
+   */
+  private formatTime(seconds: number): string {
+    if (isNaN(seconds) || !isFinite(seconds)) {
+      return '0:00';
+    }
+    
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
   
   /**
    * Update active segment based on current audio time

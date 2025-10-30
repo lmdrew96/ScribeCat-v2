@@ -1,27 +1,51 @@
-import { IpcMain } from 'electron';
-import * as path from 'path';
-import { BaseHandler } from '../BaseHandler.js';
-
 /**
- * Handles audio-related IPC channels
+ * Audio IPC Handlers
  * 
- * Manages audio file saving operations.
+ * Handles audio-related IPC communication between renderer and main process.
  */
+
+import { IpcMain } from 'electron';
+import { BaseHandler } from '../BaseHandler.js';
+import * as mm from 'music-metadata';
+
 export class AudioHandlers extends BaseHandler {
+  /**
+   * Register all audio-related IPC handlers
+   */
   register(ipcMain: IpcMain): void {
-    // Audio: Save audio file handler
-    this.handle(ipcMain, 'audio:save-file', async (event, audioData: number[], fileName: string, folderPath: string) => {
-      const fs = await import('fs');
-      const buffer = Buffer.from(audioData);
-      const outPath = path.join(folderPath, `${fileName}.webm`);
+    this.handle(ipcMain, 'audio:get-metadata', this.getAudioMetadata.bind(this));
+  }
+
+  /**
+   * Get audio file metadata including duration
+   */
+  private async getAudioMetadata(_event: Electron.IpcMainInvokeEvent, filePath: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      console.log('Getting audio metadata for:', filePath);
       
-      // Ensure directory exists
-      await fs.promises.mkdir(folderPath, { recursive: true });
+      // Parse audio metadata
+      const metadata = await mm.parseFile(filePath);
       
-      // Write file
-      await fs.promises.writeFile(outPath, buffer);
+      const result = {
+        duration: metadata.format.duration || 0,
+        bitrate: metadata.format.bitrate,
+        sampleRate: metadata.format.sampleRate,
+        numberOfChannels: metadata.format.numberOfChannels,
+        codec: metadata.format.codec
+      };
       
-      return { success: true, path: outPath };
-    });
+      console.log('Audio metadata:', result);
+      
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      console.error('Error getting audio metadata:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get audio metadata'
+      };
+    }
   }
 }

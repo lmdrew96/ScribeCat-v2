@@ -17,7 +17,9 @@ const electronAPI = {
   },
   audio: {
     saveFile: (audioData: number[], fileName: string, folderPath: string) => 
-      ipcRenderer.invoke('audio:save-file', audioData, fileName, folderPath)
+      ipcRenderer.invoke('audio:save-file', audioData, fileName, folderPath),
+    getMetadata: (filePath: string) => 
+      ipcRenderer.invoke('audio:get-metadata', filePath)
   },
   transcription: {
     simulation: {
