@@ -1,0 +1,179 @@
+/* ===== Theme System Styles ===== */
+
+/* Add smooth transitions for theme changes */
+:root {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme Grid */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 15px;
+}
+
+/* Theme Card */
+.theme-card {
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.theme-card.selected {
+  border-color: var(--accent);
+  background-color: rgba(0, 122, 204, 0.1);
+}
+
+.theme-card.selected::before {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background-color: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Theme Preview Colors */
+.theme-preview {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.theme-preview-color {
+  flex: 1;
+  transition: transform 0.2s ease;
+}
+
+.theme-card:hover .theme-preview-color {
+  transform: scale(1.05);
+}
+
+/* Theme Info */
+.theme-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.theme-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.theme-category {
+  display: inline-block;
+  padding: 3px 8px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  width: fit-content;
+}
+
+.theme-category.calm {
+  background-color: rgba(74, 144, 164, 0.2);
+  color: #4a90a4;
+}
+
+.theme-category.energetic {
+  background-color: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.theme-category.focus {
+  background-color: rgba(112, 128, 144, 0.2);
+  color: #708090;
+}
+
+.theme-category.creative {
+  background-color: rgba(255, 140, 66, 0.2);
+  color: #ff8c42;
+}
+
+.theme-category.balanced {
+  background-color: rgba(139, 115, 85, 0.2);
+  color: #8b7355;
+}
+
+.theme-badges {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.theme-variant {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
+}
+
+.theme-variant.variant-dark {
+  background-color: rgba(30, 30, 30, 0.6);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.theme-variant.variant-light {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.theme-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Responsive theme grid */
+@media (max-width: 768px) {
+  .theme-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .theme-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

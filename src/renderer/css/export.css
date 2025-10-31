@@ -1,0 +1,101 @@
+/* Export Modal Enhancements */
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.format-card {
+  display: flex;
+  cursor: pointer;
+}
+
+.format-card input[type="radio"] {
+  display: none;
+}
+
+.format-content {
+  flex: 1;
+  padding: 15px;
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.format-card:hover .format-content {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+.format-card input[type="radio"]:checked + .format-content {
+  background-color: rgba(0, 122, 204, 0.2);
+  border-color: var(--accent);
+}
+
+.format-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.format-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.format-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: var(--bg-tertiary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkbox-label:hover {
+  background-color: var(--bg-secondary);
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.checkbox-label span {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.info-message {
+  padding: 12px;
+  background-color: rgba(241, 196, 15, 0.1);
+  border-left: 3px solid #f1c40f;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-top: 10px;
+}
+
+.progress-status {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-top: 10px;
+}

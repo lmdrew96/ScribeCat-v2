@@ -1,0 +1,215 @@
+/* ===== Bottom Status Bar ===== */
+.status-bar {
+  height: 40px;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.status-left,
+.status-center,
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-label {
+  color: var(--text-tertiary);
+}
+
+.status-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Mode Indicator */
+.mode-indicator {
+  display: inline-block;
+  margin-left: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.mode-indicator.simulation {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-value.recording {
+  color: var(--record-color);
+}
+
+.status-value.idle {
+  color: var(--text-secondary);
+}
+
+.time-display {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+
+/* ===== Utility Classes ===== */
+.hidden {
+  display: none !important;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1024px) {
+  .left-panel {
+    flex: 0 0 50%;
+  }
+  
+  .right-panel {
+    flex: 0 0 50%;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+  }
+  
+  .left-panel,
+  .right-panel {
+    flex: 1;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .header-actions {
+    gap: 10px;
+  }
+  
+  .panel-recording-controls {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .device-select {
+    min-width: 150px;
+  }
+  
+  .vu-meter-container {
+    width: 100px;
+  }
+}
+
+/* Model Status Container */
+.model-status-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-row label {
+  min-width: 60px;
+  color: var(--text-secondary);
+}
+
+.status-text {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.button-primary {
+  background-color: var(--accent);
+  color: white;
+}
+
+.button-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+}
+
+.button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Progress Container */
+.progress-container {
+  margin-top: 12px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #0096ff);
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* AssemblyAI Settings Section Visibility */
+#assemblyai-settings {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+#assemblyai-settings.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ===== Tooltip Z-Index Fix ===== */
+/* Ensure all tooltips appear above the top bar and other elements */
+.toolbar-btn::after,
+.action-btn::after,
+[title]:hover::after {
+  z-index: 10000 !important;
+}

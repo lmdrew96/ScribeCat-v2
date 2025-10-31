@@ -1,0 +1,716 @@
+/* ===== Main Content Area ===== */
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Left Panel: Notes Editor */
+.left-panel {
+  flex: 2;
+  min-width: 400px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border);
+}
+
+.panel-header {
+  padding: 15px 20px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.panel-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-select-dropdown {
+  min-width: 200px;
+  max-width: 300px;
+  padding: 8px 12px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.course-select-dropdown:hover {
+  border-color: var(--accent);
+}
+
+.course-select-dropdown:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+/* Formatting Toolbar */
+.formatting-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+/* Toolbar Groups for visual organization */
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0;
+}
+
+.toolbar-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 2px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background-color 0.1s ease;
+  position: relative;
+}
+
+.toolbar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.toolbar-btn.active {
+  background-color: rgba(0, 122, 204, 0.25);
+  color: var(--accent);
+}
+
+/* Button Icons */
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  user-select: none;
+}
+
+.bold-icon {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.italic-icon {
+  font-style: italic;
+  font-family: Georgia, serif;
+  font-size: 15px;
+}
+
+.underline-icon {
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+/* Alignment Icons - Horizontal Lines */
+.align-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 16px;
+}
+
+.align-icon span {
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 1px;
+}
+
+.align-left span {
+  margin: 0;
+  align-self: flex-start;
+}
+
+.align-left span:nth-child(1) {
+  width: 100%;
+}
+
+.align-left span:nth-child(2) {
+  width: 80%;
+}
+
+.align-left span:nth-child(3) {
+  width: 60%;
+}
+
+.align-center span {
+  margin: 0 auto;
+}
+
+.align-center span:nth-child(1) {
+  width: 100%;
+}
+
+.align-center span:nth-child(2) {
+  width: 80%;
+}
+
+.align-center span:nth-child(3) {
+  width: 60%;
+}
+
+.align-right span {
+  margin-left: auto;
+}
+
+.align-right span:nth-child(1) {
+  width: 100%;
+}
+
+.align-right span:nth-child(2) {
+  width: 80%;
+}
+
+.align-right span:nth-child(3) {
+  width: 60%;
+}
+
+.align-justify span {
+  width: 100%;
+}
+
+/* List Icons */
+.list-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.list-bullet {
+  font-size: 10px;
+  line-height: 1;
+}
+
+.list-number {
+  font-size: 10px;
+  line-height: 1;
+}
+
+.list-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.list-lines span {
+  width: 10px;
+  height: 1.5px;
+  background-color: currentColor;
+  border-radius: 1px;
+}
+
+/* Enhanced tooltips */
+.toolbar-btn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 8px;
+  background-color: rgba(0, 0, 0, 0.95);
+  color: white;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  border-radius: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.toolbar-btn:hover::after {
+  opacity: 1;
+  transition-delay: 0.5s;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 0 4px;
+}
+
+/* Select Wrapper for Dropdown Arrows */
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.toolbar-select {
+  padding: 4px 24px 4px 8px;
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  height: 32px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.toolbar-select:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.toolbar-select:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent);
+}
+
+/* Font family selector */
+.toolbar-select-font {
+  min-width: 160px;
+}
+
+/* Smaller font size selector */
+.toolbar-select-small {
+  min-width: 60px;
+  text-align: center;
+  padding-right: 20px;
+}
+
+/* Color Buttons with Indicators */
+.color-btn {
+  position: relative;
+  flex-direction: column;
+  padding: 4px 6px;
+  gap: 2px;
+}
+
+.color-indicator {
+  width: 20px;
+  height: 3px;
+  border-radius: 1px;
+  margin-top: 2px;
+}
+
+#text-color-indicator {
+  background-color: #ffffff;
+}
+
+#highlight-color-indicator {
+  background-color: #ffff00;
+}
+
+.color-picker-hidden {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Tiptap Editor Container */
+.tiptap-editor {
+  flex: 1;
+  overflow-y: auto;
+  outline: none;
+}
+
+/* Tiptap Content Styles */
+.tiptap-content {
+  padding: 20px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  outline: none;
+  min-height: 100%;
+}
+
+/* Tiptap Placeholder */
+.tiptap-content .ProseMirror-placeholder {
+  color: var(--text-tertiary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Tiptap Typography */
+.tiptap-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.tiptap-content h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1.25rem 0 0.75rem 0;
+  color: var(--text-primary);
+}
+
+.tiptap-content p {
+  margin: 0.75rem 0;
+}
+
+.tiptap-content p:first-child {
+  margin-top: 0;
+}
+
+.tiptap-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Tiptap Text Formatting */
+.tiptap-content strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tiptap-content em {
+  font-style: italic;
+}
+
+.tiptap-content u {
+  text-decoration: underline;
+}
+
+/* Tiptap Highlight */
+.tiptap-content mark {
+  background-color: rgba(255, 255, 0, 0.4);
+  color: var(--text-primary);
+  padding: 0.125em 0.25em;
+  border-radius: 2px;
+}
+
+/* Tiptap Links */
+.tiptap-content a.editor-link {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.tiptap-content a.editor-link:hover {
+  color: var(--accent-hover);
+}
+
+/* Tiptap Lists */
+.tiptap-content ul,
+.tiptap-content ol {
+  padding-left: 1.5rem;
+  margin: 0.75rem 0;
+}
+
+.tiptap-content ul {
+  list-style-type: disc;
+}
+
+.tiptap-content ol {
+  list-style-type: decimal;
+}
+
+.tiptap-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+
+.tiptap-content li p {
+  margin: 0.25rem 0;
+}
+
+/* Nested lists */
+.tiptap-content ul ul,
+.tiptap-content ol ul {
+  list-style-type: circle;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.tiptap-content ul ol,
+.tiptap-content ol ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Tiptap Focus */
+.tiptap-content:focus {
+  outline: none;
+}
+
+/* ===== Study Mode Notes Formatting ===== */
+/* Mirror Tiptap content styles for study mode notes display */
+
+/* Study Mode Typography */
+.notes-html-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.notes-html-content h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1.25rem 0 0.75rem 0;
+  color: var(--text-primary);
+}
+
+.notes-html-content p {
+  margin: 0.75rem 0;
+}
+
+.notes-html-content p:first-child {
+  margin-top: 0;
+}
+
+.notes-html-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Study Mode Text Formatting */
+.notes-html-content strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.notes-html-content em {
+  font-style: italic;
+}
+
+.notes-html-content u {
+  text-decoration: underline;
+}
+
+/* Study Mode Highlight */
+.notes-html-content mark {
+  background-color: rgba(255, 255, 0, 0.4);
+  color: var(--text-primary);
+  padding: 0.125em 0.25em;
+  border-radius: 2px;
+}
+
+/* Study Mode Links */
+.notes-html-content a.editor-link {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.notes-html-content a.editor-link:hover {
+  color: var(--accent-hover);
+}
+
+/* Study Mode Lists */
+.notes-html-content ul,
+.notes-html-content ol {
+  padding-left: 1.5rem;
+  margin: 0.75rem 0;
+}
+
+.notes-html-content ul {
+  list-style-type: disc;
+}
+
+.notes-html-content ol {
+  list-style-type: decimal;
+}
+
+.notes-html-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+
+.notes-html-content li p {
+  margin: 0.25rem 0;
+}
+
+/* Study Mode Nested Lists */
+.notes-html-content ul ul,
+.notes-html-content ol ul {
+  list-style-type: circle;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.notes-html-content ul ol,
+.notes-html-content ol ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Selection styling */
+.tiptap-content ::selection {
+  background-color: rgba(0, 122, 204, 0.3);
+}
+
+/* Custom Scrollbar */
+.notes-editor::-webkit-scrollbar,
+.transcription-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.notes-editor::-webkit-scrollbar-track,
+.transcription-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.notes-editor::-webkit-scrollbar-thumb,
+.transcription-container::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.notes-editor::-webkit-scrollbar-thumb:hover,
+.transcription-container::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+
+/* Editor Footer */
+.editor-footer {
+  padding: 10px 20px;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.count-separator {
+  color: var(--text-tertiary);
+}
+
+/* Right Panel: Transcription */
+.right-panel {
+  flex: 1;
+  min-width: 350px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+}
+
+/* Recording Controls Bar - New unified location */
+.recording-controls-bar {
+  padding: 16px 20px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.transcription-container {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transcription-placeholder {
+  color: var(--text-tertiary);
+  font-style: italic;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.transcription-entry {
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+  font-size: 14px;
+  line-height: 1.5;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.transcription-entry .timestamp {
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+/* Flowing transcription style */
+.flowing-transcription {
+  color: #e0e0e0;
+  line-height: 1.6;
+  padding: 1rem;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Partial text styling for AssemblyAI */
+.partial-text {
+  opacity: 0.6;
+  font-style: italic;
+}

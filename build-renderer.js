@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { copyFileSync, watch } from 'fs';
+import { copyFileSync, watch, cpSync, existsSync, mkdirSync } from 'fs';
 
 const isWatch = process.argv.includes('--watch');
 
@@ -21,6 +21,12 @@ const buildConfig = {
 function copyStaticFiles() {
   copyFileSync('src/renderer/index.html', 'dist/renderer/index.html');
   copyFileSync('src/renderer/styles.css', 'dist/renderer/styles.css');
+
+  // Copy CSS modules directory
+  if (!existsSync('dist/renderer/css')) {
+    mkdirSync('dist/renderer/css', { recursive: true });
+  }
+  cpSync('src/renderer/css', 'dist/renderer/css', { recursive: true });
 }
 
 if (isWatch) {
@@ -41,6 +47,12 @@ if (isWatch) {
   watch('src/renderer/styles.css', () => {
     copyFileSync('src/renderer/styles.css', 'dist/renderer/styles.css');
     console.log('✓ Copied styles.css');
+  });
+
+  // Watch CSS modules directory
+  watch('src/renderer/css', { recursive: true }, () => {
+    cpSync('src/renderer/css', 'dist/renderer/css', { recursive: true });
+    console.log('✓ Copied CSS modules');
   });
 } else {
   // One-time build
