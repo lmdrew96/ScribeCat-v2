@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nRemove polish, summarize, and export buttons from main view\n\n- Remove polish button and PolishFeature (including auto-polish functionality)\n- Remove summarize button and SummaryFeature from main view\n- Remove export button and ExportManager from main view\n- Disable highlight (Mod-Shift-H) and link (Mod-K) keyboard shortcuts in notes editor\n- Update styles to remove export-progress-skeleton\n- Study mode AI summary and export functionality remains intact\n- All backend IPC handlers preserved for study mode use\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

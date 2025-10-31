@@ -13,6 +13,9 @@ export interface SaveRecordingInput {
   audioData: ArrayBuffer;
   duration: number;
   title?: string;
+  courseId?: string;
+  courseTitle?: string;
+  courseNumber?: string;
 }
 
 export interface SaveRecordingOutput {
@@ -49,7 +52,13 @@ export class SaveRecordingUseCase {
       '', // Empty notes initially
       now,
       now,
-      input.duration
+      input.duration,
+      undefined, // transcription
+      [], // tags
+      [], // exportHistory
+      input.courseId,
+      input.courseTitle,
+      input.courseNumber
     );
 
     // Save session metadata

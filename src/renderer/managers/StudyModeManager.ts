@@ -728,9 +728,9 @@ export class StudyModeManager {
             
             <!-- Notes Content -->
             <div class="session-content-panel" data-panel="notes">
-              <div class="content-panel-inner">
+              <div class="content-panel-inner notes-html-content">
                 ${session.notes 
-                  ? `<div class="notes-text">${session.notes}</div>`
+                  ? session.notes
                   : '<div class="empty-content">No notes available for this session.</div>'
                 }
               </div>

@@ -781,6 +781,111 @@ body {
   outline: none;
 }
 
+/* ===== Study Mode Notes Formatting ===== */
+/* Mirror Tiptap content styles for study mode notes display */
+
+/* Study Mode Typography */
+.notes-html-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.notes-html-content h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1.25rem 0 0.75rem 0;
+  color: var(--text-primary);
+}
+
+.notes-html-content p {
+  margin: 0.75rem 0;
+}
+
+.notes-html-content p:first-child {
+  margin-top: 0;
+}
+
+.notes-html-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Study Mode Text Formatting */
+.notes-html-content strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.notes-html-content em {
+  font-style: italic;
+}
+
+.notes-html-content u {
+  text-decoration: underline;
+}
+
+/* Study Mode Highlight */
+.notes-html-content mark {
+  background-color: rgba(255, 255, 0, 0.4);
+  color: var(--text-primary);
+  padding: 0.125em 0.25em;
+  border-radius: 2px;
+}
+
+/* Study Mode Links */
+.notes-html-content a.editor-link {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.notes-html-content a.editor-link:hover {
+  color: var(--accent-hover);
+}
+
+/* Study Mode Lists */
+.notes-html-content ul,
+.notes-html-content ol {
+  padding-left: 1.5rem;
+  margin: 0.75rem 0;
+}
+
+.notes-html-content ul {
+  list-style-type: disc;
+}
+
+.notes-html-content ol {
+  list-style-type: decimal;
+}
+
+.notes-html-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+
+.notes-html-content li p {
+  margin: 0.25rem 0;
+}
+
+/* Study Mode Nested Lists */
+.notes-html-content ul ul,
+.notes-html-content ol ul {
+  list-style-type: circle;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.notes-html-content ul ol,
+.notes-html-content ol ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
 /* Selection styling */
 .tiptap-content ::selection {
   background-color: rgba(0, 122, 204, 0.3);
@@ -1570,27 +1675,6 @@ body {
   gap: 8px;
 }
 
-/* Export Progress Skeleton */
-.export-progress-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-}
-
-.export-progress-skeleton .skeleton-status {
-  width: 200px;
-  height: 16px;
-  border-radius: var(--radius-sm);
-  margin: 0 auto;
-}
-
-.export-progress-skeleton .skeleton-bar {
-  width: 100%;
-  height: 24px;
-  border-radius: var(--radius-sm);
-}
-
 /* Loading Container */
 .loading-container {
   display: flex;
@@ -1948,7 +2032,7 @@ body {
 
 /* ===== AI Features Styles ===== */
 
-/* Panel Actions (Polish, Summarize, Export buttons) */
+/* Panel Actions (Clear buttons) */
 .panel-actions {
   display: flex;
   gap: 6px;
@@ -1986,7 +2070,7 @@ body {
 .action-btn::after {
   content: attr(title);
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   padding: 6px 10px;
@@ -2027,6 +2111,21 @@ body {
 .action-btn.active {
   background-color: var(--accent);
   border-color: var(--accent);
+}
+
+/* Clear Both Button - Special destructive styling */
+.clear-both-btn {
+  color: #ff9800;
+}
+
+.clear-both-btn:hover:not(:disabled) {
+  background-color: rgba(255, 152, 0, 0.15);
+  border-color: #ff9800;
+  color: #ff9800;
+}
+
+.clear-both-btn:hover:not(:disabled)::after {
+  background-color: rgba(255, 152, 0, 0.95);
 }
 
 /* Chat Messages */
@@ -4841,4 +4940,12 @@ body {
   .segment-timestamp {
     min-width: auto;
   }
+}
+
+/* ===== Tooltip Z-Index Fix ===== */
+/* Ensure all tooltips appear above the top bar and other elements */
+.toolbar-btn::after,
+.action-btn::after,
+[title]:hover::after {
+  z-index: 10000 !important;
 }

@@ -9,7 +9,7 @@ declare global {
       };
       recording: {
         start: () => Promise<{ success: boolean; error?: string }>;
-        stop: (audioData: ArrayBuffer, duration: number) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
+        stop: (audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
         pause: () => Promise<{ success: boolean; error?: string }>;
         resume: () => Promise<{ success: boolean; error?: string }>;
         getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;

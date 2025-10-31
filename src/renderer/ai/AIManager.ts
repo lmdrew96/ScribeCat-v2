@@ -6,15 +6,11 @@
 import type { ChatMessage } from '../../shared/types.js';
 import { ChatUI } from './ChatUI.js';
 import { AIClient } from './AIClient.js';
-import { PolishFeature } from './features/PolishFeature.js';
-import { SummaryFeature } from './features/SummaryFeature.js';
 
 export class AIManager {
   private chatUI: ChatUI;
   private aiClient: AIClient;
-  private polishFeature: PolishFeature;
-  private summaryFeature: SummaryFeature;
-  
+
   private chatHistory: ChatMessage[] = [];
   private isConfigured: boolean = false;
   private connectionTested: boolean = false;
@@ -38,13 +34,11 @@ export class AIManager {
   ) {
     this.getTranscriptionText = getTranscriptionText;
     this.getNotesText = getNotesText;
-    
+
     // Initialize components
     this.chatUI = new ChatUI();
     this.aiClient = new AIClient();
-    this.polishFeature = new PolishFeature(this.aiClient, getTranscriptionText);
-    this.summaryFeature = new SummaryFeature(this.aiClient, getTranscriptionText, getNotesText);
-    
+
     this.setupSettingsUI();
   }
 
@@ -76,11 +70,7 @@ export class AIManager {
       () => this.chatUI.open(this.isConfigured),
       () => this.chatUI.close()
     );
-    
-    // Features
-    this.polishFeature.setupEventListeners(() => this.polishFeature.polish());
-    this.summaryFeature.setupEventListeners(() => this.summaryFeature.generateSummary());
-    
+
     // Settings
     this.testConnectionBtn?.addEventListener('click', () => this.testConnection());
   }
@@ -154,58 +144,6 @@ export class AIManager {
   clearChatHistory(): void {
     this.chatHistory = [];
     this.chatUI.clearHistory();
-  }
-  
-  /**
-   * Start auto-polish if enabled
-   */
-  async startAutoPolish(): Promise<void> {
-    try {
-      // Check if auto-polish is enabled
-      const enabled = await (window as any).scribeCat.store.get('auto-polish-enabled');
-      if (!enabled) {
-        console.log('Auto-polish is disabled in settings');
-        return;
-      }
-      
-      // Check if AI is configured
-      if (!this.isConfigured) {
-        console.log('Auto-polish skipped: AI not configured');
-        return;
-      }
-      
-      // Load settings
-      const interval = await (window as any).scribeCat.store.get('auto-polish-interval') || 30;
-      const jitter = await (window as any).scribeCat.store.get('auto-polish-jitter') || 5;
-      const minWords = await (window as any).scribeCat.store.get('auto-polish-min-words') || 50;
-      const fullInterval = await (window as any).scribeCat.store.get('auto-polish-full-interval') || 5;
-      
-      // Start auto-polish
-      await this.polishFeature.startAutoPolish({
-        interval,
-        jitter,
-        minWords,
-        fullInterval
-      });
-      
-      console.log('✅ Auto-polish started');
-    } catch (error) {
-      console.error('Failed to start auto-polish:', error);
-    }
-  }
-  
-  /**
-   * Stop auto-polish
-   */
-  stopAutoPolish(): void {
-    this.polishFeature.stopAutoPolish();
-  }
-  
-  /**
-   * Check if auto-polish is running
-   */
-  isAutoPolishRunning(): boolean {
-    return this.polishFeature.isAutoPolishRunning();
   }
 
   // ===== Private Methods =====
@@ -363,10 +301,6 @@ export class AIManager {
 
     // Update chat UI
     this.chatUI.updateUIState(isAvailable, this.isTestingConnection);
-
-    // Update features
-    this.polishFeature.updateButtonState(isAvailable);
-    this.summaryFeature.updateButtonState(isAvailable);
   }
 
   /**

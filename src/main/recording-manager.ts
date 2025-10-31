@@ -73,11 +73,14 @@ export class RecordingManager {
       }
     });
 
-    ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number) => {
+    ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }) => {
       try {
         const result = await this.saveRecordingUseCase.execute({
           audioData,
-          duration
+          duration,
+          courseId: courseData?.courseId,
+          courseTitle: courseData?.courseTitle,
+          courseNumber: courseData?.courseNumber
         });
 
         return {

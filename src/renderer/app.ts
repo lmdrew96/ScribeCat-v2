@@ -8,7 +8,6 @@
 import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
 import { AIManager } from './ai/AIManager.js';
-import { ExportManager } from './export-manager.js';
 import { ViewManager } from './managers/ViewManager.js';
 import { TiptapEditorManager } from './managers/TiptapEditorManager.js';
 import { TranscriptionManager } from './managers/TranscriptionManager.js';
@@ -23,7 +22,6 @@ let audioManager: AudioManager;
 let settingsManager: SettingsManager;
 let themeManager: ThemeManager;
 let aiManager: AIManager;
-let exportManager: ExportManager;
 let viewManager: ViewManager;
 let editorManager: TiptapEditorManager;
 let transcriptionManager: TranscriptionManager;
@@ -43,8 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize core managers
   audioManager = new AudioManager();
   settingsManager = new SettingsManager(themeManager);
-  exportManager = new ExportManager();
-  
+
   // Initialize UI managers
   viewManager = new ViewManager();
   editorManager = new TiptapEditorManager();
@@ -57,6 +54,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     () => editorManager.getNotesText()
   );
   await aiManager.initialize();
+
+  // Initialize course manager
+  courseManager = new CourseManager();
+  
+  // Expose courseManager globally for settings to access
+  (window as any).courseManager = courseManager;
   
   // Initialize recording manager (coordinates everything)
   recordingManager = new RecordingManager(
@@ -64,22 +67,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     transcriptionManager,
     viewManager,
     editorManager,
-    exportManager,
-    aiManager
+    aiManager,
+    courseManager
   );
   recordingManager.initialize();
   
   // Initialize editor
   editorManager.initialize();
   
+  // Set up periodic button state updates
+  setInterval(updateClearButtonStates, 1000);
+  
   // Load microphone devices
   await deviceManager.loadDevices();
-  
-  // Initialize course manager
-  courseManager = new CourseManager();
-  
-  // Expose courseManager globally for settings to access
-  (window as any).courseManager = courseManager;
   
   // Initialize study mode manager
   studyModeManager = new StudyModeManager();
@@ -102,6 +102,18 @@ function setupEventListeners(): void {
   // Pause button
   const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
   pauseBtn.addEventListener('click', handlePauseToggle);
+  
+  // Clear buttons
+  const clearNotesBtn = document.getElementById('clear-notes-btn') as HTMLButtonElement;
+  const clearTranscriptionBtn = document.getElementById('clear-transcription-btn') as HTMLButtonElement;
+  const clearBothBtn = document.getElementById('clear-both-btn') as HTMLButtonElement;
+  
+  clearNotesBtn.addEventListener('click', handleClearNotes);
+  clearTranscriptionBtn.addEventListener('click', handleClearTranscription);
+  clearBothBtn.addEventListener('click', handleClearBoth);
+  
+  // Update button states on content changes
+  updateClearButtonStates();
 }
 
 /**
@@ -180,6 +192,82 @@ async function resumeRecording(): Promise<void> {
     console.error('Failed to resume recording:', error);
     alert(`Failed to resume recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * Handle clear notes button
+ */
+function handleClearNotes(): void {
+  const hasContent = editorManager.getNotesText().trim().length > 0;
+  
+  if (!hasContent) {
+    return;
+  }
+  
+  const confirmed = confirm('Clear all notes? This cannot be undone.');
+  
+  if (confirmed) {
+    editorManager.clearNotes();
+    updateClearButtonStates();
+  }
+}
+
+/**
+ * Handle clear transcription button
+ */
+function handleClearTranscription(): void {
+  const hasContent = transcriptionManager.getText().trim().length > 0;
+  
+  if (!hasContent) {
+    return;
+  }
+  
+  const confirmed = confirm('Clear transcription? This cannot be undone.');
+  
+  if (confirmed) {
+    transcriptionManager.clear();
+    updateClearButtonStates();
+  }
+}
+
+/**
+ * Handle clear both button
+ */
+function handleClearBoth(): void {
+  const hasNotesContent = editorManager.getNotesText().trim().length > 0;
+  const hasTranscriptionContent = transcriptionManager.getText().trim().length > 0;
+  
+  if (!hasNotesContent && !hasTranscriptionContent) {
+    return;
+  }
+  
+  const confirmed = confirm('Clear BOTH notes and transcription? This cannot be undone.');
+  
+  if (confirmed) {
+    editorManager.clearNotes();
+    transcriptionManager.clear();
+    updateClearButtonStates();
+  }
+}
+
+/**
+ * Update clear button enabled/disabled states based on content
+ */
+function updateClearButtonStates(): void {
+  const clearNotesBtn = document.getElementById('clear-notes-btn') as HTMLButtonElement;
+  const clearTranscriptionBtn = document.getElementById('clear-transcription-btn') as HTMLButtonElement;
+  const clearBothBtn = document.getElementById('clear-both-btn') as HTMLButtonElement;
+  
+  if (!clearNotesBtn || !clearTranscriptionBtn || !clearBothBtn) {
+    return;
+  }
+  
+  const hasNotesContent = editorManager.getNotesText().trim().length > 0;
+  const hasTranscriptionContent = transcriptionManager.getText().trim().length > 0;
+  
+  clearNotesBtn.disabled = !hasNotesContent;
+  clearTranscriptionBtn.disabled = !hasTranscriptionContent;
+  clearBothBtn.disabled = !hasNotesContent && !hasTranscriptionContent;
 }
 
 /**

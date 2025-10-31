@@ -8,15 +8,14 @@ import { AssemblyAITranscriptionService } from '../assemblyai-transcription-serv
 import { TranscriptionManager } from './TranscriptionManager.js';
 import { ViewManager } from './ViewManager.js';
 import { TiptapEditorManager } from './TiptapEditorManager.js';
-import { ExportManager } from '../export-manager.js';
 
 export class RecordingManager {
   private audioManager: AudioManager;
   private transcriptionManager: TranscriptionManager;
   private viewManager: ViewManager;
   private editorManager: TiptapEditorManager;
-  private exportManager: ExportManager;
   private aiManager: any; // AIManager type
+  private courseManager: any; // CourseManager type
   
   private isRecording: boolean = false;
   private isPaused: boolean = false;
@@ -34,15 +33,15 @@ export class RecordingManager {
     transcriptionManager: TranscriptionManager,
     viewManager: ViewManager,
     editorManager: TiptapEditorManager,
-    exportManager: ExportManager,
-    aiManager: any
+    aiManager: any,
+    courseManager: any
   ) {
     this.audioManager = audioManager;
     this.transcriptionManager = transcriptionManager;
     this.viewManager = viewManager;
     this.editorManager = editorManager;
-    this.exportManager = exportManager;
     this.aiManager = aiManager;
+    this.courseManager = courseManager;
   }
 
   /**
@@ -95,11 +94,6 @@ export class RecordingManager {
     this.transcriptionManager.clear();
     this.startElapsedTimer();
     this.startVUMeterUpdates();
-    
-    // Start auto-polish if enabled
-    if (this.aiManager) {
-      await this.aiManager.startAutoPolish();
-    }
 
     console.log('Recording started successfully');
   }
@@ -109,11 +103,6 @@ export class RecordingManager {
    */
   async stop(): Promise<void> {
     console.log('Stopping recording...');
-    
-    // Stop auto-polish if running
-    if (this.aiManager) {
-      this.aiManager.stopAutoPolish();
-    }
 
     // Stop transcription first
     if (this.transcriptionSessionId) {
@@ -130,10 +119,19 @@ export class RecordingManager {
     const durationSeconds = result.duration / 1000;
     console.log('Recording stopped. Duration:', durationSeconds, 'seconds');
 
+    // Get selected course data
+    const selectedCourse = this.courseManager?.getSelectedCourse();
+    const courseData = selectedCourse ? {
+      courseId: selectedCourse.id,
+      courseTitle: selectedCourse.title || selectedCourse.courseTitle,
+      courseNumber: selectedCourse.code || selectedCourse.courseNumber
+    } : undefined;
+
     // Save the recording to disk
     const saveResult = await window.scribeCat.recording.stop(
       result.audioData.buffer as ArrayBuffer,
-      durationSeconds
+      durationSeconds,
+      courseData
     );
 
     if (!saveResult.success) {
@@ -188,11 +186,6 @@ export class RecordingManager {
     // Show completion message
     this.viewManager.showSessionInfo(`Recording saved: ${saveResult.sessionId}`);
 
-    // Enable export for this session
-    if (saveResult.sessionId) {
-      this.exportManager.enableExport(saveResult.sessionId);
-    }
-
     console.log('Recording stopped successfully');
   }
 
@@ -225,11 +218,6 @@ export class RecordingManager {
     // Pause timers
     this.stopElapsedTimer();
     this.stopVUMeterUpdates();
-
-    // Pause auto-polish
-    if (this.aiManager) {
-      this.aiManager.stopAutoPolish();
-    }
 
     // Track pause time
     this.pauseStartTime = Date.now();
@@ -266,11 +254,6 @@ export class RecordingManager {
     // Resume timers
     this.startElapsedTimer();
     this.startVUMeterUpdates();
-
-    // Resume auto-polish
-    if (this.aiManager) {
-      await this.aiManager.startAutoPolish();
-    }
 
     // Update state
     this.isPaused = false;

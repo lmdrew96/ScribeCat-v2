@@ -10,7 +10,7 @@ const electronAPI = {
   },
   recording: {
     start: () => ipcRenderer.invoke('recording:start'),
-    stop: (audioData: ArrayBuffer, duration: number) => ipcRenderer.invoke('recording:stop', audioData, duration),
+    stop: (audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }) => ipcRenderer.invoke('recording:stop', audioData, duration, courseData),
     pause: () => ipcRenderer.invoke('recording:pause'),
     resume: () => ipcRenderer.invoke('recording:resume'),
     getStatus: () => ipcRenderer.invoke('recording:getStatus')

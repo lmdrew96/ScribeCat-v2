@@ -27,7 +27,10 @@ export class Session {
     public readonly duration: number,
     public transcription?: Transcription,
     public tags: string[] = [],
-    public exportHistory: ExportRecord[] = []
+    public exportHistory: ExportRecord[] = [],
+    public courseId?: string,
+    public courseTitle?: string,
+    public courseNumber?: string
   ) {}
 
   /**
@@ -117,7 +120,10 @@ export class Session {
       duration: this.duration,
       transcription: this.transcription?.toJSON(),
       tags: this.tags,
-      exportHistory: this.exportHistory
+      exportHistory: this.exportHistory,
+      courseId: this.courseId,
+      courseTitle: this.courseTitle,
+      courseNumber: this.courseNumber
     };
   }
 
@@ -135,7 +141,10 @@ export class Session {
       data.duration,
       data.transcription ? Transcription.fromJSON(data.transcription) : undefined,
       data.tags || [],
-      data.exportHistory || []
+      data.exportHistory || [],
+      data.courseId,
+      data.courseTitle,
+      data.courseNumber
     );
   }
 }
@@ -154,4 +163,7 @@ export interface SessionData {
   transcription?: TranscriptionData;
   tags?: string[];
   exportHistory?: ExportRecord[];
+  courseId?: string;
+  courseTitle?: string;
+  courseNumber?: string;
 }

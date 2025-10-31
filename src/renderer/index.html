@@ -33,9 +33,14 @@
             <div class="left-panel">
                 <div class="panel-header">
                     <h2>Notes</h2>
-                    <select id="course-select" class="course-select-dropdown" title="Select Course (Optional)">
-                        <option value="">No Course Selected</option>
-                    </select>
+                    <div class="panel-actions">
+                        <select id="course-select" class="course-select-dropdown" title="Select Course (Optional)">
+                            <option value="">No Course Selected</option>
+                        </select>
+                        <button id="clear-notes-btn" class="action-btn action-btn-icon" title="Clear notes" disabled>
+                            🗑️
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="formatting-toolbar">
@@ -94,10 +99,10 @@
                     
                     <!-- Link & Highlight Group -->
                     <div class="toolbar-group">
-                        <button id="link-btn" class="toolbar-btn" title="Add Link • Ctrl+K">
+                        <button id="link-btn" class="toolbar-btn" title="Add Link">
                             <span class="btn-icon">🔗</span>
                         </button>
-                        <button id="highlight-btn" class="toolbar-btn" title="Highlight • Ctrl+Shift+H">
+                        <button id="highlight-btn" class="toolbar-btn" title="Highlight">
                             <span class="btn-icon">✨</span>
                         </button>
                     </div>
@@ -136,14 +141,11 @@
                 <div class="panel-header">
                     <h2>Live Transcription</h2>
                     <div class="panel-actions">
-                        <button id="polish-btn" class="action-btn action-btn-icon" title="Polish transcription with AI" disabled>
-                            ✨
+                        <button id="clear-transcription-btn" class="action-btn action-btn-icon" title="Clear transcription" disabled>
+                            🗑️
                         </button>
-                        <button id="summarize-btn" class="action-btn action-btn-icon" title="Generate summary" disabled>
-                            📝
-                        </button>
-                        <button id="export-btn" class="action-btn action-btn-icon" title="Export transcription" disabled>
-                            📤
+                        <button id="clear-both-btn" class="action-btn action-btn-icon clear-both-btn" title="Clear both notes and transcription" disabled>
+                            ⚠️
                         </button>
                     </div>
                 </div>

@@ -62,10 +62,18 @@ export class TiptapEditorManager {
             levels: [1, 2],
           },
         }),
-        Highlight.configure({
+        Highlight.extend({
+          addKeyboardShortcuts() {
+            return {}; // Disable default Mod-Shift-h shortcut
+          }
+        }).configure({
           multicolor: false,
         }),
-        Link.configure({
+        Link.extend({
+          addKeyboardShortcuts() {
+            return {}; // Disable default Mod-k shortcut
+          }
+        }).configure({
           openOnClick: false,
           HTMLAttributes: {
             class: 'editor-link',
