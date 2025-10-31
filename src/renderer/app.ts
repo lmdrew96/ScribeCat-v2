@@ -16,6 +16,7 @@ import { DeviceManager } from './managers/DeviceManager.js';
 import { CourseManager } from './managers/CourseManager.js';
 import { ThemeManager } from './themes/ThemeManager.js';
 import { StudyModeManager } from './managers/StudyModeManager.js';
+import { NotesAutoSaveManager } from './managers/NotesAutoSaveManager.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -29,6 +30,7 @@ let recordingManager: RecordingManager;
 let deviceManager: DeviceManager;
 let courseManager: CourseManager;
 let studyModeManager: StudyModeManager;
+let notesAutoSaveManager: NotesAutoSaveManager;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -57,10 +59,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize course manager
   courseManager = new CourseManager();
-  
+
   // Expose courseManager globally for settings to access
   (window as any).courseManager = courseManager;
-  
+
+  // Initialize notes auto-save manager
+  notesAutoSaveManager = new NotesAutoSaveManager(editorManager);
+  notesAutoSaveManager.initialize();
+
   // Initialize recording manager (coordinates everything)
   recordingManager = new RecordingManager(
     audioManager,
@@ -68,12 +74,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     viewManager,
     editorManager,
     aiManager,
-    courseManager
+    courseManager,
+    notesAutoSaveManager
   );
   recordingManager.initialize();
-  
+
   // Initialize editor
   editorManager.initialize();
+
+  // Set up auto-save callback on editor
+  editorManager.setOnContentChangeCallback(() => {
+    notesAutoSaveManager.onEditorUpdate();
+  });
   
   // Set up periodic button state updates
   setInterval(updateClearButtonStates, 1000);
@@ -324,8 +336,14 @@ function setupHotReloadListener(): void {
 /**
  * Clean up on window unload
  */
-window.addEventListener('beforeunload', () => {
-  if (recordingManager.getIsRecording()) {
+window.addEventListener('beforeunload', async (event) => {
+  // Save notes immediately before closing (safety net)
+  if (notesAutoSaveManager) {
+    console.log('[App] Saving notes before window close...');
+    await notesAutoSaveManager.saveImmediately();
+  }
+
+  if (recordingManager && recordingManager.getIsRecording()) {
     audioManager.cleanup();
     recordingManager.cleanup();
   }
@@ -335,5 +353,10 @@ window.addEventListener('beforeunload', () => {
   // Clean up hot reload listener if it exists
   if ((window.scribeCat as any).dev) {
     (window.scribeCat as any).dev.removeHotReloadListener();
+  }
+
+  // Clean up notes auto-save manager
+  if (notesAutoSaveManager) {
+    notesAutoSaveManager.cleanup();
   }
 });

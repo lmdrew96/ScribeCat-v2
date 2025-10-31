@@ -5,6 +5,7 @@ import { SaveRecordingUseCase } from '../application/use-cases/SaveRecordingUseC
 import { LoadSessionUseCase } from '../application/use-cases/LoadSessionUseCase.js';
 import { UpdateSessionNotesUseCase } from '../application/use-cases/UpdateSessionNotesUseCase.js';
 import { UpdateSessionTranscriptionUseCase } from '../application/use-cases/UpdateSessionTranscriptionUseCase.js';
+import { CreateDraftSessionUseCase } from '../application/use-cases/CreateDraftSessionUseCase.js';
 import { FileAudioRepository } from '../infrastructure/repositories/FileAudioRepository.js';
 import { FileSessionRepository } from '../infrastructure/repositories/FileSessionRepository.js';
 
@@ -23,6 +24,7 @@ export class RecordingManager {
   private loadSessionUseCase: LoadSessionUseCase;
   private updateSessionNotesUseCase: UpdateSessionNotesUseCase;
   private updateSessionTranscriptionUseCase: UpdateSessionTranscriptionUseCase;
+  private createDraftSessionUseCase: CreateDraftSessionUseCase;
 
   constructor() {
     // Initialize repositories
@@ -39,6 +41,9 @@ export class RecordingManager {
       sessionRepository
     );
     this.updateSessionTranscriptionUseCase = new UpdateSessionTranscriptionUseCase(
+      sessionRepository
+    );
+    this.createDraftSessionUseCase = new CreateDraftSessionUseCase(
       sessionRepository
     );
 
@@ -184,7 +189,7 @@ export class RecordingManager {
           transcriptionText,
           transcriptionProvider
         );
-        
+
         if (!success) {
           return {
             success: false,
@@ -193,6 +198,22 @@ export class RecordingManager {
         }
 
         return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    ipcMain.handle('session:createDraft', async () => {
+      try {
+        const result = await this.createDraftSessionUseCase.execute();
+
+        return {
+          success: true,
+          sessionId: result.sessionId
+        };
       } catch (error) {
         return {
           success: false,

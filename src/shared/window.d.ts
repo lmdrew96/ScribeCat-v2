@@ -63,6 +63,7 @@ declare global {
         exportWithDefaults: (sessionId: string, format: string, outputPath: string) => Promise<{ success: boolean; filePath?: string; format?: string; error?: string }>;
         updateTranscription: (sessionId: string, transcriptionText: string, provider?: string) => Promise<{ success: boolean; error?: string }>;
         updateNotes: (sessionId: string, notes: string) => Promise<{ success: boolean; error?: string }>;
+        createDraft: () => Promise<{ success: boolean; sessionId?: string; error?: string }>;
         getAvailableFormats: () => Promise<{ success: boolean; formats?: string[]; error?: string }>;
       };
       drive: {

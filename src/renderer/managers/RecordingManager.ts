@@ -10,6 +10,7 @@ import { TiptapEditorManager } from './TiptapEditorManager.js';
 import { AIManager } from '../ai/AIManager.js';
 import { CourseManager } from './CourseManager.js';
 import { TranscriptionModeService } from '../services/TranscriptionModeService.js';
+import { NotesAutoSaveManager } from './NotesAutoSaveManager.js';
 
 export class RecordingManager {
   private audioManager: AudioManager;
@@ -19,6 +20,7 @@ export class RecordingManager {
   private aiManager: AIManager;
   private courseManager: CourseManager;
   private transcriptionService: TranscriptionModeService;
+  private notesAutoSaveManager: NotesAutoSaveManager;
 
   private isRecording: boolean = false;
   private isPaused: boolean = false;
@@ -34,7 +36,8 @@ export class RecordingManager {
     viewManager: ViewManager,
     editorManager: TiptapEditorManager,
     aiManager: AIManager,
-    courseManager: CourseManager
+    courseManager: CourseManager,
+    notesAutoSaveManager: NotesAutoSaveManager
   ) {
     this.audioManager = audioManager;
     this.transcriptionManager = transcriptionManager;
@@ -42,6 +45,7 @@ export class RecordingManager {
     this.editorManager = editorManager;
     this.aiManager = aiManager;
     this.courseManager = courseManager;
+    this.notesAutoSaveManager = notesAutoSaveManager;
     this.transcriptionService = new TranscriptionModeService(audioManager, transcriptionManager);
   }
 
@@ -155,21 +159,12 @@ export class RecordingManager {
         }
       }
 
-      // Save notes to session if any
-      const notes = this.editorManager.getNotesHTML();
-      if (notes && notes.trim().length > 0) {
-        console.log('Saving notes to session...');
-        const notesResult = await window.scribeCat.session.updateNotes(
-          saveResult.sessionId,
-          notes
-        );
+      // Transition NotesAutoSaveManager to use the recording session
+      // This will copy notes from draft (if any) and continue auto-saving to the recording session
+      await this.notesAutoSaveManager.transitionToRecordingSession(saveResult.sessionId);
 
-        if (notesResult.success) {
-          console.log('✅ Notes saved to session');
-        } else {
-          console.error('❌ Failed to save notes:', notesResult.error);
-        }
-      }
+      // Save notes immediately to ensure they're captured
+      await this.notesAutoSaveManager.saveImmediately();
     }
 
     // Update state

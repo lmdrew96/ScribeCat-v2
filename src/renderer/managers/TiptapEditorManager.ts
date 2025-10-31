@@ -14,6 +14,7 @@ export class TiptapEditorManager {
   private editorElement: HTMLElement;
   private charCount: HTMLElement;
   private wordCount: HTMLElement;
+  private onContentChangeCallback?: () => void;
 
   // Toolbar buttons
   private boldBtn: HTMLButtonElement;
@@ -48,6 +49,13 @@ export class TiptapEditorManager {
     this.undoBtn = document.getElementById('undo-btn') as HTMLButtonElement;
     this.redoBtn = document.getElementById('redo-btn') as HTMLButtonElement;
     this.clearFormatBtn = document.getElementById('clear-format-btn') as HTMLButtonElement;
+  }
+
+  /**
+   * Set callback for content changes (for auto-save)
+   */
+  setOnContentChangeCallback(callback: () => void): void {
+    this.onContentChangeCallback = callback;
   }
 
   /**
@@ -93,6 +101,10 @@ export class TiptapEditorManager {
       onUpdate: () => {
         this.updateStats();
         this.updateButtonStates();
+        // Call auto-save callback if registered
+        if (this.onContentChangeCallback) {
+          this.onContentChangeCallback();
+        }
       },
       onSelectionUpdate: () => {
         this.updateButtonStates();
