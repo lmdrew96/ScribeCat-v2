@@ -8,14 +8,16 @@ import { AssemblyAITranscriptionService } from '../assemblyai-transcription-serv
 import { TranscriptionManager } from './TranscriptionManager.js';
 import { ViewManager } from './ViewManager.js';
 import { TiptapEditorManager } from './TiptapEditorManager.js';
+import { AIManager } from '../ai/AIManager.js';
+import { CourseManager } from './CourseManager.js';
 
 export class RecordingManager {
   private audioManager: AudioManager;
   private transcriptionManager: TranscriptionManager;
   private viewManager: ViewManager;
   private editorManager: TiptapEditorManager;
-  private aiManager: any; // AIManager type
-  private courseManager: any; // CourseManager type
+  private aiManager: AIManager;
+  private courseManager: CourseManager;
   
   private isRecording: boolean = false;
   private isPaused: boolean = false;
@@ -27,14 +29,15 @@ export class RecordingManager {
   private totalPausedTime: number = 0;
   private elapsedTimer: number | null = null;
   private vuMeterInterval: number | null = null;
+  private assemblyAIStreamingInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     audioManager: AudioManager,
     transcriptionManager: TranscriptionManager,
     viewManager: ViewManager,
     editorManager: TiptapEditorManager,
-    aiManager: any,
-    courseManager: any
+    aiManager: AIManager,
+    courseManager: CourseManager
   ) {
     this.audioManager = audioManager;
     this.transcriptionManager = transcriptionManager;
@@ -207,10 +210,9 @@ export class RecordingManager {
       // For simulation, we can just stop sending data (it's already paused with audio)
     } else if (this.currentTranscriptionMode === 'assemblyai') {
       // For AssemblyAI, stop audio streaming but keep WebSocket open
-      const intervalId = (window as any).assemblyAIStreamingInterval;
-      if (intervalId) {
-        clearInterval(intervalId);
-        delete (window as any).assemblyAIStreamingInterval;
+      if (this.assemblyAIStreamingInterval !== null) {
+        clearInterval(this.assemblyAIStreamingInterval);
+        this.assemblyAIStreamingInterval = null;
       }
       this.audioManager.removeAudioDataCallback();
     }
@@ -370,7 +372,7 @@ export class RecordingManager {
       audioBuffer = [];
 
       // Resample to 16kHz
-      const sourceSampleRate = (this.audioManager as any)['analyzer']['audioContext']?.sampleRate || 48000;
+      const sourceSampleRate = this.audioManager.getSampleRate();
       const resampled = this.resampleAudio(combined, sourceSampleRate, 16000);
 
       // Convert to Int16 PCM
@@ -386,7 +388,7 @@ export class RecordingManager {
       }
     }, CHUNK_INTERVAL);
 
-    (window as any).assemblyAIStreamingInterval = intervalId;
+    this.assemblyAIStreamingInterval = intervalId;
     console.log('AssemblyAI audio streaming enabled');
   }
 
@@ -394,10 +396,9 @@ export class RecordingManager {
    * Stop AssemblyAI audio streaming
    */
   private stopAssemblyAIAudioStreaming(): void {
-    const intervalId = (window as any).assemblyAIStreamingInterval;
-    if (intervalId) {
-      clearInterval(intervalId);
-      delete (window as any).assemblyAIStreamingInterval;
+    if (this.assemblyAIStreamingInterval !== null) {
+      clearInterval(this.assemblyAIStreamingInterval);
+      this.assemblyAIStreamingInterval = null;
     }
 
     if (this.assemblyAIService) {

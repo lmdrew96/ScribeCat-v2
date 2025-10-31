@@ -5,26 +5,6 @@
 
 import type { ChatMessage } from '../../shared/types.js';
 
-declare const window: Window & {
-  scribeCat: {
-    ai: {
-      chat: (message: string, history: ChatMessage[], options?: any) => Promise<any>;
-      chatStream: (message: string, history: ChatMessage[], options: any, onChunk: (chunk: string) => void) => Promise<any>;
-      removeChatStreamListener: () => void;
-      polishTranscription: (text: string, options?: any) => Promise<any>;
-      generateSummary: (transcription: string, notes?: string, options?: any) => Promise<any>;
-      generateTitle: (transcription: string, notes?: string, options?: any) => Promise<any>;
-      isConfigured: () => Promise<any>;
-      testConnection: () => Promise<any>;
-      setApiKey: (apiKey: string) => Promise<any>;
-    };
-    store: {
-      get: (key: string) => Promise<any>;
-      set: (key: string, value: any) => Promise<void>;
-    };
-  };
-};
-
 export class AIClient {
   /**
    * Test connection to AI service

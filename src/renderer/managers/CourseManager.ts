@@ -35,9 +35,9 @@ export class CourseManager {
 
       // Try to get courses from Canvas API
       try {
-        const apiConfigured = await (window.scribeCat as any).canvas.isConfigured();
+        const apiConfigured = await window.scribeCat.canvas.isConfigured();
         if (apiConfigured.data?.configured) {
-          const apiResult = await (window.scribeCat as any).canvas.getCourses();
+          const apiResult = await window.scribeCat.canvas.getCourses();
           if (apiResult.success && apiResult.data) {
             allCourses.push(...apiResult.data.map((course: any) => ({
               ...course,
@@ -51,7 +51,7 @@ export class CourseManager {
 
       // Get imported courses from browser extension
       try {
-        const importedResult = await (window.scribeCat as any).canvas.getImportedCourses();
+        const importedResult = await window.scribeCat.canvas.getImportedCourses();
         if (importedResult.success && importedResult.data) {
           allCourses.push(...importedResult.data.map((course: any) => ({
             ...course,

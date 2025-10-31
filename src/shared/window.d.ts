@@ -78,20 +78,22 @@ declare global {
         createFolder: (name: string, parentId?: string) => Promise<{ success: boolean; data?: string; error?: string }>;
       };
     canvas: {
-      configure: (config: { baseUrl: string; apiToken: string }) => Promise<any>;
-      testConnection: () => Promise<any>;
-      getCourses: () => Promise<any>;
-      isConfigured: () => Promise<any>;
-      getConfig: () => Promise<any>;
-      disconnect: () => Promise<any>;
-      importCourses: (jsonData: string) => Promise<any>;
-      getImportedCourses: () => Promise<any>;
-      deleteImportedCourse: (courseId: string) => Promise<any>;
+      configure: (config: { baseUrl: string; apiToken: string }) => Promise<{ success: boolean; data?: any; error?: string }>;
+      testConnection: () => Promise<{ success: boolean; data?: any; error?: string }>;
+      getCourses: () => Promise<{ success: boolean; data?: any[]; error?: string }>;
+      isConfigured: () => Promise<{ success: boolean; data?: { configured: boolean }; error?: string }>;
+      getConfig: () => Promise<{ success: boolean; data?: { baseUrl: string }; error?: string }>;
+      disconnect: () => Promise<{ success: boolean; error?: string }>;
+      importCourses: (jsonData: string) => Promise<{ success: boolean; data?: { count: number }; error?: string }>;
+      getImportedCourses: () => Promise<{ success: boolean; data?: any[]; error?: string }>;
+      deleteImportedCourse: (courseId: string) => Promise<{ success: boolean; error?: string }>;
     };
       // TODO: Add type declarations when features are implemented
       // files?: { ... };
       // themes?: { ... };
     };
+    // Global manager instances (set in app.ts)
+    courseManager?: any; // CourseManager instance
   }
 }
 

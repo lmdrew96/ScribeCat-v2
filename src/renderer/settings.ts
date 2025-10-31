@@ -7,26 +7,6 @@
 import { ThemeManager } from './themes/ThemeManager.js';
 import type { Theme } from './themes/types.js';
 
-declare const window: Window & {
-  scribeCat: {
-    store: {
-      get: (key: string) => Promise<any>;
-      set: (key: string, value: any) => Promise<void>;
-    };
-    ai: {
-      setApiKey: (apiKey: string) => Promise<any>;
-    };
-    drive: {
-      configure: (config: any) => Promise<any>;
-      isAuthenticated: () => Promise<any>;
-      getAuthUrl: () => Promise<any>;
-      setCredentials: (config: any) => Promise<any>;
-      disconnect: () => Promise<any>;
-      getUserEmail: () => Promise<any>;
-    };
-  };
-};
-
 export class SettingsManager {
   private settingsModal: HTMLElement;
   private transcriptionMode: 'simulation' | 'assemblyai' = 'simulation';
@@ -673,7 +653,7 @@ export class SettingsManager {
       }
       
       // Configure Canvas with the provided credentials
-      const configResult = await (window.scribeCat as any).canvas.configure({
+      const configResult = await window.scribeCat.canvas.configure({
         baseUrl: this.canvasUrl,
         apiToken: this.canvasToken
       });
@@ -702,8 +682,8 @@ export class SettingsManager {
     try {
       const confirmed = confirm('Are you sure you want to disconnect Canvas?');
       if (!confirmed) return;
-      
-      await (window.scribeCat as any).canvas.disconnect();
+
+      await window.scribeCat.canvas.disconnect();
       
       this.canvasConfigured = false;
       this.canvasUrl = '';
@@ -729,12 +709,12 @@ export class SettingsManager {
    */
   private async checkCanvasConnection(): Promise<void> {
     try {
-      const result = await (window.scribeCat as any).canvas.isConfigured();
+      const result = await window.scribeCat.canvas.isConfigured();
       this.canvasConfigured = result.data?.configured || false;
-      
+
       if (this.canvasConfigured) {
         // Get Canvas config to populate URL field
-        const configResult = await (window.scribeCat as any).canvas.getConfig();
+        const configResult = await window.scribeCat.canvas.getConfig();
         if (configResult.success && configResult.data) {
           this.canvasUrl = configResult.data.baseUrl || '';
           // Don't populate token for security
@@ -794,7 +774,7 @@ export class SettingsManager {
       }
       
       // Import courses via IPC
-      const result = await (window.scribeCat as any).canvas.importCourses(jsonData);
+      const result = await window.scribeCat.canvas.importCourses(jsonData);
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to import courses');
@@ -807,12 +787,12 @@ export class SettingsManager {
       await this.loadImportedCourses();
       
       // Trigger course manager refresh if it exists
-      if ((window as any).courseManager) {
-        await (window as any).courseManager.refresh();
+      if (window.courseManager) {
+        await window.courseManager.refresh();
       }
       
       this.showNotification(
-        `Successfully imported ${result.data.count} course(s)!`,
+        `Successfully imported ${result.data?.count ?? 0} course(s)!`,
         'success'
       );
       
@@ -830,7 +810,7 @@ export class SettingsManager {
    */
   private async loadImportedCourses(): Promise<void> {
     try {
-      const result = await (window.scribeCat as any).canvas.getImportedCourses();
+      const result = await window.scribeCat.canvas.getImportedCourses();
       const courses = result.data || [];
       
       const container = document.getElementById('imported-courses-container');
@@ -908,8 +888,8 @@ export class SettingsManager {
     try {
       const confirmed = confirm('Are you sure you want to delete this course?');
       if (!confirmed) return;
-      
-      await (window.scribeCat as any).canvas.deleteImportedCourse(courseId);
+
+      await window.scribeCat.canvas.deleteImportedCourse(courseId);
       await this.loadImportedCourses();
       this.showNotification('Course deleted', 'success');
       

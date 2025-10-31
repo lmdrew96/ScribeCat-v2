@@ -143,6 +143,17 @@ export class AudioManager {
   }
 
   /**
+   * Get the sample rate of the audio context
+   * Returns 48000 as default if not initialized
+   */
+  getSampleRate(): number {
+    // Access the analyzer's audio context sample rate
+    // The analyzer is a public dependency, so this is safe
+    const context = (this.analyzer as any)['audioContext'];
+    return context?.sampleRate || 48000;
+  }
+
+  /**
    * Clean up all resources
    */
   cleanup(): void {
