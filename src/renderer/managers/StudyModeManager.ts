@@ -8,9 +8,15 @@
 import type { Session } from '../../domain/entities/Session.js';
 import { AIClient } from '../ai/AIClient.js';
 import { renderMarkdown } from '../markdown-renderer.js';
+import { SessionPlaybackManager } from '../services/SessionPlaybackManager.js';
+import { AISummaryManager } from '../services/AISummaryManager.js';
+import { ExportCoordinator } from '../services/ExportCoordinator.js';
 
 export class StudyModeManager {
   private aiClient: AIClient;
+  private sessionPlaybackManager: SessionPlaybackManager;
+  private aiSummaryManager: AISummaryManager;
+  private exportCoordinator: ExportCoordinator;
   private isActive: boolean = false;
   private sessions: Session[] = [];
   private filteredSessions: Session[] = [];
@@ -50,10 +56,13 @@ export class StudyModeManager {
     this.backToRecordBtn = document.getElementById('back-to-record-btn') as HTMLButtonElement;
     this.sessionListContainer = document.getElementById('session-list') as HTMLElement;
     this.sessionDetailContainer = document.getElementById('session-detail') as HTMLElement;
-    
-    // Initialize AI client
+
+    // Initialize services
     this.aiClient = new AIClient();
-    
+    this.sessionPlaybackManager = new SessionPlaybackManager();
+    this.aiSummaryManager = new AISummaryManager();
+    this.exportCoordinator = new ExportCoordinator();
+
     this.initializeEventListeners();
   }
 
@@ -135,7 +144,18 @@ export class StudyModeManager {
     
     if (this.bulkExportBtn) {
       this.bulkExportBtn.addEventListener('click', () => {
-        this.handleBulkExport();
+        this.exportCoordinator.handleBulkExport(
+          this.selectedSessionIds,
+          this.sessions,
+          this.bulkExportBtn,
+          {
+            onBulkExportComplete: () => {
+              this.selectedSessionIds.clear();
+              this.updateBulkActionsBar();
+              this.renderSessionList();
+            }
+          }
+        );
       });
     }
     
@@ -462,7 +482,7 @@ export class StudyModeManager {
         e.stopPropagation();
         const sessionId = (btn as HTMLElement).dataset.sessionId;
         if (sessionId) {
-          this.exportSession(sessionId);
+          this.exportCoordinator.exportSession(sessionId, this.sessions);
         }
       });
     });
@@ -828,682 +848,30 @@ export class StudyModeManager {
   private attachStudyToolHandlers(session: Session): void {
     const studyContentArea = document.getElementById('study-content-area');
     if (!studyContentArea) return;
-    
+
     // Generate Summary button
     const summaryBtn = document.getElementById('generate-summary-btn');
     summaryBtn?.addEventListener('click', () => {
-      this.generateSummary(session, studyContentArea);
+      this.aiSummaryManager.generateSummary(session, studyContentArea);
     });
-    
+
     // Extract Key Concepts button
     const conceptsBtn = document.getElementById('extract-concepts-btn');
     conceptsBtn?.addEventListener('click', () => {
-      this.extractKeyConcepts(session, studyContentArea);
+      this.aiSummaryManager.extractKeyConcepts(session, studyContentArea);
     });
-    
+
     // Generate Flashcards button
     const flashcardsBtn = document.getElementById('generate-flashcards-btn');
     flashcardsBtn?.addEventListener('click', () => {
-      this.generateFlashcards(session, studyContentArea);
+      this.aiSummaryManager.generateFlashcards(session, studyContentArea);
     });
-    
+
     // Generate Quiz button
     const quizBtn = document.getElementById('generate-quiz-btn');
     quizBtn?.addEventListener('click', () => {
-      this.generateQuiz(session, studyContentArea);
+      this.aiSummaryManager.generateQuiz(session, studyContentArea);
     });
-  }
-  
-  /**
-   * Generate AI summary of the session
-   */
-  private async generateSummary(session: Session, contentArea: HTMLElement): Promise<void> {
-    // Set active state
-    this.setActiveStudyTool('generate-summary-btn');
-    
-    // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Generating summary...</div>
-      </div>
-    `;
-    
-    try {
-      // Check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
-        contentArea.innerHTML = `
-          <div class="study-summary">
-            <div class="summary-section">
-              <p style="text-align: center; color: var(--text-tertiary);">
-                No transcription available for this session. Please record and transcribe a session first.
-              </p>
-            </div>
-          </div>
-        `;
-        return;
-      }
-      
-      // Generate summary using AI
-      const result = await this.aiClient.generateSummary(
-        session.transcription.fullText,
-        session.notes || undefined
-      );
-      
-      if (result.success && result.data) {
-        // Extract summary from SummaryResult object
-        let summary: string;
-        if (typeof result.data === 'string') {
-          summary = result.data;
-        } else if (result.data && typeof result.data === 'object' && 'summary' in result.data) {
-          summary = result.data.summary;
-        } else {
-          summary = JSON.stringify(result.data);
-        }
-        
-        contentArea.innerHTML = `
-          <div class="study-summary">
-            <div class="summary-section">
-              <h5>📋 Summary</h5>
-              <div>${renderMarkdown(summary)}</div>
-            </div>
-          </div>
-        `;
-      } else {
-        throw new Error(result.error || 'Failed to generate summary');
-      }
-    } catch (error) {
-      console.error('Error generating summary:', error);
-      contentArea.innerHTML = `
-        <div class="study-summary">
-          <div class="summary-section">
-            <p style="text-align: center; color: var(--record-color);">
-              Failed to generate summary: ${error instanceof Error ? error.message : 'Unknown error'}
-            </p>
-            <p style="text-align: center; color: var(--text-tertiary); margin-top: 12px;">
-              Make sure Claude AI is configured in Settings.
-            </p>
-          </div>
-        </div>
-      `;
-    }
-  }
-  
-  /**
-   * Extract key concepts from the session
-   */
-  private async extractKeyConcepts(session: Session, contentArea: HTMLElement): Promise<void> {
-    // Set active state
-    this.setActiveStudyTool('extract-concepts-btn');
-    
-    // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Extracting key concepts...</div>
-      </div>
-    `;
-    
-    try {
-      // Check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
-        contentArea.innerHTML = `
-          <div class="study-concepts">
-            <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-              No transcription available for this session.
-            </div>
-          </div>
-        `;
-        return;
-      }
-      
-      // Use AI to extract key concepts
-      const prompt = `Extract the key concepts from this transcription. For each concept, provide the term and a brief definition. Format as a JSON array with objects containing "term" and "definition" fields. Limit to 5-7 most important concepts.\n\nTranscription:\n${session.transcription.fullText}`;
-      
-      const result = await window.scribeCat.ai.chat(prompt, [], {
-        includeTranscription: false,
-        includeNotes: false
-      });
-      
-      if (result.success && result.data) {
-        // result.data is a string response from AI
-        let concepts: Array<{term: string; definition: string}> = [];
-        
-        try {
-          // Handle response - may be string or object with message property
-          let responseText = '';
-          if (typeof result.data === 'string') {
-            responseText = result.data;
-          } else if (result.data && typeof result.data === 'object' && 'message' in result.data) {
-            responseText = result.data.message;
-          } else {
-            responseText = JSON.stringify(result.data);
-          }
-          
-          console.log('🔍 Key Concepts - Raw AI response:', responseText.substring(0, 200));
-          
-          // Try to find JSON in code blocks first
-          let jsonText = '';
-          const codeBlockMatch = responseText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-          if (codeBlockMatch) {
-            jsonText = codeBlockMatch[1];
-            console.log('📦 Found JSON in code block');
-          } else {
-            // Try to find raw JSON array
-            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              jsonText = jsonMatch[0];
-              console.log('📄 Found raw JSON array');
-            }
-          }
-          
-          if (jsonText) {
-            // Unescape the JSON string if it has escape sequences
-            try {
-              // Try parsing as-is first
-              console.log('🔧 Attempting to parse:', jsonText.substring(0, 100));
-              const parsed = JSON.parse(jsonText);
-            // Validate the structure
-            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].term && parsed[0].definition) {
-              concepts = parsed;
-              } else {
-                throw new Error('Invalid concept structure');
-              }
-            } catch (firstParseError) {
-              // If first parse fails, try unescaping the string
-              console.log('⚠️ First parse failed, trying to unescape...');
-              const unescaped = jsonText.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
-              const parsed = JSON.parse(unescaped);
-              // Validate the structure
-              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].term && parsed[0].definition) {
-                concepts = parsed;
-              } else {
-                throw new Error('Invalid concept structure');
-              }
-            }
-          } else {
-            throw new Error('No JSON array found in response');
-          }
-        } catch (e) {
-          console.warn('Failed to parse concepts as JSON, using plain text:', e);
-          // If JSON parsing fails, create a single concept from the response
-          const responseText = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
-          concepts = [{
-            term: 'Key Concepts',
-            definition: responseText
-          }];
-        }
-        
-        const conceptsHtml = concepts.map(concept => `
-          <div class="concept-item">
-            <div class="concept-term">${this.escapeHtml(concept.term)}</div>
-            <div class="concept-definition">${renderMarkdown(concept.definition)}</div>
-          </div>
-        `).join('');
-        
-        contentArea.innerHTML = `
-          <div class="study-concepts">
-            ${conceptsHtml}
-          </div>
-        `;
-      } else {
-        throw new Error(result.error || 'Failed to extract concepts');
-      }
-    } catch (error) {
-      console.error('Error extracting concepts:', error);
-      contentArea.innerHTML = `
-        <div class="study-concepts">
-          <div style="text-align: center; padding: 20px; color: var(--record-color);">
-            Failed to extract concepts: ${error instanceof Error ? error.message : 'Unknown error'}
-          </div>
-          <div style="text-align: center; padding: 10px; color: var(--text-tertiary);">
-            Make sure Claude AI is configured in Settings.
-          </div>
-        </div>
-      `;
-    }
-  }
-  
-  /**
-   * Generate flashcards from the session
-   */
-  private async generateFlashcards(session: Session, contentArea: HTMLElement): Promise<void> {
-    // Set active state
-    this.setActiveStudyTool('generate-flashcards-btn');
-    
-    // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Creating flashcards...</div>
-      </div>
-    `;
-    
-    try {
-      // Check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
-        contentArea.innerHTML = `
-          <div class="study-flashcards">
-            <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-              No transcription available for this session.
-            </div>
-          </div>
-        `;
-        return;
-      }
-      
-      // Use AI to generate flashcards
-      const prompt = `Create 5-7 flashcards from this transcription. Each flashcard should have a question on the front and an answer on the back. Format as a JSON array with objects containing "question" and "answer" fields. Focus on the most important concepts and facts.\n\nTranscription:\n${session.transcription.fullText}`;
-      
-      const result = await window.scribeCat.ai.chat(prompt, [], {
-        includeTranscription: false,
-        includeNotes: false
-      });
-      
-      if (result.success && result.data) {
-        // result.data is a string response from AI
-        let flashcards: Array<{question: string; answer: string}> = [];
-        
-        try {
-          // Handle response - may be string or object with message property
-          let responseText = '';
-          if (typeof result.data === 'string') {
-            responseText = result.data;
-          } else if (result.data && typeof result.data === 'object' && 'message' in result.data) {
-            responseText = result.data.message;
-          } else {
-            responseText = JSON.stringify(result.data);
-          }
-          
-          console.log('🔍 Flashcards - Raw AI response:', responseText.substring(0, 200));
-          
-          // Try to find JSON in code blocks first
-          let jsonText = '';
-          const codeBlockMatch = responseText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-          if (codeBlockMatch) {
-            jsonText = codeBlockMatch[1];
-            console.log('📦 Found JSON in code block');
-          } else {
-            // Try to find raw JSON array
-            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              jsonText = jsonMatch[0];
-              console.log('📄 Found raw JSON array');
-            }
-          }
-          
-          if (jsonText) {
-            // Unescape the JSON string if it has escape sequences
-            try {
-              // Try parsing as-is first
-              console.log('🔧 Attempting to parse:', jsonText.substring(0, 100));
-              const parsed = JSON.parse(jsonText);
-            // Validate the structure
-            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].question && parsed[0].answer) {
-              flashcards = parsed;
-              } else {
-                throw new Error('Invalid flashcard structure');
-              }
-            } catch (firstParseError) {
-              // If first parse fails, try unescaping the string
-              console.log('⚠️ First parse failed, trying to unescape...');
-              const unescaped = jsonText.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
-              const parsed = JSON.parse(unescaped);
-              // Validate the structure
-              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].question && parsed[0].answer) {
-                flashcards = parsed;
-              } else {
-                throw new Error('Invalid flashcard structure');
-              }
-            }
-          } else {
-            throw new Error('No JSON array found in response');
-          }
-        } catch (e) {
-          console.error('Failed to parse flashcards:', e);
-          throw new Error('Failed to parse flashcards from AI response. The AI may not have returned the expected format.');
-        }
-        
-        if (flashcards.length === 0) {
-          throw new Error('No flashcards generated');
-        }
-        
-        // Render flashcards with navigation
-        this.renderFlashcards(flashcards, contentArea);
-      } else {
-        throw new Error(result.error || 'Failed to generate flashcards');
-      }
-    } catch (error) {
-      console.error('Error generating flashcards:', error);
-      contentArea.innerHTML = `
-        <div class="study-flashcards">
-          <div style="text-align: center; padding: 20px; color: var(--record-color);">
-            Failed to generate flashcards: ${error instanceof Error ? error.message : 'Unknown error'}
-          </div>
-          <div style="text-align: center; padding: 10px; color: var(--text-tertiary);">
-            Make sure Claude AI is configured in Settings.
-          </div>
-        </div>
-      `;
-    }
-  }
-  
-  /**
-   * Render flashcards with navigation
-   */
-  private renderFlashcards(flashcards: Array<{question: string; answer: string}>, contentArea: HTMLElement): void {
-    let currentIndex = 0;
-    let isFlipped = false;
-    
-    const render = () => {
-      const card = flashcards[currentIndex];
-      const side = isFlipped ? 'answer' : 'question';
-      const label = isFlipped ? 'BACK' : 'FRONT';
-      const content = isFlipped ? card.answer : card.question;
-      
-      contentArea.innerHTML = `
-        <div class="study-flashcards">
-          <div class="flashcard-controls">
-            <div class="flashcard-counter">Card ${currentIndex + 1} of ${flashcards.length}</div>
-            <div class="flashcard-nav">
-              <button class="flashcard-nav-btn" id="prev-card-btn" ${currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
-              <button class="flashcard-nav-btn" id="next-card-btn" ${currentIndex === flashcards.length - 1 ? 'disabled' : ''}>Next →</button>
-            </div>
-          </div>
-          
-          <div class="flashcard ${isFlipped ? 'flipped' : ''}" id="flashcard">
-            <div class="flashcard-side">
-              <div class="flashcard-label">${label}</div>
-              <div class="flashcard-content">${this.escapeHtml(content)}</div>
-            </div>
-            <div class="flashcard-hint">Click to flip</div>
-          </div>
-        </div>
-      `;
-      
-      // Add event listeners
-      const flashcard = document.getElementById('flashcard');
-      flashcard?.addEventListener('click', () => {
-        isFlipped = !isFlipped;
-        render();
-      });
-      
-      const prevBtn = document.getElementById('prev-card-btn');
-      prevBtn?.addEventListener('click', () => {
-        if (currentIndex > 0) {
-          currentIndex--;
-          isFlipped = false;
-          render();
-        }
-      });
-      
-      const nextBtn = document.getElementById('next-card-btn');
-      nextBtn?.addEventListener('click', () => {
-        if (currentIndex < flashcards.length - 1) {
-          currentIndex++;
-          isFlipped = false;
-          render();
-        }
-      });
-    };
-    
-    render();
-  }
-  
-  /**
-   * Generate a quiz from the session
-   */
-  private async generateQuiz(session: Session, contentArea: HTMLElement): Promise<void> {
-    // Set active state
-    this.setActiveStudyTool('generate-quiz-btn');
-    
-    // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Generating quiz...</div>
-      </div>
-    `;
-    
-    try {
-      // Check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
-        contentArea.innerHTML = `
-          <div class="study-quiz">
-            <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-              No transcription available for this session.
-            </div>
-          </div>
-        `;
-        return;
-      }
-      
-      // Use AI to generate quiz questions
-      const prompt = `Create 5 multiple-choice quiz questions from this transcription. Each question should have 4 options (A, B, C, D) with one correct answer. Format as a JSON array with objects containing "question", "options" (array of 4 strings), and "correctAnswer" (0-3 index). Focus on testing understanding of key concepts.\n\nTranscription:\n${session.transcription.fullText}`;
-      
-      const result = await window.scribeCat.ai.chat(prompt, [], {
-        includeTranscription: false,
-        includeNotes: false
-      });
-      
-      if (result.success && result.data) {
-        // result.data is a string response from AI
-        let questions: Array<{question: string; options: string[]; correctAnswer: number}> = [];
-        
-        try {
-          // Handle response - may be string or object with message property
-          let responseText = '';
-          if (typeof result.data === 'string') {
-            responseText = result.data;
-          } else if (result.data && typeof result.data === 'object' && 'message' in result.data) {
-            responseText = result.data.message;
-          } else {
-            responseText = JSON.stringify(result.data);
-          }
-          
-          console.log('🔍 Quiz - Raw AI response:', responseText.substring(0, 200));
-          
-          // Try to find JSON in code blocks first
-          let jsonText = '';
-          const codeBlockMatch = responseText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-          if (codeBlockMatch) {
-            jsonText = codeBlockMatch[1];
-            console.log('📦 Found JSON in code block');
-          } else {
-            // Try to find raw JSON array
-            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              jsonText = jsonMatch[0];
-              console.log('📄 Found raw JSON array');
-            }
-          }
-          
-          if (jsonText) {
-            // Unescape the JSON string if it has escape sequences
-            try {
-              // Try parsing as-is first
-              console.log('🔧 Attempting to parse:', jsonText.substring(0, 100));
-              const parsed = JSON.parse(jsonText);
-            // Validate the structure
-            if (Array.isArray(parsed) && parsed.length > 0 && 
-                parsed[0].question && parsed[0].options && typeof parsed[0].correctAnswer === 'number') {
-              questions = parsed;
-              } else {
-                throw new Error('Invalid quiz question structure');
-              }
-            } catch (firstParseError) {
-              // If first parse fails, try unescaping the string
-              console.log('⚠️ First parse failed, trying to unescape...');
-              const unescaped = jsonText.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
-              const parsed = JSON.parse(unescaped);
-              // Validate the structure
-              if (Array.isArray(parsed) && parsed.length > 0 && 
-                  parsed[0].question && parsed[0].options && typeof parsed[0].correctAnswer === 'number') {
-                questions = parsed;
-              } else {
-                throw new Error('Invalid quiz question structure');
-              }
-            }
-          } else {
-            throw new Error('No JSON array found in response');
-          }
-        } catch (e) {
-          console.error('Failed to parse quiz:', e);
-          throw new Error('Failed to parse quiz from AI response. The AI may not have returned the expected format.');
-        }
-        
-        if (questions.length === 0) {
-          throw new Error('No quiz questions generated');
-        }
-        
-        // Render quiz with interactivity
-        this.renderQuiz(questions, contentArea);
-      } else {
-        throw new Error(result.error || 'Failed to generate quiz');
-      }
-    } catch (error) {
-      console.error('Error generating quiz:', error);
-      contentArea.innerHTML = `
-        <div class="study-quiz">
-          <div style="text-align: center; padding: 20px; color: var(--record-color);">
-            Failed to generate quiz: ${error instanceof Error ? error.message : 'Unknown error'}
-          </div>
-          <div style="text-align: center; padding: 10px; color: var(--text-tertiary);">
-            Make sure Claude AI is configured in Settings.
-          </div>
-        </div>
-      `;
-    }
-  }
-  
-  /**
-   * Render interactive quiz
-   */
-  private renderQuiz(questions: Array<{question: string; options: string[]; correctAnswer: number}>, contentArea: HTMLElement): void {
-    let currentIndex = 0;
-    let score = 0;
-    let answered = false;
-    let selectedAnswer: number | null = null;
-    
-    const render = () => {
-      if (currentIndex >= questions.length) {
-        // Quiz complete
-        contentArea.innerHTML = `
-          <div class="study-quiz">
-            <div class="quiz-complete">
-              <div class="quiz-complete-icon">🎉</div>
-              <div class="quiz-complete-title">Quiz Complete!</div>
-              <div class="quiz-complete-score">${score} / ${questions.length}</div>
-              <p style="color: var(--text-secondary); margin: 16px 0;">
-                ${score === questions.length ? 'Perfect score! Excellent work!' : 
-                  score >= questions.length * 0.7 ? 'Great job! You have a good understanding.' :
-                  'Keep studying! Review the material and try again.'}
-              </p>
-              <button class="quiz-restart-btn" id="restart-quiz-btn">Restart Quiz</button>
-            </div>
-          </div>
-        `;
-        
-        const restartBtn = document.getElementById('restart-quiz-btn');
-        restartBtn?.addEventListener('click', () => {
-          currentIndex = 0;
-          score = 0;
-          answered = false;
-          selectedAnswer = null;
-          render();
-        });
-        return;
-      }
-      
-      const question = questions[currentIndex];
-      const optionLabels = ['A', 'B', 'C', 'D'];
-      
-      const optionsHtml = question.options.map((option, index) => {
-        let className = 'quiz-option';
-        if (answered) {
-          if (index === question.correctAnswer) {
-            className += ' correct';
-          } else if (index === selectedAnswer) {
-            className += ' incorrect';
-          }
-        } else if (index === selectedAnswer) {
-          className += ' selected';
-        }
-        
-        return `
-          <div class="quiz-option" data-index="${index}">
-            ${optionLabels[index]}: ${this.escapeHtml(option)}
-          </div>
-        `;
-      }).join('');
-      
-      contentArea.innerHTML = `
-        <div class="study-quiz">
-          <div class="quiz-progress">
-            <div class="quiz-question-number">Question ${currentIndex + 1} of ${questions.length}</div>
-            <div class="quiz-score">Score: ${score}/${currentIndex}</div>
-          </div>
-          
-          <div class="quiz-question">
-            <div class="quiz-question-text">${this.escapeHtml(question.question)}</div>
-            <div class="quiz-options" id="quiz-options">
-              ${optionsHtml}
-            </div>
-            ${answered ? `
-              <div class="quiz-feedback">
-                ${selectedAnswer === question.correctAnswer ? 
-                  '✅ Correct! Well done.' : 
-                  `❌ Incorrect. The correct answer is ${optionLabels[question.correctAnswer]}.`}
-              </div>
-              <button class="quiz-next-btn" id="next-question-btn">
-                ${currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
-              </button>
-            ` : ''}
-          </div>
-        </div>
-      `;
-      
-      // Add event listeners for options
-      if (!answered) {
-        const options = document.querySelectorAll('.quiz-option');
-        options.forEach((option, index) => {
-          option.addEventListener('click', () => {
-            selectedAnswer = index;
-            answered = true;
-            if (index === question.correctAnswer) {
-              score++;
-            }
-            render();
-          });
-        });
-      }
-      
-      // Add event listener for next button
-      if (answered) {
-        const nextBtn = document.getElementById('next-question-btn');
-        nextBtn?.addEventListener('click', () => {
-          currentIndex++;
-          answered = false;
-          selectedAnswer = null;
-          render();
-        });
-      }
-    };
-    
-    render();
-  }
-  
-  /**
-   * Set active state for study tool buttons
-   */
-  private setActiveStudyTool(activeButtonId: string): void {
-    // Remove active class from all buttons
-    const allButtons = document.querySelectorAll('.study-tool-btn');
-    allButtons.forEach(btn => btn.classList.remove('active'));
-    
-    // Add active class to clicked button
-    const activeButton = document.getElementById(activeButtonId);
-    activeButton?.classList.add('active');
   }
   
   /**
@@ -1593,33 +961,30 @@ export class StudyModeManager {
     
     // Audio player setup
     const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
-    
+
     if (audioElement) {
       // Initialize custom audio controls with the session duration
-      this.initializeCustomAudioControls(audioElement, session.duration);
+      this.sessionPlaybackManager.initialize(
+        audioElement,
+        session.duration,
+        () => !this.sessionDetailContainer.classList.contains('hidden')
+      );
       
       // Audio player speed controls
       const speedButtons = document.querySelectorAll('.speed-btn');
-      
+
       speedButtons.forEach(btn => {
         btn.addEventListener('click', () => {
           const speed = parseFloat((btn as HTMLElement).dataset.speed || '1');
           if (audioElement) {
             audioElement.playbackRate = speed;
           }
-          
+
           // Update active state
           speedButtons.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
         });
       });
-      
-      // Active segment highlighting - listen to audio timeupdate
-      if (session.transcription?.segments) {
-        audioElement.addEventListener('timeupdate', () => {
-          this.updateActiveSegment(audioElement.currentTime);
-        });
-      }
     }
     
     // Content tabs
@@ -1649,7 +1014,7 @@ export class StudyModeManager {
     // Export button
     const exportBtn = document.querySelector('.export-session-detail-btn');
     exportBtn?.addEventListener('click', () => {
-      this.exportSession(session.id);
+      this.exportCoordinator.exportSession(session.id, this.sessions);
     });
     
     // Delete button
@@ -1678,223 +1043,6 @@ export class StudyModeManager {
     });
   }
   
-  
-  /**
-   * Initialize custom audio controls
-   */
-  private async initializeCustomAudioControls(audioElement: HTMLAudioElement, sessionDuration: number): Promise<void> {
-    const playPauseBtn = document.getElementById('play-pause-btn');
-    const volumeBtn = document.getElementById('volume-btn');
-    const progressContainer = document.getElementById('audio-progress-container');
-    const progressPlayed = document.getElementById('audio-progress-played');
-    const progressHandle = document.getElementById('audio-progress-handle');
-    const progressBuffered = document.getElementById('audio-progress-buffered');
-    const currentTimeDisplay = document.getElementById('current-time');
-    const totalDurationDisplay = document.getElementById('total-duration');
-    
-    if (!playPauseBtn || !progressContainer || !progressPlayed || !progressHandle) {
-      console.error('Custom audio control elements not found');
-      return;
-    }
-    
-    console.log('🎵 Initializing custom audio controls');
-    console.log('Session duration:', sessionDuration);
-    
-    let isDragging = false;
-    
-    // Use session duration directly (stored when recording was created)
-    const actualDuration = sessionDuration;
-    
-    // Set the duration display immediately
-    if (totalDurationDisplay && actualDuration) {
-      totalDurationDisplay.textContent = this.formatTime(actualDuration);
-      console.log('✅ Set duration display:', this.formatTime(actualDuration));
-    }
-    
-    // Play/Pause button
-    playPauseBtn.addEventListener('click', () => {
-      if (audioElement.paused) {
-        audioElement.play().catch(err => console.error('Playback failed:', err));
-      } else {
-        audioElement.pause();
-      }
-    });
-    
-    // Update play/pause button icon
-    audioElement.addEventListener('play', () => {
-      const icon = playPauseBtn.querySelector('.play-icon');
-      if (icon) icon.textContent = '⏸';
-      playPauseBtn.classList.add('playing');
-    });
-    
-    audioElement.addEventListener('pause', () => {
-      const icon = playPauseBtn.querySelector('.play-icon');
-      if (icon) icon.textContent = '▶';
-      playPauseBtn.classList.remove('playing');
-    });
-    
-    // Volume button
-    if (volumeBtn) {
-      volumeBtn.addEventListener('click', () => {
-        audioElement.muted = !audioElement.muted;
-        const icon = volumeBtn.querySelector('.volume-icon');
-        if (icon) {
-          icon.textContent = audioElement.muted ? '🔇' : '🔊';
-        }
-      });
-    }
-    
-    // Update duration when metadata loads (but don't overwrite if we already have actualDuration)
-    audioElement.addEventListener('loadedmetadata', () => {
-      console.log('✅ Audio metadata loaded');
-      console.log('Duration from audio element:', audioElement.duration);
-      // Only update if we don't have actualDuration or if audio element has valid duration
-      if (totalDurationDisplay && !actualDuration && audioElement.duration && isFinite(audioElement.duration)) {
-        totalDurationDisplay.textContent = this.formatTime(audioElement.duration);
-      }
-    });
-    
-    // Add error handling
-    audioElement.addEventListener('error', (e) => {
-      console.error('❌ Audio error:', e);
-      console.error('Error code:', audioElement.error?.code);
-      console.error('Error message:', audioElement.error?.message);
-    });
-    
-    audioElement.addEventListener('canplay', () => {
-      console.log('✅ Audio can play');
-    });
-    
-    // Update progress bar and time display
-    audioElement.addEventListener('timeupdate', () => {
-      if (!isDragging && actualDuration && isFinite(actualDuration)) {
-        const progress = (audioElement.currentTime / actualDuration) * 100;
-        
-        if (progressPlayed) {
-          progressPlayed.style.width = `${progress}%`;
-        }
-        if (progressHandle) {
-          progressHandle.style.left = `${progress}%`;
-        }
-      }
-      
-      if (currentTimeDisplay) {
-        currentTimeDisplay.textContent = this.formatTime(audioElement.currentTime);
-      }
-    });
-    
-    // Force initial update
-    if (audioElement.readyState >= 1) {
-      console.log('Audio already has metadata, updating duration');
-      if (totalDurationDisplay && audioElement.duration) {
-        totalDurationDisplay.textContent = this.formatTime(audioElement.duration);
-      }
-    }
-    
-    // Update buffered progress
-    audioElement.addEventListener('progress', () => {
-      if (audioElement.buffered.length > 0 && progressBuffered) {
-        const bufferedEnd = audioElement.buffered.end(audioElement.buffered.length - 1);
-        const bufferedProgress = (bufferedEnd / audioElement.duration) * 100;
-        progressBuffered.style.width = `${bufferedProgress}%`;
-      }
-    });
-    
-    // Progress bar click to seek
-    const seek = (e: MouseEvent) => {
-      const rect = progressContainer.getBoundingClientRect();
-      const pos = (e.clientX - rect.left) / rect.width;
-      const seekTime = pos * actualDuration;
-      
-      if (!isNaN(seekTime) && isFinite(seekTime)) {
-        audioElement.currentTime = seekTime;
-      }
-    };
-    
-    progressContainer.addEventListener('click', seek);
-    
-    // Progress bar drag to seek
-    const startDrag = (e: MouseEvent) => {
-      isDragging = true;
-      seek(e);
-    };
-    
-    const drag = (e: MouseEvent) => {
-      if (isDragging) {
-        seek(e);
-      }
-    };
-    
-    const endDrag = () => {
-      isDragging = false;
-    };
-    
-    progressContainer.addEventListener('mousedown', startDrag);
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', endDrag);
-    
-    // Keyboard controls
-    document.addEventListener('keydown', (e) => {
-      // Only handle if audio player is visible
-      if (!this.sessionDetailContainer.classList.contains('hidden')) {
-        // Check if focus is on editor or input elements
-        const target = e.target as HTMLElement;
-        const isEditorFocused = target.closest('.tiptap-content') ||
-                               target.tagName === 'INPUT' ||
-                               target.tagName === 'TEXTAREA' ||
-                               target.isContentEditable;
-
-        if (e.code === 'Space' && e.target === document.body) {
-          e.preventDefault();
-          if (audioElement.paused) {
-            audioElement.play().catch(err => console.error('Playback failed:', err));
-          } else {
-            audioElement.pause();
-          }
-        } else if (e.code === 'ArrowLeft' && !isEditorFocused) {
-          e.preventDefault();
-          audioElement.currentTime = Math.max(0, audioElement.currentTime - 5);
-        } else if (e.code === 'ArrowRight' && !isEditorFocused) {
-          e.preventDefault();
-          audioElement.currentTime = Math.min(audioElement.duration, audioElement.currentTime + 5);
-        }
-      }
-    });
-  }
-  
-  /**
-   * Format time in MM:SS format
-   */
-  private formatTime(seconds: number): string {
-    if (isNaN(seconds) || !isFinite(seconds)) {
-      return '0:00';
-    }
-    
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
-  
-  /**
-   * Update active segment based on current audio time
-   */
-  private updateActiveSegment(currentTime: number): void {
-    const segments = document.querySelectorAll('.transcription-segment');
-    
-    segments.forEach(segment => {
-      const startTime = parseFloat((segment as HTMLElement).dataset.startTime || '0');
-      const endTime = parseFloat((segment as HTMLElement).dataset.endTime || '0');
-      
-      // Check if current time is within this segment's range
-      if (currentTime >= startTime && currentTime < endTime) {
-        segment.classList.add('active');
-      } else {
-        segment.classList.remove('active');
-      }
-    });
-    
-    // No auto-scroll - let users manually scroll while listening
-  }
   
 
   /**
@@ -1929,179 +1077,7 @@ export class StudyModeManager {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
   
-  /**
-   * Export a session
-   */
-  private async exportSession(sessionId: string): Promise<void> {
-    console.log('Exporting session:', sessionId);
-
-    try {
-      // Get the session to use its title for the filename
-      const session = this.sessions.find(s => s.id === sessionId);
-      if (!session) {
-        alert('Session not found');
-        return;
-      }
-
-      // Show format selection dialog
-      const format = await this.showExportFormatDialog();
-      if (!format) {
-        return; // User cancelled
-      }
-
-      // Sanitize the session title for use in filename
-      const sanitizedTitle = session.title.replace(/[^a-z0-9]/gi, '_');
-      const defaultFilename = `${sanitizedTitle}.${format}`;
-
-      // Show save dialog
-      const result = await window.scribeCat.dialog.showSaveDialog({
-        title: 'Export Session',
-        defaultPath: defaultFilename,
-        filters: [
-          { name: this.getFormatName(format), extensions: [format] },
-          { name: 'All Files', extensions: ['*'] }
-        ]
-      });
-
-      if (!result.success || !result.data || result.data.canceled || !result.data.filePath) {
-        return; // User cancelled or error
-      }
-
-      // Show exporting indicator
-      const exportButton = document.querySelector(`[data-session-id="${sessionId}"].export-session-btn`) as HTMLButtonElement;
-      const originalText = exportButton?.textContent || 'Export';
-      if (exportButton) {
-        exportButton.disabled = true;
-        exportButton.textContent = 'Exporting...';
-      }
-
-      // Perform the export
-      const exportResult = await window.scribeCat.session.exportWithDefaults(
-        sessionId,
-        format,
-        result.data.filePath
-      );
-
-      // Restore button state
-      if (exportButton) {
-        exportButton.disabled = false;
-        exportButton.textContent = originalText;
-      }
-
-      if (exportResult.success) {
-        alert(`Session exported successfully to:\n${exportResult.filePath}`);
-      } else {
-        alert(`Export failed: ${exportResult.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Error exporting session:', error);
-      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Show a dialog to select export format
-   */
-  private async showExportFormatDialog(): Promise<'txt' | 'pdf' | 'docx' | 'html' | null> {
-    return new Promise((resolve) => {
-      // Create dialog overlay
-      const overlay = document.createElement('div');
-      overlay.className = 'export-dialog-overlay';
-      overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-      `;
-
-      const dialog = document.createElement('div');
-      dialog.className = 'export-dialog';
-      dialog.style.cssText = `
-        background: var(--background-color, #1e1e1e);
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        max-width: 400px;
-        width: 90%;
-      `;
-
-      dialog.innerHTML = `
-        <h3 style="margin-top: 0; color: var(--text-color, #fff);">Select Export Format</h3>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin: 1.5rem 0;">
-          <button class="format-btn" data-format="txt" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            📄 Plain Text (.txt)
-          </button>
-          <button class="format-btn" data-format="pdf" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            📕 PDF Document (.pdf)
-          </button>
-          <button class="format-btn" data-format="docx" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            📘 Word Document (.docx)
-          </button>
-          <button class="format-btn" data-format="html" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            🌐 HTML Page (.html)
-          </button>
-        </div>
-        <button class="cancel-btn" style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border-color, #444); border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; width: 100%;">
-          Cancel
-        </button>
-      `;
-
-      overlay.appendChild(dialog);
-      document.body.appendChild(overlay);
-
-      // Add hover effects
-      const formatButtons = dialog.querySelectorAll('.format-btn');
-      formatButtons.forEach(btn => {
-        btn.addEventListener('mouseenter', () => {
-          (btn as HTMLElement).style.background = 'var(--primary-color, #007acc)';
-        });
-        btn.addEventListener('mouseleave', () => {
-          (btn as HTMLElement).style.background = 'var(--secondary-color, #2a2a2a)';
-        });
-        btn.addEventListener('click', () => {
-          const format = btn.getAttribute('data-format') as 'txt' | 'pdf' | 'docx' | 'html';
-          document.body.removeChild(overlay);
-          resolve(format);
-        });
-      });
-
-      // Cancel button
-      const cancelBtn = dialog.querySelector('.cancel-btn');
-      cancelBtn?.addEventListener('click', () => {
-        document.body.removeChild(overlay);
-        resolve(null);
-      });
-
-      // Click outside to cancel
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          document.body.removeChild(overlay);
-          resolve(null);
-        }
-      });
-    });
-  }
-
-  /**
-   * Get human-readable format name
-   */
-  private getFormatName(format: string): string {
-    const names: Record<string, string> = {
-      txt: 'Plain Text',
-      pdf: 'PDF Document',
-      docx: 'Word Document',
-      html: 'HTML Page'
-    };
-    return names[format] || format.toUpperCase();
-  }
-  
-  /**
+/**
    * Delete a session with confirmation
    */
   private async deleteSession(sessionId: string): Promise<void> {
@@ -2233,133 +1209,6 @@ export class StudyModeManager {
         card.classList.add('selected');
       } else {
         card.classList.remove('selected');
-      }
-    }
-  }
-  
-  /**
-   * Handle bulk export
-   */
-  private async handleBulkExport(): Promise<void> {
-    const sessionIds = Array.from(this.selectedSessionIds);
-
-    if (sessionIds.length === 0) {
-      return;
-    }
-
-    try {
-      // Show format selection dialog
-      const format = await this.showExportFormatDialog();
-      if (!format) {
-        return; // User cancelled
-      }
-
-      // For the first file, let user choose the location
-      const firstSession = this.sessions.find(s => s.id === sessionIds[0]);
-      if (!firstSession) {
-        alert('Session not found');
-        return;
-      }
-
-      const sanitizedTitle = firstSession.title.replace(/[^a-z0-9]/gi, '_');
-      const defaultFilename = `${sanitizedTitle}.${format}`;
-
-      const result = await window.scribeCat.dialog.showSaveDialog({
-        title: 'Export Sessions - Choose Location',
-        defaultPath: defaultFilename,
-        filters: [
-          { name: this.getFormatName(format), extensions: [format] },
-          { name: 'All Files', extensions: ['*'] }
-        ]
-      });
-
-      if (!result.success || !result.data || result.data.canceled || !result.data.filePath) {
-        return; // User cancelled or error
-      }
-
-      // Get the directory from the first file path
-      const outputDirectory = result.data.filePath.substring(0, result.data.filePath.lastIndexOf('/'));
-
-      // Disable export button during process
-      if (this.bulkExportBtn) {
-        this.bulkExportBtn.disabled = true;
-        this.bulkExportBtn.textContent = 'Exporting...';
-      }
-
-      // Export all sessions
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (let i = 0; i < sessionIds.length; i++) {
-        const sessionId = sessionIds[i];
-        const session = this.sessions.find(s => s.id === sessionId);
-
-        if (!session) {
-          errorCount++;
-          continue;
-        }
-
-        // Generate output path
-        let outputPath: string;
-        if (i === 0) {
-          // Use the user-chosen path for the first file
-          outputPath = result.data.filePath;
-        } else {
-          // Generate path for subsequent files
-          const sanitizedTitle = session.title.replace(/[^a-z0-9]/gi, '_');
-          outputPath = `${outputDirectory}/${sanitizedTitle}.${format}`;
-        }
-
-        // Export the session
-        try {
-          const exportResult = await window.scribeCat.session.exportWithDefaults(
-            sessionId,
-            format,
-            outputPath
-          );
-
-          if (exportResult.success) {
-            successCount++;
-          } else {
-            errorCount++;
-            console.error(`Failed to export session ${sessionId}:`, exportResult.error);
-          }
-        } catch (error) {
-          errorCount++;
-          console.error(`Error exporting session ${sessionId}:`, error);
-        }
-
-        // Update button text with progress
-        if (this.bulkExportBtn) {
-          this.bulkExportBtn.textContent = `Exporting... (${i + 1}/${sessionIds.length})`;
-        }
-      }
-
-      // Restore button state
-      if (this.bulkExportBtn) {
-        this.bulkExportBtn.disabled = false;
-        this.bulkExportBtn.textContent = 'Export Selected';
-      }
-
-      // Show results
-      const message = successCount > 0
-        ? `Successfully exported ${successCount} session${successCount > 1 ? 's' : ''} to:\n${outputDirectory}\n\n${errorCount > 0 ? `${errorCount} session${errorCount > 1 ? 's' : ''} failed.` : ''}`
-        : `Export failed for all sessions.`;
-
-      alert(message);
-
-      // Clear selection after export
-      this.selectedSessionIds.clear();
-      this.updateBulkActionsBar();
-      this.renderSessionList();
-    } catch (error) {
-      console.error('Error in bulk export:', error);
-      alert(`Bulk export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-
-      // Restore button state
-      if (this.bulkExportBtn) {
-        this.bulkExportBtn.disabled = false;
-        this.bulkExportBtn.textContent = 'Export Selected';
       }
     }
   }
