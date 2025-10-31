@@ -4,12 +4,12 @@
  */
 
 import { AudioManager } from '../audio-manager.js';
-import { AssemblyAITranscriptionService } from '../assemblyai-transcription-service.js';
 import { TranscriptionManager } from './TranscriptionManager.js';
 import { ViewManager } from './ViewManager.js';
 import { TiptapEditorManager } from './TiptapEditorManager.js';
 import { AIManager } from '../ai/AIManager.js';
 import { CourseManager } from './CourseManager.js';
+import { TranscriptionModeService } from '../services/TranscriptionModeService.js';
 
 export class RecordingManager {
   private audioManager: AudioManager;
@@ -18,18 +18,15 @@ export class RecordingManager {
   private editorManager: TiptapEditorManager;
   private aiManager: AIManager;
   private courseManager: CourseManager;
-  
+  private transcriptionService: TranscriptionModeService;
+
   private isRecording: boolean = false;
   private isPaused: boolean = false;
-  private transcriptionSessionId: string | null = null;
-  private currentTranscriptionMode: 'simulation' | 'assemblyai' = 'simulation';
-  private assemblyAIService: AssemblyAITranscriptionService | null = null;
   private startTime: number = 0;
   private pauseStartTime: number = 0;
   private totalPausedTime: number = 0;
   private elapsedTimer: number | null = null;
   private vuMeterInterval: number | null = null;
-  private assemblyAIStreamingInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     audioManager: AudioManager,
@@ -45,6 +42,7 @@ export class RecordingManager {
     this.editorManager = editorManager;
     this.aiManager = aiManager;
     this.courseManager = courseManager;
+    this.transcriptionService = new TranscriptionModeService(audioManager, transcriptionManager);
   }
 
   /**
@@ -53,7 +51,7 @@ export class RecordingManager {
   initialize(): void {
     // Set up transcription listeners
     window.scribeCat.transcription.simulation.onResult((result) => {
-      if (this.currentTranscriptionMode === 'simulation') {
+      if (this.transcriptionService.getCurrentMode() === 'simulation') {
         this.transcriptionManager.addEntry(result.timestamp, result.text);
       }
     });
@@ -69,9 +67,9 @@ export class RecordingManager {
 
     // Get transcription mode from settings
     const mode = await window.scribeCat.store.get('transcription-mode') as string || 'simulation';
-    this.currentTranscriptionMode = mode as 'simulation' | 'assemblyai';
+    const transcriptionMode = mode as 'simulation' | 'assemblyai';
 
-    console.log(`Starting recording with ${this.currentTranscriptionMode} mode...`);
+    console.log(`Starting recording with ${transcriptionMode} mode...`);
 
     // Start audio recording
     await this.audioManager.startRecording({
@@ -82,18 +80,21 @@ export class RecordingManager {
     });
 
     // Start transcription service
-    if (this.currentTranscriptionMode === 'simulation') {
-      await this.startSimulationTranscription();
-    } else if (this.currentTranscriptionMode === 'assemblyai') {
-      await this.startAssemblyAITranscription();
-    }
+    const apiKey = transcriptionMode === 'assemblyai'
+      ? await window.scribeCat.store.get('assemblyai-api-key') as string
+      : undefined;
+
+    await this.transcriptionService.start({
+      mode: transcriptionMode,
+      apiKey
+    });
 
     // Update state
     this.isRecording = true;
     this.startTime = Date.now();
 
     // Update UI
-    this.viewManager.updateRecordingState(true, this.currentTranscriptionMode);
+    this.viewManager.updateRecordingState(true, transcriptionMode);
     this.transcriptionManager.clear();
     this.startElapsedTimer();
     this.startVUMeterUpdates();
@@ -107,15 +108,8 @@ export class RecordingManager {
   async stop(): Promise<void> {
     console.log('Stopping recording...');
 
-    // Stop transcription first
-    if (this.transcriptionSessionId) {
-      if (this.currentTranscriptionMode === 'simulation') {
-        await window.scribeCat.transcription.simulation.stop(this.transcriptionSessionId);
-      } else if (this.currentTranscriptionMode === 'assemblyai') {
-        this.stopAssemblyAIAudioStreaming();
-      }
-      this.transcriptionSessionId = null;
-    }
+    // Stop transcription
+    await this.transcriptionService.stop();
 
     // Stop audio recording
     const result = await this.audioManager.stopRecording();
@@ -151,7 +145,7 @@ export class RecordingManager {
         const transcriptionResult = await window.scribeCat.session.updateTranscription(
           saveResult.sessionId,
           transcriptionText,
-          this.currentTranscriptionMode
+          this.transcriptionService.getCurrentMode()
         );
 
         if (transcriptionResult.success) {
@@ -206,16 +200,7 @@ export class RecordingManager {
     this.audioManager.pauseRecording();
 
     // Pause transcription
-    if (this.currentTranscriptionMode === 'simulation' && this.transcriptionSessionId) {
-      // For simulation, we can just stop sending data (it's already paused with audio)
-    } else if (this.currentTranscriptionMode === 'assemblyai') {
-      // For AssemblyAI, stop audio streaming but keep WebSocket open
-      if (this.assemblyAIStreamingInterval !== null) {
-        clearInterval(this.assemblyAIStreamingInterval);
-        this.assemblyAIStreamingInterval = null;
-      }
-      this.audioManager.removeAudioDataCallback();
-    }
+    this.transcriptionService.pause();
 
     // Pause timers
     this.stopElapsedTimer();
@@ -248,10 +233,7 @@ export class RecordingManager {
     this.audioManager.resumeRecording();
 
     // Resume transcription
-    if (this.currentTranscriptionMode === 'assemblyai') {
-      // Restart audio streaming for AssemblyAI
-      this.startAssemblyAIAudioStreaming();
-    }
+    this.transcriptionService.resume();
 
     // Resume timers
     this.startElapsedTimer();
@@ -285,15 +267,7 @@ export class RecordingManager {
    */
   async cleanup(): Promise<void> {
     try {
-      if (this.transcriptionSessionId) {
-        if (this.currentTranscriptionMode === 'simulation') {
-          await window.scribeCat.transcription.simulation.stop(this.transcriptionSessionId);
-        } else if (this.currentTranscriptionMode === 'assemblyai') {
-          this.stopAssemblyAIAudioStreaming();
-        }
-        this.transcriptionSessionId = null;
-      }
-
+      await this.transcriptionService.cleanup();
       await this.audioManager.stopRecording();
     } catch (error) {
       console.error('Error during cleanup:', error);
@@ -301,137 +275,6 @@ export class RecordingManager {
   }
 
   // ===== Private Methods =====
-
-  /**
-   * Start simulation transcription
-   */
-  private async startSimulationTranscription(): Promise<void> {
-    const result = await window.scribeCat.transcription.simulation.start();
-
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to start simulation transcription');
-    }
-
-    this.transcriptionSessionId = result.sessionId!;
-  }
-
-  /**
-   * Start AssemblyAI transcription
-   */
-  private async startAssemblyAITranscription(): Promise<void> {
-    const apiKey = await window.scribeCat.store.get('assemblyai-api-key') as string;
-
-    if (!apiKey) {
-      throw new Error('AssemblyAI API key not configured. Please add it in Settings.');
-    }
-
-    console.log('Starting AssemblyAI transcription...');
-
-    // Create and initialize service
-    this.assemblyAIService = new AssemblyAITranscriptionService();
-    await this.assemblyAIService.initialize(apiKey);
-
-    // Set up result callback
-    this.assemblyAIService.onResult((text: string, isFinal: boolean) => {
-      console.log('🎤 AssemblyAI:', isFinal ? 'Final' : 'Partial', text);
-      this.transcriptionManager.updateFlowing(text, isFinal);
-    });
-
-    // Start session
-    this.transcriptionSessionId = await this.assemblyAIService.start();
-
-    // Start audio streaming
-    this.startAssemblyAIAudioStreaming();
-
-    console.log('AssemblyAI transcription started');
-  }
-
-  /**
-   * Start streaming audio to AssemblyAI
-   */
-  private startAssemblyAIAudioStreaming(): void {
-    const CHUNK_INTERVAL = 100;
-    let audioBuffer: Float32Array[] = [];
-
-    this.audioManager.onAudioData((audioData: Float32Array) => {
-      if (this.currentTranscriptionMode !== 'assemblyai') return;
-      audioBuffer.push(new Float32Array(audioData));
-    });
-
-    const intervalId = setInterval(() => {
-      if (audioBuffer.length === 0 || this.currentTranscriptionMode !== 'assemblyai') return;
-
-      // Combine buffered audio
-      const totalLength = audioBuffer.reduce((sum, arr) => sum + arr.length, 0);
-      const combined = new Float32Array(totalLength);
-      let offset = 0;
-      for (const chunk of audioBuffer) {
-        combined.set(chunk, offset);
-        offset += chunk.length;
-      }
-      audioBuffer = [];
-
-      // Resample to 16kHz
-      const sourceSampleRate = this.audioManager.getSampleRate();
-      const resampled = this.resampleAudio(combined, sourceSampleRate, 16000);
-
-      // Convert to Int16 PCM
-      const int16Data = new Int16Array(resampled.length);
-      for (let i = 0; i < resampled.length; i++) {
-        const s = Math.max(-1, Math.min(1, resampled[i]));
-        int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-      }
-
-      // Send to service
-      if (this.assemblyAIService) {
-        this.assemblyAIService.sendAudio(int16Data.buffer);
-      }
-    }, CHUNK_INTERVAL);
-
-    this.assemblyAIStreamingInterval = intervalId;
-    console.log('AssemblyAI audio streaming enabled');
-  }
-
-  /**
-   * Stop AssemblyAI audio streaming
-   */
-  private stopAssemblyAIAudioStreaming(): void {
-    if (this.assemblyAIStreamingInterval !== null) {
-      clearInterval(this.assemblyAIStreamingInterval);
-      this.assemblyAIStreamingInterval = null;
-    }
-
-    if (this.assemblyAIService) {
-      this.assemblyAIService.stop();
-      this.assemblyAIService = null;
-    }
-
-    this.audioManager.removeAudioDataCallback();
-    console.log('AssemblyAI audio streaming stopped');
-  }
-
-  /**
-   * Resample audio
-   */
-  private resampleAudio(audioData: Float32Array, sourceSampleRate: number, targetSampleRate: number): Float32Array {
-    if (sourceSampleRate === targetSampleRate) {
-      return audioData;
-    }
-
-    const sampleRateRatio = sourceSampleRate / targetSampleRate;
-    const newLength = Math.round(audioData.length / sampleRateRatio);
-    const result = new Float32Array(newLength);
-
-    for (let i = 0; i < newLength; i++) {
-      const srcIndex = i * sampleRateRatio;
-      const srcIndexFloor = Math.floor(srcIndex);
-      const srcIndexCeil = Math.min(srcIndexFloor + 1, audioData.length - 1);
-      const t = srcIndex - srcIndexFloor;
-      result[i] = audioData[srcIndexFloor] * (1 - t) + audioData[srcIndexCeil] * t;
-    }
-
-    return result;
-  }
 
   /**
    * Start elapsed time timer
