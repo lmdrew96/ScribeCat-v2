@@ -29,6 +29,10 @@ export class SettingsManager {
   private themeManager: ThemeManager;
   private selectedThemeId: string = '';
 
+  // Theme filter state
+  private currentCategoryFilter: string = 'all';
+  private currentVariantFilter: string = 'all';
+
   // Collapsible groups state
   private collapsedGroups: Set<string> = new Set();
 
@@ -170,7 +174,16 @@ export class SettingsManager {
     const themeCategoryFilter = document.getElementById('theme-category-filter') as HTMLSelectElement;
     themeCategoryFilter?.addEventListener('change', (e) => {
       const target = e.target as HTMLSelectElement;
-      this.filterThemes(target.value);
+      this.currentCategoryFilter = target.value;
+      this.filterThemes();
+    });
+
+    // Theme variant filter
+    const themeVariantFilter = document.getElementById('theme-variant-filter') as HTMLSelectElement;
+    themeVariantFilter?.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      this.currentVariantFilter = target.value;
+      this.filterThemes();
     });
   }
 
@@ -1146,9 +1159,11 @@ export class SettingsManager {
     themeGrid.innerHTML = themes.map(theme => {
       const metadata = this.themeManager.getThemeMetadata(theme);
       const isSelected = theme.id === this.selectedThemeId;
-      
+      const variantLabel = theme.variant === 'light' ? 'Light' : 'Dark';
+      const variantClass = theme.variant === 'light' ? 'variant-light' : 'variant-dark';
+
       return `
-        <div class="theme-card ${isSelected ? 'selected' : ''}" data-theme-id="${theme.id}" data-category="${theme.category}">
+        <div class="theme-card ${isSelected ? 'selected' : ''}" data-theme-id="${theme.id}" data-category="${theme.category}" data-variant="${theme.variant}">
           <div class="theme-preview">
             ${metadata.previewColors.map(color => `
               <div class="theme-preview-color" style="background-color: ${color};"></div>
@@ -1156,7 +1171,10 @@ export class SettingsManager {
           </div>
           <div class="theme-info">
             <h4 class="theme-name">${theme.name}</h4>
-            <span class="theme-category ${theme.category}">${theme.category}</span>
+            <div class="theme-badges">
+              <span class="theme-category ${theme.category}">${theme.category}</span>
+              <span class="theme-variant ${variantClass}">${variantLabel}</span>
+            </div>
             <p class="theme-description">${theme.description}</p>
           </div>
         </div>
@@ -1175,18 +1193,22 @@ export class SettingsManager {
   }
   
   /**
-   * Filter themes by category
+   * Filter themes by category and variant
    */
-  private filterThemes(category: string): void {
+  private filterThemes(): void {
     const themeGrid = document.getElementById('theme-grid');
     if (!themeGrid) return;
-    
+
     const themeCards = themeGrid.querySelectorAll('.theme-card');
-    
+
     themeCards.forEach(card => {
       const cardCategory = card.getAttribute('data-category');
-      
-      if (category === 'all' || cardCategory === category) {
+      const cardVariant = card.getAttribute('data-variant');
+
+      const categoryMatch = this.currentCategoryFilter === 'all' || cardCategory === this.currentCategoryFilter;
+      const variantMatch = this.currentVariantFilter === 'all' || cardVariant === this.currentVariantFilter;
+
+      if (categoryMatch && variantMatch) {
         (card as HTMLElement).style.display = 'block';
       } else {
         (card as HTMLElement).style.display = 'none';

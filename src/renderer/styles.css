@@ -3230,6 +3230,36 @@ body {
   color: #8b7355;
 }
 
+.theme-badges {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.theme-variant {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
+}
+
+.theme-variant.variant-dark {
+  background-color: rgba(30, 30, 30, 0.6);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.theme-variant.variant-light {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
 .theme-description {
   font-size: 13px;
   color: var(--text-secondary);

@@ -10,6 +10,11 @@
 export type ThemeCategory = 'calm' | 'energetic' | 'focus' | 'creative' | 'balanced';
 
 /**
+ * Theme variant for light/dark mode
+ */
+export type ThemeVariant = 'dark' | 'light';
+
+/**
  * Theme color palette
  */
 export interface ThemeColors {
@@ -42,6 +47,7 @@ export interface Theme {
   id: string;
   name: string;
   category: ThemeCategory;
+  variant: ThemeVariant;
   description: string;
   colors: ThemeColors;
 }
