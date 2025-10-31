@@ -87,7 +87,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Set up event listeners
   setupEventListeners();
-  
+
+  // Set up hot reload notification listener (development only)
+  setupHotReloadListener();
+
   console.log('ScribeCat initialized successfully');
 });
 
@@ -271,6 +274,54 @@ function updateClearButtonStates(): void {
 }
 
 /**
+ * Show a notification toast
+ */
+function showNotification(message: string, type: 'info' | 'warning' | 'error' = 'info'): void {
+  const colors = {
+    info: '#3498db',
+    warning: '#f39c12',
+    error: '#e74c3c'
+  };
+
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: ${colors[type]};
+    color: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    max-width: 400px;
+    font-size: 14px;
+    animation: slideInRight 0.3s ease;
+  `;
+  notification.textContent = message;
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = 'slideOutRight 0.3s ease';
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 300);
+  }, 5000);
+}
+
+/**
+ * Set up hot reload notification listener (development only)
+ */
+function setupHotReloadListener(): void {
+  if ((window.scribeCat as any).dev) {
+    (window.scribeCat as any).dev.onHotReloadNotification((message: string) => {
+      console.warn('⚠️ Hot reload:', message);
+      showNotification(message, 'warning');
+    });
+  }
+}
+
+/**
  * Clean up on window unload
  */
 window.addEventListener('beforeunload', () => {
@@ -278,6 +329,11 @@ window.addEventListener('beforeunload', () => {
     audioManager.cleanup();
     recordingManager.cleanup();
   }
-  
+
   window.scribeCat.transcription.simulation.removeResultListener();
+
+  // Clean up hot reload listener if it exists
+  if ((window.scribeCat as any).dev) {
+    (window.scribeCat as any).dev.removeHotReloadListener();
+  }
 });

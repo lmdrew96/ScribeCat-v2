@@ -5,7 +5,7 @@
   "description": "ScribeCat scribes and is cat. A revolutionary multi-platform app that can be used to record and accurately transcribe speech, take rich text notes, and interact with AI to better understand the content of the recording and your notes.",
   "main": "dist/main/main.js",
   "scripts": {
-    "dev": "npm run compile && electron .",
+    "dev": "npm run compile && concurrently -k -n \"MAIN,PRELOAD,RENDERER,ELECTRON\" -c \"cyan,magenta,green,yellow\" \"node build-main.js --watch\" \"node build-preload.js --watch\" \"node build-renderer.js --watch\" \"electron .\"",
     "compile": "tsc && tsc -p tsconfig.preload.json && node build-renderer.js",
     "build": "npm run compile && electron-builder",
     "build:mac": "npm run compile && electron-builder --mac",
@@ -26,6 +26,7 @@
     "@types/node": "^24.6.0",
     "@types/unzipper": "^0.10.11",
     "@types/ws": "^8.18.1",
+    "concurrently": "^9.2.1",
     "electron": "^38.2.0",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.11",

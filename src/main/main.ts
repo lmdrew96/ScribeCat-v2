@@ -27,6 +27,7 @@ import { DriveHandlers } from './ipc/handlers/DriveHandlers.js';
 import { SettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
 import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
+import { watch } from 'fs';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -185,6 +186,72 @@ class ScribeCatApp {
 
     // Set the main window reference for the recording manager
     this.recordingManager.setMainWindow(this.mainWindow);
+
+    // Enable hot reload in development
+    if (!app.isPackaged) {
+      this.setupHotReload();
+    }
+  }
+
+  /**
+   * Setup hot reload for development
+   * Watches dist/ directory and reloads/restarts on changes
+   */
+  private setupHotReload(): void {
+    console.log('🔥 Hot reload will activate in 5 seconds...');
+
+    // Wait 5 seconds before enabling watchers
+    // This prevents reload during initial TypeScript watch compilation
+    setTimeout(() => {
+      console.log('🔥 Hot reload enabled');
+
+      let reloadTimeout: NodeJS.Timeout | null = null;
+      let notifyTimeout: NodeJS.Timeout | null = null;
+
+      // Helper to check if file should trigger reload (ignore declaration and map files)
+      const shouldTriggerReload = (filename: string): boolean => {
+        return !filename.endsWith('.d.ts') &&
+               !filename.endsWith('.js.map') &&
+               !filename.endsWith('.d.ts.map');
+      };
+
+      // Watch renderer files - reload window on change
+      watch(path.join(__dirname, '../renderer'), { recursive: true }, (eventType, filename) => {
+        if (filename && shouldTriggerReload(filename)) {
+          // Debounce rapid file changes
+          if (reloadTimeout) clearTimeout(reloadTimeout);
+          reloadTimeout = setTimeout(() => {
+            // Check if window exists and is not destroyed
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+              console.log(`🔄 Renderer file changed: ${filename} - Reloading window...`);
+              this.mainWindow.reload();
+            }
+          }, 100);
+        }
+      });
+
+      // Watch main and preload files - send notification instead of restarting
+      const watchMainAndPreload = (dir: string, label: string) => {
+        watch(path.join(__dirname, dir), { recursive: true }, (eventType, filename) => {
+          if (filename && shouldTriggerReload(filename)) {
+            // Debounce rapid file changes
+            if (notifyTimeout) clearTimeout(notifyTimeout);
+            notifyTimeout = setTimeout(() => {
+              if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                console.log(`⚠️ ${label} file changed: ${filename} - Manual restart required`);
+                this.mainWindow.webContents.send(
+                  'dev:hot-reload-notification',
+                  `${label} changed - Please restart (Ctrl+C then npm run dev)`
+                );
+              }
+            }, 100);
+          }
+        });
+      };
+
+      watchMainAndPreload('.', 'Main process');
+      watchMainAndPreload('../preload', 'Preload');
+    }, 5000);
   }
 
   /**

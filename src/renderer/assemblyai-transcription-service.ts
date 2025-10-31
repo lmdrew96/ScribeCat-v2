@@ -10,6 +10,11 @@ export class AssemblyAITranscriptionService {
   private resultCallback: ((text: string, isFinal: boolean) => void) | null = null;
   private startTime: number = 0;
   private apiKey: string = '';
+  private terminationReceived: boolean = false;
+  private closeTimeout: NodeJS.Timeout | null = null;
+  private tokenRefreshTimer: NodeJS.Timeout | null = null;
+  private tokenCreatedAt: number = 0;
+  private isRefreshing: boolean = false;
 
   async initialize(apiKey: string): Promise<void> {
     this.apiKey = apiKey;
@@ -26,11 +31,68 @@ export class AssemblyAITranscriptionService {
 
     // Get temporary token from main process (which can use Authorization headers)
     const tempToken = await this.getTemporaryToken();
-    
+    this.tokenCreatedAt = Date.now();
+
     // Connect to AssemblyAI WebSocket with temp token
     await this.connectWebSocket(tempToken);
 
+    // Set up token refresh timer (refresh after 8 minutes, token expires after 10 minutes)
+    this.scheduleTokenRefresh();
+
     return this.sessionId;
+  }
+
+  private scheduleTokenRefresh(): void {
+    // Clear any existing timer
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+    }
+
+    // Schedule token refresh after 8 minutes (480 seconds)
+    // Token expires after 10 minutes (600 seconds), so we refresh 2 minutes before expiration
+    const refreshDelay = 8 * 60 * 1000; // 8 minutes in milliseconds
+
+    this.tokenRefreshTimer = setTimeout(() => {
+      this.refreshToken();
+    }, refreshDelay);
+
+    console.log('Token refresh scheduled for 8 minutes from now');
+  }
+
+  private async refreshToken(): Promise<void> {
+    if (this.isRefreshing || !this.sessionId) {
+      return;
+    }
+
+    console.log('🔄 Refreshing AssemblyAI token...');
+    this.isRefreshing = true;
+
+    try {
+      // Get new token
+      const newToken = await this.getTemporaryToken();
+      this.tokenCreatedAt = Date.now();
+
+      // Close old WebSocket gracefully
+      const oldWs = this.ws;
+      this.ws = null; // Prevent sending audio during transition
+
+      if (oldWs) {
+        oldWs.close();
+      }
+
+      // Connect with new token
+      await this.connectWebSocket(newToken);
+      console.log('✅ Token refreshed and reconnected successfully');
+
+      // Schedule next refresh
+      this.scheduleTokenRefresh();
+    } catch (error) {
+      console.error('❌ Failed to refresh token:', error);
+      // If refresh fails, try again in 5 minutes
+      setTimeout(() => this.refreshToken(), 5 * 60 * 1000);
+    } finally {
+      this.isRefreshing = false;
+    }
   }
 
   private async getTemporaryToken(): Promise<string> {
@@ -47,7 +109,7 @@ export class AssemblyAITranscriptionService {
       // Use browser's native WebSocket API with temporary token
       // Note: sample_rate and encoding are set via query params, format_turns enables Turn-based messages
       const url = `wss://streaming.assemblyai.com/v3/ws?token=${encodeURIComponent(token)}&sample_rate=16000&encoding=pcm_s16le&format_turns=true`;
-      
+
       console.log('🔗 Connecting to AssemblyAI WebSocket...');
       this.ws = new WebSocket(url);
 
@@ -67,8 +129,41 @@ export class AssemblyAITranscriptionService {
 
       this.ws.onclose = (event) => {
         console.log('AssemblyAI WebSocket closed:', event.code, event.reason);
+
+        // If connection closes unexpectedly during active session (not during stop/refresh)
+        // attempt to reconnect
+        if (this.sessionId && !this.terminationReceived && !this.isRefreshing) {
+          console.log('⚠️ Unexpected disconnection detected, attempting to reconnect...');
+          this.handleUnexpectedDisconnection();
+        }
       };
     });
+  }
+
+  private async handleUnexpectedDisconnection(): Promise<void> {
+    // Don't reconnect if we're already stopping or refreshing
+    if (!this.sessionId || this.terminationReceived || this.isRefreshing) {
+      return;
+    }
+
+    try {
+      console.log('🔄 Attempting to reconnect...');
+
+      // Get a new token
+      const newToken = await this.getTemporaryToken();
+      this.tokenCreatedAt = Date.now();
+
+      // Reconnect
+      await this.connectWebSocket(newToken);
+      console.log('✅ Reconnected successfully after unexpected disconnection');
+
+      // Reschedule token refresh
+      this.scheduleTokenRefresh();
+    } catch (error) {
+      console.error('❌ Failed to reconnect:', error);
+      // Try again in 10 seconds
+      setTimeout(() => this.handleUnexpectedDisconnection(), 10000);
+    }
   }
 
   private handleMessage(data: string): void {
@@ -91,6 +186,9 @@ export class AssemblyAITranscriptionService {
 
       if (message.type === 'Termination') {
         console.log('Session terminated:', message.audio_duration_seconds, 'seconds processed');
+        this.terminationReceived = true;
+        // Close the WebSocket after receiving termination confirmation
+        this.closeWebSocket();
       }
     } catch (error) {
       console.error('Error parsing message:', error);
@@ -109,13 +207,51 @@ export class AssemblyAITranscriptionService {
   }
 
   stop(): void {
+    // Clear token refresh timer
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+      this.tokenRefreshTimer = null;
+    }
+
     if (this.ws) {
+      // Reset termination flag
+      this.terminationReceived = false;
+
       // Send termination message
       this.ws.send(JSON.stringify({ type: 'Terminate' }));
+
+      // Set a timeout to close the WebSocket if we don't receive termination confirmation
+      // This gives AssemblyAI 5 seconds to send final transcription segments
+      this.closeTimeout = setTimeout(() => {
+        console.log('Termination timeout reached, closing WebSocket');
+        this.closeWebSocket();
+      }, 5000);
+    } else {
+      this.sessionId = null;
+    }
+  }
+
+  private closeWebSocket(): void {
+    // Clear any pending timers
+    if (this.closeTimeout) {
+      clearTimeout(this.closeTimeout);
+      this.closeTimeout = null;
+    }
+
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+      this.tokenRefreshTimer = null;
+    }
+
+    // Close the WebSocket connection
+    if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
+
     this.sessionId = null;
+    this.terminationReceived = false;
+    this.isRefreshing = false;
   }
 
   isActive(): boolean {
