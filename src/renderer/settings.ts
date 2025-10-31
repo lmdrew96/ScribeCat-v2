@@ -29,11 +29,15 @@ export class SettingsManager {
   private themeManager: ThemeManager;
   private selectedThemeId: string = '';
 
+  // Collapsible groups state
+  private collapsedGroups: Set<string> = new Set();
+
   constructor(themeManager: ThemeManager) {
     this.themeManager = themeManager;
     this.settingsModal = document.getElementById('settings-modal')!;
-    
+
     this.initializeEventListeners();
+    this.initializeCollapsibleGroups();
     this.loadSettings();
   }
 
@@ -171,6 +175,80 @@ export class SettingsManager {
   }
 
   /**
+   * Initialize collapsible groups functionality
+   */
+  private initializeCollapsibleGroups(): void {
+    const groupHeaders = document.querySelectorAll('.settings-group-header');
+
+    groupHeaders.forEach(header => {
+      header.addEventListener('click', () => {
+        const group = header.closest('.settings-group') as HTMLElement;
+        if (group) {
+          const groupId = group.dataset.group;
+          if (groupId) {
+            this.toggleGroup(groupId);
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Toggle collapse state of a settings group
+   */
+  private toggleGroup(groupId: string): void {
+    const group = document.querySelector(`.settings-group[data-group="${groupId}"]`);
+    if (!group) return;
+
+    if (this.collapsedGroups.has(groupId)) {
+      // Expand the group
+      this.collapsedGroups.delete(groupId);
+      group.classList.remove('collapsed');
+    } else {
+      // Collapse the group
+      this.collapsedGroups.add(groupId);
+      group.classList.add('collapsed');
+    }
+
+    // Save collapsed state
+    this.saveCollapsedState();
+  }
+
+  /**
+   * Save collapsed groups state to electron-store
+   */
+  private async saveCollapsedState(): Promise<void> {
+    try {
+      const collapsedArray = Array.from(this.collapsedGroups);
+      await window.scribeCat.store.set('settings-collapsed-groups', collapsedArray);
+    } catch (error) {
+      console.error('Failed to save collapsed state:', error);
+    }
+  }
+
+  /**
+   * Load collapsed groups state from electron-store
+   */
+  private async loadCollapsedState(): Promise<void> {
+    try {
+      const collapsedArray = await window.scribeCat.store.get('settings-collapsed-groups') as string[];
+      if (Array.isArray(collapsedArray)) {
+        this.collapsedGroups = new Set(collapsedArray);
+
+        // Apply collapsed state to UI
+        collapsedArray.forEach(groupId => {
+          const group = document.querySelector(`.settings-group[data-group="${groupId}"]`);
+          if (group) {
+            group.classList.add('collapsed');
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load collapsed state:', error);
+    }
+  }
+
+  /**
    * Load settings from electron-store
    */
   private async loadSettings(): Promise<void> {
@@ -204,6 +282,9 @@ export class SettingsManager {
       this.autoPolishJitter = await window.scribeCat.store.get('auto-polish-jitter') as number || 5;
       this.autoPolishMinWords = await window.scribeCat.store.get('auto-polish-min-words') as number || 50;
       this.autoPolishFullInterval = await window.scribeCat.store.get('auto-polish-full-interval') as number || 5;
+
+      // Load collapsed groups state
+      await this.loadCollapsedState();
 
       // Update UI
       this.updateUIFromSettings();

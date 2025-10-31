@@ -309,9 +309,18 @@
             </div>
             
             <div class="modal-body">
-                <!-- Transcription Mode Section -->
-                <section class="settings-section">
-                    <h3>Transcription Mode</h3>
+                <!-- Collapsible Group: Transcription & AI -->
+                <div class="settings-group" data-group="transcription-ai">
+                    <div class="settings-group-header">
+                        <h2>Transcription & AI</h2>
+                        <svg class="chevron-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                        </svg>
+                    </div>
+                    <div class="settings-group-content">
+                        <!-- Transcription Mode Section -->
+                        <section class="settings-section">
+                            <h3>Transcription Mode</h3>
                     <div class="radio-group">
                         <label class="radio-label">
                             <input type="radio" name="transcription-mode" value="simulation" id="mode-simulation" checked>
@@ -472,10 +481,21 @@
                         </div>
                     </div>
                 </section>
-                
-                <!-- Google Drive Settings Section -->
-                <section class="settings-section" id="google-drive-settings">
-                    <h3>Google Drive Integration</h3>
+                    </div>
+                </div>
+
+                <!-- Collapsible Group: Integrations -->
+                <div class="settings-group" data-group="integrations">
+                    <div class="settings-group-header">
+                        <h2>Integrations</h2>
+                        <svg class="chevron-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                        </svg>
+                    </div>
+                    <div class="settings-group-content">
+                        <!-- Google Drive Settings Section -->
+                        <section class="settings-section" id="google-drive-settings">
+                            <h3>Google Drive Integration</h3>
                     <div class="status-row">
                         <label>Status:</label>
                         <span id="drive-status" class="status-text">Not connected</span>
@@ -571,10 +591,21 @@
                         </div>
                     </div>
                 </section>
-                
-                <!-- Theme Settings Section -->
-                <section class="settings-section">
-                    <h3>Theme</h3>
+                    </div>
+                </div>
+
+                <!-- Collapsible Group: Appearance -->
+                <div class="settings-group" data-group="appearance">
+                    <div class="settings-group-header">
+                        <h2>Appearance</h2>
+                        <svg class="chevron-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                        </svg>
+                    </div>
+                    <div class="settings-group-content">
+                        <!-- Theme Settings Section -->
+                        <section class="settings-section">
+                            <h3>Theme</h3>
                     <p class="help-text">
                         Choose a theme that matches your mood and enhances your focus. 
                         Each theme is designed using color theory to evoke specific emotions.
@@ -596,10 +627,21 @@
                         <!-- Themes will be populated by JavaScript -->
                     </div>
                 </section>
-                
-                <!-- Audio Settings Section -->
-                <section class="settings-section">
-                    <h3>Audio Configuration</h3>
+                    </div>
+                </div>
+
+                <!-- Collapsible Group: Audio Configuration -->
+                <div class="settings-group" data-group="audio">
+                    <div class="settings-group-header">
+                        <h2>Audio Configuration</h2>
+                        <svg class="chevron-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                        </svg>
+                    </div>
+                    <div class="settings-group-content">
+                        <!-- Audio Settings Section -->
+                        <section class="settings-section">
+                            <h3>Audio Configuration</h3>
                     
                     <div class="info-row">
                         <span class="info-label">Sample Rate:</span>
@@ -611,6 +653,8 @@
                         <span class="info-value">PCM 16-bit Mono</span>
                     </div>
                 </section>
+                    </div>
+                </div>
             </div>
             
             <div class="modal-footer">

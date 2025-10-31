@@ -1203,6 +1203,64 @@ body {
 }
 
 /* Settings Sections */
+
+/* Collapsible Settings Groups */
+.settings-group {
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.settings-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.settings-group-header:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.settings-group-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.settings-group-header .chevron-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.settings-group.collapsed .chevron-icon {
+  transform: rotate(-90deg);
+}
+
+.settings-group-content {
+  padding: 20px;
+  max-height: 5000px;
+  opacity: 1;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
+}
+
+.settings-group.collapsed .settings-group-content {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .settings-section {
   margin-bottom: 30px;
 }
