@@ -60,6 +60,15 @@ export class TiptapEditorManager {
   private redoBtn: HTMLButtonElement;
   private clearFormatBtn: HTMLButtonElement;
 
+  // Input prompt modal elements
+  private inputPromptModal: HTMLElement;
+  private inputPromptTitle: HTMLElement;
+  private inputPromptLabel: HTMLElement;
+  private inputPromptField: HTMLInputElement;
+  private okInputPromptBtn: HTMLButtonElement;
+  private cancelInputPromptBtn: HTMLButtonElement;
+  private closeInputPromptBtn: HTMLButtonElement;
+
   constructor() {
     // Get editor container
     this.editorElement = document.getElementById('tiptap-editor') as HTMLElement;
@@ -102,6 +111,15 @@ export class TiptapEditorManager {
     this.undoBtn = document.getElementById('undo-btn') as HTMLButtonElement;
     this.redoBtn = document.getElementById('redo-btn') as HTMLButtonElement;
     this.clearFormatBtn = document.getElementById('clear-format-btn') as HTMLButtonElement;
+
+    // Get input prompt modal elements
+    this.inputPromptModal = document.getElementById('input-prompt-modal') as HTMLElement;
+    this.inputPromptTitle = document.getElementById('input-prompt-title') as HTMLElement;
+    this.inputPromptLabel = document.getElementById('input-prompt-label') as HTMLElement;
+    this.inputPromptField = document.getElementById('input-prompt-field') as HTMLInputElement;
+    this.okInputPromptBtn = document.getElementById('ok-input-prompt-btn') as HTMLButtonElement;
+    this.cancelInputPromptBtn = document.getElementById('cancel-input-prompt-btn') as HTMLButtonElement;
+    this.closeInputPromptBtn = document.getElementById('close-input-prompt-btn') as HTMLButtonElement;
   }
 
   /**
@@ -357,9 +375,66 @@ export class TiptapEditorManager {
   }
 
   /**
+   * Show input prompt modal and return a promise that resolves with the input value
+   */
+  private showInputPrompt(title: string, label: string, defaultValue: string = ''): Promise<string | null> {
+    return new Promise((resolve) => {
+      // Set modal content
+      this.inputPromptTitle.textContent = title;
+      this.inputPromptLabel.textContent = label;
+      this.inputPromptField.value = defaultValue;
+
+      // Show modal
+      this.inputPromptModal.classList.remove('hidden');
+
+      // Focus the input field
+      setTimeout(() => this.inputPromptField.focus(), 100);
+
+      // Handle OK button
+      const handleOk = () => {
+        const value = this.inputPromptField.value.trim();
+        cleanup();
+        resolve(value || null);
+      };
+
+      // Handle Cancel button
+      const handleCancel = () => {
+        cleanup();
+        resolve(null);
+      };
+
+      // Handle Enter key
+      const handleKeydown = (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleOk();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          handleCancel();
+        }
+      };
+
+      // Cleanup function
+      const cleanup = () => {
+        this.inputPromptModal.classList.add('hidden');
+        this.okInputPromptBtn.removeEventListener('click', handleOk);
+        this.cancelInputPromptBtn.removeEventListener('click', handleCancel);
+        this.closeInputPromptBtn.removeEventListener('click', handleCancel);
+        this.inputPromptField.removeEventListener('keydown', handleKeydown);
+      };
+
+      // Add event listeners
+      this.okInputPromptBtn.addEventListener('click', handleOk);
+      this.cancelInputPromptBtn.addEventListener('click', handleCancel);
+      this.closeInputPromptBtn.addEventListener('click', handleCancel);
+      this.inputPromptField.addEventListener('keydown', handleKeydown);
+    });
+  }
+
+  /**
    * Toggle link - prompt for URL if not already a link
    */
-  private toggleLink(): void {
+  private async toggleLink(): Promise<void> {
     if (!this.editor) return;
 
     const previousUrl = this.editor.getAttributes('link').href;
@@ -368,14 +443,21 @@ export class TiptapEditorManager {
       // Remove link
       this.editor.chain().focus().unsetLink().run();
     } else {
+      // Check if there's a selection
+      const { from, to } = this.editor.state.selection;
+      if (from === to) {
+        // No text selected
+        window.alert('Please select some text first before adding a link.');
+        return;
+      }
+
       // Add link
-      const url = window.prompt('Enter URL:', 'https://');
+      const url = await this.showInputPrompt('Insert Link', 'URL:', 'https://');
 
       if (url && url !== 'https://') {
         this.editor
           .chain()
           .focus()
-          .extendMarkRange('link')
           .setLink({ href: url })
           .run();
       }
@@ -425,9 +507,15 @@ export class TiptapEditorManager {
   /**
    * Insert table with user-specified dimensions
    */
-  private insertTable(): void {
-    const rows = parseInt(window.prompt('Number of rows:', '3') || '3');
-    const cols = parseInt(window.prompt('Number of columns:', '3') || '3');
+  private async insertTable(): Promise<void> {
+    const rowsStr = await this.showInputPrompt('Insert Table', 'Number of rows:', '3');
+    if (!rowsStr) return;
+
+    const colsStr = await this.showInputPrompt('Insert Table', 'Number of columns:', '3');
+    if (!colsStr) return;
+
+    const rows = parseInt(rowsStr);
+    const cols = parseInt(colsStr);
 
     if (rows > 0 && cols > 0) {
       this.editor?.chain().focus()

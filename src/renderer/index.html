@@ -800,7 +800,30 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Input Prompt Modal -->
+    <div id="input-prompt-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2 id="input-prompt-title">Enter Value</h2>
+                <button id="close-input-prompt-btn" class="close-btn" title="Close">×</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="input-prompt-label" for="input-prompt-field">Value:</label>
+                    <input type="text" id="input-prompt-field" class="text-input" placeholder="">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="cancel-input-prompt-btn" class="secondary-btn">Cancel</button>
+                <button id="ok-input-prompt-btn" class="primary-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
 </body>
 </html>
