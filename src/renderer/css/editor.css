@@ -641,11 +641,14 @@
 /* Tiptap Images */
 .tiptap-content img.tiptap-image {
   max-width: 100%;
+  max-height: 100px;
+  width: auto;
   height: auto;
   display: block;
   margin: 1rem auto;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
 }
 
 .tiptap-content img.tiptap-image.ProseMirror-selectednode {
@@ -908,6 +911,19 @@
   text-align: left;
   background: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+/* Study Mode Images */
+.notes-html-content img {
+  max-width: 100%;
+  max-height: 100px;
+  width: auto;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
 }
 
 /* Selection styling */

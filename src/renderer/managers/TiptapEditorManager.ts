@@ -546,7 +546,27 @@ export class TiptapEditorManager {
 
     reader.onload = () => {
       const base64 = reader.result as string;
-      this.editor?.chain().focus().setImage({ src: base64 }).run();
+
+      // Load image to get dimensions and calculate appropriate size
+      const img = new window.Image();
+      img.onload = () => {
+        // Calculate width to maintain aspect ratio with max height of 100px
+        const maxHeight = 100;
+        let width = img.width;
+        let height = img.height;
+
+        if (height > maxHeight) {
+          width = (maxHeight / height) * width;
+          height = maxHeight;
+        }
+
+        // Insert image with calculated width
+        this.editor?.chain().focus().setImage({
+          src: base64,
+          width: Math.round(width)
+        }).run();
+      };
+      img.src = base64;
     };
 
     reader.readAsDataURL(file);
