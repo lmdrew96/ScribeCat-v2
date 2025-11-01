@@ -65,10 +65,14 @@ body {
   color: var(--text-primary);
   overflow: hidden;
   height: 100vh;
+  width: 100vw;
 }
 
 #app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 133.33vh;
+  width: 133.33vw;
+  transform: scale(0.75);
+  transform-origin: top left;
 }
