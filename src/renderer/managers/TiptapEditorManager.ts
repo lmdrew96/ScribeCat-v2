@@ -188,6 +188,13 @@ export class TiptapEditorManager {
           HTMLAttributes: {
             class: 'tiptap-image',
           },
+          resize: {
+            enabled: true,
+            directions: ['top', 'right', 'bottom', 'left', 'top-right', 'top-left', 'bottom-right', 'bottom-left'],
+            minWidth: 50,
+            minHeight: 50,
+            alwaysPreserveAspectRatio: true,
+          },
         }),
       ],
       content: '',

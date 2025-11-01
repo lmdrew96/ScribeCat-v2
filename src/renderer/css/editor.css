@@ -653,6 +653,124 @@
   outline-offset: 2px;
 }
 
+/* Tiptap Image Resize Handles */
+[data-resize-container] {
+  position: relative;
+  display: inline-block;
+}
+
+[data-resize-wrapper] {
+  position: relative;
+  display: inline-block;
+}
+
+/* Resize Handles - Base Styling */
+[data-resize-handle] {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: var(--accent);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Show handles when container is hovered or being resized */
+[data-resize-container]:hover [data-resize-handle],
+[data-resize-container][data-resize-state="true"] [data-resize-handle] {
+  opacity: 1;
+}
+
+/* Position handles based on direction */
+[data-resize-handle="top"] {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+[data-resize-handle="bottom"] {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+[data-resize-handle="left"] {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+[data-resize-handle="right"] {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+[data-resize-handle="top-left"] {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+
+[data-resize-handle="top-right"] {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+
+[data-resize-handle="bottom-left"] {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+
+[data-resize-handle="bottom-right"] {
+  bottom: -5px;
+  right: -5px;
+  cursor: nwse-resize;
+}
+
+/* Active resizing state */
+[data-resize-container][data-resize-state="true"] {
+  user-select: none;
+}
+
+[data-resize-container][data-resize-state="true"] img {
+  pointer-events: none;
+}
+
+/* Tiptap Table Column Resize Handles */
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: var(--accent);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+/* Table wrapper for resize handle positioning */
+.ProseMirror .tableWrapper {
+  position: relative;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
 /* Tiptap Focus */
 .tiptap-content:focus {
   outline: none;

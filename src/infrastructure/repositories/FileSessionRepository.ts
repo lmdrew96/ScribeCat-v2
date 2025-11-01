@@ -79,29 +79,42 @@ export class FileSessionRepository implements ISessionRepository {
    */
   async findAll(): Promise<Session[]> {
     await this.ensureDirectory();
-    
+
     try {
       const files = await fs.readdir(this.sessionsDir);
       const sessions: Session[] = [];
 
       for (const file of files) {
         if (file.endsWith('.json')) {
-          const sessionPath = path.join(this.sessionsDir, file);
-          const data = await fs.readFile(sessionPath, 'utf-8');
-          const sessionData = JSON.parse(data);
-          sessions.push(Session.fromJSON(sessionData));
+          try {
+            const sessionPath = path.join(this.sessionsDir, file);
+            const data = await fs.readFile(sessionPath, 'utf-8');
+
+            // Skip empty files
+            if (!data || data.trim().length === 0) {
+              console.warn(`Skipping empty session file: ${file}`);
+              continue;
+            }
+
+            const sessionData = JSON.parse(data);
+            sessions.push(Session.fromJSON(sessionData));
+          } catch (fileError) {
+            // Log individual file error but continue loading other sessions
+            console.error(`Failed to load session from ${file}:`, fileError);
+            // Continue to next file instead of failing completely
+            continue;
+          }
         }
       }
 
       // Sort by creation date, newest first
-      return sessions.sort((a, b) => 
+      return sessions.sort((a, b) =>
         b.createdAt.getTime() - a.createdAt.getTime()
       );
     } catch (error) {
-      // Log error but return empty array to allow app to continue
-      // TODO: Implement proper logging service
+      // Only throw if we can't read the directory itself
       if (error instanceof Error) {
-        throw new Error(`Failed to list sessions: ${error.message}`);
+        throw new Error(`Failed to read sessions directory: ${error.message}`);
       }
       throw error;
     }
