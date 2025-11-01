@@ -8,6 +8,13 @@ import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import Superscript from '@tiptap/extension-superscript';
+import Subscript from '@tiptap/extension-subscript';
+import Typography from '@tiptap/extension-typography';
+import { TextStyle, Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
+import TextAlign from '@tiptap/extension-text-align';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import Image from '@tiptap/extension-image';
 
 export class TiptapEditorManager {
   private editor: Editor | null = null;
@@ -20,12 +27,35 @@ export class TiptapEditorManager {
   private boldBtn: HTMLButtonElement;
   private italicBtn: HTMLButtonElement;
   private underlineBtn: HTMLButtonElement;
+  private strikeBtn: HTMLButtonElement;
+  private superscriptBtn: HTMLButtonElement;
+  private subscriptBtn: HTMLButtonElement;
+  private colorBtn: HTMLButtonElement;
+  private colorPalette: HTMLElement;
+  private bgColorBtn: HTMLButtonElement;
+  private bgColorPalette: HTMLElement;
+  private fontSizeSelect: HTMLSelectElement;
+  private alignLeftBtn: HTMLButtonElement;
+  private alignCenterBtn: HTMLButtonElement;
+  private alignRightBtn: HTMLButtonElement;
+  private alignJustifyBtn: HTMLButtonElement;
   private heading1Btn: HTMLButtonElement;
   private heading2Btn: HTMLButtonElement;
   private bulletListBtn: HTMLButtonElement;
   private numberedListBtn: HTMLButtonElement;
   private linkBtn: HTMLButtonElement;
   private highlightBtn: HTMLButtonElement;
+  private imageBtn: HTMLButtonElement;
+  private imageInput: HTMLInputElement;
+  private insertTableBtn: HTMLButtonElement;
+  private tableToolbar: HTMLElement;
+  private addRowBeforeBtn: HTMLButtonElement;
+  private addRowAfterBtn: HTMLButtonElement;
+  private addColBeforeBtn: HTMLButtonElement;
+  private addColAfterBtn: HTMLButtonElement;
+  private deleteRowBtn: HTMLButtonElement;
+  private deleteColBtn: HTMLButtonElement;
+  private deleteTableBtn: HTMLButtonElement;
   private undoBtn: HTMLButtonElement;
   private redoBtn: HTMLButtonElement;
   private clearFormatBtn: HTMLButtonElement;
@@ -40,12 +70,35 @@ export class TiptapEditorManager {
     this.boldBtn = document.getElementById('bold-btn') as HTMLButtonElement;
     this.italicBtn = document.getElementById('italic-btn') as HTMLButtonElement;
     this.underlineBtn = document.getElementById('underline-btn') as HTMLButtonElement;
+    this.strikeBtn = document.getElementById('strike-btn') as HTMLButtonElement;
+    this.superscriptBtn = document.getElementById('superscript-btn') as HTMLButtonElement;
+    this.subscriptBtn = document.getElementById('subscript-btn') as HTMLButtonElement;
+    this.colorBtn = document.getElementById('color-btn') as HTMLButtonElement;
+    this.colorPalette = document.getElementById('color-palette') as HTMLElement;
+    this.bgColorBtn = document.getElementById('bg-color-btn') as HTMLButtonElement;
+    this.bgColorPalette = document.getElementById('bg-color-palette') as HTMLElement;
+    this.fontSizeSelect = document.getElementById('font-size-select') as HTMLSelectElement;
+    this.alignLeftBtn = document.getElementById('align-left-btn') as HTMLButtonElement;
+    this.alignCenterBtn = document.getElementById('align-center-btn') as HTMLButtonElement;
+    this.alignRightBtn = document.getElementById('align-right-btn') as HTMLButtonElement;
+    this.alignJustifyBtn = document.getElementById('align-justify-btn') as HTMLButtonElement;
     this.heading1Btn = document.getElementById('heading1-btn') as HTMLButtonElement;
     this.heading2Btn = document.getElementById('heading2-btn') as HTMLButtonElement;
     this.bulletListBtn = document.getElementById('bullet-list-btn') as HTMLButtonElement;
     this.numberedListBtn = document.getElementById('numbered-list-btn') as HTMLButtonElement;
     this.linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
     this.highlightBtn = document.getElementById('highlight-btn') as HTMLButtonElement;
+    this.imageBtn = document.getElementById('image-btn') as HTMLButtonElement;
+    this.imageInput = document.getElementById('image-input') as HTMLInputElement;
+    this.insertTableBtn = document.getElementById('insert-table-btn') as HTMLButtonElement;
+    this.tableToolbar = document.getElementById('table-toolbar') as HTMLElement;
+    this.addRowBeforeBtn = document.getElementById('add-row-before-btn') as HTMLButtonElement;
+    this.addRowAfterBtn = document.getElementById('add-row-after-btn') as HTMLButtonElement;
+    this.addColBeforeBtn = document.getElementById('add-col-before-btn') as HTMLButtonElement;
+    this.addColAfterBtn = document.getElementById('add-col-after-btn') as HTMLButtonElement;
+    this.deleteRowBtn = document.getElementById('delete-row-btn') as HTMLButtonElement;
+    this.deleteColBtn = document.getElementById('delete-col-btn') as HTMLButtonElement;
+    this.deleteTableBtn = document.getElementById('delete-table-btn') as HTMLButtonElement;
     this.undoBtn = document.getElementById('undo-btn') as HTMLButtonElement;
     this.redoBtn = document.getElementById('redo-btn') as HTMLButtonElement;
     this.clearFormatBtn = document.getElementById('clear-format-btn') as HTMLButtonElement;
@@ -89,6 +142,34 @@ export class TiptapEditorManager {
         }),
         Placeholder.configure({
           placeholder: 'Start taking notes here...',
+        }),
+        Superscript,
+        Subscript,
+        Typography,
+        TextStyle,
+        Color,
+        BackgroundColor,
+        FontSize,
+        TextAlign.configure({
+          types: ['heading', 'paragraph'],
+          alignments: ['left', 'center', 'right', 'justify'],
+          defaultAlignment: 'left',
+        }),
+        Table.configure({
+          resizable: true,
+          HTMLAttributes: {
+            class: 'tiptap-table',
+          },
+        }),
+        TableRow,
+        TableCell,
+        TableHeader,
+        Image.configure({
+          inline: false,
+          allowBase64: true,
+          HTMLAttributes: {
+            class: 'tiptap-image',
+          },
         }),
       ],
       content: '',
@@ -134,6 +215,61 @@ export class TiptapEditorManager {
       this.editor?.chain().focus().toggleUnderline().run();
     });
 
+    this.superscriptBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().toggleSuperscript().run();
+    });
+
+    this.subscriptBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().toggleSubscript().run();
+    });
+
+    this.strikeBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().toggleStrike().run();
+    });
+
+    // Color picker
+    this.colorBtn.addEventListener('click', () => {
+      this.colorPalette.classList.toggle('show');
+    });
+
+    // Color palette swatches (will be set up after HTML is created)
+    this.setupColorPalette();
+
+    // Background color picker
+    this.bgColorBtn.addEventListener('click', () => {
+      this.bgColorPalette.classList.toggle('show');
+    });
+
+    // Background color palette swatches (will be set up after HTML is created)
+    this.setupBgColorPalette();
+
+    // Font size
+    this.fontSizeSelect.addEventListener('change', (e) => {
+      const size = (e.target as HTMLSelectElement).value;
+      if (size) {
+        this.editor?.chain().focus().setFontSize(size).run();
+      } else {
+        this.editor?.chain().focus().unsetFontSize().run();
+      }
+    });
+
+    // Text align
+    this.alignLeftBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().setTextAlign('left').run();
+    });
+
+    this.alignCenterBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().setTextAlign('center').run();
+    });
+
+    this.alignRightBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().setTextAlign('right').run();
+    });
+
+    this.alignJustifyBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().setTextAlign('justify').run();
+    });
+
     // Headings
     this.heading1Btn.addEventListener('click', () => {
       this.editor?.chain().focus().toggleHeading({ level: 1 }).run();
@@ -162,6 +298,49 @@ export class TiptapEditorManager {
       this.editor?.chain().focus().toggleHighlight().run();
     });
 
+    // Image
+    this.imageBtn.addEventListener('click', () => {
+      this.imageInput.click();
+    });
+
+    this.imageInput.addEventListener('change', (e) => {
+      this.handleImageUpload(e);
+    });
+
+    // Table
+    this.insertTableBtn.addEventListener('click', () => {
+      this.insertTable();
+    });
+
+    // Table toolbar
+    this.addRowBeforeBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().addRowBefore().run();
+    });
+
+    this.addRowAfterBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().addRowAfter().run();
+    });
+
+    this.addColBeforeBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().addColumnBefore().run();
+    });
+
+    this.addColAfterBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().addColumnAfter().run();
+    });
+
+    this.deleteRowBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().deleteRow().run();
+    });
+
+    this.deleteColBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().deleteColumn().run();
+    });
+
+    this.deleteTableBtn.addEventListener('click', () => {
+      this.editor?.chain().focus().deleteTable().run();
+    });
+
     // History
     this.undoBtn.addEventListener('click', () => {
       this.editor?.chain().focus().undo().run();
@@ -184,14 +363,14 @@ export class TiptapEditorManager {
     if (!this.editor) return;
 
     const previousUrl = this.editor.getAttributes('link').href;
-    
+
     if (previousUrl) {
       // Remove link
       this.editor.chain().focus().unsetLink().run();
     } else {
       // Add link
       const url = window.prompt('Enter URL:', 'https://');
-      
+
       if (url && url !== 'https://') {
         this.editor
           .chain()
@@ -204,6 +383,84 @@ export class TiptapEditorManager {
   }
 
   /**
+   * Set up color palette swatches
+   */
+  private setupColorPalette(): void {
+    const colors = [
+      '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00',
+      '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000'
+    ];
+
+    colors.forEach(color => {
+      const swatch = this.colorPalette.querySelector(`[data-color="${color}"]`) as HTMLElement;
+      if (swatch) {
+        swatch.addEventListener('click', () => {
+          this.editor?.chain().focus().setColor(color).run();
+          this.colorPalette.classList.remove('show');
+        });
+      }
+    });
+  }
+
+  /**
+   * Set up background color palette swatches
+   */
+  private setupBgColorPalette(): void {
+    const colors = [
+      '#FFFFFF', '#FFEB3B', '#FFCDD2', '#B3E5FC', '#C8E6C9',
+      '#F8BBD0', '#FFE0B2', '#E1BEE7', '#D1C4E9', '#DCEDC8'
+    ];
+
+    colors.forEach(color => {
+      const swatch = this.bgColorPalette.querySelector(`[data-color="${color}"]`) as HTMLElement;
+      if (swatch) {
+        swatch.addEventListener('click', () => {
+          this.editor?.chain().focus().setBackgroundColor(color).run();
+          this.bgColorPalette.classList.remove('show');
+        });
+      }
+    });
+  }
+
+  /**
+   * Insert table with user-specified dimensions
+   */
+  private insertTable(): void {
+    const rows = parseInt(window.prompt('Number of rows:', '3') || '3');
+    const cols = parseInt(window.prompt('Number of columns:', '3') || '3');
+
+    if (rows > 0 && cols > 0) {
+      this.editor?.chain().focus()
+        .insertTable({ rows, cols, withHeaderRow: true })
+        .run();
+    }
+  }
+
+  /**
+   * Handle image upload
+   */
+  private async handleImageUpload(e: Event): Promise<void> {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) return;
+
+    // For now, use base64 encoding
+    // TODO: Implement server upload when endpoint is available
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      this.editor?.chain().focus().setImage({ src: base64 }).run();
+    };
+
+    reader.readAsDataURL(file);
+
+    // Reset input
+    input.value = '';
+  }
+
+  /**
    * Update button active states based on current selection
    */
   private updateButtonStates(): void {
@@ -213,6 +470,19 @@ export class TiptapEditorManager {
     this.updateButtonState(this.boldBtn, this.editor.isActive('bold'));
     this.updateButtonState(this.italicBtn, this.editor.isActive('italic'));
     this.updateButtonState(this.underlineBtn, this.editor.isActive('underline'));
+    this.updateButtonState(this.strikeBtn, this.editor.isActive('strike'));
+    this.updateButtonState(this.superscriptBtn, this.editor.isActive('superscript'));
+    this.updateButtonState(this.subscriptBtn, this.editor.isActive('subscript'));
+
+    // Text align
+    this.updateButtonState(this.alignLeftBtn, this.editor.isActive({ textAlign: 'left' }));
+    this.updateButtonState(this.alignCenterBtn, this.editor.isActive({ textAlign: 'center' }));
+    this.updateButtonState(this.alignRightBtn, this.editor.isActive({ textAlign: 'right' }));
+    this.updateButtonState(this.alignJustifyBtn, this.editor.isActive({ textAlign: 'justify' }));
+
+    // Font size - update select value
+    const currentFontSize = this.editor.getAttributes('textStyle').fontSize || '';
+    this.fontSizeSelect.value = currentFontSize;
 
     // Headings
     this.updateButtonState(this.heading1Btn, this.editor.isActive('heading', { level: 1 }));
@@ -225,6 +495,10 @@ export class TiptapEditorManager {
     // Link & Highlight
     this.updateButtonState(this.linkBtn, this.editor.isActive('link'));
     this.updateButtonState(this.highlightBtn, this.editor.isActive('highlight'));
+
+    // Table toolbar visibility
+    const isInTable = this.editor.isActive('table');
+    this.tableToolbar.style.display = isInTable ? 'flex' : 'none';
 
     // History buttons
     this.undoBtn.disabled = !this.editor.can().undo();

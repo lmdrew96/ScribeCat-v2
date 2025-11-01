@@ -132,6 +132,110 @@
   font-size: 14px;
 }
 
+.superscript-icon {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.subscript-icon {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.strike-icon {
+  text-decoration: line-through;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Toolbar Dropdown */
+.toolbar-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Color Palette */
+.color-palette {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: none;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  z-index: 1000;
+}
+
+.color-palette.show {
+  display: grid;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Font Size Select */
+.font-size-select {
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.font-size-select:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.font-size-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.1);
+}
+
+/* Table Toolbar */
+.table-toolbar {
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  gap: 2px;
+}
+
+.table-toolbar .toolbar-group {
+  gap: 4px;
+}
+
+.table-toolbar .toolbar-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+  height: auto;
+}
+
+.table-toolbar .btn-icon {
+  font-size: 11px;
+}
+
 /* Alignment Icons - Horizontal Lines */
 .align-icon {
   display: flex;
@@ -423,6 +527,16 @@
   text-decoration: underline;
 }
 
+.tiptap-content sup {
+  vertical-align: super;
+  font-size: 0.75em;
+}
+
+.tiptap-content sub {
+  vertical-align: sub;
+  font-size: 0.75em;
+}
+
 /* Tiptap Highlight */
 .tiptap-content mark {
   background-color: rgba(255, 255, 0, 0.4);
@@ -480,6 +594,63 @@
   list-style-type: lower-alpha;
   margin-top: 0.25rem;
   margin-bottom: 0.25rem;
+}
+
+/* Tiptap Strike */
+.tiptap-content s {
+  text-decoration: line-through;
+}
+
+/* Tiptap Tables */
+.tiptap-content table.tiptap-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.tiptap-content table.tiptap-table td,
+.tiptap-content table.tiptap-table th {
+  min-width: 1em;
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  background: var(--bg-primary);
+}
+
+.tiptap-content table.tiptap-table th {
+  font-weight: 700;
+  text-align: left;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.tiptap-content table.tiptap-table .selectedCell {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.tiptap-content table.tiptap-table p {
+  margin: 0;
+}
+
+/* Tiptap Images */
+.tiptap-content img.tiptap-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tiptap-content img.tiptap-image.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Tiptap Focus */

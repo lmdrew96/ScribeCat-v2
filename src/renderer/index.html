@@ -55,10 +55,104 @@
                         <button id="underline-btn" class="toolbar-btn" title="Underline • Ctrl+U">
                             <span class="btn-icon underline-icon">U</span>
                         </button>
+                        <button id="strike-btn" class="toolbar-btn" title="Strikethrough • Ctrl+Shift+S">
+                            <span class="btn-icon strike-icon">S</span>
+                        </button>
+                        <button id="superscript-btn" class="toolbar-btn" title="Superscript">
+                            <span class="btn-icon superscript-icon">X²</span>
+                        </button>
+                        <button id="subscript-btn" class="toolbar-btn" title="Subscript">
+                            <span class="btn-icon subscript-icon">X₂</span>
+                        </button>
                     </div>
-                    
+
                     <div class="toolbar-divider"></div>
-                    
+
+                    <!-- Color & Font Size Group -->
+                    <div class="toolbar-group">
+                        <div class="toolbar-dropdown">
+                            <button id="color-btn" class="toolbar-btn" title="Text Color">
+                                <span class="btn-icon">A</span>
+                            </button>
+                            <div id="color-palette" class="color-palette">
+                                <div class="color-swatch" data-color="#000000" style="background: #000000;" title="Black"></div>
+                                <div class="color-swatch" data-color="#FF0000" style="background: #FF0000;" title="Red"></div>
+                                <div class="color-swatch" data-color="#00FF00" style="background: #00FF00;" title="Green"></div>
+                                <div class="color-swatch" data-color="#0000FF" style="background: #0000FF;" title="Blue"></div>
+                                <div class="color-swatch" data-color="#FFFF00" style="background: #FFFF00;" title="Yellow"></div>
+                                <div class="color-swatch" data-color="#FF00FF" style="background: #FF00FF;" title="Magenta"></div>
+                                <div class="color-swatch" data-color="#00FFFF" style="background: #00FFFF;" title="Cyan"></div>
+                                <div class="color-swatch" data-color="#FFA500" style="background: #FFA500;" title="Orange"></div>
+                                <div class="color-swatch" data-color="#800080" style="background: #800080;" title="Purple"></div>
+                                <div class="color-swatch" data-color="#008000" style="background: #008000;" title="Dark Green"></div>
+                            </div>
+                        </div>
+                        <div class="toolbar-dropdown">
+                            <button id="bg-color-btn" class="toolbar-btn" title="Background Color">
+                                <span class="btn-icon">🎨</span>
+                            </button>
+                            <div id="bg-color-palette" class="color-palette">
+                                <div class="color-swatch" data-color="#FFFFFF" style="background: #FFFFFF; border: 2px solid #ddd;" title="White"></div>
+                                <div class="color-swatch" data-color="#FFEB3B" style="background: #FFEB3B;" title="Yellow"></div>
+                                <div class="color-swatch" data-color="#FFCDD2" style="background: #FFCDD2;" title="Light Red"></div>
+                                <div class="color-swatch" data-color="#B3E5FC" style="background: #B3E5FC;" title="Light Blue"></div>
+                                <div class="color-swatch" data-color="#C8E6C9" style="background: #C8E6C9;" title="Light Green"></div>
+                                <div class="color-swatch" data-color="#F8BBD0" style="background: #F8BBD0;" title="Light Pink"></div>
+                                <div class="color-swatch" data-color="#FFE0B2" style="background: #FFE0B2;" title="Light Orange"></div>
+                                <div class="color-swatch" data-color="#E1BEE7" style="background: #E1BEE7;" title="Light Purple"></div>
+                                <div class="color-swatch" data-color="#D1C4E9" style="background: #D1C4E9;" title="Light Indigo"></div>
+                                <div class="color-swatch" data-color="#DCEDC8" style="background: #DCEDC8;" title="Light Lime"></div>
+                            </div>
+                        </div>
+                        <select id="font-size-select" class="font-size-select" title="Font Size">
+                            <option value="">Size</option>
+                            <option value="12px">12px</option>
+                            <option value="14px">14px</option>
+                            <option value="16px">16px</option>
+                            <option value="18px">18px</option>
+                            <option value="20px">20px</option>
+                            <option value="24px">24px</option>
+                            <option value="28px">28px</option>
+                            <option value="32px">32px</option>
+                        </select>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
+                    <!-- Text Align Group -->
+                    <div class="toolbar-group">
+                        <button id="align-left-btn" class="toolbar-btn" title="Align Left">
+                            <span class="btn-icon align-icon align-left">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                        <button id="align-center-btn" class="toolbar-btn" title="Align Center">
+                            <span class="btn-icon align-icon align-center">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                        <button id="align-right-btn" class="toolbar-btn" title="Align Right">
+                            <span class="btn-icon align-icon align-right">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                        <button id="align-justify-btn" class="toolbar-btn" title="Justify">
+                            <span class="btn-icon align-icon align-justify">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
+
                     <!-- Headings Group -->
                     <div class="toolbar-group">
                         <button id="heading1-btn" class="toolbar-btn" title="Heading 1 • Ctrl+Shift+H">
@@ -68,9 +162,9 @@
                             <span class="btn-icon">H2</span>
                         </button>
                     </div>
-                    
+
                     <div class="toolbar-divider"></div>
-                    
+
                     <!-- List Group -->
                     <div class="toolbar-group">
                         <button id="bullet-list-btn" class="toolbar-btn" title="Bullet List • Ctrl+Shift+8">
@@ -94,10 +188,10 @@
                             </span>
                         </button>
                     </div>
-                    
+
                     <div class="toolbar-divider"></div>
-                    
-                    <!-- Link & Highlight Group -->
+
+                    <!-- Insert Group -->
                     <div class="toolbar-group">
                         <button id="link-btn" class="toolbar-btn" title="Add Link">
                             <span class="btn-icon">🔗</span>
@@ -105,10 +199,17 @@
                         <button id="highlight-btn" class="toolbar-btn" title="Highlight">
                             <span class="btn-icon">✨</span>
                         </button>
+                        <button id="image-btn" class="toolbar-btn" title="Insert Image">
+                            <span class="btn-icon">🖼️</span>
+                        </button>
+                        <input type="file" id="image-input" accept="image/*" style="display: none;">
+                        <button id="insert-table-btn" class="toolbar-btn" title="Insert Table">
+                            <span class="btn-icon">⊞</span>
+                        </button>
                     </div>
-                    
+
                     <div class="toolbar-divider"></div>
-                    
+
                     <!-- History Group -->
                     <div class="toolbar-group">
                         <button id="undo-btn" class="toolbar-btn" title="Undo • Ctrl+Z">
@@ -118,13 +219,40 @@
                             <span class="btn-icon">↷</span>
                         </button>
                     </div>
-                    
+
                     <div class="toolbar-divider"></div>
-                    
+
                     <!-- Clear Format -->
                     <button id="clear-format-btn" class="toolbar-btn" title="Clear Formatting">
                         <span class="btn-icon">✕</span>
                     </button>
+                </div>
+
+                <!-- Table Toolbar (contextual - only shows when in table) -->
+                <div id="table-toolbar" class="table-toolbar" style="display: none;">
+                    <div class="toolbar-group">
+                        <button id="add-row-before-btn" class="toolbar-btn" title="Add Row Above">
+                            <span class="btn-icon">⬆ Row</span>
+                        </button>
+                        <button id="add-row-after-btn" class="toolbar-btn" title="Add Row Below">
+                            <span class="btn-icon">⬇ Row</span>
+                        </button>
+                        <button id="add-col-before-btn" class="toolbar-btn" title="Add Column Left">
+                            <span class="btn-icon">⬅ Col</span>
+                        </button>
+                        <button id="add-col-after-btn" class="toolbar-btn" title="Add Column Right">
+                            <span class="btn-icon">➡ Col</span>
+                        </button>
+                        <button id="delete-row-btn" class="toolbar-btn" title="Delete Row">
+                            <span class="btn-icon">❌ Row</span>
+                        </button>
+                        <button id="delete-col-btn" class="toolbar-btn" title="Delete Column">
+                            <span class="btn-icon">❌ Col</span>
+                        </button>
+                        <button id="delete-table-btn" class="toolbar-btn" title="Delete Table">
+                            <span class="btn-icon">🗑 Table</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="tiptap-editor" class="tiptap-editor"></div>
