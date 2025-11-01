@@ -100,6 +100,7 @@ export class RecordingManager {
     // Update UI
     this.viewManager.updateRecordingState(true, transcriptionMode);
     this.transcriptionManager.clear();
+    this.transcriptionManager.startRecording(); // Initialize timestamp tracking
     this.startElapsedTimer();
     this.startVUMeterUpdates();
 
@@ -146,10 +147,23 @@ export class RecordingManager {
       const transcriptionText = this.transcriptionManager.getText();
       if (transcriptionText && transcriptionText.trim().length > 0) {
         console.log('Saving transcription to session...');
+
+        // Get timestamped entries for accurate synchronization
+        const timestampedEntries = this.transcriptionManager.getTimestampedEntries();
+
+        console.log('📝 Saving transcription with:', {
+          sessionDuration: durationSeconds,
+          entryCount: timestampedEntries.length,
+          firstTimestamp: timestampedEntries[0]?.timestamp,
+          lastTimestamp: timestampedEntries[timestampedEntries.length - 1]?.timestamp,
+          entries: timestampedEntries.map(e => ({ ts: e.timestamp, text: e.text.substring(0, 30) }))
+        });
+
         const transcriptionResult = await window.scribeCat.session.updateTranscription(
           saveResult.sessionId,
           transcriptionText,
-          this.transcriptionService.getCurrentMode()
+          this.transcriptionService.getCurrentMode(),
+          timestampedEntries.length > 0 ? timestampedEntries : undefined
         );
 
         if (transcriptionResult.success) {
@@ -197,6 +211,9 @@ export class RecordingManager {
     // Pause transcription
     this.transcriptionService.pause();
 
+    // Pause transcription manager timestamp tracking
+    this.transcriptionManager.pauseRecording();
+
     // Pause timers
     this.stopElapsedTimer();
     this.stopVUMeterUpdates();
@@ -229,6 +246,9 @@ export class RecordingManager {
 
     // Resume transcription
     this.transcriptionService.resume();
+
+    // Resume transcription manager timestamp tracking
+    this.transcriptionManager.resumeRecording();
 
     // Resume timers
     this.startElapsedTimer();

@@ -25,6 +25,8 @@ const electronAPI = {
     simulation: {
       start: () => ipcRenderer.invoke('transcription:simulation:start'),
       stop: (sessionId: string) => ipcRenderer.invoke('transcription:simulation:stop', sessionId),
+      pause: () => ipcRenderer.invoke('transcription:simulation:pause'),
+      resume: () => ipcRenderer.invoke('transcription:simulation:resume'),
       onResult: (callback: (result: any) => void) => {
         ipcRenderer.on('transcription:result', (_event: any, result: any) => callback(result));
       },

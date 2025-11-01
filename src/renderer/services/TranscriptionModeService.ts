@@ -82,8 +82,8 @@ export class TranscriptionModeService {
    */
   pause(): void {
     if (this.currentMode === 'simulation') {
-      // For simulation, audio manager handles the pause
-      // No additional action needed
+      // Pause the simulation service to stop emitting phrases
+      window.scribeCat.transcription.simulation.pause();
     } else if (this.currentMode === 'assemblyai') {
       // For AssemblyAI, stop audio streaming but keep WebSocket open
       if (this.assemblyAIStreamingInterval !== null) {
@@ -99,8 +99,8 @@ export class TranscriptionModeService {
    */
   resume(): void {
     if (this.currentMode === 'simulation') {
-      // For simulation, audio manager handles the resume
-      // No additional action needed
+      // Resume the simulation service to continue emitting phrases
+      window.scribeCat.transcription.simulation.resume();
     } else if (this.currentMode === 'assemblyai') {
       // For AssemblyAI, restart audio streaming
       this.startAssemblyAIAudioStreaming();
@@ -144,9 +144,9 @@ export class TranscriptionModeService {
     await this.assemblyAIService.initialize(apiKey);
 
     // Set up result callback
-    this.assemblyAIService.onResult((text: string, isFinal: boolean) => {
-      console.log('🎤 AssemblyAI:', isFinal ? 'Final' : 'Partial', text);
-      this.transcriptionManager.updateFlowing(text, isFinal);
+    this.assemblyAIService.onResult((text: string, isFinal: boolean, timestamp?: number) => {
+      console.log('🎤 AssemblyAI:', isFinal ? 'Final' : 'Partial', text, timestamp !== undefined ? `@ ${timestamp.toFixed(1)}s` : '');
+      this.transcriptionManager.updateFlowing(text, isFinal, timestamp);
     });
 
     // Start session

@@ -7,7 +7,7 @@
 export class AssemblyAITranscriptionService {
   private ws: WebSocket | null = null;
   private sessionId: string | null = null;
-  private resultCallback: ((text: string, isFinal: boolean) => void) | null = null;
+  private resultCallback: ((text: string, isFinal: boolean, timestamp?: number) => void) | null = null;
   private startTime: number = 0;
   private apiKey: string = '';
   private terminationReceived: boolean = false;
@@ -107,10 +107,11 @@ export class AssemblyAITranscriptionService {
   private async connectWebSocket(token: string): Promise<void> {
     return new Promise((resolve, reject) => {
       // Use browser's native WebSocket API with temporary token
-      // Note: sample_rate and encoding are set via query params, format_turns enables Turn-based messages
-      const url = `wss://streaming.assemblyai.com/v3/ws?token=${encodeURIComponent(token)}&sample_rate=16000&encoding=pcm_s16le&format_turns=true`;
+      // Note: sample_rate and encoding are set via query params
+      // format_turns enables Turn-based messages, format_words provides word-level timestamps
+      const url = `wss://streaming.assemblyai.com/v3/ws?token=${encodeURIComponent(token)}&sample_rate=16000&encoding=pcm_s16le&format_turns=true&format_words=true`;
 
-      console.log('🔗 Connecting to AssemblyAI WebSocket...');
+      console.log('🔗 Connecting to AssemblyAI WebSocket with word-level timestamps...');
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
@@ -178,9 +179,30 @@ export class AssemblyAITranscriptionService {
       if (message.type === 'Turn') {
         const text = message.transcript;
         const isFinal = message.end_of_turn && message.turn_is_formatted;
-        
+
+        // Use word-level timestamps for accuracy (words array excludes filler)
+        // Fall back to audio_start if words not available
+        let timestamp: number | undefined;
+        if (message.words && Array.isArray(message.words) && message.words.length > 0) {
+          // Use the first word's start time (already cleaned of filler)
+          timestamp = message.words[0].start / 1000; // Convert ms to seconds
+        } else if (message.audio_start !== undefined) {
+          // Fallback to turn's audio_start
+          timestamp = message.audio_start / 1000;
+        }
+
+        console.log('📊 AssemblyAI Turn:', {
+          text: text?.substring(0, 50) + '...',
+          isFinal,
+          wordCount: message.words?.length,
+          firstWordStart: message.words?.[0]?.start,
+          audio_start_ms: message.audio_start,
+          timestamp_seconds: timestamp,
+          audio_end_ms: message.audio_end
+        });
+
         if (text && text.trim().length > 0 && this.resultCallback) {
-          this.resultCallback(text, isFinal);
+          this.resultCallback(text, isFinal, timestamp);
         }
       }
 
@@ -202,7 +224,7 @@ export class AssemblyAITranscriptionService {
     }
   }
 
-  onResult(callback: (text: string, isFinal: boolean) => void): void {
+  onResult(callback: (text: string, isFinal: boolean, timestamp?: number) => void): void {
     this.resultCallback = callback;
   }
 

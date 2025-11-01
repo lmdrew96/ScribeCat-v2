@@ -16,12 +16,14 @@ export class UpdateSessionTranscriptionUseCase {
    * @param sessionId The ID of the session to update
    * @param transcriptionText The full transcription text
    * @param provider The transcription provider (e.g., 'simulation', 'assemblyai')
+   * @param timestampedEntries Optional array of timestamped text entries from recording
    * @returns Success status
    */
   async execute(
     sessionId: string,
     transcriptionText: string,
-    provider: 'assemblyai' | 'simulation' = 'simulation'
+    provider: 'assemblyai' | 'simulation' = 'simulation',
+    timestampedEntries?: Array<{ timestamp: number; text: string }>
   ): Promise<boolean> {
     try {
       // Load the session
@@ -37,13 +39,17 @@ export class UpdateSessionTranscriptionUseCase {
         return true;
       }
 
-      // Split transcription into segments
-      // Since we don't have word-level timestamps, split by sentences
-      // and distribute evenly across the recording duration
-      const segments = this.createSegmentsFromText(
-        transcriptionText.trim(),
-        session.duration
-      );
+      // Create segments from timestamped entries if available, otherwise fall back to text splitting
+      const segments = timestampedEntries && timestampedEntries.length > 0
+        ? this.createSegmentsFromTimestampedEntries(timestampedEntries, session.duration)
+        : this.createSegmentsFromText(transcriptionText.trim(), session.duration);
+
+      console.log('🎯 Created segments:', {
+        method: timestampedEntries && timestampedEntries.length > 0 ? 'timestamped' : 'text-splitting',
+        sessionDuration: session.duration,
+        segmentCount: segments.length,
+        segments: segments.map(s => ({ start: s.startTime, end: s.endTime, text: s.text.substring(0, 30) }))
+      });
 
       // Create transcription entity
       const transcription = new Transcription(
@@ -69,8 +75,33 @@ export class UpdateSessionTranscriptionUseCase {
   }
 
   /**
+   * Create segments from timestamped entries captured during recording
+   * Uses real timestamps from the transcription service
+   */
+  private createSegmentsFromTimestampedEntries(
+    timestampedEntries: Array<{ timestamp: number; text: string }>,
+    totalDuration: number
+  ): Array<{ text: string; startTime: number; endTime: number; confidence?: number }> {
+    return timestampedEntries.map((entry, index) => {
+      const startTime = entry.timestamp;
+      // Calculate end time as the start of the next entry, or session duration for the last entry
+      const endTime = index < timestampedEntries.length - 1
+        ? timestampedEntries[index + 1].timestamp
+        : totalDuration;
+
+      return {
+        text: entry.text.trim(),
+        startTime: startTime,
+        endTime: endTime,
+        confidence: undefined
+      };
+    });
+  }
+
+  /**
    * Create segments from transcription text
    * Splits text into sentences and distributes timing evenly
+   * Used as fallback when real timestamps are not available
    */
   private createSegmentsFromText(
     text: string,

@@ -36,6 +36,9 @@ export class SimulationTranscriptionService implements ITranscriptionService {
   private currentPhraseIndex = 0;
   private startTime = 0;
   private resultCallback: ((result: TranscriptionResult) => void) | null = null;
+  private isPaused = false;
+  private totalPausedTime = 0;
+  private pauseStartTime = 0;
 
   /**
    * Initialize the simulation service
@@ -68,6 +71,9 @@ export class SimulationTranscriptionService implements ITranscriptionService {
     this.activeSessionId = `sim-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     this.startTime = Date.now();
     this.currentPhraseIndex = 0;
+    this.isPaused = false;
+    this.totalPausedTime = 0;
+    this.pauseStartTime = 0;
 
     console.log(`Starting simulation transcription session: ${this.activeSessionId}`);
 
@@ -109,6 +115,41 @@ export class SimulationTranscriptionService implements ITranscriptionService {
    */
   onResult(callback: (result: TranscriptionResult) => void): void {
     this.resultCallback = callback;
+  }
+
+  /**
+   * Pause the simulation (stop emitting phrases)
+   */
+  pause(): void {
+    if (!this.isPaused && this.activeSessionId) {
+      this.isPaused = true;
+      this.pauseStartTime = Date.now();
+
+      // Stop the interval
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+      }
+
+      console.log('Simulation transcription paused');
+    }
+  }
+
+  /**
+   * Resume the simulation (continue emitting phrases)
+   */
+  resume(): void {
+    if (this.isPaused && this.activeSessionId) {
+      this.isPaused = false;
+      this.totalPausedTime += Date.now() - this.pauseStartTime;
+
+      // Restart the interval
+      this.intervalId = setInterval(() => {
+        this.emitNextPhrase();
+      }, PHRASE_INTERVAL_MS);
+
+      console.log('Simulation transcription resumed');
+    }
   }
 
   /**
@@ -154,7 +195,9 @@ export class SimulationTranscriptionService implements ITranscriptionService {
     }
 
     const phrase = SIMULATION_PHRASES[this.currentPhraseIndex];
-    const elapsedSeconds = (Date.now() - this.startTime) / 1000;
+    // Calculate elapsed time excluding paused time
+    const wallClockTime = Date.now() - this.startTime;
+    const elapsedSeconds = (wallClockTime - this.totalPausedTime) / 1000;
 
     const result: TranscriptionResult = {
       text: phrase,

@@ -42,6 +42,18 @@ export class TranscriptionHandlers extends BaseHandler {
       return { success: true };
     });
 
+    // Transcription: Pause simulation transcription
+    this.handle(ipcMain, 'transcription:simulation:pause', async () => {
+      this.simulationTranscriptionService.pause();
+      return { success: true };
+    });
+
+    // Transcription: Resume simulation transcription
+    this.handle(ipcMain, 'transcription:simulation:resume', async () => {
+      this.simulationTranscriptionService.resume();
+      return { success: true };
+    });
+
     // AssemblyAI: Get temporary token
     this.handle(ipcMain, 'transcription:assemblyai:getToken', async (event, apiKey: string) => {
       const https = await import('https');

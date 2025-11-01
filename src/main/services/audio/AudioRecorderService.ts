@@ -36,6 +36,8 @@ export class AudioRecorderService {
   private audioChunks: Blob[] = [];
   private startTime: number = 0;
   private isRecording: boolean = false;
+  private totalPausedTime: number = 0;
+  private pauseStartTime: number = 0;
 
   /**
    * Get list of available audio input devices
@@ -123,6 +125,8 @@ export class AudioRecorderService {
       this.mediaRecorder.start(100); // Collect data every 100ms
       this.startTime = Date.now();
       this.isRecording = true;
+      this.totalPausedTime = 0;
+      this.pauseStartTime = 0;
 
       console.log('Audio recording started');
     } catch (error) {
@@ -159,7 +163,10 @@ export class AudioRecorderService {
 
       this.mediaRecorder.onstop = async () => {
         try {
-          const duration = Date.now() - this.startTime;
+          // Calculate duration excluding paused time
+          const wallClockTime = Date.now() - this.startTime;
+          const duration = wallClockTime - this.totalPausedTime;
+
           const audioBlob = new Blob(this.audioChunks, { type: this.mediaRecorder!.mimeType });
           const arrayBuffer = await audioBlob.arrayBuffer();
           const audioData = new Uint8Array(arrayBuffer);
@@ -193,6 +200,7 @@ export class AudioRecorderService {
 
     if (this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.pause();
+      this.pauseStartTime = Date.now();
       console.log('Recording paused');
     }
   }
@@ -206,6 +214,7 @@ export class AudioRecorderService {
     }
 
     if (this.mediaRecorder.state === 'paused') {
+      this.totalPausedTime += Date.now() - this.pauseStartTime;
       this.mediaRecorder.resume();
       console.log('Recording resumed');
     }
@@ -267,5 +276,7 @@ export class AudioRecorderService {
     this.mediaRecorder = null;
     this.audioChunks = [];
     this.isRecording = false;
+    this.totalPausedTime = 0;
+    this.pauseStartTime = 0;
   }
 }

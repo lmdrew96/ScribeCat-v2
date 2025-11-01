@@ -180,14 +180,15 @@ export class RecordingManager {
       }
     });
 
-    ipcMain.handle('session:updateTranscription', async (event, sessionId: string, transcriptionText: string, provider?: string) => {
+    ipcMain.handle('session:updateTranscription', async (event, sessionId: string, transcriptionText: string, provider?: string, timestampedEntries?: Array<{ timestamp: number; text: string }>) => {
       try {
         // Use the provider as-is, defaulting to 'simulation'
         const transcriptionProvider = (provider || 'simulation') as 'assemblyai' | 'simulation';
         const success = await this.updateSessionTranscriptionUseCase.execute(
           sessionId,
           transcriptionText,
-          transcriptionProvider
+          transcriptionProvider,
+          timestampedEntries
         );
 
         if (!success) {
