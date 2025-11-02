@@ -442,6 +442,14 @@ export class StudyModeManager {
     const indicators = [hasTranscription, hasNotes].filter(Boolean).join(' • ');
     const indicatorsWithCourse = [indicators, courseTag].filter(Boolean).join(' • ');
 
+    console.log('📊 Indicators HTML:', {
+      sessionId: session.id,
+      indicators,
+      courseTag,
+      combined: indicatorsWithCourse,
+      hasCourseTag: !!courseTag
+    });
+
     // Check if selected
     const isSelected = this.selectedSessionIds.has(session.id);
     
