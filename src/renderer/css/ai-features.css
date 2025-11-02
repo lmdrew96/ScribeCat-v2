@@ -3,24 +3,21 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: 64px;
+  height: 64px;
   border: none;
-  background: linear-gradient(135deg, var(--accent) 0%, #0096ff 100%);
-  color: white;
+  background: transparent;
+  padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 122, 204, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 900;
 }
 
 .floating-chat-btn:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 122, 204, 0.5), 0 3px 6px rgba(0, 0, 0, 0.4);
 }
 
 .floating-chat-btn:active {
@@ -33,10 +30,15 @@
 }
 
 .floating-chat-btn .chat-btn-icon {
-  width: 40px;
-  height: 40px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
-  border-radius: 50%;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  transition: filter 0.3s ease;
+}
+
+.floating-chat-btn:hover .chat-btn-icon {
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
 }
 
 /* ===== AI Chat Drawer ===== */
@@ -839,12 +841,17 @@
   .floating-chat-btn {
     bottom: 16px;
     right: 16px;
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
   }
-  
+
   .floating-chat-btn svg {
     width: 20px;
     height: 20px;
+  }
+
+  .floating-chat-btn .chat-btn-icon {
+    width: 52px;
+    height: 52px;
   }
 }
