@@ -3,8 +3,8 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 64px;
-  height: 64px;
+  width: 75px;
+  height: 75px;
   border: none;
   background: transparent;
   padding: 0;
@@ -30,8 +30,8 @@
 }
 
 .floating-chat-btn .chat-btn-icon {
-  width: 64px;
-  height: 64px;
+  width: 75px;
+  height: 75px;
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   transition: filter 0.3s ease;
