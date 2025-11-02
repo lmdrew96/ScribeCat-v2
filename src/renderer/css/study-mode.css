@@ -314,8 +314,8 @@
   position: relative;
 }
 
-/* Custom Tooltip for Course Badge */
-.course-badge::before {
+/* Custom Tooltip for Course Badge - Only show when data-tooltip exists */
+.course-badge[data-tooltip]:not([data-tooltip=""])::before {
   content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 8px);
@@ -337,8 +337,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* Tooltip Arrow */
-.course-badge::after {
+/* Tooltip Arrow - Only show when data-tooltip exists */
+.course-badge[data-tooltip]:not([data-tooltip=""])::after {
   content: '';
   position: absolute;
   bottom: calc(100% + 2px);
@@ -353,16 +353,16 @@
 }
 
 /* Show tooltip on hover */
-.course-badge:hover::before,
-.course-badge:hover::after {
+.course-badge[data-tooltip]:not([data-tooltip=""]):hover::before,
+.course-badge[data-tooltip]:not([data-tooltip=""]):hover::after {
   opacity: 1;
 }
 
-.course-badge:hover::before {
+.course-badge[data-tooltip]:not([data-tooltip=""]):hover::before {
   transform: translateX(-50%) translateY(-4px);
 }
 
-.course-badge:hover::after {
+.course-badge[data-tooltip]:not([data-tooltip=""]):hover::after {
   transform: translateX(-50%) translateY(-2px);
 }
 

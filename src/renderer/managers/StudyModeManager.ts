@@ -409,6 +409,12 @@ export class StudyModeManager {
     if (session.courseTitle && session.courseTitle.trim()) {
       const fullTitle = session.courseTitle.trim();
       const displayTitle = this.formatCourseTitle(fullTitle);
+      console.log('📚 Creating course badge:', {
+        sessionId: session.id,
+        fullTitle,
+        displayTitle,
+        hasTooltip: !!fullTitle
+      });
       courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
@@ -418,7 +424,15 @@ export class StudyModeManager {
       if (courseTags.length > 0) {
         const fullTitle = courseTags[0].trim();
         const displayTitle = this.formatCourseTitle(fullTitle);
+        console.log('📚 Creating course badge from tags:', {
+          sessionId: session.id,
+          fullTitle,
+          displayTitle,
+          hasTooltip: !!fullTitle
+        });
         courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
+      } else {
+        console.log('⚠️ No course info found for session:', session.id);
       }
     }
     
