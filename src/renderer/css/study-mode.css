@@ -854,6 +854,165 @@
   display: none;
 }
 
+/* Notes View Content Styling - Match Tiptap Editor Styles */
+.notes-view-content {
+  padding: 16px;
+  line-height: 1.6;
+}
+
+.notes-view-content ul,
+.notes-view-content ol {
+  padding-left: 1.5rem;
+  margin: 0.75rem 0;
+}
+
+.notes-view-content ul {
+  list-style-type: disc;
+}
+
+.notes-view-content ol {
+  list-style-type: decimal;
+}
+
+.notes-view-content li {
+  margin: 0.25rem 0;
+}
+
+.notes-view-content li p {
+  margin: 0;
+}
+
+/* Nested lists in view mode */
+.notes-view-content ul ul,
+.notes-view-content ol ul {
+  list-style-type: circle;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.notes-view-content ul ol,
+.notes-view-content ol ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Third level nesting */
+.notes-view-content ul ul ul,
+.notes-view-content ol ul ul {
+  list-style-type: square;
+}
+
+.notes-view-content ul ol ol,
+.notes-view-content ol ol ol {
+  list-style-type: lower-roman;
+}
+
+/* Other Tiptap elements in view mode */
+.notes-view-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.notes-view-content h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 0.875rem 0 0.5rem 0;
+  line-height: 1.3;
+}
+
+.notes-view-content p {
+  margin: 0.5rem 0;
+}
+
+.notes-view-content strong {
+  font-weight: 700;
+}
+
+.notes-view-content em {
+  font-style: italic;
+}
+
+.notes-view-content u {
+  text-decoration: underline;
+}
+
+.notes-view-content s {
+  text-decoration: line-through;
+}
+
+.notes-view-content mark {
+  background-color: #ffeb3b;
+  padding: 0.1em 0.2em;
+  border-radius: 2px;
+}
+
+.notes-view-content a {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.notes-view-content a:hover {
+  color: var(--accent-hover);
+}
+
+.notes-view-content code {
+  background-color: var(--bg-tertiary);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.notes-view-content pre {
+  background-color: var(--bg-tertiary);
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.notes-view-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.notes-view-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.notes-view-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.notes-view-content th,
+.notes-view-content td {
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.notes-view-content th {
+  background-color: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.notes-view-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 /* Study Editor Container */
 .study-editor-container {
   display: flex;
