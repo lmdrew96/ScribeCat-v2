@@ -306,7 +306,11 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  flex-shrink: 0;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  cursor: help;
 }
 
 /* Session Meta */

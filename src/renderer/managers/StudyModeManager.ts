@@ -407,15 +407,19 @@ export class StudyModeManager {
     // Get course information from dedicated fields first, fall back to tags
     let courseTag = '';
     if (session.courseTitle) {
-      courseTag = `<span class="course-badge">${this.escapeHtml(session.courseTitle)}</span>`;
+      const fullTitle = session.courseTitle;
+      const displayTitle = this.formatCourseTitle(fullTitle);
+      courseTag = `<span class="course-badge" title="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
       const courseTags = session.tags?.filter(tag =>
         tag.includes('course') || tag.includes('class')
       ) || [];
-      courseTag = courseTags.length > 0
-        ? `<span class="course-badge">${this.escapeHtml(courseTags[0])}</span>`
-        : '';
+      if (courseTags.length > 0) {
+        const fullTitle = courseTags[0];
+        const displayTitle = this.formatCourseTitle(fullTitle);
+        courseTag = `<span class="course-badge" title="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
+      }
     }
     
     // Status indicators
@@ -673,14 +677,20 @@ export class StudyModeManager {
     // Get course information from dedicated fields first, fall back to tags
     let courseTagsHtml = '';
     if (session.courseTitle) {
-      courseTagsHtml = `<span class="course-badge">${this.escapeHtml(session.courseTitle)}</span>`;
+      const fullTitle = session.courseTitle;
+      const displayTitle = this.formatCourseTitle(fullTitle);
+      courseTagsHtml = `<span class="course-badge" title="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
       const courseTags = session.tags?.filter(tag =>
         tag.includes('course') || tag.includes('class')
       ) || [];
       courseTagsHtml = courseTags.length > 0
-        ? courseTags.map(tag => `<span class="course-badge">${this.escapeHtml(tag)}</span>`).join('')
+        ? courseTags.map(tag => {
+            const fullTitle = tag;
+            const displayTitle = this.formatCourseTitle(fullTitle);
+            return `<span class="course-badge" title="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
+          }).join('')
         : '';
     }
     
@@ -1143,6 +1153,18 @@ export class StudyModeManager {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  /**
+   * Format course title by removing course number
+   * Example: "CS 101 - Introduction to Computer Science" -> "Introduction to Computer Science"
+   * Example: "MATH-251: Calculus I" -> "Calculus I"
+   */
+  private formatCourseTitle(courseTitle: string): string {
+    // Remove common course number patterns at the start
+    // Matches patterns like: "CS 101", "MATH-251", "BIO101", "ENGL 1301", etc.
+    const formatted = courseTitle.replace(/^[A-Z]{2,4}[-\s]?\d{3,4}[\s:-]*/, '').trim();
+    return formatted || courseTitle; // Return original if no match
   }
 
   /**
