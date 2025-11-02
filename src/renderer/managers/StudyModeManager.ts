@@ -238,13 +238,19 @@ export class StudyModeManager {
    * Hide study mode view
    */
   public hide(): void {
+    // Clear AI Chat study mode context
+    const aiManager = (window as any).aiManager;
+    if (aiManager) {
+      aiManager.clearStudyModeContext();
+    }
+
     // Show record mode, hide study mode
     this.studyModeView.classList.add('hidden');
     this.recordModeView.classList.remove('hidden');
-    
+
     // Update button state
     this.studyModeBtn.classList.remove('active');
-    
+
     this.isActive = false;
     console.log('Study mode deactivated');
   }
@@ -668,7 +674,15 @@ export class StudyModeManager {
       console.error('Session not found:', sessionId);
       return;
     }
-    
+
+    // Set AI Chat context to this session's data
+    const aiManager = (window as any).aiManager;
+    if (aiManager) {
+      const transcriptionText = session.transcription?.fullText || '';
+      const notesText = session.notes || '';
+      aiManager.setStudyModeContext(transcriptionText, notesText);
+    }
+
     // Hide session list, show detail view
     this.sessionListContainer.classList.add('hidden');
     this.sessionDetailContainer.classList.remove('hidden');
@@ -1197,6 +1211,12 @@ export class StudyModeManager {
     // Back button
     const backBtn = document.querySelector('.back-to-list-btn');
     backBtn?.addEventListener('click', () => {
+      // Clear AI Chat context when going back to list
+      const aiManager = (window as any).aiManager;
+      if (aiManager) {
+        aiManager.clearStudyModeContext();
+      }
+
       // Hide detail view, show list view
       this.sessionDetailContainer.classList.add('hidden');
       this.sessionListContainer.classList.remove('hidden');

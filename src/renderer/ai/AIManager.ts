@@ -28,6 +28,12 @@ export class AIManager {
   private getTranscriptionText: () => string;
   private getNotesText: () => string;
 
+  // Study mode context
+  private studyModeContext: {
+    transcription: string;
+    notes: string;
+  } | null = null;
+
   constructor(
     getTranscriptionText: () => string,
     getNotesText: () => string
@@ -304,6 +310,29 @@ export class AIManager {
   }
 
   /**
+   * Set study mode context (called when viewing a session in study mode)
+   */
+  public setStudyModeContext(transcription: string, notes: string): void {
+    this.studyModeContext = { transcription, notes };
+    console.log('AI Chat: Study mode context set');
+  }
+
+  /**
+   * Clear study mode context (called when exiting study mode)
+   */
+  public clearStudyModeContext(): void {
+    this.studyModeContext = null;
+    console.log('AI Chat: Study mode context cleared');
+  }
+
+  /**
+   * Check if in study mode
+   */
+  public isInStudyMode(): boolean {
+    return this.studyModeContext !== null;
+  }
+
+  /**
    * Send a chat message
    */
   private async sendMessage(): Promise<void> {
@@ -324,11 +353,17 @@ export class AIManager {
     const options: any = {};
 
     if (contextOptions.includeTranscription) {
-      options.transcriptionContext = this.getTranscriptionText();
+      // Use study mode context if available, otherwise use live transcription
+      options.transcriptionContext = this.studyModeContext
+        ? this.studyModeContext.transcription
+        : this.getTranscriptionText();
     }
 
     if (contextOptions.includeNotes) {
-      options.notesContext = this.getNotesText();
+      // Use study mode context if available, otherwise use live notes
+      options.notesContext = this.studyModeContext
+        ? this.studyModeContext.notes
+        : this.getNotesText();
     }
 
     // Create assistant message placeholder
