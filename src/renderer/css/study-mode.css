@@ -782,20 +782,260 @@
   background-color: var(--accent-hover);
 }
 
+/* Notes Editing Controls */
+.notes-edit-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-notes-btn,
+.save-notes-btn,
+.cancel-edit-notes-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-notes-btn {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.edit-notes-btn:hover {
+  background-color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.save-notes-btn {
+  background-color: var(--accent);
+  border: 1px solid var(--accent);
+  color: white;
+}
+
+.save-notes-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.cancel-edit-notes-btn {
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.cancel-edit-notes-btn:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--record-color);
+  color: var(--record-color);
+}
+
+/* Notes Content Areas */
+.notes-view-content,
+.notes-edit-content {
+  transition: opacity 0.2s ease;
+  overflow: visible;
+}
+
+.notes-view-content.hidden,
+.notes-edit-content.hidden {
+  display: none;
+}
+
+/* Study Editor Container */
+.study-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: visible;
+}
+
+.study-editor-container .study-notes-editor {
+  overflow-y: auto;
+}
+
+/* Study Editor Toolbar */
+.study-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
+}
+
+.study-editor-toolbar .toolbar-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 4px 8px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.study-editor-toolbar .toolbar-btn:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+.study-editor-toolbar .toolbar-btn.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.study-editor-toolbar .toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.study-editor-toolbar .toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--border);
+  margin: 0 4px;
+}
+
+/* Toolbar Dropdowns */
+.study-editor-toolbar .toolbar-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.study-editor-toolbar .color-palette {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  z-index: 1000;
+}
+
+.study-editor-toolbar .color-palette.hidden {
+  display: none;
+}
+
+.study-editor-toolbar .color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.study-editor-toolbar .color-swatch:hover {
+  transform: scale(1.1);
+  border-color: var(--accent);
+}
+
+/* Font Size Selector */
+.study-font-size-select {
+  height: 32px;
+  padding: 4px 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.study-font-size-select:hover {
+  border-color: var(--accent);
+}
+
+.study-font-size-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+/* Study Notes Editor */
+.study-notes-editor {
+  min-height: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding: 16px;
+  background-color: var(--bg-primary);
+}
+
+.study-notes-editor .tiptap-content {
+  min-height: 360px;
+  outline: none;
+}
+
+.study-notes-editor .tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  height: 0;
+}
+
 /* Responsive Study Mode */
 @media (max-width: 768px) {
   .session-list {
     grid-template-columns: 1fr;
     padding: 15px;
   }
-  
+
   .study-mode-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
   }
-  
+
   .study-mode-header h2 {
     font-size: 20px;
+  }
+
+  .notes-edit-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notes-edit-actions {
+    width: 100%;
+  }
+
+  .save-notes-btn,
+  .cancel-edit-notes-btn {
+    flex: 1;
   }
 }

@@ -22,6 +22,7 @@ export class TiptapEditorManager {
   private charCount: HTMLElement;
   private wordCount: HTMLElement;
   private onContentChangeCallback?: () => void;
+  private paletteClickHandler: ((e: MouseEvent) => void) | null = null;
 
   // Toolbar buttons
   private boldBtn: HTMLButtonElement;
@@ -253,20 +254,44 @@ export class TiptapEditorManager {
     });
 
     // Color picker
-    this.colorBtn.addEventListener('click', () => {
+    this.colorBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       this.colorPalette.classList.toggle('show');
+      this.bgColorPalette.classList.remove('show');
     });
 
     // Color palette swatches (will be set up after HTML is created)
     this.setupColorPalette();
 
     // Background color picker
-    this.bgColorBtn.addEventListener('click', () => {
+    this.bgColorBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       this.bgColorPalette.classList.toggle('show');
+      this.colorPalette.classList.remove('show');
     });
 
     // Background color palette swatches (will be set up after HTML is created)
     this.setupBgColorPalette();
+
+    // Close palettes when clicking outside (recording mode)
+    // Remove old listener if it exists to prevent memory leaks
+    if (this.paletteClickHandler) {
+      document.removeEventListener('click', this.paletteClickHandler);
+    }
+
+    // Create and store the new handler
+    this.paletteClickHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Only close if clicking outside the recording mode toolbar dropdowns
+      if (!target.closest('#color-btn') &&
+          !target.closest('#bg-color-btn') &&
+          !target.closest('#color-palette') &&
+          !target.closest('#bg-color-palette')) {
+        this.colorPalette.classList.remove('show');
+        this.bgColorPalette.classList.remove('show');
+      }
+    };
+    document.addEventListener('click', this.paletteClickHandler);
 
     // Font size
     this.fontSizeSelect.addEventListener('change', (e) => {
@@ -483,7 +508,8 @@ export class TiptapEditorManager {
     colors.forEach(color => {
       const swatch = this.colorPalette.querySelector(`[data-color="${color}"]`) as HTMLElement;
       if (swatch) {
-        swatch.addEventListener('click', () => {
+        swatch.addEventListener('click', (e) => {
+          e.stopPropagation();
           this.editor?.chain().focus().setColor(color).run();
           this.colorPalette.classList.remove('show');
         });
@@ -503,7 +529,8 @@ export class TiptapEditorManager {
     colors.forEach(color => {
       const swatch = this.bgColorPalette.querySelector(`[data-color="${color}"]`) as HTMLElement;
       if (swatch) {
-        swatch.addEventListener('click', () => {
+        swatch.addEventListener('click', (e) => {
+          e.stopPropagation();
           this.editor?.chain().focus().setBackgroundColor(color).run();
           this.bgColorPalette.classList.remove('show');
         });
@@ -700,6 +727,12 @@ export class TiptapEditorManager {
    * Destroy the editor instance
    */
   destroy(): void {
+    // Remove the palette click handler to prevent memory leaks
+    if (this.paletteClickHandler) {
+      document.removeEventListener('click', this.paletteClickHandler);
+      this.paletteClickHandler = null;
+    }
+
     this.editor?.destroy();
   }
 }
