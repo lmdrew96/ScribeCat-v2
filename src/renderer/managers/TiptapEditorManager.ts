@@ -141,6 +141,19 @@ export class TiptapEditorManager {
           heading: {
             levels: [1, 2],
           },
+          bulletList: {
+            keepMarks: true,
+            keepAttributes: false,
+          },
+          orderedList: {
+            keepMarks: true,
+            keepAttributes: false,
+          },
+          listItem: {
+            HTMLAttributes: {
+              class: 'tiptap-list-item',
+            },
+          },
         }),
         Highlight.extend({
           addKeyboardShortcuts() {
@@ -203,6 +216,20 @@ export class TiptapEditorManager {
         attributes: {
           class: 'tiptap-content',
           spellcheck: 'true',
+        },
+        handleKeyDown: (view, event) => {
+          // Handle Tab for list indentation
+          if (event.key === 'Tab') {
+            event.preventDefault();
+            if (event.shiftKey) {
+              // Shift+Tab: outdent (lift) list item
+              return this.editor?.commands.liftListItem('listItem') || false;
+            } else {
+              // Tab: indent (sink) list item
+              return this.editor?.commands.sinkListItem('listItem') || false;
+            }
+          }
+          return false;
         },
       },
       onUpdate: () => {

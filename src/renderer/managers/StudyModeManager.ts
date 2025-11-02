@@ -1580,6 +1580,19 @@ export class StudyModeManager {
             heading: {
               levels: [1, 2],
             },
+            bulletList: {
+              keepMarks: true,
+              keepAttributes: false,
+            },
+            orderedList: {
+              keepMarks: true,
+              keepAttributes: false,
+            },
+            listItem: {
+              HTMLAttributes: {
+                class: 'tiptap-list-item',
+              },
+            },
           }),
           Underline,
           Highlight.configure({
@@ -1627,6 +1640,20 @@ export class StudyModeManager {
           attributes: {
             class: 'tiptap-content',
             spellcheck: 'true',
+          },
+          handleKeyDown: (view, event) => {
+            // Handle Tab for list indentation
+            if (event.key === 'Tab') {
+              event.preventDefault();
+              if (event.shiftKey) {
+                // Shift+Tab: outdent (lift) list item
+                return this.notesEditor?.commands.liftListItem('listItem') || false;
+              } else {
+                // Tab: indent (sink) list item
+                return this.notesEditor?.commands.sinkListItem('listItem') || false;
+              }
+            }
+            return false;
           },
         },
       });
