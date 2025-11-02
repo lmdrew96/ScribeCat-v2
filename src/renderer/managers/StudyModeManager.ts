@@ -235,33 +235,45 @@ export class StudyModeManager {
    */
   private applyFilters(): void {
     this.filteredSessions = this.sessions.filter(session => {
-      // Course filter
-      if (this.selectedCourse && session.tags) {
-        const hasCourse = session.tags.some(tag => 
-          tag.toLowerCase().includes(this.selectedCourse.toLowerCase())
-        );
+      // Course filter - check courseTitle field first, then tags
+      if (this.selectedCourse) {
+        let hasCourse = false;
+
+        // Check dedicated courseTitle field
+        if (session.courseTitle && session.courseTitle.trim()) {
+          hasCourse = session.courseTitle.toLowerCase().includes(this.selectedCourse.toLowerCase());
+        }
+
+        // Fall back to tags if courseTitle doesn't match
+        if (!hasCourse && session.tags) {
+          hasCourse = session.tags.some(tag =>
+            tag.toLowerCase().includes(this.selectedCourse.toLowerCase())
+          );
+        }
+
         if (!hasCourse) return false;
       }
-      
-      // Search filter (searches title and transcription)
+
+      // Search filter (searches title, transcription, and notes)
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         const matchesTitle = session.title.toLowerCase().includes(query);
         const matchesTranscription = session.transcription?.fullText.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesTranscription) return false;
+        const matchesNotes = session.notes?.toLowerCase().includes(query);
+        if (!matchesTitle && !matchesTranscription && !matchesNotes) return false;
       }
-      
+
       // Tag filter
       if (this.selectedTags.length > 0 && session.tags) {
-        const hasTag = this.selectedTags.some(tag => 
+        const hasTag = this.selectedTags.some(tag =>
           session.tags.includes(tag)
         );
         if (!hasTag) return false;
       }
-      
+
       return true;
     });
-    
+
     // Apply sorting
     this.sortSessions();
   }
@@ -343,11 +355,15 @@ export class StudyModeManager {
    */
   private populateCourseFilter(): void {
     if (!this.courseFilter) return;
-    
+
     // Get unique courses from sessions
     const courses = new Set<string>();
     this.sessions.forEach(session => {
-      if (session.tags) {
+      // Prioritize dedicated courseTitle field
+      if (session.courseTitle && session.courseTitle.trim()) {
+        courses.add(session.courseTitle);
+      } else if (session.tags) {
+        // Fall back to tag-based search if courseTitle is not set
         session.tags.forEach(tag => {
           if (tag.toLowerCase().includes('course') || tag.toLowerCase().includes('class')) {
             courses.add(tag);
@@ -355,7 +371,7 @@ export class StudyModeManager {
         });
       }
     });
-    
+
     // Clear and populate dropdown
     this.courseFilter.innerHTML = '<option value="">All Courses</option>';
     Array.from(courses).sort().forEach(course => {
@@ -533,15 +549,15 @@ export class StudyModeManager {
         }
       });
     });
-    
-    // Title click to edit
+
+    // Title click to open session details
     const titles = document.querySelectorAll('.session-title');
     titles.forEach(title => {
       title.addEventListener('click', (e) => {
         e.stopPropagation();
         const sessionId = (title as HTMLElement).dataset.sessionId;
         if (sessionId) {
-          this.startTitleEdit(sessionId);
+          this.openSessionDetail(sessionId);
         }
       });
     });
@@ -826,18 +842,12 @@ export class StudyModeManager {
     // Attach event handlers
     this.attachDetailViewHandlers(session);
     
-    // Attach title edit handler for detail view
+    // Attach title edit handler for detail view (pencil button only)
     const editTitleBtn = document.querySelector('.edit-title-btn-detail');
     editTitleBtn?.addEventListener('click', () => {
       this.startDetailTitleEdit(session.id);
     });
-    
-    // Title click to edit in detail view
-    const detailTitle = document.querySelector('.session-detail-title');
-    detailTitle?.addEventListener('click', () => {
-      this.startDetailTitleEdit(session.id);
-    });
-    
+
     // Attach AI study tool handlers
     this.attachStudyToolHandlers(session);
   }
