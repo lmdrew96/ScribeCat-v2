@@ -1170,12 +1170,20 @@ export class StudyModeManager {
   }
 
   /**
-   * Format course title by removing course number
+   * Format course title by removing course number and code
    * Example: "CS 101 - Introduction to Computer Science" -> "Introduction to Computer Science"
    * Example: "MATH-251: Calculus I" -> "Calculus I"
+   * Example: "25F-MUSC199-190: The Beatles..." -> "The Beatles..."
    */
   private formatCourseTitle(courseTitle: string): string {
-    // Remove common course number patterns at the start
+    // Strategy 1: If there's a colon, take everything after the first colon
+    if (courseTitle.includes(':')) {
+      const parts = courseTitle.split(':');
+      const afterColon = parts.slice(1).join(':').trim();
+      if (afterColon) return afterColon;
+    }
+
+    // Strategy 2: Remove common course number patterns at the start
     // Matches patterns like: "CS 101", "MATH-251", "BIO101", "ENGL 1301", etc.
     const formatted = courseTitle.replace(/^[A-Z]{2,4}[-\s]?\d{3,4}[\s:-]*/, '').trim();
     return formatted || courseTitle; // Return original if no match
