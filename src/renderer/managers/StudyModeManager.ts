@@ -409,13 +409,7 @@ export class StudyModeManager {
     if (session.courseTitle && session.courseTitle.trim()) {
       const fullTitle = session.courseTitle.trim();
       const displayTitle = this.formatCourseTitle(fullTitle);
-      console.log('📚 Creating course badge:', {
-        sessionId: session.id,
-        fullTitle,
-        displayTitle,
-        hasTooltip: !!fullTitle
-      });
-      courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
+      courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}"><span class="course-badge-text">${this.escapeHtml(displayTitle)}</span></span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
       const courseTags = session.tags?.filter(tag =>
@@ -424,31 +418,15 @@ export class StudyModeManager {
       if (courseTags.length > 0) {
         const fullTitle = courseTags[0].trim();
         const displayTitle = this.formatCourseTitle(fullTitle);
-        console.log('📚 Creating course badge from tags:', {
-          sessionId: session.id,
-          fullTitle,
-          displayTitle,
-          hasTooltip: !!fullTitle
-        });
-        courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
-      } else {
-        console.log('⚠️ No course info found for session:', session.id);
+        courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}"><span class="course-badge-text">${this.escapeHtml(displayTitle)}</span></span>`;
       }
     }
-    
+
     // Status indicators
     const hasTranscription = session.transcription ? '✓ Transcribed' : '';
     const hasNotes = session.notes ? '✓ Notes' : '';
     const indicators = [hasTranscription, hasNotes].filter(Boolean).join(' • ');
     const indicatorsWithCourse = [indicators, courseTag].filter(Boolean).join(' • ');
-
-    console.log('📊 Indicators HTML:', {
-      sessionId: session.id,
-      indicators,
-      courseTag,
-      combined: indicatorsWithCourse,
-      hasCourseTag: !!courseTag
-    });
 
     // Check if selected
     const isSelected = this.selectedSessionIds.has(session.id);
@@ -701,7 +679,7 @@ export class StudyModeManager {
     if (session.courseTitle && session.courseTitle.trim()) {
       const fullTitle = session.courseTitle.trim();
       const displayTitle = this.formatCourseTitle(fullTitle);
-      courseTagsHtml = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
+      courseTagsHtml = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}"><span class="course-badge-text">${this.escapeHtml(displayTitle)}</span></span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
       const courseTags = session.tags?.filter(tag =>
@@ -711,7 +689,7 @@ export class StudyModeManager {
         ? courseTags.map(tag => {
             const fullTitle = tag.trim();
             const displayTitle = this.formatCourseTitle(fullTitle);
-            return `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
+            return `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}"><span class="course-badge-text">${this.escapeHtml(displayTitle)}</span></span>`;
           }).join('')
         : '';
     }

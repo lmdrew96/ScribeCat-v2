@@ -306,19 +306,19 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  white-space: nowrap;
   max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   display: inline-block;
   cursor: help;
   position: relative;
 }
 
-/* Test hover - badge should get darker on hover */
-.course-badge:hover {
-  background-color: #005a9c;
-  filter: brightness(1.2);
+.course-badge-text {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Custom Tooltip for Course Badge */
@@ -334,7 +334,9 @@
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 300px;
+  text-align: center;
   text-transform: none;
   letter-spacing: normal;
   opacity: 0;
