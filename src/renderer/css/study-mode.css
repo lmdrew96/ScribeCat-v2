@@ -211,6 +211,7 @@
   gap: 12px;
   animation: fadeInUp 0.3s ease;
   position: relative;
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 .session-card.selected {
@@ -314,6 +315,12 @@
   position: relative;
 }
 
+/* Test hover - badge should get darker on hover */
+.course-badge:hover {
+  background-color: #005a9c;
+  filter: brightness(1.2);
+}
+
 /* Custom Tooltip for Course Badge */
 .course-badge[data-tooltip]::before {
   content: attr(data-tooltip);
@@ -406,6 +413,7 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 /* Session Actions */
