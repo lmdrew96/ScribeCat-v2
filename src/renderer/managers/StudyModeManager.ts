@@ -409,8 +409,7 @@ export class StudyModeManager {
     if (session.courseTitle && session.courseTitle.trim()) {
       const fullTitle = session.courseTitle.trim();
       const displayTitle = this.formatCourseTitle(fullTitle);
-      courseTag = `<span class="course-badge" title="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
-      console.log('Course badge created:', { fullTitle, displayTitle, escaped: this.escapeHtml(fullTitle) });
+      courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
       const courseTags = session.tags?.filter(tag =>
@@ -419,8 +418,7 @@ export class StudyModeManager {
       if (courseTags.length > 0) {
         const fullTitle = courseTags[0].trim();
         const displayTitle = this.formatCourseTitle(fullTitle);
-        courseTag = `<span class="course-badge" title="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
-        console.log('Course badge created from tags:', { fullTitle, displayTitle, escaped: this.escapeHtml(fullTitle) });
+        courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
       }
     }
     
@@ -681,7 +679,7 @@ export class StudyModeManager {
     if (session.courseTitle && session.courseTitle.trim()) {
       const fullTitle = session.courseTitle.trim();
       const displayTitle = this.formatCourseTitle(fullTitle);
-      courseTagsHtml = `<span class="course-badge" title="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
+      courseTagsHtml = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
       const courseTags = session.tags?.filter(tag =>
@@ -691,7 +689,7 @@ export class StudyModeManager {
         ? courseTags.map(tag => {
             const fullTitle = tag.trim();
             const displayTitle = this.formatCourseTitle(fullTitle);
-            return `<span class="course-badge" title="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
+            return `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}">${this.escapeHtml(displayTitle)}</span>`;
           }).join('')
         : '';
     }

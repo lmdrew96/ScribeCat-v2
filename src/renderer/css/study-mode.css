@@ -311,6 +311,59 @@
   text-overflow: ellipsis;
   display: inline-block;
   cursor: help;
+  position: relative;
+}
+
+/* Custom Tooltip for Course Badge */
+.course-badge::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Tooltip Arrow */
+.course-badge::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 1000;
+}
+
+/* Show tooltip on hover */
+.course-badge:hover::before,
+.course-badge:hover::after {
+  opacity: 1;
+}
+
+.course-badge:hover::before {
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.course-badge:hover::after {
+  transform: translateX(-50%) translateY(-2px);
 }
 
 /* Session Meta */
