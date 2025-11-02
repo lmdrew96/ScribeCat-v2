@@ -27,6 +27,14 @@ function copyStaticFiles() {
     mkdirSync('dist/renderer/css', { recursive: true });
   }
   cpSync('src/renderer/css', 'dist/renderer/css', { recursive: true });
+
+  // Copy assets directory
+  if (existsSync('src/renderer/assets')) {
+    if (!existsSync('dist/renderer/assets')) {
+      mkdirSync('dist/renderer/assets', { recursive: true });
+    }
+    cpSync('src/renderer/assets', 'dist/renderer/assets', { recursive: true });
+  }
 }
 
 if (isWatch) {
@@ -54,6 +62,14 @@ if (isWatch) {
     cpSync('src/renderer/css', 'dist/renderer/css', { recursive: true });
     console.log('✓ Copied CSS modules');
   });
+
+  // Watch assets directory
+  if (existsSync('src/renderer/assets')) {
+    watch('src/renderer/assets', { recursive: true }, () => {
+      cpSync('src/renderer/assets', 'dist/renderer/assets', { recursive: true });
+      console.log('✓ Copied assets');
+    });
+  }
 } else {
   // One-time build
   await esbuild.build(buildConfig);
