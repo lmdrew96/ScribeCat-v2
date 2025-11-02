@@ -55,9 +55,11 @@ export class NotesAutoSaveManager {
 
       // Get notes content
       const notes = this.editorManager.getNotesHTML();
+      const plainText = this.editorManager.getNotesText();
 
       // Don't save if notes are empty
-      if (!notes || notes.trim().length === 0) {
+      // Check plain text content to avoid saving empty HTML tags like <p></p>
+      if (!notes || notes.trim().length === 0 || !plainText || plainText.trim().length === 0) {
         console.log('[NotesAutoSave] Notes are empty, skipping save');
         return;
       }
