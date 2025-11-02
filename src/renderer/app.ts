@@ -61,8 +61,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   courseManager = new CourseManager();
 
   // Expose managers globally for other components to access
-  (window as any).courseManager = courseManager;
-  (window as any).aiManager = aiManager;
+  window.courseManager = courseManager;
+  window.aiManager = aiManager;
 
   // Initialize notes auto-save manager
   notesAutoSaveManager = new NotesAutoSaveManager(editorManager);

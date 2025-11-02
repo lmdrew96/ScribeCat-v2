@@ -183,13 +183,6 @@ export class TranscriptionManager {
   }
 
   /**
-   * Replace transcription text (for polish feature)
-   */
-  replaceText(text: string): void {
-    this.transcriptionContainer.innerHTML = `<div class="flowing-transcription">${this.escapeHtml(text)}</div>`;
-  }
-
-  /**
    * Escape HTML to prevent XSS
    */
   private escapeHtml(text: string): string {

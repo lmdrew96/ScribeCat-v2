@@ -148,7 +148,10 @@ export class StudyModeManager {
     // Sort select
     if (this.sortSelect) {
       this.sortSelect.addEventListener('change', (e) => {
-        this.sortOrder = (e.target as HTMLSelectElement).value as any;
+        const value = (e.target as HTMLSelectElement).value;
+        if (value === 'newest' || value === 'oldest' || value === 'longest' || value === 'shortest') {
+          this.sortOrder = value;
+        }
         this.applyFilters();
         this.renderSessionList();
       });
@@ -239,7 +242,7 @@ export class StudyModeManager {
    */
   public hide(): void {
     // Clear AI Chat study mode context
-    const aiManager = (window as any).aiManager;
+    const aiManager = window.aiManager;
     if (aiManager) {
       aiManager.clearStudyModeContext();
     }
@@ -676,7 +679,7 @@ export class StudyModeManager {
     }
 
     // Set AI Chat context to this session's data
-    const aiManager = (window as any).aiManager;
+    const aiManager = window.aiManager;
     if (aiManager) {
       const transcriptionText = session.transcription?.fullText || '';
       const notesText = session.notes || '';
@@ -1212,7 +1215,7 @@ export class StudyModeManager {
     const backBtn = document.querySelector('.back-to-list-btn');
     backBtn?.addEventListener('click', () => {
       // Clear AI Chat context when going back to list
-      const aiManager = (window as any).aiManager;
+      const aiManager = window.aiManager;
       if (aiManager) {
         aiManager.clearStudyModeContext();
       }

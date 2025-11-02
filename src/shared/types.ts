@@ -145,6 +145,88 @@ export interface GoogleDriveConfig {
 }
 
 /**
+ * Dialog options for save dialog
+ */
+export interface SaveDialogOptions {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+  properties?: string[];
+}
+
+/**
+ * Dialog result
+ */
+export interface SaveDialogResult {
+  success: boolean;
+  data?: {
+    canceled: boolean;
+    filePath?: string;
+  };
+  error?: string;
+}
+
+/**
+ * Session list item
+ */
+export interface SessionListItem {
+  id: string;
+  title: string;
+  date: Date;
+  duration: number;
+  tags?: string[];
+  courseId?: string;
+  courseTitle?: string;
+  hasNotes: boolean;
+  hasTranscription: boolean;
+}
+
+/**
+ * Session delete result
+ */
+export interface SessionDeleteResult {
+  deleted: number;
+  failed: number;
+  errors?: string[];
+}
+
+/**
+ * Export format info
+ */
+export interface ExportFormat {
+  id: string;
+  name: string;
+  extension: string;
+  description?: string;
+}
+
+/**
+ * Export options
+ */
+export interface ExportOptions {
+  includeTimestamps?: boolean;
+  includeNotes?: boolean;
+  includeSummary?: boolean;
+  formatting?: 'plain' | 'rich' | 'markdown';
+  pageSize?: string;
+  margins?: { top: number; right: number; bottom: number; left: number };
+}
+
+/**
+ * Google Drive file item
+ */
+export interface DriveFileItem {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink?: string;
+  createdTime: Date;
+  modifiedTime: Date;
+  size?: number;
+}
+
+/**
  * Google Drive upload options
  */
 export interface GoogleDriveUploadOptions {
@@ -196,11 +278,25 @@ export interface ElectronAPI {
     getAuthUrl: () => Promise<IPCResponse<GoogleDriveAuthResult>>;
     setCredentials: (config: GoogleDriveConfig) => Promise<IPCResponse<void>>;
     uploadFile: (filePath: string, options: GoogleDriveUploadOptions) => Promise<IPCResponse<GoogleDriveUploadResult>>;
-    listFiles: (folderId?: string) => Promise<IPCResponse<any[]>>;
+    listFiles: (folderId?: string) => Promise<IPCResponse<DriveFileItem[]>>;
     createFolder: (name: string, parentId?: string) => Promise<IPCResponse<string>>;
   };
-  // TODO: Add these interfaces when features are implemented
-  // files?: { ... };
-  // themes?: { ... };
-  // canvas?: { ... };
+}
+
+/**
+ * Canvas LMS configuration
+ */
+export interface CanvasConfig {
+  baseUrl: string;
+  apiToken: string;
+}
+
+/**
+ * Canvas course data
+ */
+export interface CanvasCourse {
+  id: string;
+  name: string;
+  courseCode?: string;
+  enrollmentTermId?: string;
 }

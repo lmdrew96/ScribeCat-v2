@@ -3,10 +3,26 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
+import type {
+  SaveDialogOptions,
+  ChatMessage,
+  ChatOptions,
+  ExportOptions,
+  GoogleDriveConfig,
+  GoogleDriveUploadOptions,
+  CanvasConfig
+} from '../shared/types';
+
+interface TranscriptionResult {
+  text: string;
+  timestamp: number;
+  isFinal: boolean;
+}
+
 // Expose the API to the renderer process
 const electronAPI = {
   dialog: {
-    showSaveDialog: (options: any) => ipcRenderer.invoke('dialog:showSaveDialog', options)
+    showSaveDialog: (options: SaveDialogOptions) => ipcRenderer.invoke('dialog:showSaveDialog', options)
   },
   recording: {
     start: () => ipcRenderer.invoke('recording:start'),
@@ -27,8 +43,8 @@ const electronAPI = {
       stop: (sessionId: string) => ipcRenderer.invoke('transcription:simulation:stop', sessionId),
       pause: () => ipcRenderer.invoke('transcription:simulation:pause'),
       resume: () => ipcRenderer.invoke('transcription:simulation:resume'),
-      onResult: (callback: (result: any) => void) => {
-        ipcRenderer.on('transcription:result', (_event: any, result: any) => callback(result));
+      onResult: (callback: (result: TranscriptionResult) => void) => {
+        ipcRenderer.on('transcription:result', (_event: Electron.IpcRendererEvent, result: TranscriptionResult) => callback(result));
       },
       removeResultListener: () => {
         ipcRenderer.removeAllListeners('transcription:result');
@@ -47,16 +63,16 @@ const electronAPI = {
     set: (key: string, value: unknown) => ipcRenderer.invoke('store:set', key, value)
   },
   ai: {
-    chat: (message: string, history: any[], options?: any) => 
+    chat: (message: string, history: ChatMessage[], options?: ChatOptions) =>
       ipcRenderer.invoke('ai:chat', message, history, options),
-    chatStream: async (message: string, history: any[], options: any, onChunk: (chunk: string) => void) => {
+    chatStream: async (message: string, history: ChatMessage[], options: ChatOptions, onChunk: (chunk: string) => void) => {
       // Remove any existing listeners first to prevent leaks
       ipcRenderer.removeAllListeners('ai:chatChunk');
-      
+
       // Set up listener for chunks
-      const chunkHandler = (_event: any, chunk: string) => onChunk(chunk);
+      const chunkHandler = (_event: Electron.IpcRendererEvent, chunk: string) => onChunk(chunk);
       ipcRenderer.on('ai:chatChunk', chunkHandler);
-      
+
       try {
         // Start the stream
         const result = await ipcRenderer.invoke('ai:chatStream', message, history, options);
@@ -69,11 +85,11 @@ const electronAPI = {
     removeChatStreamListener: () => {
       ipcRenderer.removeAllListeners('ai:chatChunk');
     },
-    polishTranscription: (text: string, options?: any) => 
+    polishTranscription: (text: string, options?: Partial<{ grammar: boolean; punctuation: boolean; clarity: boolean; preserveMeaning: boolean }>) =>
       ipcRenderer.invoke('ai:polishTranscription', text, options),
-    generateSummary: (transcription: string, notes?: string, options?: any) => 
+    generateSummary: (transcription: string, notes?: string, options?: Partial<{ style: string; maxLength: number }>) =>
       ipcRenderer.invoke('ai:generateSummary', transcription, notes, options),
-    generateTitle: (transcription: string, notes?: string, options?: any) => 
+    generateTitle: (transcription: string, notes?: string, options?: Partial<{ maxLength: number; format: string }>) =>
       ipcRenderer.invoke('ai:generateTitle', transcription, notes, options),
     isConfigured: () => ipcRenderer.invoke('ai:isConfigured'),
     testConnection: () => ipcRenderer.invoke('ai:testConnection'),
@@ -90,7 +106,7 @@ const electronAPI = {
         ipcRenderer.invoke('sessions:deleteMultiple', sessionIds),
       update: (sessionId: string, updates: { title?: string; notes?: string; tags?: string[] }) =>
         ipcRenderer.invoke('sessions:update', sessionId, updates),
-      export: (sessionId: string, format: string, outputPath: string, options?: any) =>
+      export: (sessionId: string, format: string, outputPath: string, options?: ExportOptions) =>
         ipcRenderer.invoke('session:export', sessionId, format, outputPath, options),
       exportWithDefaults: (sessionId: string, format: string, outputPath: string) =>
         ipcRenderer.invoke('session:exportWithDefaults', sessionId, format, outputPath),
@@ -104,14 +120,14 @@ const electronAPI = {
         ipcRenderer.invoke('export:getAvailableFormats')
     },
   drive: {
-    configure: (config: any) => ipcRenderer.invoke('drive:configure', config),
+    configure: (config: GoogleDriveConfig) => ipcRenderer.invoke('drive:configure', config),
     isAuthenticated: () => ipcRenderer.invoke('drive:isAuthenticated'),
     getAuthUrl: () => ipcRenderer.invoke('drive:getAuthUrl'),
     exchangeCodeForTokens: (code: string) => ipcRenderer.invoke('drive:exchangeCodeForTokens', code),
-    setCredentials: (config: any) => ipcRenderer.invoke('drive:setCredentials', config),
+    setCredentials: (config: GoogleDriveConfig) => ipcRenderer.invoke('drive:setCredentials', config),
     getUserEmail: () => ipcRenderer.invoke('drive:getUserEmail'),
     disconnect: () => ipcRenderer.invoke('drive:disconnect'),
-    uploadFile: (filePath: string, options: any) => 
+    uploadFile: (filePath: string, options: GoogleDriveUploadOptions) =>
       ipcRenderer.invoke('drive:uploadFile', filePath, options),
     listFiles: (folderId?: string) => 
       ipcRenderer.invoke('drive:listFiles', folderId),
@@ -132,7 +148,7 @@ const electronAPI = {
   },
   dev: {
     onHotReloadNotification: (callback: (message: string) => void) => {
-      ipcRenderer.on('dev:hot-reload-notification', (_event: any, message: string) => callback(message));
+      ipcRenderer.on('dev:hot-reload-notification', (_event: Electron.IpcRendererEvent, message: string) => callback(message));
     },
     removeHotReloadListener: () => {
       ipcRenderer.removeAllListeners('dev:hot-reload-notification');

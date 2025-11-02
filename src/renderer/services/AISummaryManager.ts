@@ -126,60 +126,14 @@ export class AISummaryManager {
         let concepts: Array<{term: string; definition: string}> = [];
 
         try {
-          // Handle response - may be string or object with message property
-          let responseText = '';
-          if (typeof result.data === 'string') {
-            responseText = result.data;
-          } else if (result.data && typeof result.data === 'object' && 'message' in result.data) {
-            responseText = (result.data as { message: string }).message;
-          } else {
-            responseText = JSON.stringify(result.data);
-          }
-
-          console.log('🔍 Key Concepts - Raw AI response:', responseText.substring(0, 200));
-
-          // Try to find JSON in code blocks first
-          let jsonText = '';
-          const codeBlockMatch = responseText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-          if (codeBlockMatch) {
-            jsonText = codeBlockMatch[1];
-            console.log('📦 Found JSON in code block');
-          } else {
-            // Try to find raw JSON array
-            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              jsonText = jsonMatch[0];
-              console.log('📄 Found raw JSON array');
+          concepts = this.parseAIJsonResponse(
+            result.data,
+            'Key Concepts',
+            (data): data is Array<{ term: string; definition: string }> => {
+              return Array.isArray(data) && data.length > 0 &&
+                     typeof data[0] === 'object' && 'term' in data[0] && 'definition' in data[0];
             }
-          }
-
-          if (jsonText) {
-            // Unescape the JSON string if it has escape sequences
-            try {
-              // Try parsing as-is first
-              console.log('🔧 Attempting to parse:', jsonText.substring(0, 100));
-              const parsed = JSON.parse(jsonText);
-            // Validate the structure
-            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].term && parsed[0].definition) {
-              concepts = parsed;
-              } else {
-                throw new Error('Invalid concept structure');
-              }
-            } catch (firstParseError) {
-              // If first parse fails, try unescaping the string
-              console.log('⚠️ First parse failed, trying to unescape...');
-              const unescaped = jsonText.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
-              const parsed = JSON.parse(unescaped);
-              // Validate the structure
-              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].term && parsed[0].definition) {
-                concepts = parsed;
-              } else {
-                throw new Error('Invalid concept structure');
-              }
-            }
-          } else {
-            throw new Error('No JSON array found in response');
-          }
+          );
         } catch (e) {
           console.warn('Failed to parse concepts as JSON, using plain text:', e);
           // If JSON parsing fails, create a single concept from the response
@@ -261,60 +215,14 @@ export class AISummaryManager {
         let flashcards: Array<{question: string; answer: string}> = [];
 
         try {
-          // Handle response - may be string or object with message property
-          let responseText = '';
-          if (typeof result.data === 'string') {
-            responseText = result.data;
-          } else if (result.data && typeof result.data === 'object' && 'message' in result.data) {
-            responseText = (result.data as { message: string }).message;
-          } else {
-            responseText = JSON.stringify(result.data);
-          }
-
-          console.log('🔍 Flashcards - Raw AI response:', responseText.substring(0, 200));
-
-          // Try to find JSON in code blocks first
-          let jsonText = '';
-          const codeBlockMatch = responseText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-          if (codeBlockMatch) {
-            jsonText = codeBlockMatch[1];
-            console.log('📦 Found JSON in code block');
-          } else {
-            // Try to find raw JSON array
-            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              jsonText = jsonMatch[0];
-              console.log('📄 Found raw JSON array');
+          flashcards = this.parseAIJsonResponse(
+            result.data,
+            'Flashcards',
+            (data): data is Array<{ question: string; answer: string }> => {
+              return Array.isArray(data) && data.length > 0 &&
+                     typeof data[0] === 'object' && 'question' in data[0] && 'answer' in data[0];
             }
-          }
-
-          if (jsonText) {
-            // Unescape the JSON string if it has escape sequences
-            try {
-              // Try parsing as-is first
-              console.log('🔧 Attempting to parse:', jsonText.substring(0, 100));
-              const parsed = JSON.parse(jsonText);
-            // Validate the structure
-            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].question && parsed[0].answer) {
-              flashcards = parsed;
-              } else {
-                throw new Error('Invalid flashcard structure');
-              }
-            } catch (firstParseError) {
-              // If first parse fails, try unescaping the string
-              console.log('⚠️ First parse failed, trying to unescape...');
-              const unescaped = jsonText.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
-              const parsed = JSON.parse(unescaped);
-              // Validate the structure
-              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].question && parsed[0].answer) {
-                flashcards = parsed;
-              } else {
-                throw new Error('Invalid flashcard structure');
-              }
-            }
-          } else {
-            throw new Error('No JSON array found in response');
-          }
+          );
         } catch (e) {
           console.error('Failed to parse flashcards:', e);
           throw new Error('Failed to parse flashcards from AI response. The AI may not have returned the expected format.');
@@ -447,62 +355,16 @@ export class AISummaryManager {
         let questions: Array<{question: string; options: string[]; correctAnswer: number}> = [];
 
         try {
-          // Handle response - may be string or object with message property
-          let responseText = '';
-          if (typeof result.data === 'string') {
-            responseText = result.data;
-          } else if (result.data && typeof result.data === 'object' && 'message' in result.data) {
-            responseText = (result.data as { message: string }).message;
-          } else {
-            responseText = JSON.stringify(result.data);
-          }
-
-          console.log('🔍 Quiz - Raw AI response:', responseText.substring(0, 200));
-
-          // Try to find JSON in code blocks first
-          let jsonText = '';
-          const codeBlockMatch = responseText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-          if (codeBlockMatch) {
-            jsonText = codeBlockMatch[1];
-            console.log('📦 Found JSON in code block');
-          } else {
-            // Try to find raw JSON array
-            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              jsonText = jsonMatch[0];
-              console.log('📄 Found raw JSON array');
+          questions = this.parseAIJsonResponse(
+            result.data,
+            'Quiz',
+            (data): data is Array<{ question: string; options: string[]; correctAnswer: number }> => {
+              return Array.isArray(data) && data.length > 0 &&
+                     typeof data[0] === 'object' && 'question' in data[0] &&
+                     'options' in data[0] && 'correctAnswer' in data[0] &&
+                     typeof data[0].correctAnswer === 'number';
             }
-          }
-
-          if (jsonText) {
-            // Unescape the JSON string if it has escape sequences
-            try {
-              // Try parsing as-is first
-              console.log('🔧 Attempting to parse:', jsonText.substring(0, 100));
-              const parsed = JSON.parse(jsonText);
-            // Validate the structure
-            if (Array.isArray(parsed) && parsed.length > 0 &&
-                parsed[0].question && parsed[0].options && typeof parsed[0].correctAnswer === 'number') {
-              questions = parsed;
-              } else {
-                throw new Error('Invalid quiz question structure');
-              }
-            } catch (firstParseError) {
-              // If first parse fails, try unescaping the string
-              console.log('⚠️ First parse failed, trying to unescape...');
-              const unescaped = jsonText.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
-              const parsed = JSON.parse(unescaped);
-              // Validate the structure
-              if (Array.isArray(parsed) && parsed.length > 0 &&
-                  parsed[0].question && parsed[0].options && typeof parsed[0].correctAnswer === 'number') {
-                questions = parsed;
-              } else {
-                throw new Error('Invalid quiz question structure');
-              }
-            }
-          } else {
-            throw new Error('No JSON array found in response');
-          }
+          );
         } catch (e) {
           console.error('Failed to parse quiz:', e);
           throw new Error('Failed to parse quiz from AI response. The AI may not have returned the expected format.');
@@ -669,5 +531,75 @@ export class AISummaryManager {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  /**
+   * Extract and parse JSON array from AI response
+   * @param responseData - The raw response from AI
+   * @param contextName - Name for logging purposes (e.g., 'Flashcards', 'Quiz')
+   * @param validator - Function to validate the parsed array structure
+   * @returns Parsed and validated JSON array
+   */
+  private parseAIJsonResponse<T>(
+    responseData: unknown,
+    contextName: string,
+    validator: (data: unknown[]) => data is T[]
+  ): T[] {
+    // Extract response text
+    let responseText: string;
+    if (typeof responseData === 'string') {
+      responseText = responseData;
+    } else if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+      responseText = (responseData as { message: string }).message;
+    } else {
+      responseText = JSON.stringify(responseData);
+    }
+
+    console.log(`🔍 ${contextName} - Raw AI response:`, responseText.substring(0, 200));
+
+    // Try to find JSON in code blocks first
+    let jsonText = '';
+    const codeBlockMatch = responseText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1];
+      console.log('📦 Found JSON in code block');
+    } else {
+      // Try to find raw JSON array
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[0];
+        console.log('📄 Found raw JSON array');
+      }
+    }
+
+    if (!jsonText) {
+      throw new Error('No JSON array found in response');
+    }
+
+    // Try parsing with two strategies
+    try {
+      // Try parsing as-is first
+      console.log('🔧 Attempting to parse:', jsonText.substring(0, 100));
+      const parsed = JSON.parse(jsonText);
+
+      // Validate the structure
+      if (validator(parsed)) {
+        return parsed;
+      } else {
+        throw new Error(`Invalid ${contextName.toLowerCase()} structure`);
+      }
+    } catch (firstParseError) {
+      // If first parse fails, try unescaping the string
+      console.log('⚠️ First parse failed, trying to unescape...');
+      const unescaped = jsonText.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
+      const parsed = JSON.parse(unescaped);
+
+      // Validate the structure
+      if (validator(parsed)) {
+        return parsed;
+      } else {
+        throw new Error(`Invalid ${contextName.toLowerCase()} structure`);
+      }
+    }
   }
 }
