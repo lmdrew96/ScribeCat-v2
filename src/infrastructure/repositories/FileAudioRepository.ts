@@ -7,7 +7,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { app } from 'electron';
+import electron from 'electron';
 import { IAudioRepository } from '../../domain/repositories/IAudioRepository.js';
 
 export class FileAudioRepository implements IAudioRepository {
@@ -15,7 +15,7 @@ export class FileAudioRepository implements IAudioRepository {
   private directoryInitialized: boolean = false;
 
   constructor() {
-    const userDataPath = app.getPath('userData');
+    const userDataPath = electron.app.getPath('userData');
     this.recordingsDir = path.join(userDataPath, 'recordings');
   }
 

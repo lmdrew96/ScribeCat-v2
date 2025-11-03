@@ -4,13 +4,14 @@
  * Handles IPC communication for Canvas LMS integration.
  */
 
-import { IpcMain } from 'electron';
+import electron from 'electron';
+import type { IpcMain } from 'electron';
 import Store from 'electron-store';
 import { BaseHandler } from '../BaseHandler.js';
 import { CanvasService } from '../../../infrastructure/services/canvas/CanvasService.js';
 import { CanvasConfig } from '../../../domain/services/ICanvasService.js';
 
-const store = new Store();
+const store = new Store({ projectName: 'scribecat-v2', name: 'canvas-store' });
 
 export class CanvasHandlers extends BaseHandler {
   private canvasService: CanvasService;

@@ -7,7 +7,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { app } from 'electron';
+import electron from 'electron';
 
 export class DirectoryManager {
   private readonly baseDir: string;
@@ -18,7 +18,7 @@ export class DirectoryManager {
 
   constructor(baseDir?: string) {
     // Use provided base directory or default to app's user data directory
-    this.baseDir = baseDir || app.getPath('userData');
+    this.baseDir = baseDir || electron.app.getPath('userData');
     this.sessionsDir = path.join(this.baseDir, 'sessions');
     this.recordingsDir = path.join(this.baseDir, 'recordings');
     this.exportsDir = path.join(this.baseDir, 'exports');

@@ -1,4 +1,5 @@
-import { IpcMain, BrowserWindow } from 'electron';
+import electron from 'electron';
+import type { IpcMain, BrowserWindow } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import { SimulationTranscriptionService } from '../../services/transcription/SimulationTranscriptionService.js';
 import { TranscriptionResult } from '../../services/transcription/ITranscriptionService.js';

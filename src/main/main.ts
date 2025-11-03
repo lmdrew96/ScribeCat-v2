@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, Menu, session, systemPreferences } from 'electron';
+import * as electron from 'electron';
+import type { BrowserWindow } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { RecordingManager } from './recording-manager.js';
@@ -41,73 +42,44 @@ interface StoreSchema {
 
 class ScribeCatApp {
   private mainWindow: BrowserWindow | null = null;
-  private recordingManager: RecordingManager;
-  private directoryManager: DirectoryManager;
+  private recordingManager!: RecordingManager;
+  private directoryManager!: DirectoryManager;
   private store: Store<StoreSchema>;
-  
+
   // Repositories
-  private sessionRepository: FileSessionRepository;
-  private audioRepository: FileAudioRepository;
-  
+  private sessionRepository!: FileSessionRepository;
+  private audioRepository!: FileAudioRepository;
+
   // Use Cases
-  private listSessionsUseCase: ListSessionsUseCase;
-  private deleteSessionUseCase: DeleteSessionUseCase;
-  private exportSessionUseCase: ExportSessionUseCase;
-  private updateSessionUseCase: UpdateSessionUseCase;
-  
+  private listSessionsUseCase!: ListSessionsUseCase;
+  private deleteSessionUseCase!: DeleteSessionUseCase;
+  private exportSessionUseCase!: ExportSessionUseCase;
+  private updateSessionUseCase!: UpdateSessionUseCase;
+
   // Export services
-  private exportServices: Map<string, any>;
-  
+  private exportServices!: Map<string, any>;
+
   // Transcription services
-  private simulationTranscriptionService: SimulationTranscriptionService;
-  
+  private simulationTranscriptionService!: SimulationTranscriptionService;
+
   // AI service
   private aiService: ClaudeAIService | null = null;
-  
+
   // Google Drive service
   private googleDriveService: GoogleDriveService | null = null;
 
   constructor() {
-    // Initialize directory manager
-    this.directoryManager = new DirectoryManager();
-    
-    // Initialize electron-store for settings
+    // Initialize electron-store for settings (doesn't need app to be ready)
     this.store = new Store<StoreSchema>({
+      projectName: 'scribecat-v2',
       defaults: {
         'simulation-mode': true // Default to simulation mode
       }
     });
-    
+
     // Initialize Google Drive service with pre-configured credentials
     this.initializeGoogleDrive();
-    
-    // Initialize repositories
-    this.sessionRepository = new FileSessionRepository();
-    this.audioRepository = new FileAudioRepository();
-    
-    // Initialize export services
-    this.exportServices = new Map();
-    this.exportServices.set('txt', new TextExportService());
-    this.exportServices.set('docx', new DocxExportService());
-    this.exportServices.set('pdf', new PdfExportService());
-    this.exportServices.set('html', new HtmlExportService());
-    
-    // Initialize use cases
-    this.listSessionsUseCase = new ListSessionsUseCase(this.sessionRepository);
-    this.deleteSessionUseCase = new DeleteSessionUseCase(
-      this.sessionRepository,
-      this.audioRepository
-    );
-    this.exportSessionUseCase = new ExportSessionUseCase(
-      this.sessionRepository,
-      this.exportServices
-    );
-    this.updateSessionUseCase = new UpdateSessionUseCase(this.sessionRepository);
-    
-    // Initialize simulation transcription service
-    this.simulationTranscriptionService = new SimulationTranscriptionService();
-    
-    this.recordingManager = new RecordingManager();
+
     this.initializeApp();
   }
 
@@ -132,7 +104,37 @@ class ScribeCatApp {
   }
 
   private initializeApp(): void {
-    app.whenReady().then(async () => {
+    electron.app.whenReady().then(async () => {
+      // Initialize components that need app to be ready
+      this.directoryManager = new DirectoryManager();
+      this.sessionRepository = new FileSessionRepository();
+      this.audioRepository = new FileAudioRepository();
+
+      // Initialize export services
+      this.exportServices = new Map();
+      this.exportServices.set('txt', new TextExportService());
+      this.exportServices.set('docx', new DocxExportService());
+      this.exportServices.set('pdf', new PdfExportService());
+      this.exportServices.set('html', new HtmlExportService());
+
+      // Initialize use cases
+      this.listSessionsUseCase = new ListSessionsUseCase(this.sessionRepository);
+      this.deleteSessionUseCase = new DeleteSessionUseCase(
+        this.sessionRepository,
+        this.audioRepository
+      );
+      this.exportSessionUseCase = new ExportSessionUseCase(
+        this.sessionRepository,
+        this.exportServices
+      );
+      this.updateSessionUseCase = new UpdateSessionUseCase(this.sessionRepository);
+
+      // Initialize simulation transcription service
+      this.simulationTranscriptionService = new SimulationTranscriptionService();
+
+      // Initialize recording manager
+      this.recordingManager = new RecordingManager();
+
       // Initialize directory structure
       try {
         await this.directoryManager.initialize();
@@ -140,33 +142,33 @@ class ScribeCatApp {
       } catch (error) {
         console.error('Failed to initialize directories:', error);
       }
-      
+
       // Request microphone access on macOS
       await this.requestMicrophoneAccess();
-      
+
       // Set up media permission handler
       this.setupMediaPermissions();
-      
+
       this.createWindow();
       this.setupSecurity();
       this.setupIPC();
     });
 
-    app.on('window-all-closed', () => {
+    electron.app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {
-        app.quit();
+        electron.app.quit();
       }
     });
 
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
+    electron.app.on('activate', () => {
+      if (electron.BrowserWindow.getAllWindows().length === 0) {
         this.createWindow();
       }
     });
   }
 
   private createWindow(): void {
-    this.mainWindow = new BrowserWindow({
+    this.mainWindow = new electron.BrowserWindow({
       width: 1200,
       height: 800,
       webPreferences: {
@@ -188,7 +190,7 @@ class ScribeCatApp {
     this.recordingManager.setMainWindow(this.mainWindow);
 
     // Enable hot reload in development
-    if (!app.isPackaged) {
+    if (!electron.app.isPackaged) {
       this.setupHotReload();
     }
   }
@@ -263,12 +265,12 @@ class ScribeCatApp {
   private async requestMicrophoneAccess(): Promise<void> {
     if (process.platform === 'darwin') {
       try {
-        const micStatus = systemPreferences.getMediaAccessStatus('microphone');
+        const micStatus = electron.systemPreferences.getMediaAccessStatus('microphone');
         console.log('Microphone access status:', micStatus);
         
         if (micStatus !== 'granted') {
           console.log('Requesting microphone access...');
-          await systemPreferences.askForMediaAccess('microphone');
+          await electron.systemPreferences.askForMediaAccess('microphone');
         }
       } catch (error) {
         console.error('Failed to request microphone access:', error);
@@ -283,7 +285,7 @@ class ScribeCatApp {
    * Without this, the browser's media API won't have permission to capture audio.
    */
   private setupMediaPermissions(): void {
-    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    electron.session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
       // Grant permission for media devices (microphone/camera)
       if (permission === 'media') {
         console.log('Granting media permission to renderer process');
@@ -339,12 +341,12 @@ class ScribeCatApp {
     registry.add(new CanvasHandlers());
     
     // Register all handlers with ipcMain
-    registry.registerAll(ipcMain);
+    registry.registerAll(electron.ipcMain);
     
     // Special handlers that need direct access to modify class properties
     // These cannot be in handler classes because they need to set this.aiService and this.googleDriveService
     
-    ipcMain.handle('ai:setApiKey', async (event, apiKey: string) => {
+    electron.ipcMain.handle('ai:setApiKey', async (event, apiKey: string) => {
       try {
         if (!apiKey || apiKey.trim().length === 0) {
           this.aiService = null;
@@ -362,7 +364,7 @@ class ScribeCatApp {
       }
     });
     
-    ipcMain.handle('drive:configure', async (event, config: GoogleDriveConfig) => {
+    electron.ipcMain.handle('drive:configure', async (event, config: GoogleDriveConfig) => {
       try {
         this.googleDriveService = new GoogleDriveService(config);
         return { success: true };

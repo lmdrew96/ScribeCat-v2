@@ -6,7 +6,7 @@
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "npm run compile && concurrently -k -n \"MAIN,PRELOAD,RENDERER,ELECTRON\" -c \"cyan,magenta,green,yellow\" \"node build-main.js --watch\" \"node build-preload.js --watch\" \"node build-renderer.js --watch\" \"electron .\"",
-    "compile": "tsc && tsc -p tsconfig.preload.json && node build-renderer.js",
+    "compile": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json && node build-renderer.js",
     "build": "npm run compile && electron-builder",
     "build:mac": "npm run compile && electron-builder --mac",
     "build:win": "npm run compile && electron-builder --win",

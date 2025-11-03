@@ -1,4 +1,5 @@
-import { IpcMain, IpcMainInvokeEvent } from 'electron';
+import electron from 'electron';
+import type { IpcMain, IpcMainInvokeEvent } from 'electron';
 
 /**
  * Abstract base class for IPC handlers

@@ -4,7 +4,8 @@
  * Handles audio-related IPC communication between renderer and main process.
  */
 
-import { IpcMain } from 'electron';
+import electron from 'electron';
+import type { IpcMain } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import * as mm from 'music-metadata';
 

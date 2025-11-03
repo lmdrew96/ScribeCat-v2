@@ -1,4 +1,5 @@
-import { IpcMain } from 'electron';
+import electron from 'electron';
+import type { IpcMain } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import { GoogleDriveService } from '../../../infrastructure/services/drive/GoogleDriveService.js';
 import type { GoogleDriveConfig } from '../../../shared/types.js';

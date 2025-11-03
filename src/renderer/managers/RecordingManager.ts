@@ -11,6 +11,9 @@ import { AIManager } from '../ai/AIManager.js';
 import { CourseManager } from './CourseManager.js';
 import { TranscriptionModeService } from '../services/TranscriptionModeService.js';
 import { NotesAutoSaveManager } from './NotesAutoSaveManager.js';
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('RecordingManager');
 
 export class RecordingManager {
   private audioManager: AudioManager;
@@ -73,7 +76,7 @@ export class RecordingManager {
     const mode = await window.scribeCat.store.get('transcription-mode') as string || 'simulation';
     const transcriptionMode = mode as 'simulation' | 'assemblyai';
 
-    console.log(`Starting recording with ${transcriptionMode} mode...`);
+    logger.info(`Starting recording with ${transcriptionMode} mode`);
 
     // Start audio recording
     await this.audioManager.startRecording({
@@ -104,14 +107,14 @@ export class RecordingManager {
     this.startElapsedTimer();
     this.startVUMeterUpdates();
 
-    console.log('Recording started successfully');
+    logger.info('Recording started successfully');
   }
 
   /**
    * Stop recording and save
    */
   async stop(): Promise<void> {
-    console.log('Stopping recording...');
+    logger.info('Stopping recording');
 
     // Stop transcription
     await this.transcriptionService.stop();
@@ -119,7 +122,7 @@ export class RecordingManager {
     // Stop audio recording
     const result = await this.audioManager.stopRecording();
     const durationSeconds = result.duration / 1000;
-    console.log('Recording stopped. Duration:', durationSeconds, 'seconds');
+    logger.info(`Recording stopped. Duration: ${durationSeconds} seconds`);
 
     // Get selected course data
     const selectedCourse = this.courseManager?.getSelectedCourse();
@@ -140,23 +143,22 @@ export class RecordingManager {
       throw new Error(saveResult.error || 'Failed to save recording');
     }
 
-    console.log('✅ Recording saved to:', saveResult.filePath);
+    logger.info(`Recording saved to: ${saveResult.filePath}`);
 
     // Save transcription to session
     if (saveResult.sessionId) {
       const transcriptionText = this.transcriptionManager.getText();
       if (transcriptionText && transcriptionText.trim().length > 0) {
-        console.log('Saving transcription to session...');
+        logger.info('Saving transcription to session');
 
         // Get timestamped entries for accurate synchronization
         const timestampedEntries = this.transcriptionManager.getTimestampedEntries();
 
-        console.log('📝 Saving transcription with:', {
+        logger.debug('Saving transcription with metadata', {
           sessionDuration: durationSeconds,
           entryCount: timestampedEntries.length,
           firstTimestamp: timestampedEntries[0]?.timestamp,
-          lastTimestamp: timestampedEntries[timestampedEntries.length - 1]?.timestamp,
-          entries: timestampedEntries.map(e => ({ ts: e.timestamp, text: e.text.substring(0, 30) }))
+          lastTimestamp: timestampedEntries[timestampedEntries.length - 1]?.timestamp
         });
 
         const transcriptionResult = await window.scribeCat.session.updateTranscription(
@@ -167,9 +169,9 @@ export class RecordingManager {
         );
 
         if (transcriptionResult.success) {
-          console.log('✅ Transcription saved to session');
+          logger.info('Transcription saved to session');
         } else {
-          console.error('❌ Failed to save transcription:', transcriptionResult.error);
+          logger.error('Failed to save transcription', transcriptionResult.error);
         }
       }
 
@@ -192,7 +194,7 @@ export class RecordingManager {
     // Show completion message
     this.viewManager.showSessionInfo(`Recording saved: ${saveResult.sessionId}`);
 
-    console.log('Recording stopped successfully');
+    logger.info('Recording stopped successfully');
   }
 
   /**
@@ -203,7 +205,7 @@ export class RecordingManager {
       return;
     }
 
-    console.log('Pausing recording...');
+    logger.info('Pausing recording');
 
     // Pause audio recording
     this.audioManager.pauseRecording();
@@ -225,7 +227,7 @@ export class RecordingManager {
     // Update UI
     this.viewManager.updatePausedState(true);
 
-    console.log('Recording paused');
+    logger.info('Recording paused');
   }
 
   /**
@@ -236,7 +238,7 @@ export class RecordingManager {
       return;
     }
 
-    console.log('Resuming recording...');
+    logger.info('Resuming recording');
 
     // Calculate total paused time
     this.totalPausedTime += Date.now() - this.pauseStartTime;
@@ -260,7 +262,7 @@ export class RecordingManager {
     // Update UI
     this.viewManager.updatePausedState(false);
 
-    console.log('Recording resumed');
+    logger.info('Recording resumed');
   }
 
   /**
@@ -285,7 +287,7 @@ export class RecordingManager {
       await this.transcriptionService.cleanup();
       await this.audioManager.stopRecording();
     } catch (error) {
-      console.error('Error during cleanup:', error);
+      logger.error('Error during cleanup', error);
     }
   }
 

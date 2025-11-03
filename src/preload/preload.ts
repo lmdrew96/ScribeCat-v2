@@ -3,15 +3,52 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-import type {
-  SaveDialogOptions,
-  ChatMessage,
-  ChatOptions,
-  ExportOptions,
-  GoogleDriveConfig,
-  GoogleDriveUploadOptions,
-  CanvasConfig
-} from '../shared/types';
+// Type definitions (inline to avoid ES module import in CommonJS context)
+interface SaveDialogOptions {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface ChatOptions {
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+  stream?: boolean;
+}
+
+interface ExportOptions {
+  includeAudio?: boolean;
+  includeTranscription?: boolean;
+  includeNotes?: boolean;
+  includeSummary?: boolean;
+  format?: string;
+}
+
+interface GoogleDriveConfig {
+  clientId?: string;
+  clientSecret?: string;
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+interface GoogleDriveUploadOptions {
+  folderId?: string;
+  mimeType?: string;
+  description?: string;
+}
+
+interface CanvasConfig {
+  baseUrl: string;
+  apiToken: string;
+}
 
 interface TranscriptionResult {
   text: string;

@@ -7,7 +7,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { app } from 'electron';
+import electron from 'electron';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository.js';
 import { Session } from '../../domain/entities/Session.js';
 
@@ -16,7 +16,7 @@ export class FileSessionRepository implements ISessionRepository {
   private directoryInitialized: boolean = false;
 
   constructor() {
-    const userDataPath = app.getPath('userData');
+    const userDataPath = electron.app.getPath('userData');
     this.sessionsDir = path.join(userDataPath, 'sessions');
   }
 

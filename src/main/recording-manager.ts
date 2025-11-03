@@ -1,6 +1,7 @@
 // src/main/recording-manager.ts
 
-import { ipcMain, BrowserWindow } from 'electron';
+import electron from 'electron';
+import type { BrowserWindow } from 'electron';
 import { SaveRecordingUseCase } from '../application/use-cases/SaveRecordingUseCase.js';
 import { LoadSessionUseCase } from '../application/use-cases/LoadSessionUseCase.js';
 import { UpdateSessionNotesUseCase } from '../application/use-cases/UpdateSessionNotesUseCase.js';
@@ -65,7 +66,7 @@ export class RecordingManager {
     // Note: The actual recording happens in the renderer process
     // These handlers are for file operations and session management
 
-    ipcMain.handle('recording:start', async () => {
+    electron.ipcMain.handle('recording:start', async () => {
       try {
         // The renderer will handle the actual recording
         // This just confirms readiness
@@ -78,7 +79,7 @@ export class RecordingManager {
       }
     });
 
-    ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }) => {
+    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }) => {
       try {
         const result = await this.saveRecordingUseCase.execute({
           audioData,
@@ -101,17 +102,17 @@ export class RecordingManager {
       }
     });
 
-    ipcMain.handle('recording:pause', async () => {
+    electron.ipcMain.handle('recording:pause', async () => {
       // Pause is handled in renderer
       return { success: true };
     });
 
-    ipcMain.handle('recording:resume', async () => {
+    electron.ipcMain.handle('recording:resume', async () => {
       // Resume is handled in renderer
       return { success: true };
     });
 
-    ipcMain.handle('recording:getStatus', async () => {
+    electron.ipcMain.handle('recording:getStatus', async () => {
       // Status is tracked in renderer
       return {
         isRecording: false,
@@ -121,7 +122,7 @@ export class RecordingManager {
       };
     });
 
-    ipcMain.handle('session:load', async (event, sessionId: string) => {
+    electron.ipcMain.handle('session:load', async (event, sessionId: string) => {
       try {
         const session = await this.loadSessionUseCase.execute(sessionId);
         
@@ -144,7 +145,7 @@ export class RecordingManager {
       }
     });
 
-    ipcMain.handle('session:loadAll', async () => {
+    electron.ipcMain.handle('session:loadAll', async () => {
       try {
         const sessions = await this.loadSessionUseCase.loadAll();
         
@@ -160,7 +161,7 @@ export class RecordingManager {
       }
     });
 
-    ipcMain.handle('session:updateNotes', async (event, sessionId: string, notes: string) => {
+    electron.ipcMain.handle('session:updateNotes', async (event, sessionId: string, notes: string) => {
       try {
         const success = await this.updateSessionNotesUseCase.execute(sessionId, notes);
         
@@ -180,7 +181,7 @@ export class RecordingManager {
       }
     });
 
-    ipcMain.handle('session:updateTranscription', async (event, sessionId: string, transcriptionText: string, provider?: string, timestampedEntries?: Array<{ timestamp: number; text: string }>) => {
+    electron.ipcMain.handle('session:updateTranscription', async (event, sessionId: string, transcriptionText: string, provider?: string, timestampedEntries?: Array<{ timestamp: number; text: string }>) => {
       try {
         // Use the provider as-is, defaulting to 'simulation'
         const transcriptionProvider = (provider || 'simulation') as 'assemblyai' | 'simulation';
@@ -207,7 +208,7 @@ export class RecordingManager {
       }
     });
 
-    ipcMain.handle('session:createDraft', async () => {
+    electron.ipcMain.handle('session:createDraft', async () => {
       try {
         const result = await this.createDraftSessionUseCase.execute();
 

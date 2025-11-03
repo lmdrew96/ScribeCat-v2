@@ -1,9 +1,10 @@
-import { IpcMain, BrowserWindow, dialog } from 'electron';
+import electron from 'electron';
+import type { IpcMain, BrowserWindow } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 
 /**
  * Handles dialog-related IPC channels
- * 
+ *
  * Manages native dialog operations like save dialogs.
  */
 export class DialogHandlers extends BaseHandler {
@@ -18,8 +19,8 @@ export class DialogHandlers extends BaseHandler {
       if (!mainWindow) {
         return { success: false, error: 'Main window not available' };
       }
-      
-      const result = await dialog.showSaveDialog(mainWindow, options);
+
+      const result = await electron.dialog.showSaveDialog(mainWindow, options);
       return { success: true, data: result };
     });
   }

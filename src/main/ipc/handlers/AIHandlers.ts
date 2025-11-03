@@ -1,4 +1,5 @@
-import { IpcMain, BrowserWindow } from 'electron';
+import electron from 'electron';
+import type { IpcMain, BrowserWindow } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import { ClaudeAIService } from '../../../infrastructure/services/ai/ClaudeAIService.js';
 import type { ChatMessage } from '../../../shared/types.js';

@@ -1,4 +1,5 @@
-import { IpcMain } from 'electron';
+import electron from 'electron';
+import type { IpcMain } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import { ListSessionsUseCase } from '../../../application/use-cases/ListSessionsUseCase.js';
 import { DeleteSessionUseCase } from '../../../application/use-cases/DeleteSessionUseCase.js';

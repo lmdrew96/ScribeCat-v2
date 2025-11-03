@@ -4,6 +4,9 @@
  */
 
 import { TiptapEditorManager } from './TiptapEditorManager.js';
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('NotesAutoSaveManager');
 
 export class NotesAutoSaveManager {
   private editorManager: TiptapEditorManager;
@@ -21,7 +24,7 @@ export class NotesAutoSaveManager {
    * Initialize auto-save manager
    */
   initialize(): void {
-    console.log('[NotesAutoSave] Initialized');
+    logger.info('NotesAutoSaveManager initialized');
   }
 
   /**
@@ -46,7 +49,7 @@ export class NotesAutoSaveManager {
   private async saveNotes(): Promise<void> {
     // Prevent concurrent saves
     if (this.isSaving) {
-      console.log('[NotesAutoSave] Save already in progress, skipping...');
+      logger.debug('Save already in progress, skipping');
       return;
     }
 
@@ -60,37 +63,37 @@ export class NotesAutoSaveManager {
       // Don't save if notes are empty
       // Check plain text content to avoid saving empty HTML tags like <p></p>
       if (!notes || notes.trim().length === 0 || !plainText || plainText.trim().length === 0) {
-        console.log('[NotesAutoSave] Notes are empty, skipping save');
+        logger.debug('Notes are empty, skipping save');
         return;
       }
 
       // If no session exists, create a draft session
       if (!this.currentSessionId) {
-        console.log('[NotesAutoSave] No session exists, creating draft...');
+        logger.info('No session exists, creating draft');
         const sessionId = await this.createDraftSession();
         if (!sessionId) {
-          console.error('[NotesAutoSave] Failed to create draft session');
+          logger.error('Failed to create draft session');
           return;
         }
         this.currentSessionId = sessionId;
         this.isDraftSession = true;
-        console.log('[NotesAutoSave] Created draft session:', sessionId);
+        logger.info(`Created draft session: ${sessionId}`);
       }
 
       // Save notes to session
-      console.log('[NotesAutoSave] Saving notes to session:', this.currentSessionId);
+      logger.debug(`Saving notes to session: ${this.currentSessionId}`);
       const result = await window.scribeCat.session.updateNotes(
         this.currentSessionId,
         notes
       );
 
       if (result.success) {
-        console.log('[NotesAutoSave] ✅ Notes saved successfully');
+        logger.info('Notes saved successfully');
       } else {
-        console.error('[NotesAutoSave] ❌ Failed to save notes:', result.error);
+        logger.error('Failed to save notes', result.error);
       }
     } catch (error) {
-      console.error('[NotesAutoSave] Error saving notes:', error);
+      logger.error('Error saving notes', error);
     } finally {
       this.isSaving = false;
     }
@@ -107,7 +110,7 @@ export class NotesAutoSaveManager {
       }
       return null;
     } catch (error) {
-      console.error('[NotesAutoSave] Error creating draft session:', error);
+      logger.error('Error creating draft session', error);
       return null;
     }
   }
@@ -117,13 +120,13 @@ export class NotesAutoSaveManager {
    * Copies notes from draft to the new recording session
    */
   async transitionToRecordingSession(recordingSessionId: string): Promise<void> {
-    console.log('[NotesAutoSave] Transitioning from draft to recording session');
+    logger.info('Transitioning from draft to recording session');
 
     // If we had a draft, copy notes to the new recording session
     if (this.isDraftSession && this.currentSessionId) {
       const notes = this.editorManager.getNotesHTML();
       if (notes && notes.trim().length > 0) {
-        console.log('[NotesAutoSave] Copying notes from draft to recording session...');
+        logger.info('Copying notes from draft to recording session');
         await window.scribeCat.session.updateNotes(recordingSessionId, notes);
       }
       // Note: We keep the draft session for now (it can be cleaned up later)
@@ -132,7 +135,7 @@ export class NotesAutoSaveManager {
     // Update to new session
     this.currentSessionId = recordingSessionId;
     this.isDraftSession = false;
-    console.log('[NotesAutoSave] Now tracking recording session:', recordingSessionId);
+    logger.info(`Now tracking recording session: ${recordingSessionId}`);
   }
 
   /**
@@ -141,7 +144,7 @@ export class NotesAutoSaveManager {
   setSessionId(sessionId: string): void {
     this.currentSessionId = sessionId;
     this.isDraftSession = false;
-    console.log('[NotesAutoSave] Session ID set to:', sessionId);
+    logger.info(`Session ID set to: ${sessionId}`);
   }
 
   /**
