@@ -1,7 +1,10 @@
-import * as electron from 'electron';
-import type { BrowserWindow } from 'electron';
+import electron from 'electron';
+import type { BrowserWindow as BrowserWindowType } from 'electron';
+const { app, BrowserWindow, ipcMain, systemPreferences, session } = electron;
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import * as http from 'http';
+import * as fs from 'fs';
 import { RecordingManager } from './recording-manager.js';
 import { DirectoryManager } from '../infrastructure/setup/DirectoryManager.js';
 import { FileSessionRepository } from '../infrastructure/repositories/FileSessionRepository.js';
@@ -17,7 +20,7 @@ import { HtmlExportService } from '../infrastructure/services/export/HtmlExportS
 import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
 import { ClaudeAIService } from '../infrastructure/services/ai/ClaudeAIService.js';
 import { GoogleDriveService } from '../infrastructure/services/drive/GoogleDriveService.js';
-import type { GoogleDriveConfig } from '../shared/types.js';
+import type { GoogleDriveConfig, SupabaseConfig } from '../shared/types.js';
 import Store from 'electron-store';
 import { HandlerRegistry } from './ipc/HandlerRegistry.js';
 import { SessionHandlers } from './ipc/handlers/SessionHandlers.js';
@@ -28,6 +31,15 @@ import { DriveHandlers } from './ipc/handlers/DriveHandlers.js';
 import { SettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
 import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
+import { AuthHandlers } from './ipc/handlers/AuthHandlers.js';
+import { SupabaseAuthService } from '../infrastructure/services/supabase/SupabaseAuthService.js';
+import {
+  SignInWithEmailUseCase,
+  SignUpWithEmailUseCase,
+  SignInWithGoogleUseCase,
+  SignOutUseCase,
+  GetCurrentUserUseCase
+} from '../application/use-cases/auth/index.js';
 import { watch } from 'fs';
 
 // ES module equivalent of __dirname
@@ -41,7 +53,7 @@ interface StoreSchema {
 }
 
 class ScribeCatApp {
-  private mainWindow: BrowserWindow | null = null;
+  private mainWindow: BrowserWindowType | null = null;
   private recordingManager!: RecordingManager;
   private directoryManager!: DirectoryManager;
   private store: Store<StoreSchema>;
@@ -68,6 +80,19 @@ class ScribeCatApp {
   // Google Drive service
   private googleDriveService: GoogleDriveService | null = null;
 
+  // Supabase auth service
+  private supabaseAuthService: SupabaseAuthService | null = null;
+
+  // Auth use cases
+  private signInWithEmailUseCase!: SignInWithEmailUseCase;
+  private signUpWithEmailUseCase!: SignUpWithEmailUseCase;
+  private signInWithGoogleUseCase!: SignInWithGoogleUseCase;
+  private signOutUseCase!: SignOutUseCase;
+  private getCurrentUserUseCase!: GetCurrentUserUseCase;
+
+  // OAuth callback server
+  private oauthCallbackServer: http.Server | null = null;
+
   constructor() {
     // Initialize electron-store for settings (doesn't need app to be ready)
     this.store = new Store<StoreSchema>({
@@ -80,6 +105,12 @@ class ScribeCatApp {
     // Initialize Google Drive service with pre-configured credentials
     this.initializeGoogleDrive();
 
+    // Initialize Supabase auth service
+    this.initializeSupabase();
+
+    // Start OAuth callback server
+    this.startOAuthCallbackServer();
+
     this.initializeApp();
   }
 
@@ -91,10 +122,10 @@ class ScribeCatApp {
       // Load stored credentials if they exist
       const storedCreds = (this.store as any).get('google-drive-credentials');
       const config: GoogleDriveConfig = storedCreds ? JSON.parse(storedCreds) : {};
-      
+
       // Initialize service (it will work with or without stored credentials)
       this.googleDriveService = new GoogleDriveService(config);
-      
+
       console.log('Google Drive service initialized');
     } catch (error) {
       console.error('Failed to initialize Google Drive service:', error);
@@ -103,8 +134,70 @@ class ScribeCatApp {
     }
   }
 
+  /**
+   * Initialize Supabase auth service with production configuration
+   */
+  private initializeSupabase(): void {
+    try {
+      // Initialize with bundled production config
+      // The SupabaseClient now auto-initializes with hardcoded credentials
+      this.supabaseAuthService = new SupabaseAuthService();
+      console.log('Supabase auth service initialized with production config');
+    } catch (error) {
+      console.error('Failed to initialize Supabase service:', error);
+      throw error; // Re-throw since this is critical for the app
+    }
+  }
+
+  /**
+   * Start OAuth callback server for Google OAuth flow
+   */
+  private startOAuthCallbackServer(): void {
+    try {
+      const callbackHtmlPath = path.join(__dirname, '..', '..', 'oauth-callback.html');
+
+      this.oauthCallbackServer = http.createServer((req, res) => {
+        // Only handle /auth/callback requests
+        if (req.url && req.url.startsWith('/auth/callback')) {
+          // Read and serve the callback HTML file
+          fs.readFile(callbackHtmlPath, 'utf8', (err, data) => {
+            if (err) {
+              console.error('Error reading OAuth callback file:', err);
+              res.writeHead(500, { 'Content-Type': 'text/plain' });
+              res.end('Internal Server Error');
+              return;
+            }
+
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(data);
+          });
+        } else {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('Not Found');
+        }
+      });
+
+      this.oauthCallbackServer.listen(3000, () => {
+        console.log('OAuth callback server listening on http://localhost:3000');
+      });
+
+      // Handle server errors
+      this.oauthCallbackServer.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          console.warn('Port 3000 is already in use. OAuth callback server not started.');
+          console.warn('Make sure no other application is using port 3000.');
+        } else {
+          console.error('OAuth callback server error:', err);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to start OAuth callback server:', error);
+      // Don't throw - OAuth can still work manually
+    }
+  }
+
   private initializeApp(): void {
-    electron.app.whenReady().then(async () => {
+    app.whenReady().then(async () => {
       // Initialize components that need app to be ready
       this.directoryManager = new DirectoryManager();
       this.sessionRepository = new FileSessionRepository();
@@ -128,6 +221,15 @@ class ScribeCatApp {
         this.exportServices
       );
       this.updateSessionUseCase = new UpdateSessionUseCase(this.sessionRepository);
+
+      // Initialize auth use cases
+      if (this.supabaseAuthService) {
+        this.signInWithEmailUseCase = new SignInWithEmailUseCase(this.supabaseAuthService);
+        this.signUpWithEmailUseCase = new SignUpWithEmailUseCase(this.supabaseAuthService);
+        this.signInWithGoogleUseCase = new SignInWithGoogleUseCase(this.supabaseAuthService);
+        this.signOutUseCase = new SignOutUseCase(this.supabaseAuthService);
+        this.getCurrentUserUseCase = new GetCurrentUserUseCase(this.supabaseAuthService);
+      }
 
       // Initialize simulation transcription service
       this.simulationTranscriptionService = new SimulationTranscriptionService();
@@ -154,21 +256,29 @@ class ScribeCatApp {
       this.setupIPC();
     });
 
-    electron.app.on('window-all-closed', () => {
+    app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {
-        electron.app.quit();
+        app.quit();
       }
     });
 
-    electron.app.on('activate', () => {
-      if (electron.BrowserWindow.getAllWindows().length === 0) {
+    // Clean up OAuth callback server on quit
+    app.on('quit', () => {
+      if (this.oauthCallbackServer) {
+        this.oauthCallbackServer.close();
+        console.log('OAuth callback server closed');
+      }
+    });
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
         this.createWindow();
       }
     });
   }
 
   private createWindow(): void {
-    this.mainWindow = new electron.BrowserWindow({
+    this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
       webPreferences: {
@@ -190,7 +300,7 @@ class ScribeCatApp {
     this.recordingManager.setMainWindow(this.mainWindow);
 
     // Enable hot reload in development
-    if (!electron.app.isPackaged) {
+    if (!app.isPackaged) {
       this.setupHotReload();
     }
   }
@@ -265,12 +375,12 @@ class ScribeCatApp {
   private async requestMicrophoneAccess(): Promise<void> {
     if (process.platform === 'darwin') {
       try {
-        const micStatus = electron.systemPreferences.getMediaAccessStatus('microphone');
+        const micStatus = systemPreferences.getMediaAccessStatus('microphone');
         console.log('Microphone access status:', micStatus);
         
         if (micStatus !== 'granted') {
           console.log('Requesting microphone access...');
-          await electron.systemPreferences.askForMediaAccess('microphone');
+          await systemPreferences.askForMediaAccess('microphone');
         }
       } catch (error) {
         console.error('Failed to request microphone access:', error);
@@ -285,7 +395,7 @@ class ScribeCatApp {
    * Without this, the browser's media API won't have permission to capture audio.
    */
   private setupMediaPermissions(): void {
-    electron.session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
       // Grant permission for media devices (microphone/camera)
       if (permission === 'media') {
         console.log('Granting media permission to renderer process');
@@ -337,16 +447,27 @@ class ScribeCatApp {
     registry.add(new SettingsHandlers(this.store));
     
     registry.add(new DialogHandlers(() => this.mainWindow));
-    
+
     registry.add(new CanvasHandlers());
-    
+
+    // Add auth handlers if Supabase is configured
+    if (this.supabaseAuthService && this.signInWithEmailUseCase) {
+      registry.add(new AuthHandlers(
+        this.signInWithEmailUseCase,
+        this.signUpWithEmailUseCase,
+        this.signInWithGoogleUseCase,
+        this.signOutUseCase,
+        this.getCurrentUserUseCase
+      ));
+    }
+
     // Register all handlers with ipcMain
-    registry.registerAll(electron.ipcMain);
+    registry.registerAll(ipcMain);
     
     // Special handlers that need direct access to modify class properties
     // These cannot be in handler classes because they need to set this.aiService and this.googleDriveService
     
-    electron.ipcMain.handle('ai:setApiKey', async (event, apiKey: string) => {
+    ipcMain.handle('ai:setApiKey', async (event, apiKey: string) => {
       try {
         if (!apiKey || apiKey.trim().length === 0) {
           this.aiService = null;
@@ -364,7 +485,7 @@ class ScribeCatApp {
       }
     });
     
-    electron.ipcMain.handle('drive:configure', async (event, config: GoogleDriveConfig) => {
+    ipcMain.handle('drive:configure', async (event, config: GoogleDriveConfig) => {
       try {
         this.googleDriveService = new GoogleDriveService(config);
         return { success: true };

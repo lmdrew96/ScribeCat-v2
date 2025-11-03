@@ -56,6 +56,22 @@ interface TranscriptionResult {
   isFinal: boolean;
 }
 
+interface SupabaseConfig {
+  url: string;
+  anonKey: string;
+}
+
+interface SignInWithEmailParams {
+  email: string;
+  password: string;
+}
+
+interface SignUpWithEmailParams {
+  email: string;
+  password: string;
+  fullName?: string;
+}
+
 // Expose the API to the renderer process
 const electronAPI = {
   dialog: {
@@ -182,6 +198,16 @@ const electronAPI = {
     importCourses: (jsonData: string) => ipcRenderer.invoke('canvas:import-courses', jsonData),
     getImportedCourses: () => ipcRenderer.invoke('canvas:get-imported-courses'),
     deleteImportedCourse: (courseId: string) => ipcRenderer.invoke('canvas:delete-imported-course', courseId)
+  },
+  auth: {
+    signInWithEmail: (params: SignInWithEmailParams) => ipcRenderer.invoke('auth:signInWithEmail', params),
+    signUpWithEmail: (params: SignUpWithEmailParams) => ipcRenderer.invoke('auth:signUpWithEmail', params),
+    signInWithGoogle: (codeChallenge: string) => ipcRenderer.invoke('auth:signInWithGoogle', codeChallenge),
+    // NOTE: OAuth callback is now handled in renderer process using RendererSupabaseClient
+    // No IPC method needed - renderer exchanges code directly where localStorage works
+    signOut: () => ipcRenderer.invoke('auth:signOut'),
+    getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
+    isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated')
   },
   dev: {
     onHotReloadNotification: (callback: (message: string) => void) => {

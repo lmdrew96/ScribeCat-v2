@@ -17,6 +17,9 @@ import { CourseManager } from './managers/CourseManager.js';
 import { ThemeManager } from './themes/ThemeManager.js';
 import { StudyModeManager } from './managers/StudyModeManager.js';
 import { NotesAutoSaveManager } from './managers/NotesAutoSaveManager.js';
+import { AuthManager } from './managers/AuthManager.js';
+import { AuthScreen } from './components/AuthScreen.js';
+import { UserProfileMenu } from './components/UserProfileMenu.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -31,6 +34,9 @@ let deviceManager: DeviceManager;
 let courseManager: CourseManager;
 let studyModeManager: StudyModeManager;
 let notesAutoSaveManager: NotesAutoSaveManager;
+let authManager: AuthManager;
+let authScreen: AuthScreen;
+let userProfileMenu: UserProfileMenu;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -97,7 +103,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize study mode manager
   studyModeManager = new StudyModeManager();
   await studyModeManager.initialize();
-  
+
+  // Initialize authentication
+  authManager = new AuthManager();
+  await authManager.initialize();
+  authScreen = new AuthScreen(authManager);
+  userProfileMenu = new UserProfileMenu(authManager);
+
+  // Set up auth UI (show/hide signin button)
+  setupAuthUI();
+
   // Set up event listeners
   setupEventListeners();
 
@@ -361,3 +376,26 @@ window.addEventListener('beforeunload', async (event) => {
     notesAutoSaveManager.cleanup();
   }
 });
+
+/**
+ * Set up authentication UI (show/hide signin button based on auth state)
+ */
+function setupAuthUI(): void {
+  const signinBtn = document.getElementById('signin-btn');
+
+  // Listen for auth state changes
+  authManager.onAuthStateChange((user) => {
+    if (user) {
+      // User is authenticated - hide signin button
+      signinBtn?.classList.add('hidden');
+    } else {
+      // User is not authenticated - show signin button
+      signinBtn?.classList.remove('hidden');
+    }
+  });
+
+  // Add click listener to signin button
+  signinBtn?.addEventListener('click', () => {
+    authScreen.show();
+  });
+}

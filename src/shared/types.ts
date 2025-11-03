@@ -300,3 +300,114 @@ export interface CanvasCourse {
   courseCode?: string;
   enrollmentTermId?: string;
 }
+
+/**
+ * User authentication and account types
+ */
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName?: string;
+  avatarUrl?: string;
+  googleId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  preferences?: Record<string, any>;
+}
+
+export interface AuthSession {
+  user: UserProfile;
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt: Date;
+}
+
+export interface SignInWithEmailParams {
+  email: string;
+  password: string;
+}
+
+export interface SignUpWithEmailParams {
+  email: string;
+  password: string;
+  fullName?: string;
+}
+
+export interface AuthResult {
+  success: boolean;
+  session?: AuthSession;
+  user?: UserProfile;
+  error?: string;
+}
+
+/**
+ * Supabase configuration
+ */
+export interface SupabaseConfig {
+  url: string;
+  anonKey: string;
+}
+
+/**
+ * Permission types for sharing
+ */
+export type PermissionLevel = 'viewer' | 'editor';
+
+export interface SessionShare {
+  id: string;
+  sessionId: string;
+  sharedByUserId: string;
+  sharedWithUserId: string;
+  sharedWithEmail?: string;
+  permissionLevel: PermissionLevel;
+  createdAt: Date;
+  acceptedAt?: Date;
+}
+
+export interface ShareInvitation {
+  id: string;
+  sessionId: string;
+  email: string;
+  permissionLevel: PermissionLevel;
+  invitationToken: string;
+  createdAt: Date;
+  expiresAt: Date;
+  acceptedAt?: Date;
+}
+
+export interface CreateShareParams {
+  sessionId: string;
+  email: string;
+  permissionLevel: PermissionLevel;
+}
+
+export interface ShareResult {
+  success: boolean;
+  share?: SessionShare;
+  invitation?: ShareInvitation;
+  error?: string;
+}
+
+/**
+ * Sync types
+ */
+export type SyncStatus = 'pending' | 'syncing' | 'synced' | 'conflict' | 'error';
+
+export interface SyncMetadata {
+  cloudId?: string;
+  syncStatus: SyncStatus;
+  lastSyncedAt?: Date;
+  syncError?: string;
+}
+
+/**
+ * Collaboration types
+ */
+export interface CollaboratorPresence {
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  cursorPosition?: number;
+  isRecording: boolean;
+  lastSeenAt: Date;
+}

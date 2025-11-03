@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScribeCat - OAuth Callback</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 48px;
+      text-align: center;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      font-size: 60px;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #1a202c;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #718096;
+      margin-bottom: 32px;
+    }
+
+    .code-container {
+      background: #f7fafc;
+      border: 2px solid #667eea;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .code-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .code {
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 18px;
+      font-weight: 600;
+      color: #667eea;
+      word-break: break-all;
+      user-select: all;
+      padding: 16px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .copy-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .copy-btn:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .copy-btn:active {
+      transform: translateY(0);
+    }
+
+    .copied {
+      background: #48bb78 !important;
+    }
+
+    .instructions {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 14px;
+      color: #718096;
+      line-height: 1.6;
+    }
+
+    .error {
+      color: #e53e3e;
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .container {
+      animation: fadeIn 0.4s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🔐</div>
+    <h1>Authorization Successful!</h1>
+    <p class="subtitle">Copy the code below and paste it into ScribeCat</p>
+
+    <div id="content"></div>
+
+    <div class="instructions">
+      <strong>Next steps:</strong><br>
+      1. Click the button above to copy your authorization code<br>
+      2. Return to ScribeCat<br>
+      3. Paste the code into the authorization field<br>
+      4. Click "Complete Sign In"
+    </div>
+  </div>
+
+  <script>
+    // Extract code from URL - check both query params and hash fragments
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+    // Try to get code from either location
+    const code = urlParams.get('code') || hashParams.get('code');
+    const error = urlParams.get('error') || hashParams.get('error');
+    const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+
+    // Check for access_token (implicit flow)
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+
+    const contentDiv = document.getElementById('content');
+
+    // Debug: Show full URL (for troubleshooting)
+    console.log('Full URL:', window.location.href);
+    console.log('Query params:', window.location.search);
+    console.log('Hash fragment:', window.location.hash);
+    console.log('Code:', code);
+    console.log('Access token:', accessToken);
+
+    if (error) {
+      contentDiv.innerHTML = `
+        <div class="error">
+          <strong>Error:</strong> ${error}<br>
+          ${errorDescription || 'An error occurred during authorization'}
+        </div>
+      `;
+    } else if (accessToken) {
+      // Supabase sent tokens directly (implicit flow)
+      contentDiv.innerHTML = `
+        <div class="error">
+          <strong>Implicit flow detected</strong><br>
+          Supabase sent tokens directly instead of an authorization code.<br>
+          This flow is not yet supported. Please check your OAuth configuration.
+        </div>
+      `;
+    } else if (code) {
+      contentDiv.innerHTML = `
+        <div class="code-container">
+          <div class="code-label">Your Authorization Code</div>
+          <div class="code" id="auth-code">${code}</div>
+        </div>
+        <button class="copy-btn" id="copy-btn" onclick="copyCode()">
+          📋 Copy Code
+        </button>
+      `;
+
+      // Auto-select code on load
+      setTimeout(() => {
+        const codeElement = document.getElementById('auth-code');
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(codeElement);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }, 100);
+    } else {
+      // Show debugging info
+      const allParams = {};
+      for (const [key, value] of urlParams) {
+        allParams[key] = value;
+      }
+      for (const [key, value] of hashParams) {
+        allParams[key] = value;
+      }
+
+      contentDiv.innerHTML = `
+        <div class="error">
+          <strong>No authorization code found</strong><br>
+          Please try the authorization process again.<br><br>
+          <details>
+            <summary style="cursor: pointer; font-weight: bold; margin-top: 8px;">Debug Info (click to expand)</summary>
+            <div style="margin-top: 12px; text-align: left; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all;">
+Full URL: ${window.location.href}
+
+Query params: ${window.location.search || '(none)'}
+
+Hash fragment: ${window.location.hash || '(none)'}
+
+All params: ${JSON.stringify(allParams, null, 2) || '(none)'}
+            </div>
+          </details>
+        </div>
+      `;
+    }
+
+    function copyCode() {
+      const code = document.getElementById('auth-code').textContent;
+      const btn = document.getElementById('copy-btn');
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+
+        setTimeout(() => {
+          btn.textContent = '📋 Copy Code';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        // Fallback: select the text
+        const codeElement = document.getElementById('auth-code');
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(codeElement);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
+    }
+  </script>
+</body>
+</html>
