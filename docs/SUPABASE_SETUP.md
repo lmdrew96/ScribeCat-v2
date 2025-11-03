@@ -34,44 +34,19 @@ This guide walks you through setting up Supabase for ScribeCat's cloud sync, sha
 
 ## Step 4: Configure Storage
 
-1. In your Supabase dashboard, go to **Storage** in the left sidebar
-2. Click **Create a new bucket**
-3. Fill in:
-   - **Name**: `audio-files`
-   - **Public bucket**: Unchecked (private)
-   - **File size limit**: 100 MB (or higher if you have long recordings)
-   - **Allowed MIME types**: `audio/webm, audio/wav, audio/mp3, audio/ogg`
-4. Click **Create bucket**
+Configure Supabase Storage for audio file uploads using SQL:
 
-### Set Storage Policies
+1. In your Supabase dashboard, click **SQL Editor** in the left sidebar
+2. Click **New query**
+3. Copy the entire contents of `/docs/supabase-storage-setup.sql` from this project
+4. Paste into the SQL editor
+5. Click **Run** (or press Cmd/Ctrl + Enter)
+6. Verify success - you should see messages about bucket creation and policies
 
-1. Click on the `audio-files` bucket
-2. Go to **Policies** tab
-3. Click **New policy** → **For full customization**
-4. Create policy for SELECT (download):
-   - **Policy name**: Users can download their own audio files
-   - **Allowed operation**: SELECT
-   - **Target roles**: authenticated
-   - **USING expression**:
-   ```sql
-   auth.uid()::text = (storage.foldername(name))[1]
-   ```
-5. Create policy for INSERT (upload):
-   - **Policy name**: Users can upload to their own folder
-   - **Allowed operation**: INSERT
-   - **Target roles**: authenticated
-   - **WITH CHECK expression**:
-   ```sql
-   auth.uid()::text = (storage.foldername(name))[1]
-   ```
-6. Create policy for DELETE:
-   - **Policy name**: Users can delete their own files
-   - **Allowed operation**: DELETE
-   - **Target roles**: authenticated
-   - **USING expression**:
-   ```sql
-   auth.uid()::text = (storage.foldername(name))[1]
-   ```
+This creates:
+- `audio-files` bucket (100MB limit, private)
+- Storage path format: `{user_id}/{session_id}/{filename}.webm`
+- RLS policies ensuring users can only access their own files and files from shared sessions
 
 ## Step 5: Configure Google OAuth
 
