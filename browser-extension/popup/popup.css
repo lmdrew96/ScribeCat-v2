@@ -139,20 +139,10 @@ body {
     background: #5a6268;
 }
 
-.btn-export {
-    background: #28a745;
-    color: white;
-}
-
-.btn-export:hover:not(:disabled) {
-    background: #218838;
-}
-
 .btn-copy {
     background: #17a2b8;
     color: white;
     width: 100%;
-    margin-top: 8px;
 }
 
 .btn-copy:hover:not(:disabled) {
@@ -227,28 +217,9 @@ body {
 /* Export section */
 .export-section h3 {
     font-size: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     color: #333;
     font-weight: 600;
-}
-
-.export-controls {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.select {
-    flex: 1;
-    padding: 6px 8px;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
-    font-size: 12px;
-    background: white;
-}
-
-.export-controls .btn {
-    white-space: nowrap;
 }
 
 /* Instructions */

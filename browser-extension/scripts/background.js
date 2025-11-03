@@ -17,13 +17,6 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'exportCourses') {
-    handleExportCourses(request.format, request.courses)
-      .then(result => sendResponse(result))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true;
-  }
-  
   if (request.action === 'openScribeCat') {
     handleOpenScribeCat()
       .then(result => sendResponse(result))
@@ -31,54 +24,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 });
-
-// Export courses to file
-async function handleExportCourses(format, courses) {
-  try {
-    let data, filename, mimeType;
-    
-    if (format === 'json') {
-      data = JSON.stringify({
-        source: 'ScribeCat Canvas Course Collector',
-        exported: new Date().toISOString(),
-        courses: courses
-      }, null, 2);
-      filename = `scribecat-canvas-courses-${new Date().toISOString().split('T')[0]}.json`;
-      mimeType = 'application/json';
-    } else if (format === 'csv') {
-      const headers = ['Course Number', 'Course Title', 'Canvas ID', 'Collected Date'];
-      const csvRows = [
-        headers.join(','),
-        ...courses.map(course => [
-          `"${course.courseNumber || ''}"`,
-          `"${course.courseTitle || ''}"`,
-          `"${course.canvasId || ''}"`,
-          `"${course.collected || ''}"`
-        ].join(','))
-      ];
-      data = csvRows.join('\n');
-      filename = `scribecat-canvas-courses-${new Date().toISOString().split('T')[0]}.csv`;
-      mimeType = 'text/csv';
-    } else {
-      throw new Error('Unsupported export format');
-    }
-    
-    // Create download
-    const blob = new Blob([data], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    
-    await chrome.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true
-    });
-    
-    return { success: true, filename: filename };
-  } catch (error) {
-    console.error('Export failed:', error);
-    return { success: false, error: error.message };
-  }
-}
 
 // Attempt to communicate with ScribeCat desktop app
 async function handleOpenScribeCat() {

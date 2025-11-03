@@ -42,7 +42,6 @@ class PopupController {
     // Main action buttons
     document.getElementById('collect-btn').addEventListener('click', () => this.collectCourses());
     document.getElementById('refresh-btn').addEventListener('click', () => this.refresh());
-    document.getElementById('export-btn').addEventListener('click', () => this.exportCourses());
     document.getElementById('copy-btn').addEventListener('click', () => this.showCopyModal());
     document.getElementById('clear-data-btn').addEventListener('click', () => this.clearStoredData());
     document.getElementById('test-selectors-btn').addEventListener('click', () => this.testSelectors());
@@ -195,11 +194,9 @@ class PopupController {
   }
 
   updateExportButtons() {
-    const exportBtn = document.getElementById('export-btn');
     const copyBtn = document.getElementById('copy-btn');
-    
+
     const hasData = this.courses.length > 0;
-    exportBtn.disabled = !hasData;
     copyBtn.disabled = !hasData;
   }
 
@@ -242,37 +239,6 @@ class PopupController {
     await this.updateStatus();
     await this.loadStoredCourses();
     this.showMessage('Refreshed successfully!', 'success');
-  }
-
-  async exportCourses() {
-    const format = document.getElementById('export-format').value;
-    const exportBtn = document.getElementById('export-btn');
-    const originalText = exportBtn.innerHTML;
-    
-    // Show loading state
-    exportBtn.innerHTML = '<span class="btn-icon">⏳</span> Exporting...';
-    exportBtn.disabled = true;
-    
-    try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'exportCourses',
-        format: format,
-        courses: this.courses
-      });
-      
-      if (response && response.success) {
-        this.showMessage(`Exported ${this.courses.length} courses to ${response.filename}`, 'success');
-      } else {
-        throw new Error(response?.error || 'Export failed');
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
-      this.showMessage('Export failed. Please try again.', 'error');
-    } finally {
-      // Restore button
-      exportBtn.innerHTML = originalText;
-      exportBtn.disabled = false;
-    }
   }
 
   showCopyModal() {
