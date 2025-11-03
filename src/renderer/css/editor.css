@@ -1035,7 +1035,7 @@
 
 /* Flowing transcription style */
 .flowing-transcription {
-  color: #e0e0e0;
+  color: var(--text-primary);
   line-height: 1.6;
   padding: 1rem;
   font-size: 0.95rem;
