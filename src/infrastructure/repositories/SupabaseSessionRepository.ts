@@ -36,19 +36,20 @@ interface SessionRow {
 
 export class SupabaseSessionRepository implements ISessionRepository {
   private tableName = 'sessions';
+  private userId: string | null = null;
 
   /**
-   * Get current user ID from Supabase auth
+   * Set the current user ID for this repository
+   * Must be called before save() or update() operations
    */
-  private async getCurrentUserId(): Promise<string | null> {
-    try {
-      const client = SupabaseClient.getInstance().getClient();
-      const { data: { user } } = await client.auth.getUser();
-      return user?.id || null;
-    } catch (error) {
-      console.error('Error getting current user:', error);
-      return null;
+  setUserId(userId: string | null): void {
+    console.log('SupabaseSessionRepository.setUserId called with:', typeof userId, userId);
+    if (userId && typeof userId !== 'string') {
+      console.error('❌ ERROR: userId is not a string!', userId);
+      throw new Error(`userId must be a string, got ${typeof userId}`);
     }
+    this.userId = userId;
+    console.log('✅ SupabaseSessionRepository userId set to:', this.userId);
   }
 
   /**
@@ -56,9 +57,8 @@ export class SupabaseSessionRepository implements ISessionRepository {
    */
   async save(session: Session): Promise<void> {
     try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) {
-        throw new Error('User not authenticated');
+      if (!this.userId) {
+        throw new Error('User ID not set. Call setUserId() before save()');
       }
 
       const client = SupabaseClient.getInstance().getClient();
@@ -66,10 +66,10 @@ export class SupabaseSessionRepository implements ISessionRepository {
       // Convert Session entity to database row
       const row: Partial<SessionRow> = {
         id: session.id,
-        user_id: userId,
+        user_id: this.userId,
         title: session.title,
         notes: session.notes,
-        duration: session.duration,
+        duration: Math.round(session.duration * 1000), // Convert seconds to milliseconds (integer)
         tags: session.tags,
         course_id: session.courseId,
         course_title: session.courseTitle,
@@ -267,7 +267,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       row.notes,
       new Date(row.created_at),
       new Date(row.updated_at),
-      row.duration,
+      row.duration / 1000, // Convert milliseconds to seconds
       transcription,
       row.tags || [],
       [], // exportHistory not stored in cloud yet

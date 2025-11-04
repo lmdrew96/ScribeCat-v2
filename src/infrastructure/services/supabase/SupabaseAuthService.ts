@@ -28,6 +28,38 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       const authSession = session ? this.convertToAuthSession(session) : null;
       this.notifyAuthStateListeners(authSession);
     });
+
+    // CRITICAL: Check for existing session immediately after registering listener
+    // Supabase silently restores session from localStorage BEFORE onAuthStateChange fires
+    // So we need to manually check and notify listeners if a session already exists
+    console.log('🔍 Checking for existing Supabase session...');
+    client.auth.getSession()
+      .then(({ data, error }) => {
+        console.log('🔍 getSession() result:', {
+          hasData: !!data,
+          hasSession: !!data?.session,
+          hasError: !!error,
+          errorMessage: error?.message
+        });
+
+        if (error) {
+          console.error('❌ Error getting session:', error);
+          return;
+        }
+
+        const { session } = data;
+        if (session) {
+          console.log('✅ Found existing session, user ID:', session.user?.id);
+          const authSession = this.convertToAuthSession(session);
+          this.notifyAuthStateListeners(authSession);
+          console.log('✅ Restored existing Supabase session on startup');
+        } else {
+          console.log('ℹ️  No existing session found in localStorage');
+        }
+      })
+      .catch(error => {
+        console.error('❌ Exception checking for existing session:', error);
+      });
   }
 
   /**

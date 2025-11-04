@@ -51,9 +51,9 @@ export class CreateDraftSessionUseCase {
   }
 
   /**
-   * Generate a unique session ID
+   * Generate a unique session ID (UUID format for Supabase compatibility)
    */
   private generateSessionId(): string {
-    return `draft-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    return crypto.randomUUID();
   }
 }

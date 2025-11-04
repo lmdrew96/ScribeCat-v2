@@ -35,20 +35,46 @@ export class AuthManager {
    * Initialize the auth manager
    */
   async initialize(): Promise<void> {
+    // Initialize RendererSupabaseClient to set up auth state listener
+    // This ensures auth state changes are monitored and sent to main process for cloud sync
+    const { RendererSupabaseClient } = await import('../services/RendererSupabaseClient.js');
+    RendererSupabaseClient.getInstance(); // Initialize the singleton
+
     await this.checkAuthStatus();
   }
 
   /**
    * Check authentication status
+   * Uses RendererSupabaseClient directly since auth is handled in renderer
    */
   async checkAuthStatus(): Promise<boolean> {
     try {
-      const result = await (window as any).scribeCat.auth.isAuthenticated();
-      const isAuthenticated = result.isAuthenticated || false;
+      // Import and use RendererSupabaseClient directly
+      const { RendererSupabaseClient } = await import('../services/RendererSupabaseClient.js');
+      const client = RendererSupabaseClient.getInstance();
 
-      if (isAuthenticated) {
-        const userResult = await (window as any).scribeCat.auth.getCurrentUser();
-        this.currentUser = userResult.user || null;
+      // Get session from Supabase client
+      const { data: { session }, error } = await (client as any).client.auth.getSession();
+
+      if (error) {
+        console.error('Error checking auth status:', error);
+        this.currentUser = null;
+        this.notifyListeners();
+        return false;
+      }
+
+      if (session && session.user) {
+        // Convert Supabase user to UserProfile
+        this.currentUser = {
+          id: session.user.id,
+          email: session.user.email!,
+          fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name || undefined,
+          avatarUrl: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || undefined,
+          googleId: session.user.app_metadata?.provider === 'google' ? session.user.id : undefined,
+          createdAt: new Date(session.user.created_at),
+          updatedAt: new Date(session.user.updated_at || session.user.created_at),
+          preferences: session.user.user_metadata?.preferences || {}
+        };
         this.notifyListeners();
         return true;
       } else {

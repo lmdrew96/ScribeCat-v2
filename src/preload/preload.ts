@@ -207,7 +207,15 @@ const electronAPI = {
     // No IPC method needed - renderer exchanges code directly where localStorage works
     signOut: () => ipcRenderer.invoke('auth:signOut'),
     getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
-    isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated')
+    isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated'),
+    // Send auth state changes to main process for cloud sync
+    sessionChanged: (data: { userId: string | null; accessToken?: string; refreshToken?: string }) =>
+      ipcRenderer.invoke('auth:sessionChanged', data)
+  },
+  sync: {
+    uploadSession: (sessionId: string) => ipcRenderer.invoke('sync:uploadSession', sessionId),
+    getStatus: (sessionId: string) => ipcRenderer.invoke('sync:getStatus', sessionId),
+    retrySync: (sessionId: string) => ipcRenderer.invoke('sync:retrySync', sessionId)
   },
   dev: {
     onHotReloadNotification: (callback: (message: string) => void) => {

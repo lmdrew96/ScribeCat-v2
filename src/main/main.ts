@@ -1,6 +1,4 @@
-import electron from 'electron';
-import type { BrowserWindow as BrowserWindowType } from 'electron';
-const { app, BrowserWindow, ipcMain, systemPreferences, session } = electron;
+import { app, BrowserWindow, ipcMain, session, systemPreferences } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as http from 'http';
@@ -31,15 +29,10 @@ import { DriveHandlers } from './ipc/handlers/DriveHandlers.js';
 import { SettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
 import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
-import { AuthHandlers } from './ipc/handlers/AuthHandlers.js';
-import { SupabaseAuthService } from '../infrastructure/services/supabase/SupabaseAuthService.js';
-import {
-  SignInWithEmailUseCase,
-  SignUpWithEmailUseCase,
-  SignInWithGoogleUseCase,
-  SignOutUseCase,
-  GetCurrentUserUseCase
-} from '../application/use-cases/auth/index.js';
+import { SupabaseStorageService } from '../infrastructure/services/supabase/SupabaseStorageService.js';
+import { SupabaseSessionRepository } from '../infrastructure/repositories/SupabaseSessionRepository.js';
+import { SupabaseClient } from '../infrastructure/services/supabase/SupabaseClient.js';
+import { SyncManager } from '../infrastructure/services/sync/SyncManager.js';
 import { watch } from 'fs';
 
 // ES module equivalent of __dirname
@@ -53,7 +46,7 @@ interface StoreSchema {
 }
 
 class ScribeCatApp {
-  private mainWindow: BrowserWindowType | null = null;
+  private mainWindow: BrowserWindow | null = null;
   private recordingManager!: RecordingManager;
   private directoryManager!: DirectoryManager;
   private store: Store<StoreSchema>;
@@ -80,15 +73,12 @@ class ScribeCatApp {
   // Google Drive service
   private googleDriveService: GoogleDriveService | null = null;
 
-  // Supabase auth service
-  private supabaseAuthService: SupabaseAuthService | null = null;
-
-  // Auth use cases
-  private signInWithEmailUseCase!: SignInWithEmailUseCase;
-  private signUpWithEmailUseCase!: SignUpWithEmailUseCase;
-  private signInWithGoogleUseCase!: SignInWithGoogleUseCase;
-  private signOutUseCase!: SignOutUseCase;
-  private getCurrentUserUseCase!: GetCurrentUserUseCase;
+  // Supabase cloud sync services
+  // NOTE: Auth happens in renderer process where localStorage exists
+  private supabaseClient: SupabaseClient | null = null;
+  private supabaseStorageService: SupabaseStorageService | null = null;
+  private supabaseSessionRepository: SupabaseSessionRepository | null = null;
+  private syncManager: SyncManager | null = null;
 
   // OAuth callback server
   private oauthCallbackServer: http.Server | null = null;
@@ -139,12 +129,22 @@ class ScribeCatApp {
    */
   private initializeSupabase(): void {
     try {
-      // Initialize with bundled production config
-      // The SupabaseClient now auto-initializes with hardcoded credentials
-      this.supabaseAuthService = new SupabaseAuthService();
-      console.log('Supabase auth service initialized with production config');
+      // NOTE: SupabaseAuthService is NOT initialized in main process
+      // Auth happens in renderer process where localStorage exists
+      // Renderer will send auth state updates via IPC
+
+      // Initialize Supabase client (session will be set from renderer)
+      this.supabaseClient = SupabaseClient.getInstance();
+
+      // Initialize storage service for cloud uploads
+      this.supabaseStorageService = new SupabaseStorageService();
+
+      // Initialize session repository for cloud session storage
+      this.supabaseSessionRepository = new SupabaseSessionRepository();
+
+      console.log('Supabase cloud services initialized (auth handled in renderer)');
     } catch (error) {
-      console.error('Failed to initialize Supabase service:', error);
+      console.error('Failed to initialize Supabase services:', error);
       throw error; // Re-throw since this is critical for the app
     }
   }
@@ -222,13 +222,15 @@ class ScribeCatApp {
       );
       this.updateSessionUseCase = new UpdateSessionUseCase(this.sessionRepository);
 
-      // Initialize auth use cases
-      if (this.supabaseAuthService) {
-        this.signInWithEmailUseCase = new SignInWithEmailUseCase(this.supabaseAuthService);
-        this.signUpWithEmailUseCase = new SignUpWithEmailUseCase(this.supabaseAuthService);
-        this.signInWithGoogleUseCase = new SignInWithGoogleUseCase(this.supabaseAuthService);
-        this.signOutUseCase = new SignOutUseCase(this.supabaseAuthService);
-        this.getCurrentUserUseCase = new GetCurrentUserUseCase(this.supabaseAuthService);
+      // Initialize SyncManager for cloud sync (user ID will be set when renderer sends auth state)
+      if (this.supabaseStorageService && this.supabaseSessionRepository) {
+        this.syncManager = new SyncManager(
+          this.sessionRepository,           // local repository
+          this.supabaseSessionRepository,   // remote repository
+          this.supabaseStorageService,      // storage service
+          null                              // no user ID yet - set when renderer sends auth state
+        );
+        console.log('SyncManager initialized (waiting for user auth from renderer)');
       }
 
       // Initialize simulation transcription service
@@ -320,11 +322,12 @@ class ScribeCatApp {
       let reloadTimeout: NodeJS.Timeout | null = null;
       let notifyTimeout: NodeJS.Timeout | null = null;
 
-      // Helper to check if file should trigger reload (ignore declaration and map files)
+      // Helper to check if file should trigger reload (ignore declaration, map, and HTML files)
       const shouldTriggerReload = (filename: string): boolean => {
         return !filename.endsWith('.d.ts') &&
                !filename.endsWith('.js.map') &&
-               !filename.endsWith('.d.ts.map');
+               !filename.endsWith('.d.ts.map') &&
+               !filename.endsWith('.html'); // Ignore HTML files to prevent reload loops
       };
 
       // Watch renderer files - reload window on change
@@ -450,17 +453,6 @@ class ScribeCatApp {
 
     registry.add(new CanvasHandlers());
 
-    // Add auth handlers if Supabase is configured
-    if (this.supabaseAuthService && this.signInWithEmailUseCase) {
-      registry.add(new AuthHandlers(
-        this.signInWithEmailUseCase,
-        this.signUpWithEmailUseCase,
-        this.signInWithGoogleUseCase,
-        this.signOutUseCase,
-        this.getCurrentUserUseCase
-      ));
-    }
-
     // Register all handlers with ipcMain
     registry.registerAll(ipcMain);
     
@@ -491,6 +483,136 @@ class ScribeCatApp {
         return { success: true };
       } catch (error) {
         console.error('Failed to configure Google Drive:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    // Auth state handler - receives user session from renderer when auth state changes
+    ipcMain.handle('auth:sessionChanged', async (event, data: { userId: string | null; accessToken?: string; refreshToken?: string }) => {
+      try {
+        console.log('Received auth state change from renderer:', data.userId ? `User ID: ${data.userId}` : 'No user');
+
+        // Update SyncManager with user ID
+        if (this.syncManager) {
+          this.syncManager.setCurrentUserId(data.userId);
+          console.log('Updated SyncManager with user ID');
+        }
+
+        // Set session on SupabaseClient for authenticated requests
+        if (data.userId && data.accessToken && data.refreshToken && this.supabaseClient) {
+          await this.supabaseClient.setSession(data.accessToken, data.refreshToken);
+          console.log('Set Supabase session in main process');
+        } else if (!data.userId && this.supabaseClient) {
+          await this.supabaseClient.clearSession();
+          console.log('Cleared Supabase session in main process');
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to handle auth state change:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    // Stub auth handlers - auth is handled in renderer, these just return not implemented
+    // The renderer-side auth should be used instead
+    ipcMain.handle('auth:isAuthenticated', async () => {
+      return {
+        success: false,
+        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
+      };
+    });
+
+    ipcMain.handle('auth:getCurrentUser', async () => {
+      return {
+        success: false,
+        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
+      };
+    });
+
+    ipcMain.handle('auth:signInWithEmail', async () => {
+      return {
+        success: false,
+        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
+      };
+    });
+
+    ipcMain.handle('auth:signUpWithEmail', async () => {
+      return {
+        success: false,
+        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
+      };
+    });
+
+    ipcMain.handle('auth:signInWithGoogle', async () => {
+      return {
+        success: false,
+        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
+      };
+    });
+
+    ipcMain.handle('auth:signOut', async () => {
+      return {
+        success: false,
+        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
+      };
+    });
+
+    // Sync handlers
+    ipcMain.handle('sync:uploadSession', async (event, sessionId: string) => {
+      try {
+        if (!this.syncManager) {
+          return { success: false, error: 'Sync not initialized' };
+        }
+
+        // Find the session
+        const session = await this.sessionRepository.findById(sessionId);
+        if (!session) {
+          return { success: false, error: 'Session not found' };
+        }
+
+        // Upload it
+        const result = await this.syncManager.uploadSession(session);
+        return result;
+      } catch (error) {
+        console.error('Failed to upload session:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    ipcMain.handle('sync:getStatus', async (event, sessionId: string) => {
+      try {
+        if (!this.syncManager) {
+          return { status: 'not_synced' };
+        }
+
+        const status = this.syncManager.getSyncStatus(sessionId);
+        return { status };
+      } catch (error) {
+        console.error('Failed to get sync status:', error);
+        return { status: 'not_synced' };
+      }
+    });
+
+    ipcMain.handle('sync:retrySync', async (event, sessionId: string) => {
+      try {
+        if (!this.syncManager) {
+          return { success: false, error: 'Sync not initialized' };
+        }
+
+        const result = await this.syncManager.retrySync(sessionId);
+        return result;
+      } catch (error) {
+        console.error('Failed to retry sync:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error'

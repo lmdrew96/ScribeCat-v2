@@ -28,6 +28,66 @@ export class RendererSupabaseClient {
         // Use default localStorage storage (works in renderer)
       }
     });
+
+    // Listen for auth state changes and notify main process for cloud sync
+    this.client.auth.onAuthStateChange((event, session) => {
+      const userId = session?.user?.id || null;
+      const accessToken = session?.access_token;
+      const refreshToken = session?.refresh_token;
+
+      console.log('🔐 Auth state changed in renderer:', event, userId ? `User ID: ${userId}` : 'No user');
+
+      // Notify main process so it can update SyncManager and SupabaseClient
+      if (window.scribeCat?.auth?.sessionChanged) {
+        window.scribeCat.auth.sessionChanged({
+          userId,
+          accessToken,
+          refreshToken
+        })
+          .then(() => {
+            console.log('✅ Notified main process of auth state change');
+          })
+          .catch((error: Error) => {
+            console.error('❌ Failed to notify main process:', error);
+          });
+      }
+    });
+
+    // Check for existing session on startup
+    this.client.auth.getSession()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('❌ Error getting session on startup:', error);
+          return;
+        }
+
+        const userId = data.session?.user?.id || null;
+        const accessToken = data.session?.access_token;
+        const refreshToken = data.session?.refresh_token;
+
+        if (userId) {
+          console.log('✅ Found existing session on startup, user ID:', userId);
+          // Notify main process
+          if (window.scribeCat?.auth?.sessionChanged) {
+            window.scribeCat.auth.sessionChanged({
+              userId,
+              accessToken,
+              refreshToken
+            })
+              .then(() => {
+                console.log('✅ Notified main process of existing session');
+              })
+              .catch((error: Error) => {
+                console.error('❌ Failed to notify main process:', error);
+              });
+          }
+        } else {
+          console.log('ℹ️  No existing session found on startup');
+        }
+      })
+      .catch((error: Error) => {
+        console.error('❌ Exception checking for existing session:', error);
+      });
   }
 
   static getInstance(): RendererSupabaseClient {

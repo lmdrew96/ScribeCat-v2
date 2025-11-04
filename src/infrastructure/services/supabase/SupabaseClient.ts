@@ -14,6 +14,7 @@ import { SUPABASE_CONFIG } from '../../../config/supabase.config.js';
 export class SupabaseClient {
   private static instance: SupabaseClient | null = null;
   private client: SupabaseJSClient;
+  private accessToken: string | null = null;
 
   private constructor() {
     // Initialize Supabase client immediately with production config
@@ -74,8 +75,20 @@ export class SupabaseClient {
 
   /**
    * Get the Supabase client instance
+   * If an access token is set, returns a client configured with that token
    */
   getClient(): SupabaseJSClient {
+    // If we have an access token, create a client with it in the headers
+    if (this.accessToken) {
+      return createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
+        global: {
+          headers: {
+            'X-Client-Info': 'scribecat-electron',
+            'Authorization': `Bearer ${this.accessToken}`
+          }
+        }
+      });
+    }
     return this.client;
   }
 
@@ -84,6 +97,29 @@ export class SupabaseClient {
    */
   getConfig(): { url: string; anonKey: string } {
     return SUPABASE_CONFIG;
+  }
+
+  /**
+   * Set user session for authenticated requests
+   * This allows the main process to make authenticated requests to Supabase
+   * Stores the access token to be used with subsequent requests
+   */
+  async setSession(accessToken: string, refreshToken: string): Promise<void> {
+    this.accessToken = accessToken;
+    console.log('✅ SupabaseClient: Access token stored for authenticated requests');
+    await this.client.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+  }
+
+  /**
+   * Clear the current session
+   */
+  async clearSession(): Promise<void> {
+    this.accessToken = null;
+    console.log('✅ SupabaseClient: Access token cleared');
+    await this.client.auth.signOut();
   }
 
   /**

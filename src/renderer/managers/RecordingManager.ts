@@ -181,6 +181,20 @@ export class RecordingManager {
 
       // Save notes immediately to ensure they're captured
       await this.notesAutoSaveManager.saveImmediately();
+
+      // Upload to cloud (async, don't await - runs in background)
+      logger.info('Triggering cloud sync for session');
+      window.scribeCat.sync.uploadSession(saveResult.sessionId)
+        .then(result => {
+          if (result.success) {
+            logger.info('Session uploaded to cloud successfully');
+          } else {
+            logger.warn('Cloud sync failed (will retry later):', result.error);
+          }
+        })
+        .catch(error => {
+          logger.error('Error triggering cloud sync:', error);
+        });
     }
 
     // Update state
