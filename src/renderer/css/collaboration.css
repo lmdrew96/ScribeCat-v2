@@ -1,0 +1,331 @@
+/**
+ * Collaboration Styles
+ *
+ * Styles for real-time collaboration features including:
+ * - Collaborators panel
+ * - User avatars and presence indicators
+ * - Connection status badges
+ */
+
+/* Collaborators Panel */
+.collaborators-panel {
+  background: var(--background-tertiary, #2a2a2a);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.collaborators-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #444);
+}
+
+.collaborators-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary, #ffffff);
+}
+
+/* Connection Status */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.status-icon {
+  font-size: 10px;
+  line-height: 1;
+}
+
+.status-text {
+  color: var(--text-secondary, #b0b0b0);
+  font-weight: 500;
+}
+
+.status-connected .status-text {
+  color: #4CAF50;
+}
+
+.status-connecting .status-text,
+.status-reconnecting .status-text {
+  color: #FFC107;
+}
+
+.status-error .status-text {
+  color: #F44336;
+}
+
+.status-disconnected .status-text {
+  color: #999;
+}
+
+/* Collaborators List */
+.collaborators-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.no-collaborators {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary, #b0b0b0);
+  font-size: 13px;
+}
+
+/* Collaborator Item */
+.collaborator-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--background-secondary, #1e1e1e);
+  transition: background 0.2s ease;
+}
+
+.collaborator-item:hover {
+  background: var(--background-primary, #151515);
+}
+
+.collaborator-item.user-inactive {
+  opacity: 0.6;
+}
+
+/* User Avatar */
+.user-avatar {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.user-status-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--background-tertiary, #2a2a2a);
+}
+
+/* User Info */
+.user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #ffffff);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-email {
+  font-size: 11px;
+  color: var(--text-secondary, #b0b0b0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Collaboration Badge */
+.collaboration-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.collaboration-badge.offline {
+  background: rgba(158, 158, 158, 0.1);
+  color: #9e9e9e;
+  border-color: rgba(158, 158, 158, 0.3);
+}
+
+.collaboration-badge-icon {
+  font-size: 10px;
+}
+
+/* Remote Cursor Styles (for when cursor extension is available) */
+.collaboration-cursor {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.collaboration-cursor__caret {
+  position: absolute;
+  width: 2px;
+  height: 1.2em;
+  background-color: currentColor;
+  margin-left: -1px;
+  transition: opacity 0.2s ease;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.8em;
+  left: 0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: currentColor;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Remote Selection Styles */
+.collaboration-selection {
+  position: relative;
+  background-color: currentColor;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Collaboration Toolbar Button */
+.toolbar-btn.collaboration-toggle {
+  position: relative;
+}
+
+.toolbar-btn.collaboration-toggle.active::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4CAF50;
+  border: 1px solid var(--background-primary, #151515);
+}
+
+/* Collaborators Counter Badge */
+.collaborators-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #4CAF50;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Collaboration Panel Container (sidebar) */
+.collaboration-sidebar {
+  width: 280px;
+  height: 100%;
+  background: var(--background-secondary, #1e1e1e);
+  border-left: 1px solid var(--border-color, #444);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+}
+
+.collaboration-sidebar.hidden {
+  transform: translateX(100%);
+}
+
+.collaboration-sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color, #444);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.collaboration-sidebar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.collaboration-sidebar-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #b0b0b0);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.collaboration-sidebar-close:hover {
+  background: var(--background-tertiary, #2a2a2a);
+}
+
+.collaboration-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* Animation for new collaborators joining */
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.collaborator-item {
+  animation: fadeInSlide 0.3s ease;
+}
