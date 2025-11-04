@@ -8,7 +8,7 @@
  * by SupabaseStorageService.
  */
 
-import { Session } from '../../domain/entities/Session.js';
+import { Session, SyncStatus } from '../../domain/entities/Session.js';
 import { Transcription } from '../../domain/entities/Transcription.js';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository.js';
 import { SupabaseClient } from '../services/supabase/SupabaseClient.js';
@@ -273,7 +273,12 @@ export class SupabaseSessionRepository implements ISessionRepository {
       [], // exportHistory not stored in cloud yet
       row.course_id,
       row.course_title,
-      row.course_number
+      row.course_number,
+      // Cloud sync fields
+      row.user_id,           // userId
+      row.id,                 // cloudId (use the session ID as cloudId)
+      SyncStatus.SYNCED,      // syncStatus (it came from cloud, so it's synced)
+      new Date(row.updated_at) // lastSyncedAt
     );
   }
 }

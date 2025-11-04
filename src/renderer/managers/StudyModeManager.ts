@@ -33,6 +33,7 @@ export class StudyModeManager {
   private isActive: boolean = false;
   private sessions: Session[] = [];
   private filteredSessions: Session[] = [];
+  private sharedWithMeSessions: any[] = [];  // Sessions shared with current user
 
   // Note editor state
   private notesEditor: Editor | null = null;
@@ -45,6 +46,8 @@ export class StudyModeManager {
   private recordModeView: HTMLElement;
   private studyModeBtn: HTMLButtonElement;
   private backToRecordBtn: HTMLButtonElement;
+  private syncNowBtn: HTMLButtonElement;
+  private onlineStatusIndicator: HTMLElement;
   private sessionListContainer: HTMLElement;
   private sessionDetailContainer: HTMLElement;
   
@@ -73,6 +76,8 @@ export class StudyModeManager {
     this.recordModeView = document.querySelector('.main-content') as HTMLElement;
     this.studyModeBtn = document.getElementById('study-mode-btn') as HTMLButtonElement;
     this.backToRecordBtn = document.getElementById('back-to-record-btn') as HTMLButtonElement;
+    this.syncNowBtn = document.getElementById('sync-now-btn') as HTMLButtonElement;
+    this.onlineStatusIndicator = document.getElementById('online-status-indicator') as HTMLElement;
     this.sessionListContainer = document.getElementById('session-list') as HTMLElement;
     this.sessionDetailContainer = document.getElementById('session-detail') as HTMLElement;
 
@@ -103,10 +108,20 @@ export class StudyModeManager {
   private initializeEventListeners(): void {
     // Toggle to study mode
     this.studyModeBtn.addEventListener('click', () => this.show());
-    
+
     // Back to record mode
     this.backToRecordBtn.addEventListener('click', () => this.hide());
-    
+
+    // Sync Now button
+    this.syncNowBtn.addEventListener('click', () => this.handleSyncNow());
+
+    // Online/Offline status monitoring
+    window.addEventListener('online', () => this.updateOnlineStatus(true));
+    window.addEventListener('offline', () => this.updateOnlineStatus(false));
+
+    // Set initial status
+    this.updateOnlineStatus(navigator.onLine);
+
     // Initialize filter controls
     this.initializeFilterControls();
   }
@@ -194,7 +209,7 @@ export class StudyModeManager {
   private async loadSessions(): Promise<void> {
     try {
       const result = await window.scribeCat.session.list();
-      
+
       if (result.success) {
         // Handle both 'data' and 'sessions' response formats
         const sessionsData = result.data || result.sessions || [];
@@ -206,10 +221,32 @@ export class StudyModeManager {
         this.sessions = [];
         this.filteredSessions = [];
       }
+
+      // Load shared sessions
+      await this.loadSharedWithMeSessions();
     } catch (error) {
       console.error('Error loading sessions:', error);
       this.sessions = [];
       this.filteredSessions = [];
+    }
+  }
+
+  /**
+   * Load sessions shared with the current user
+   */
+  private async loadSharedWithMeSessions(): Promise<void> {
+    try {
+      const result = await (window as any).scribeCat.share.getSharedWithMe();
+
+      if (result.success && result.sharedSessions) {
+        this.sharedWithMeSessions = result.sharedSessions;
+        console.log(`Loaded ${this.sharedWithMeSessions.length} shared sessions`);
+      } else {
+        this.sharedWithMeSessions = [];
+      }
+    } catch (error) {
+      console.error('Error loading shared sessions:', error);
+      this.sharedWithMeSessions = [];
     }
   }
 
@@ -330,20 +367,43 @@ export class StudyModeManager {
    * Render the session list
    */
   private renderSessionList(): void {
-    if (this.filteredSessions.length === 0) {
+    let html = '';
+
+    // Render "Shared with Me" section if there are shared sessions
+    if (this.sharedWithMeSessions.length > 0) {
+      html += `
+        <div class="shared-with-me-section">
+          <h3 class="section-title">
+            👥 Shared with Me (${this.sharedWithMeSessions.length})
+          </h3>
+          <div class="shared-sessions-list">
+            ${this.sharedWithMeSessions.map(item => this.createSharedSessionCard(item)).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Render main session list
+    if (this.filteredSessions.length === 0 && this.sharedWithMeSessions.length === 0) {
       this.renderEmptyState();
       return;
     }
-    
-    const sessionCards = this.filteredSessions.map(session => 
-      this.createSessionCard(session)
-    ).join('');
-    
-    this.sessionListContainer.innerHTML = sessionCards;
-    
+
+    if (this.filteredSessions.length > 0) {
+      if (this.sharedWithMeSessions.length > 0) {
+        html += `<h3 class="section-title">📝 My Sessions (${this.filteredSessions.length})</h3>`;
+      }
+      const sessionCards = this.filteredSessions.map(session =>
+        this.createSessionCard(session)
+      ).join('');
+      html += sessionCards;
+    }
+
+    this.sessionListContainer.innerHTML = html;
+
     // Add click handlers to session cards
     this.attachSessionCardHandlers();
-    
+
     // Add title edit handlers
     this.attachTitleEditHandlers();
   }
@@ -482,11 +542,52 @@ export class StudyModeManager {
           <button class="action-btn view-session-btn" data-session-id="${session.id}">
             View Session
           </button>
+          <button class="action-btn share-session-btn" data-session-id="${session.id}">
+            🔗 Share
+          </button>
           <button class="action-btn export-session-btn" data-session-id="${session.id}">
             Export
           </button>
           <button class="action-btn delete-session-btn" data-session-id="${session.id}">
             🗑️ Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Create a session card for a shared session
+   */
+  private createSharedSessionCard(sharedItem: any): string {
+    const sessionId = sharedItem.sessionId;
+    const share = sharedItem.share;
+    const sharedBy = share.sharedBy;
+    const permissionLevel = share.permissionLevel;
+
+    // Create a simplified session card
+    return `
+      <div class="session-card shared-session-card" data-session-id="${sessionId}">
+        <div class="session-card-header">
+          <h3 class="session-title" data-session-id="${sessionId}">Shared Session</h3>
+          <span class="shared-badge" title="Shared by ${this.escapeHtml(sharedBy)}">
+            👥 ${this.escapeHtml(sharedBy)}
+          </span>
+        </div>
+
+        <div class="session-meta">
+          <span class="permission-badge ${permissionLevel === 'editor' ? 'editor' : 'viewer'}">
+            ${permissionLevel === 'editor' ? '✏️ Can Edit' : '👁️ View Only'}
+          </span>
+        </div>
+
+        <div class="session-preview">
+          Click to view this shared session
+        </div>
+
+        <div class="session-actions">
+          <button class="action-btn view-session-btn" data-session-id="${sessionId}">
+            View Session
           </button>
         </div>
       </div>
@@ -523,6 +624,18 @@ export class StudyModeManager {
       });
     });
     
+    // Share session buttons
+    const shareButtons = document.querySelectorAll('.share-session-btn');
+    shareButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sessionId = (btn as HTMLElement).dataset.sessionId;
+        if (sessionId) {
+          this.openShareModal(sessionId);
+        }
+      });
+    });
+
     // Export session buttons
     const exportButtons = document.querySelectorAll('.export-session-btn');
     exportButtons.forEach(btn => {
@@ -534,7 +647,7 @@ export class StudyModeManager {
         }
       });
     });
-    
+
     // Delete session buttons
     const deleteButtons = document.querySelectorAll('.delete-session-btn');
     deleteButtons.forEach(btn => {
@@ -1077,6 +1190,9 @@ export class StudyModeManager {
         
         <!-- Action Buttons -->
         <div class="session-detail-actions">
+          <button class="action-btn share-session-detail-btn" data-session-id="${session.id}">
+            🔗 Share Session
+          </button>
           <button class="action-btn export-session-detail-btn" data-session-id="${session.id}">
             📤 Export Session
           </button>
@@ -1277,12 +1393,18 @@ export class StudyModeManager {
       });
     });
     
+    // Share button
+    const shareBtn = document.querySelector('.share-session-detail-btn');
+    shareBtn?.addEventListener('click', () => {
+      this.openShareModal(session.id);
+    });
+
     // Export button
     const exportBtn = document.querySelector('.export-session-detail-btn');
     exportBtn?.addEventListener('click', () => {
       this.exportCoordinator.exportSession(session.id, this.sessions);
     });
-    
+
     // Delete button
     const deleteBtn = document.querySelector('.delete-session-detail-btn');
     deleteBtn?.addEventListener('click', async () => {
@@ -2134,6 +2256,20 @@ export class StudyModeManager {
   }
 
   /**
+   * Open share modal for a session
+   */
+  private openShareModal(sessionId: string): void {
+    // Access the globally exposed shareModal
+    const shareModal = (window as any).shareModal;
+    if (shareModal) {
+      shareModal.open(sessionId);
+    } else {
+      console.error('ShareModal not available');
+      alert('Share feature is not available');
+    }
+  }
+
+  /**
    * Check if study mode is active
    */
   public isStudyModeActive(): boolean {
@@ -2147,6 +2283,80 @@ export class StudyModeManager {
     await this.loadSessions();
     if (this.isActive) {
       this.renderSessionList();
+    }
+  }
+
+  /**
+   * Handle manual sync button click
+   */
+  private async handleSyncNow(): Promise<void> {
+    try {
+      // Disable button and show syncing state
+      this.syncNowBtn.disabled = true;
+      this.syncNowBtn.classList.add('syncing');
+      this.syncNowBtn.textContent = 'Syncing...';
+
+      // Trigger sync through IPC
+      const result = await (window as any).scribeCat.sync.syncAllFromCloud();
+
+      if (result.success) {
+        // Show success feedback
+        const syncIcon = this.syncNowBtn.querySelector('.sync-icon') as HTMLElement;
+        this.syncNowBtn.textContent = '';
+        if (syncIcon) this.syncNowBtn.appendChild(syncIcon);
+        this.syncNowBtn.appendChild(document.createTextNode(` Synced (${result.count})`));
+
+        // Reload sessions to show updated sync status
+        await this.loadSessions();
+        if (this.isActive) {
+          this.renderSessionList();
+        }
+
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          this.syncNowBtn.textContent = '';
+          if (syncIcon) this.syncNowBtn.appendChild(syncIcon);
+          this.syncNowBtn.appendChild(document.createTextNode(' Sync Now'));
+          this.syncNowBtn.classList.remove('syncing');
+          this.syncNowBtn.disabled = false;
+        }, 2000);
+      } else {
+        throw new Error(result.error || 'Sync failed');
+      }
+    } catch (error) {
+      console.error('Manual sync failed:', error);
+
+      // Show error feedback
+      const syncIcon = this.syncNowBtn.querySelector('.sync-icon') as HTMLElement;
+      this.syncNowBtn.textContent = '';
+      if (syncIcon) this.syncNowBtn.appendChild(syncIcon);
+      this.syncNowBtn.appendChild(document.createTextNode(' Sync Failed'));
+      this.syncNowBtn.classList.remove('syncing');
+
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        this.syncNowBtn.textContent = '';
+        if (syncIcon) this.syncNowBtn.appendChild(syncIcon);
+        this.syncNowBtn.appendChild(document.createTextNode(' Sync Now'));
+        this.syncNowBtn.disabled = false;
+      }, 2000);
+    }
+  }
+
+  /**
+   * Update online/offline status indicator
+   */
+  private updateOnlineStatus(isOnline: boolean): void {
+    const statusText = this.onlineStatusIndicator.querySelector('.status-text');
+
+    if (isOnline) {
+      this.onlineStatusIndicator.classList.remove('offline');
+      this.onlineStatusIndicator.classList.add('online');
+      if (statusText) statusText.textContent = 'Online';
+    } else {
+      this.onlineStatusIndicator.classList.remove('online');
+      this.onlineStatusIndicator.classList.add('offline');
+      if (statusText) statusText.textContent = 'Offline';
     }
   }
 }

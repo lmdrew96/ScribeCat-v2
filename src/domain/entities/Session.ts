@@ -10,6 +10,17 @@ export interface ExportRecord {
 }
 
 /**
+ * Sync status for cloud synchronization
+ */
+export enum SyncStatus {
+  NOT_SYNCED = 'not_synced',
+  SYNCING = 'syncing',
+  SYNCED = 'synced',
+  FAILED = 'failed',
+  CONFLICT = 'conflict'
+}
+
+/**
  * Session Entity
  * 
  * Represents a recording session with audio file and metadata.
@@ -30,7 +41,12 @@ export class Session {
     public exportHistory: ExportRecord[] = [],
     public courseId?: string,
     public courseTitle?: string,
-    public courseNumber?: string
+    public courseNumber?: string,
+    // Cloud sync fields
+    public userId?: string,
+    public cloudId?: string,
+    public syncStatus: SyncStatus = SyncStatus.NOT_SYNCED,
+    public lastSyncedAt?: Date
   ) {}
 
   /**
@@ -107,6 +123,58 @@ export class Session {
   }
 
   /**
+   * Mark session as synced
+   */
+  markAsSynced(cloudId: string): void {
+    this.cloudId = cloudId;
+    this.syncStatus = SyncStatus.SYNCED;
+    this.lastSyncedAt = new Date();
+  }
+
+  /**
+   * Mark session as syncing
+   */
+  markAsSyncing(): void {
+    this.syncStatus = SyncStatus.SYNCING;
+  }
+
+  /**
+   * Mark session as sync failed
+   */
+  markAsSyncFailed(): void {
+    this.syncStatus = SyncStatus.FAILED;
+  }
+
+  /**
+   * Mark session as not synced
+   */
+  markAsNotSynced(): void {
+    this.syncStatus = SyncStatus.NOT_SYNCED;
+  }
+
+  /**
+   * Check if session is synced
+   */
+  isSynced(): boolean {
+    return this.syncStatus === SyncStatus.SYNCED;
+  }
+
+  /**
+   * Check if session needs sync
+   */
+  needsSync(): boolean {
+    if (!this.userId) return false; // Can't sync without user
+    if (this.syncStatus === SyncStatus.NOT_SYNCED || this.syncStatus === SyncStatus.FAILED) {
+      return true;
+    }
+    // Check if session was updated after last sync
+    if (this.lastSyncedAt && this.updatedAt > this.lastSyncedAt) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Convert to plain object for serialization
    */
   toJSON(): SessionData {
@@ -123,7 +191,11 @@ export class Session {
       exportHistory: this.exportHistory,
       courseId: this.courseId,
       courseTitle: this.courseTitle,
-      courseNumber: this.courseNumber
+      courseNumber: this.courseNumber,
+      userId: this.userId,
+      cloudId: this.cloudId,
+      syncStatus: this.syncStatus,
+      lastSyncedAt: this.lastSyncedAt
     };
   }
 
@@ -144,7 +216,11 @@ export class Session {
       data.exportHistory || [],
       data.courseId,
       data.courseTitle,
-      data.courseNumber
+      data.courseNumber,
+      data.userId,
+      data.cloudId,
+      data.syncStatus || SyncStatus.NOT_SYNCED,
+      data.lastSyncedAt ? new Date(data.lastSyncedAt) : undefined
     );
   }
 }
@@ -166,4 +242,9 @@ export interface SessionData {
   courseId?: string;
   courseTitle?: string;
   courseNumber?: string;
+  // Cloud sync fields
+  userId?: string;
+  cloudId?: string;
+  syncStatus?: SyncStatus;
+  lastSyncedAt?: Date;
 }

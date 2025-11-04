@@ -19,7 +19,7 @@ import { FileSessionRepository } from '../infrastructure/repositories/FileSessio
 
 export class RecordingManager {
   private mainWindow: BrowserWindow | null = null;
-  
+
   // Use cases
   private saveRecordingUseCase: SaveRecordingUseCase;
   private loadSessionUseCase: LoadSessionUseCase;
@@ -27,7 +27,11 @@ export class RecordingManager {
   private updateSessionTranscriptionUseCase: UpdateSessionTranscriptionUseCase;
   private createDraftSessionUseCase: CreateDraftSessionUseCase;
 
-  constructor() {
+  // Optional callback for post-save actions (e.g., cloud sync)
+  private onRecordingSaved?: (sessionId: string) => Promise<void>;
+
+  constructor(onRecordingSaved?: (sessionId: string) => Promise<void>) {
+    this.onRecordingSaved = onRecordingSaved;
     // Initialize repositories
     const audioRepository = new FileAudioRepository();
     const sessionRepository = new FileSessionRepository();
@@ -88,6 +92,14 @@ export class RecordingManager {
           courseTitle: courseData?.courseTitle,
           courseNumber: courseData?.courseNumber
         });
+
+        // Trigger auto-sync if callback is provided
+        if (this.onRecordingSaved) {
+          // Don't await - let sync happen in background
+          this.onRecordingSaved(result.sessionId).catch(error => {
+            console.error('Auto-sync failed after recording:', error);
+          });
+        }
 
         return {
           success: true,

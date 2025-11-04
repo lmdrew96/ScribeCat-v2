@@ -5,6 +5,7 @@
  */
 
 import type { Session } from '../../../domain/entities/Session.js';
+import { SyncStatus } from '../../../domain/entities/Session.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('StudyModeSessionListManager');
@@ -306,7 +307,8 @@ export class StudyModeSessionListManager {
     // Status indicators
     const hasTranscription = session.transcription ? '✓ Transcribed' : '';
     const hasNotes = session.notes ? '✓ Notes' : '';
-    const indicators = [hasTranscription, hasNotes].filter(Boolean).join(' • ');
+    const syncStatus = this.getSyncStatusIndicator(session);
+    const indicators = [hasTranscription, hasNotes, syncStatus].filter(Boolean).join(' • ');
     const indicatorsWithCourse = [indicators, courseTag].filter(Boolean).join(' • ');
 
     // Check if selected
@@ -455,6 +457,31 @@ export class StudyModeSessionListManager {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Get sync status indicator HTML
+   */
+  private getSyncStatusIndicator(session: Session): string {
+    if (!session.userId) {
+      // Not authenticated - no sync indicator
+      return '';
+    }
+
+    switch (session.syncStatus) {
+      case SyncStatus.SYNCED:
+        return '<span class="sync-indicator synced" title="Synced to cloud">☁️ ✓</span>';
+      case SyncStatus.SYNCING:
+        return '<span class="sync-indicator syncing" title="Syncing...">☁️ ↑</span>';
+      case SyncStatus.FAILED:
+        return '<span class="sync-indicator failed" title="Sync failed">☁️ ✗</span>';
+      case SyncStatus.NOT_SYNCED:
+        return '<span class="sync-indicator not-synced" title="Not synced">☁️ •</span>';
+      case SyncStatus.CONFLICT:
+        return '<span class="sync-indicator conflict" title="Sync conflict">☁️ ⚠</span>';
+      default:
+        return '';
+    }
   }
 
   /**

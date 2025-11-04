@@ -16,6 +16,7 @@
 @import './css/pickers.css';       /* Folder picker */
 @import './css/export.css';        /* Export modal */
 @import './css/auth.css';          /* Authentication UI */
+@import './css/share-modal.css';   /* Session sharing modal */
 
 /* Features */
 @import './css/ai-features.css';   /* AI chat drawer, chat messages, AI tools */

@@ -27,6 +27,76 @@
   margin: 0;
 }
 
+.study-mode-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#sync-now-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#sync-now-btn .sync-icon {
+  font-size: 16px;
+}
+
+#sync-now-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#sync-now-btn.syncing .sync-icon {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Online/Offline Status Indicator */
+.online-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: var(--bg-tertiary);
+}
+
+.online-status-indicator .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.online-status-indicator.online .status-dot {
+  background-color: var(--success);
+  box-shadow: 0 0 4px var(--success);
+}
+
+.online-status-indicator.offline .status-dot {
+  background-color: #666;
+}
+
+.online-status-indicator.online .status-text {
+  color: var(--success);
+}
+
+.online-status-indicator.offline .status-text {
+  color: #666;
+}
+
 /* Study Mode Filters */
 .study-mode-filters {
   padding: 15px 20px;
@@ -416,6 +486,52 @@
   gap: 8px;
   flex-wrap: wrap;
   overflow: visible; /* Allow tooltips to overflow */
+}
+
+/* Sync Status Indicators */
+.sync-indicator {
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.sync-indicator.synced {
+  color: var(--success);
+  background-color: rgba(0, 200, 83, 0.1);
+}
+
+.sync-indicator.syncing {
+  color: #007acc;
+  background-color: rgba(0, 122, 204, 0.1);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.sync-indicator.not-synced {
+  color: #ffa500;
+  background-color: rgba(255, 165, 0, 0.1);
+}
+
+.sync-indicator.failed {
+  color: var(--record-color);
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.sync-indicator.conflict {
+  color: #ff6b35;
+  background-color: rgba(255, 107, 53, 0.1);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Session Actions */
@@ -1197,4 +1313,84 @@
   .cancel-edit-notes-btn {
     flex: 1;
   }
+}
+
+/* ===== Shared Sessions Styles ===== */
+
+/* Shared with Me Section */
+.shared-with-me-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+/* Section Title */
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Shared Sessions List */
+.shared-sessions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* Shared Session Card */
+.shared-session-card {
+  border-left: 3px solid var(--accent-secondary);
+  background-color: var(--bg-primary);
+}
+
+.shared-session-card:hover {
+  border-left-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* Shared Badge */
+.shared-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background-color: var(--accent-secondary);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Permission Badge */
+.permission-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.permission-badge.viewer {
+  background-color: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.permission-badge.editor {
+  background-color: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.3);
 }

@@ -7,11 +7,14 @@
 
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository.js';
 import { IAudioRepository } from '../../domain/repositories/IAudioRepository.js';
+import { DeletedSessionsTracker } from '../../infrastructure/services/DeletedSessionsTracker.js';
 
 export class DeleteSessionUseCase {
   constructor(
     private sessionRepository: ISessionRepository,
-    private audioRepository: IAudioRepository
+    private audioRepository: IAudioRepository,
+    private remoteRepository?: ISessionRepository,
+    private deletedTracker?: DeletedSessionsTracker
   ) {}
 
   /**
@@ -47,8 +50,29 @@ export class DeleteSessionUseCase {
         }
       }
 
-      // Delete the session metadata
+      // Delete the session metadata from local repository
       await this.sessionRepository.delete(sessionId);
+
+      // If session was synced to cloud, also delete from remote repository
+      if (session.cloudId && this.remoteRepository) {
+        try {
+          await this.remoteRepository.delete(sessionId);
+          console.log(`Deleted session ${sessionId} from cloud`);
+        } catch (error) {
+          // Log but don't fail if cloud deletion fails (session is already deleted locally)
+          console.warn(`Failed to delete session from cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      // Mark session as deleted to prevent re-download during sync
+      // Do this regardless of whether cloud deletion succeeded
+      if (this.deletedTracker) {
+        try {
+          await this.deletedTracker.markAsDeleted(sessionId);
+        } catch (error) {
+          console.warn(`Failed to mark session as deleted in tracker: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
 
     } catch (error) {
       throw new Error(`Failed to delete session: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -215,7 +215,22 @@ const electronAPI = {
   sync: {
     uploadSession: (sessionId: string) => ipcRenderer.invoke('sync:uploadSession', sessionId),
     getStatus: (sessionId: string) => ipcRenderer.invoke('sync:getStatus', sessionId),
-    retrySync: (sessionId: string) => ipcRenderer.invoke('sync:retrySync', sessionId)
+    retrySync: (sessionId: string) => ipcRenderer.invoke('sync:retrySync', sessionId),
+    syncAllFromCloud: () => ipcRenderer.invoke('sync:syncAllFromCloud')
+  },
+  share: {
+    create: (params: { sessionId: string; email: string; permissionLevel: 'viewer' | 'editor' }) =>
+      ipcRenderer.invoke('share:create', params),
+    remove: (params: { shareId?: string; invitationId?: string }) =>
+      ipcRenderer.invoke('share:remove', params),
+    updatePermission: (params: { shareId: string; permissionLevel: 'viewer' | 'editor' }) =>
+      ipcRenderer.invoke('share:updatePermission', params),
+    getSessionShares: (sessionId: string) =>
+      ipcRenderer.invoke('share:getSessionShares', sessionId),
+    getSharedWithMe: () =>
+      ipcRenderer.invoke('share:getSharedWithMe'),
+    acceptInvitation: (token: string) =>
+      ipcRenderer.invoke('share:acceptInvitation', token)
   },
   dev: {
     onHotReloadNotification: (callback: (message: string) => void) => {

@@ -29,10 +29,21 @@ import { DriveHandlers } from './ipc/handlers/DriveHandlers.js';
 import { SettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
 import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
+import { ShareHandlers } from './ipc/handlers/ShareHandlers.js';
 import { SupabaseStorageService } from '../infrastructure/services/supabase/SupabaseStorageService.js';
 import { SupabaseSessionRepository } from '../infrastructure/repositories/SupabaseSessionRepository.js';
+import { SupabaseShareRepository } from '../infrastructure/repositories/SupabaseShareRepository.js';
 import { SupabaseClient } from '../infrastructure/services/supabase/SupabaseClient.js';
 import { SyncManager } from '../infrastructure/services/sync/SyncManager.js';
+import { DeletedSessionsTracker } from '../infrastructure/services/DeletedSessionsTracker.js';
+import {
+  ShareSessionUseCase,
+  RemoveShareUseCase,
+  UpdateSharePermissionUseCase,
+  GetSessionSharesUseCase,
+  GetSharedSessionsUseCase,
+  AcceptShareInvitationUseCase
+} from '../application/use-cases/sharing/index.js';
 import { watch } from 'fs';
 
 // ES module equivalent of __dirname
@@ -78,7 +89,17 @@ class ScribeCatApp {
   private supabaseClient: SupabaseClient | null = null;
   private supabaseStorageService: SupabaseStorageService | null = null;
   private supabaseSessionRepository: SupabaseSessionRepository | null = null;
+  private supabaseShareRepository: SupabaseShareRepository | null = null;
   private syncManager: SyncManager | null = null;
+  private deletedSessionsTracker!: DeletedSessionsTracker;
+
+  // Sharing use cases
+  private shareSessionUseCase!: ShareSessionUseCase;
+  private removeShareUseCase!: RemoveShareUseCase;
+  private updateSharePermissionUseCase!: UpdateSharePermissionUseCase;
+  private getSessionSharesUseCase!: GetSessionSharesUseCase;
+  private getSharedSessionsUseCase!: GetSharedSessionsUseCase;
+  private acceptShareInvitationUseCase!: AcceptShareInvitationUseCase;
 
   // OAuth callback server
   private oauthCallbackServer: http.Server | null = null;
@@ -141,6 +162,9 @@ class ScribeCatApp {
 
       // Initialize session repository for cloud session storage
       this.supabaseSessionRepository = new SupabaseSessionRepository();
+
+      // Initialize share repository for session sharing
+      this.supabaseShareRepository = new SupabaseShareRepository();
 
       console.log('Supabase cloud services initialized (auth handled in renderer)');
     } catch (error) {
@@ -210,11 +234,17 @@ class ScribeCatApp {
       this.exportServices.set('pdf', new PdfExportService());
       this.exportServices.set('html', new HtmlExportService());
 
+      // Initialize DeletedSessionsTracker
+      this.deletedSessionsTracker = new DeletedSessionsTracker();
+      await this.deletedSessionsTracker.initialize();
+
       // Initialize use cases
       this.listSessionsUseCase = new ListSessionsUseCase(this.sessionRepository);
       this.deleteSessionUseCase = new DeleteSessionUseCase(
         this.sessionRepository,
-        this.audioRepository
+        this.audioRepository,
+        this.supabaseSessionRepository || undefined, // Pass remote repository for cloud deletion
+        this.deletedSessionsTracker // Pass deleted tracker
       );
       this.exportSessionUseCase = new ExportSessionUseCase(
         this.sessionRepository,
@@ -228,16 +258,42 @@ class ScribeCatApp {
           this.sessionRepository,           // local repository
           this.supabaseSessionRepository,   // remote repository
           this.supabaseStorageService,      // storage service
-          null                              // no user ID yet - set when renderer sends auth state
+          null,                             // no user ID yet - set when renderer sends auth state
+          this.deletedSessionsTracker       // deleted sessions tracker
         );
         console.log('SyncManager initialized (waiting for user auth from renderer)');
+      }
+
+      // Initialize sharing use cases
+      if (this.supabaseShareRepository) {
+        this.shareSessionUseCase = new ShareSessionUseCase(this.supabaseShareRepository);
+        this.removeShareUseCase = new RemoveShareUseCase(this.supabaseShareRepository);
+        this.updateSharePermissionUseCase = new UpdateSharePermissionUseCase(this.supabaseShareRepository);
+        this.getSessionSharesUseCase = new GetSessionSharesUseCase(this.supabaseShareRepository);
+        this.getSharedSessionsUseCase = new GetSharedSessionsUseCase(this.supabaseShareRepository);
+        this.acceptShareInvitationUseCase = new AcceptShareInvitationUseCase(this.supabaseShareRepository);
+        console.log('Sharing use cases initialized');
       }
 
       // Initialize simulation transcription service
       this.simulationTranscriptionService = new SimulationTranscriptionService();
 
-      // Initialize recording manager
-      this.recordingManager = new RecordingManager();
+      // Initialize recording manager with auto-sync callback
+      this.recordingManager = new RecordingManager(async (sessionId: string) => {
+        // Auto-sync after recording completes (if user is authenticated)
+        if (this.syncManager) {
+          const session = await this.sessionRepository.findById(sessionId);
+          if (session) {
+            console.log(`Auto-syncing session ${sessionId} after recording...`);
+            const result = await this.syncManager.uploadSession(session);
+            if (result.success) {
+              console.log(`✓ Session ${sessionId} auto-synced successfully`);
+            } else {
+              console.warn(`✗ Auto-sync failed: ${result.error}`);
+            }
+          }
+        }
+      });
 
       // Initialize directory structure
       try {
@@ -296,6 +352,20 @@ class ScribeCatApp {
     
     this.mainWindow.once('ready-to-show', () => {
       this.mainWindow?.show();
+
+      // Trigger initial sync after window is shown (with small delay to not block UI)
+      if (this.syncManager) {
+        const syncManager = this.syncManager; // Capture for async callback
+        setTimeout(async () => {
+          console.log('Performing initial sync from cloud...');
+          const result = await syncManager.syncAllFromCloud();
+          if (result.success) {
+            console.log(`✓ Initial sync complete: ${result.count} sessions downloaded`);
+          } else {
+            console.warn(`✗ Initial sync failed: ${result.error}`);
+          }
+        }, 2000); // Wait 2 seconds after app launch
+      }
     });
 
     // Set the main window reference for the recording manager
@@ -452,6 +522,18 @@ class ScribeCatApp {
     registry.add(new DialogHandlers(() => this.mainWindow));
 
     registry.add(new CanvasHandlers());
+
+    // Add sharing handlers if Supabase is configured
+    if (this.shareSessionUseCase) {
+      registry.add(new ShareHandlers(
+        this.shareSessionUseCase,
+        this.removeShareUseCase,
+        this.updateSharePermissionUseCase,
+        this.getSessionSharesUseCase,
+        this.getSharedSessionsUseCase,
+        this.acceptShareInvitationUseCase
+      ));
+    }
 
     // Register all handlers with ipcMain
     registry.registerAll(ipcMain);
@@ -615,6 +697,24 @@ class ScribeCatApp {
         console.error('Failed to retry sync:', error);
         return {
           success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    ipcMain.handle('sync:syncAllFromCloud', async () => {
+      try {
+        if (!this.syncManager) {
+          return { success: false, error: 'Sync not initialized' };
+        }
+
+        const result = await this.syncManager.syncAllFromCloud();
+        return result;
+      } catch (error) {
+        console.error('Failed to sync from cloud:', error);
+        return {
+          success: false,
+          count: 0,
           error: error instanceof Error ? error.message : 'Unknown error'
         };
       }

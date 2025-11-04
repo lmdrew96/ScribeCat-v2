@@ -14,6 +14,7 @@
 import { Session } from '../../../domain/entities/Session.js';
 import { ISessionRepository } from '../../../domain/repositories/ISessionRepository.js';
 import { SupabaseStorageService } from '../supabase/SupabaseStorageService.js';
+import { DeletedSessionsTracker } from '../DeletedSessionsTracker.js';
 import * as fs from 'fs/promises';
 
 export enum SyncStatus {
@@ -41,7 +42,8 @@ export class SyncManager {
     private localRepository: ISessionRepository,
     private remoteRepository: ISessionRepository,
     private storageService: SupabaseStorageService,
-    private currentUserId: string | null = null
+    private currentUserId: string | null = null,
+    private deletedTracker?: DeletedSessionsTracker
   ) {
     // Monitor online/offline status
     this.setupConnectivityMonitoring();
@@ -105,7 +107,11 @@ export class SyncManager {
           throw new Error(uploadResult.error || 'Failed to upload audio');
         }
 
-        // Success!
+        // Success! Mark the session as synced in local storage
+        session.markAsSynced(session.id); // Use session ID as cloudId
+        session.userId = this.currentUserId;
+        await this.localRepository.update(session);
+
         this.updateSyncStatus(session.id, SyncStatus.SYNCED);
         this.removeFromQueue(session.id);
 
@@ -171,9 +177,18 @@ export class SyncManager {
 
       let downloadedCount = 0;
 
-      // Download sessions that don't exist locally
+      // Download sessions that don't exist locally AND haven't been deleted
       for (const remoteSession of remoteSessions) {
         if (!localSessionIds.has(remoteSession.id)) {
+          // Check if this session was intentionally deleted locally
+          const wasDeleted = this.deletedTracker ? await this.deletedTracker.isDeleted(remoteSession.id) : false;
+
+          if (wasDeleted) {
+            console.log(`Skipping download of session ${remoteSession.id} - it was deleted locally`);
+            continue;
+          }
+
+          // Session doesn't exist locally and wasn't deleted - download it
           await this.localRepository.save(remoteSession);
           downloadedCount++;
         } else {

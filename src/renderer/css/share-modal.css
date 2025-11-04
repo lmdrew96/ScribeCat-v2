@@ -1,0 +1,286 @@
+/**
+ * ShareModal Styles
+ */
+
+/* Modal overlay */
+.share-modal-content {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Share form */
+.share-form {
+  padding: 20px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.share-form h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.share-form .form-group {
+  margin-bottom: 16px;
+}
+
+.share-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.share-form input[type="email"],
+.share-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.share-form input[type="email"]:focus,
+.share-form select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.share-form #share-submit-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.share-form .message {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.share-form .message.success {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.share-form .message.error {
+  background: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* Share list */
+.share-list,
+.invitations-list {
+  margin-bottom: 24px;
+}
+
+.share-list h3,
+.invitations-list h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.shares-container,
+.invitations-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Share item */
+.share-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+.share-item:hover {
+  border-color: var(--accent-primary);
+}
+
+.share-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.share-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.share-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.share-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.share-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.share-email {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.share-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-permission-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.share-permission-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.remove-share-btn,
+.remove-invitation-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* Invitation item */
+.invitation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-secondary);
+  border-radius: 8px;
+}
+
+.invitation-info {
+  flex: 1;
+}
+
+.invitation-email {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.invitation-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.invitation-permission {
+  padding: 2px 8px;
+  background: rgba(var(--accent-primary-rgb), 0.1);
+  color: var(--accent-primary);
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.invitation-expiry {
+  font-style: italic;
+}
+
+/* Empty state */
+.empty-state {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Loading state */
+.loading {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Error state */
+.error {
+  padding: 12px;
+  background: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .share-modal-content {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  .share-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .share-user {
+    width: 100%;
+  }
+
+  .share-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

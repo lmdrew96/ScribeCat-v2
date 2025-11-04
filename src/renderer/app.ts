@@ -20,6 +20,7 @@ import { NotesAutoSaveManager } from './managers/NotesAutoSaveManager.js';
 import { AuthManager } from './managers/AuthManager.js';
 import { AuthScreen } from './components/AuthScreen.js';
 import { UserProfileMenu } from './components/UserProfileMenu.js';
+import { ShareModal } from './components/ShareModal.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -37,6 +38,7 @@ let notesAutoSaveManager: NotesAutoSaveManager;
 let authManager: AuthManager;
 let authScreen: AuthScreen;
 let userProfileMenu: UserProfileMenu;
+let shareModal: ShareModal;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -93,13 +95,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   editorManager.setOnContentChangeCallback(() => {
     notesAutoSaveManager.onEditorUpdate();
   });
-  
+
   // Set up periodic button state updates
   setInterval(updateClearButtonStates, 1000);
-  
+
   // Load microphone devices
   await deviceManager.loadDevices();
-  
+
   // Initialize study mode manager
   studyModeManager = new StudyModeManager();
   await studyModeManager.initialize();
@@ -109,6 +111,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   await authManager.initialize();
   authScreen = new AuthScreen(authManager);
   userProfileMenu = new UserProfileMenu(authManager);
+
+  // Initialize sharing
+  shareModal = new ShareModal();
+  shareModal.initialize();
+
+  // Expose shareModal globally after initialization
+  window.shareModal = shareModal;
 
   // Set up auth UI (show/hide signin button)
   setupAuthUI();
