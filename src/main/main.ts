@@ -30,6 +30,7 @@ import { SettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
 import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
 import { ShareHandlers } from './ipc/handlers/ShareHandlers.js';
+import { SharingHandlers } from './ipc/handlers/SharingHandlers.js';
 import { SupabaseStorageService } from '../infrastructure/services/supabase/SupabaseStorageService.js';
 import { SupabaseSessionRepository } from '../infrastructure/repositories/SupabaseSessionRepository.js';
 import { SupabaseShareRepository } from '../infrastructure/repositories/SupabaseShareRepository.js';
@@ -104,6 +105,9 @@ class ScribeCatApp {
   // OAuth callback server
   private oauthCallbackServer: http.Server | null = null;
 
+  // Real-time sharing handlers (permission-based access control)
+  private sharingHandlers: SharingHandlers | null = null;
+
   constructor() {
     // Initialize electron-store for settings (doesn't need app to be ready)
     this.store = new Store<StoreSchema>({
@@ -118,6 +122,9 @@ class ScribeCatApp {
 
     // Initialize Supabase auth service
     this.initializeSupabase();
+
+    // Initialize real-time sharing handlers
+    this.sharingHandlers = new SharingHandlers();
 
     // Start OAuth callback server
     this.startOAuthCallbackServer();
@@ -581,6 +588,12 @@ class ScribeCatApp {
         if (this.syncManager) {
           this.syncManager.setCurrentUserId(data.userId);
           console.log('Updated SyncManager with user ID');
+        }
+
+        // Update SharingHandlers with user ID
+        if (this.sharingHandlers) {
+          this.sharingHandlers.setCurrentUserId(data.userId);
+          console.log('Updated SharingHandlers with user ID');
         }
 
         // Set session on SupabaseClient for authenticated requests

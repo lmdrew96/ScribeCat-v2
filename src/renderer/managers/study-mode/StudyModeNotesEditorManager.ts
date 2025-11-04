@@ -17,6 +17,10 @@ import { Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import Image from '@tiptap/extension-image';
+import Collaboration from '@tiptap/extension-collaboration';
+// NOTE: CollaborationCursor is not yet available in TipTap v3
+// import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import { CollaborationManager } from '../collaboration/CollaborationManager.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('StudyModeNotesEditorManager');
@@ -26,6 +30,8 @@ export class StudyModeNotesEditorManager {
   private isEditingNotes: boolean = false;
   private currentEditingSessionId: string | null = null;
   private studyPaletteClickHandler: ((e: MouseEvent) => void) | null = null;
+  private collaborationManager: CollaborationManager | null = null;
+  private isCollaborating: boolean = false;
 
   /**
    * Start editing notes
@@ -749,6 +755,15 @@ export class StudyModeNotesEditorManager {
       this.studyPaletteClickHandler = null;
     }
 
+    // Stop collaboration if active
+    if (this.collaborationManager) {
+      this.collaborationManager.stopCollaboration().catch(error => {
+        logger.error('Error stopping collaboration:', error);
+      });
+      this.collaborationManager = null;
+      this.isCollaborating = false;
+    }
+
     // Destroy the editor to clean up
     if (this.notesEditor) {
       this.notesEditor.destroy();
@@ -777,5 +792,239 @@ export class StudyModeNotesEditorManager {
    */
   getCurrentEditingSessionId(): string | null {
     return this.currentEditingSessionId;
+  }
+
+  /**
+   * Enable real-time collaboration for the current session
+   * NOTE: This requires the editor to be recreated with collaboration extensions
+   */
+  async enableCollaboration(config: {
+    sessionId: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    avatarUrl?: string;
+  }): Promise<void> {
+    try {
+      logger.info('Enabling collaboration for session:', config.sessionId);
+
+      // Initialize collaboration manager if not already done
+      if (!this.collaborationManager) {
+        this.collaborationManager = new CollaborationManager();
+      }
+
+      // Start collaboration - this will create the Yjs doc
+      const yjsDoc = await this.collaborationManager.startCollaboration({
+        sessionId: config.sessionId,
+        userId: config.userId,
+        userName: config.userName,
+        userEmail: config.userEmail,
+        avatarUrl: config.avatarUrl,
+        isSharedSession: true,
+        hasEditorPermission: true
+      });
+
+      this.isCollaborating = true;
+
+      // Save current content if editor exists
+      const currentContent = this.notesEditor?.getHTML() || '';
+
+      // Recreate editor with collaboration extensions
+      if (this.notesEditor) {
+        this.notesEditor.destroy();
+        this.notesEditor = null;
+      }
+
+      const editorElement = document.getElementById('study-notes-editor');
+      if (editorElement) {
+        this.notesEditor = new Editor({
+          element: editorElement,
+          extensions: this.getEditorExtensions(yjsDoc),
+          content: currentContent,
+          editorProps: {
+            attributes: {
+              class: 'tiptap-content',
+              spellcheck: 'true',
+            },
+            handleKeyDown: (view, event) => {
+              // Handle Tab for list indentation
+              if (event.key === 'Tab') {
+                event.preventDefault();
+                if (event.shiftKey) {
+                  return this.notesEditor?.commands.liftListItem('listItem') || false;
+                } else {
+                  return this.notesEditor?.commands.sinkListItem('listItem') || false;
+                }
+              }
+              return false;
+            },
+          },
+        });
+
+        // Setup toolbar again
+        this.setupStudyEditorToolbar();
+      }
+
+      logger.info('Collaboration enabled successfully');
+    } catch (error) {
+      logger.error('Failed to enable collaboration:', error);
+      this.isCollaborating = false;
+      throw error;
+    }
+  }
+
+  /**
+   * Disable real-time collaboration
+   */
+  async disableCollaboration(): Promise<void> {
+    try {
+      logger.info('Disabling collaboration');
+
+      if (this.collaborationManager) {
+        await this.collaborationManager.stopCollaboration();
+        this.collaborationManager = null;
+      }
+
+      this.isCollaborating = false;
+
+      // Save current content
+      const currentContent = this.notesEditor?.getHTML() || '';
+
+      // Recreate editor without collaboration extensions
+      if (this.notesEditor) {
+        this.notesEditor.destroy();
+        this.notesEditor = null;
+      }
+
+      const editorElement = document.getElementById('study-notes-editor');
+      if (editorElement) {
+        this.notesEditor = new Editor({
+          element: editorElement,
+          extensions: this.getEditorExtensions(),
+          content: currentContent,
+          editorProps: {
+            attributes: {
+              class: 'tiptap-content',
+              spellcheck: 'true',
+            },
+            handleKeyDown: (view, event) => {
+              // Handle Tab for list indentation
+              if (event.key === 'Tab') {
+                event.preventDefault();
+                if (event.shiftKey) {
+                  return this.notesEditor?.commands.liftListItem('listItem') || false;
+                } else {
+                  return this.notesEditor?.commands.sinkListItem('listItem') || false;
+                }
+              }
+              return false;
+            },
+          },
+        });
+
+        // Setup toolbar again
+        this.setupStudyEditorToolbar();
+      }
+
+      logger.info('Collaboration disabled successfully');
+    } catch (error) {
+      logger.error('Failed to disable collaboration:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get editor extensions with optional collaboration support
+   */
+  private getEditorExtensions(yjsDoc?: any): any[] {
+    const extensions = [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2],
+        },
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+        listItem: {
+          HTMLAttributes: {
+            class: 'tiptap-list-item',
+          },
+        },
+        // Disable History when collaborating (Yjs handles undo/redo)
+        history: yjsDoc ? false : undefined,
+      }),
+      Underline,
+      Highlight.configure({
+        multicolor: false,
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'editor-link',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: 'Edit your notes here...',
+      }),
+      Superscript,
+      Subscript,
+      Typography,
+      Color,
+      BackgroundColor,
+      FontSize,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+        alignments: ['left', 'center', 'right', 'justify'],
+        defaultAlignment: 'left',
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'tiptap-table',
+        },
+      }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'tiptap-image',
+        },
+      }),
+    ];
+
+    // Add collaboration extensions if Yjs doc is provided
+    if (yjsDoc && this.collaborationManager) {
+      extensions.push(
+        Collaboration.configure({
+          document: yjsDoc,
+        })
+        // NOTE: CollaborationCursor not yet available in TipTap v3
+        // Will add cursor visualization when v3 support is released
+      );
+    }
+
+    return extensions;
+  }
+
+  /**
+   * Check if collaboration is currently active
+   */
+  isCollaborationActive(): boolean {
+    return this.isCollaborating;
+  }
+
+  /**
+   * Get collaboration manager
+   */
+  getCollaborationManager(): CollaborationManager | null {
+    return this.collaborationManager;
   }
 }

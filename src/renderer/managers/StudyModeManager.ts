@@ -24,12 +24,22 @@ import { Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import Image from '@tiptap/extension-image';
+import Collaboration from '@tiptap/extension-collaboration';
+import { ShareModal } from '../components/ShareModal.js';
+import { SessionSharingManager } from './SessionSharingManager.js';
+import { CollaborationManager } from './collaboration/CollaborationManager.js';
+import * as Y from 'yjs';
 
 export class StudyModeManager {
   private aiClient: AIClient;
   private sessionPlaybackManager: SessionPlaybackManager;
   private aiSummaryManager: AISummaryManager;
   private exportCoordinator: ExportCoordinator;
+  private shareModal: ShareModal;
+  private sessionSharingManager: SessionSharingManager;
+  private collaborationManager: CollaborationManager | null = null;
+  private yjsDoc: Y.Doc | null = null;
+  private isCollaborating: boolean = false;
   private isActive: boolean = false;
   private sessions: Session[] = [];
   private filteredSessions: Session[] = [];
@@ -86,6 +96,8 @@ export class StudyModeManager {
     this.sessionPlaybackManager = new SessionPlaybackManager();
     this.aiSummaryManager = new AISummaryManager();
     this.exportCoordinator = new ExportCoordinator();
+    this.shareModal = new ShareModal();
+    this.sessionSharingManager = new SessionSharingManager();
 
     this.initializeEventListeners();
   }
@@ -95,6 +107,9 @@ export class StudyModeManager {
    */
   async initialize(): Promise<void> {
     try {
+      // Initialize ShareModal
+      this.shareModal.initialize();
+
       await this.loadSessions();
       console.log('StudyModeManager initialized');
     } catch (error) {
@@ -236,10 +251,10 @@ export class StudyModeManager {
    */
   private async loadSharedWithMeSessions(): Promise<void> {
     try {
-      const result = await (window as any).scribeCat.share.getSharedWithMe();
+      const result = await this.sessionSharingManager.getSharedWithMe();
 
-      if (result.success && result.sharedSessions) {
-        this.sharedWithMeSessions = result.sharedSessions;
+      if (result.success && result.sessions) {
+        this.sharedWithMeSessions = result.sessions;
         console.log(`Loaded ${this.sharedWithMeSessions.length} shared sessions`);
       } else {
         this.sharedWithMeSessions = [];
@@ -560,18 +575,40 @@ export class StudyModeManager {
    * Create a session card for a shared session
    */
   private createSharedSessionCard(sharedItem: any): string {
-    const sessionId = sharedItem.sessionId;
-    const share = sharedItem.share;
-    const sharedBy = share.sharedBy;
-    const permissionLevel = share.permissionLevel;
+    // New API structure: sharedItem has direct fields from session_shares table
+    // and a nested 'sessions' object with session data
+    const session = sharedItem.sessions;
+    const sessionId = sharedItem.session_id || session?.id;
+    const sessionTitle = session?.title || 'Shared Session';
+    const permissionLevel = sharedItem.permission_level;
+    const sharedWithEmail = sharedItem.shared_with_email;
+
+    // Format date if available
+    let dateStr = 'Recently shared';
+    if (session?.created_at) {
+      const date = new Date(session.created_at);
+      dateStr = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    // Format duration if available
+    let durationStr = '';
+    if (session?.duration) {
+      const minutes = Math.floor(session.duration / 60);
+      const seconds = session.duration % 60;
+      durationStr = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
 
     // Create a simplified session card
     return `
       <div class="session-card shared-session-card" data-session-id="${sessionId}">
         <div class="session-card-header">
-          <h3 class="session-title" data-session-id="${sessionId}">Shared Session</h3>
-          <span class="shared-badge" title="Shared by ${this.escapeHtml(sharedBy)}">
-            👥 ${this.escapeHtml(sharedBy)}
+          <h3 class="session-title" data-session-id="${sessionId}">${this.escapeHtml(sessionTitle)}</h3>
+          <span class="shared-badge" title="Shared with you">
+            👥 Shared
           </span>
         </div>
 
@@ -579,10 +616,12 @@ export class StudyModeManager {
           <span class="permission-badge ${permissionLevel === 'editor' ? 'editor' : 'viewer'}">
             ${permissionLevel === 'editor' ? '✏️ Can Edit' : '👁️ View Only'}
           </span>
+          ${durationStr ? `<span>${durationStr}</span>` : ''}
+          <span>📅 ${dateStr}</span>
         </div>
 
         <div class="session-preview">
-          Click to view this shared session
+          ${session?.notes ? this.escapeHtml(session.notes.substring(0, 150)) + '...' : 'Click to view this shared session'}
         </div>
 
         <div class="session-actions">
@@ -789,6 +828,45 @@ export class StudyModeManager {
     if (!session) {
       console.error('Session not found:', sessionId);
       return;
+    }
+
+    // Check if session is shared and collaboration should be enabled
+    try {
+      const accessInfo = await this.sessionSharingManager.checkSessionAccess(sessionId);
+
+      if (accessInfo.isShared && accessInfo.permission === 'editor') {
+        console.log('Session is shared with editor permission - enabling collaboration');
+
+        // Get current user info
+        const userResult = await (window as any).scribeCat.auth.getCurrentUser();
+        if (userResult.success && userResult.user) {
+          const user = userResult.user;
+
+          // Initialize collaboration manager if not already done
+          if (!this.collaborationManager) {
+            this.collaborationManager = new CollaborationManager();
+          }
+
+          // Start collaboration - this creates the Yjs document
+          this.yjsDoc = await this.collaborationManager.startCollaboration({
+            sessionId,
+            userId: user.id,
+            userName: user.full_name || user.email,
+            userEmail: user.email,
+            avatarUrl: user.avatar_url,
+            isSharedSession: true,
+            hasEditorPermission: true
+          });
+
+          this.isCollaborating = true;
+          console.log('Collaboration enabled for shared session');
+        }
+      } else if (accessInfo.isShared && accessInfo.permission === 'viewer') {
+        console.log('Session is shared with viewer permission - read-only access');
+        // Read-only mode will be handled in startNotesEdit
+      }
+    } catch (error) {
+      console.error('Error checking session access:', error);
     }
 
     // Set AI Chat context to this session's data
@@ -1718,68 +1796,83 @@ export class StudyModeManager {
     // Initialize Tiptap editor if not already created
     const editorElement = document.getElementById('study-notes-editor');
     if (editorElement && !this.notesEditor) {
+      // Build extensions array
+      const extensions: any[] = [
+        StarterKit.configure({
+          heading: {
+            levels: [1, 2],
+          },
+          bulletList: {
+            keepMarks: true,
+            keepAttributes: false,
+          },
+          orderedList: {
+            keepMarks: true,
+            keepAttributes: false,
+          },
+          listItem: {
+            HTMLAttributes: {
+              class: 'tiptap-list-item',
+            },
+          },
+          // Disable history when collaborating (Yjs provides history)
+          history: this.isCollaborating ? false : undefined,
+        }),
+        Underline,
+        Highlight.configure({
+          multicolor: false,
+        }),
+        Link.configure({
+          openOnClick: false,
+          HTMLAttributes: {
+            class: 'editor-link',
+          },
+        }),
+        Placeholder.configure({
+          placeholder: 'Edit your notes here...',
+        }),
+        Superscript,
+        Subscript,
+        Typography,
+        Color,
+        BackgroundColor,
+        FontSize,
+        TextAlign.configure({
+          types: ['heading', 'paragraph'],
+          alignments: ['left', 'center', 'right', 'justify'],
+          defaultAlignment: 'left',
+        }),
+        Table.configure({
+          resizable: true,
+          HTMLAttributes: {
+            class: 'tiptap-table',
+          },
+        }),
+        TableRow,
+        TableCell,
+        TableHeader,
+        Image.configure({
+          inline: false,
+          allowBase64: true,
+          HTMLAttributes: {
+            class: 'tiptap-image',
+          },
+        }),
+      ];
+
+      // Add Collaboration extension if collaborating
+      if (this.isCollaborating && this.yjsDoc) {
+        extensions.push(
+          Collaboration.configure({
+            document: this.yjsDoc,
+          })
+        );
+        console.log('Added Collaboration extension to editor');
+      }
+
       this.notesEditor = new Editor({
         element: editorElement,
-        extensions: [
-          StarterKit.configure({
-            heading: {
-              levels: [1, 2],
-            },
-            bulletList: {
-              keepMarks: true,
-              keepAttributes: false,
-            },
-            orderedList: {
-              keepMarks: true,
-              keepAttributes: false,
-            },
-            listItem: {
-              HTMLAttributes: {
-                class: 'tiptap-list-item',
-              },
-            },
-          }),
-          Underline,
-          Highlight.configure({
-            multicolor: false,
-          }),
-          Link.configure({
-            openOnClick: false,
-            HTMLAttributes: {
-              class: 'editor-link',
-            },
-          }),
-          Placeholder.configure({
-            placeholder: 'Edit your notes here...',
-          }),
-          Superscript,
-          Subscript,
-          Typography,
-          Color,
-          BackgroundColor,
-          FontSize,
-          TextAlign.configure({
-            types: ['heading', 'paragraph'],
-            alignments: ['left', 'center', 'right', 'justify'],
-            defaultAlignment: 'left',
-          }),
-          Table.configure({
-            resizable: true,
-            HTMLAttributes: {
-              class: 'tiptap-table',
-            },
-          }),
-          TableRow,
-          TableCell,
-          TableHeader,
-          Image.configure({
-            inline: false,
-            allowBase64: true,
-            HTMLAttributes: {
-              class: 'tiptap-image',
-            },
-          }),
-        ],
+        extensions,
         content: session.notes || '',
         editorProps: {
           attributes: {
@@ -2253,16 +2346,24 @@ export class StudyModeManager {
       this.notesEditor.destroy();
       this.notesEditor = null;
     }
+
+    // Stop collaboration if active
+    if (this.collaborationManager && this.isCollaborating) {
+      this.collaborationManager.stopCollaboration();
+      this.collaborationManager = null;
+      this.yjsDoc = null;
+      this.isCollaborating = false;
+      console.log('Collaboration stopped');
+    }
   }
 
   /**
    * Open share modal for a session
    */
   private openShareModal(sessionId: string): void {
-    // Access the globally exposed shareModal
-    const shareModal = (window as any).shareModal;
-    if (shareModal) {
-      shareModal.open(sessionId);
+    // Use the instance shareModal
+    if (this.shareModal) {
+      this.shareModal.open(sessionId);
     } else {
       console.error('ShareModal not available');
       alert('Share feature is not available');

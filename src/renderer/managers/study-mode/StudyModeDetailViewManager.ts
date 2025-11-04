@@ -221,6 +221,9 @@ export class StudyModeDetailViewManager {
 
         <!-- Action Buttons -->
         <div class="session-detail-actions">
+          <button class="action-btn share-session-detail-btn" data-session-id="${session.id}">
+            👥 Share Session
+          </button>
           <button class="action-btn export-session-detail-btn" data-session-id="${session.id}">
             📤 Export Session
           </button>

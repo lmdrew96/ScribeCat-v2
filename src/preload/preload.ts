@@ -232,6 +232,16 @@ const electronAPI = {
     acceptInvitation: (token: string) =>
       ipcRenderer.invoke('share:acceptInvitation', token)
   },
+  sharing: {
+    checkAccess: (sessionId: string) => ipcRenderer.invoke('sharing:checkAccess', sessionId),
+    shareSession: (params: { sessionId: string; sharedWithEmail: string; permissionLevel: 'viewer' | 'editor' }) =>
+      ipcRenderer.invoke('sharing:shareSession', params),
+    getSessionShares: (sessionId: string) => ipcRenderer.invoke('sharing:getSessionShares', sessionId),
+    getSharedWithMe: () => ipcRenderer.invoke('sharing:getSharedWithMe'),
+    updatePermission: (params: { shareId: string; permissionLevel: 'viewer' | 'editor' }) =>
+      ipcRenderer.invoke('sharing:updatePermission', params),
+    revokeAccess: (shareId: string) => ipcRenderer.invoke('sharing:revokeAccess', shareId)
+  },
   dev: {
     onHotReloadNotification: (callback: (message: string) => void) => {
       ipcRenderer.on('dev:hot-reload-notification', (_event: Electron.IpcRendererEvent, message: string) => callback(message));

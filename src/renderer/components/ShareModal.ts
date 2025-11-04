@@ -5,14 +5,18 @@
  * Allows inviting users by email and managing existing shares.
  */
 
+import { SessionSharingManager } from '../managers/SessionSharingManager.js';
+
 export class ShareModal {
   private modal: HTMLElement | null = null;
   private sessionId: string | null = null;
   private shares: any[] = [];
   private invitations: any[] = [];
+  private sessionSharingManager: SessionSharingManager;
 
   constructor() {
     // Modal will be created in initialize()
+    this.sessionSharingManager = new SessionSharingManager();
   }
 
   /**
@@ -152,11 +156,11 @@ export class ShareModal {
     if (!sharesContainer) return;
 
     try {
-      const result = await (window as any).scribeCat.share.getSessionShares(this.sessionId);
+      const result = await this.sessionSharingManager.getSessionShares(this.sessionId);
 
       if (result.success) {
         this.shares = result.shares || [];
-        this.invitations = result.invitations || [];
+        this.invitations = []; // Not supported yet in new API
 
         // Render shares
         if (this.shares.length === 0) {
@@ -165,11 +169,8 @@ export class ShareModal {
           sharesContainer.innerHTML = this.shares.map(share => this.renderShare(share)).join('');
         }
 
-        // Render invitations
-        if (this.invitations.length > 0 && invitationsSection && invitationsContainer) {
-          invitationsSection.style.display = 'block';
-          invitationsContainer.innerHTML = this.invitations.map(inv => this.renderInvitation(inv)).join('');
-        } else if (invitationsSection) {
+        // Hide invitations section (not supported yet)
+        if (invitationsSection) {
           invitationsSection.style.display = 'none';
         }
 
@@ -188,31 +189,37 @@ export class ShareModal {
    * Render a share item
    */
   private renderShare(share: any): string {
-    const userName = share.sharedWith.fullName || share.sharedWith.email;
-    const avatarUrl = share.sharedWith.avatarUrl;
-    const permissionLabel = share.permissionLevel === 'editor' ? 'Can edit' : 'Can view';
+    const email = share.shared_with_email;
+    const userName = email; // Use email as name since we don't have full user info yet
+    const permissionLabel = share.permission_level === 'editor' ? 'Can edit' : 'Can view';
 
     return `
       <div class="share-item" data-share-id="${share.id}">
         <div class="share-user">
-          ${avatarUrl
-            ? `<img src="${avatarUrl}" alt="${userName}" class="share-avatar" />`
-            : `<div class="share-avatar-placeholder">${userName.charAt(0).toUpperCase()}</div>`
-          }
+          <div class="share-avatar-placeholder">${email.charAt(0).toUpperCase()}</div>
           <div class="share-info">
-            <div class="share-name">${userName}</div>
-            <div class="share-email">${share.sharedWith.email}</div>
+            <div class="share-name">${this.escapeHtml(email)}</div>
+            <div class="share-email">${permissionLabel}</div>
           </div>
         </div>
         <div class="share-actions">
           <select class="share-permission-select" data-share-id="${share.id}">
-            <option value="viewer" ${share.permissionLevel === 'viewer' ? 'selected' : ''}>Can view</option>
-            <option value="editor" ${share.permissionLevel === 'editor' ? 'selected' : ''}>Can edit</option>
+            <option value="viewer" ${share.permission_level === 'viewer' ? 'selected' : ''}>Can view</option>
+            <option value="editor" ${share.permission_level === 'editor' ? 'selected' : ''}>Can edit</option>
           </select>
           <button class="btn btn-danger btn-sm remove-share-btn" data-share-id="${share.id}">Remove</button>
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Escape HTML to prevent XSS
+   */
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   /**
@@ -306,18 +313,14 @@ export class ShareModal {
     }
 
     try {
-      const result = await (window as any).scribeCat.share.create({
+      const result = await this.sessionSharingManager.shareSession({
         sessionId: this.sessionId,
-        email,
+        sharedWithEmail: email,
         permissionLevel: permission
       });
 
       if (result.success) {
-        if (result.type === 'share') {
-          this.showMessage('Session shared successfully!', 'success');
-        } else {
-          this.showMessage('Invitation sent successfully!', 'success');
-        }
+        this.showMessage('Session shared successfully!', 'success');
 
         // Clear form
         this.clearForm();
@@ -348,7 +351,7 @@ export class ShareModal {
     }
 
     try {
-      const result = await (window as any).scribeCat.share.remove({ shareId });
+      const result = await this.sessionSharingManager.revokeAccess(shareId);
 
       if (result.success) {
         this.showMessage('Access removed', 'success');
@@ -363,26 +366,11 @@ export class ShareModal {
   }
 
   /**
-   * Remove an invitation
+   * Remove an invitation (not supported yet in new API)
    */
   private async removeInvitation(invitationId: string): Promise<void> {
-    if (!confirm('Cancel this invitation?')) {
-      return;
-    }
-
-    try {
-      const result = await (window as any).scribeCat.share.remove({ invitationId });
-
-      if (result.success) {
-        this.showMessage('Invitation cancelled', 'success');
-        await this.loadShares();
-      } else {
-        this.showMessage(result.error || 'Failed to cancel invitation', 'error');
-      }
-    } catch (error) {
-      console.error('Error removing invitation:', error);
-      this.showMessage('An error occurred', 'error');
-    }
+    // Not supported yet
+    this.showMessage('Invitation removal not supported yet', 'error');
   }
 
   /**
@@ -390,7 +378,7 @@ export class ShareModal {
    */
   private async updatePermission(shareId: string, permissionLevel: 'viewer' | 'editor'): Promise<void> {
     try {
-      const result = await (window as any).scribeCat.share.updatePermission({
+      const result = await this.sessionSharingManager.updateSharePermission({
         shareId,
         permissionLevel
       });
