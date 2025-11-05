@@ -7,7 +7,7 @@
 export class AssemblyAITranscriptionService {
   private ws: WebSocket | null = null;
   private sessionId: string | null = null;
-  private resultCallback: ((text: string, isFinal: boolean, timestamp?: number) => void) | null = null;
+  private resultCallback: ((text: string, isFinal: boolean, startTime?: number, endTime?: number) => void) | null = null;
   private startTime: number = 0;
   private apiKey: string = '';
   private terminationReceived: boolean = false;
@@ -15,6 +15,7 @@ export class AssemblyAITranscriptionService {
   private tokenRefreshTimer: NodeJS.Timeout | null = null;
   private tokenCreatedAt: number = 0;
   private isRefreshing: boolean = false;
+  private stopPromiseResolve: (() => void) | null = null;
 
   async initialize(apiKey: string): Promise<void> {
     this.apiKey = apiKey;
@@ -170,7 +171,7 @@ export class AssemblyAITranscriptionService {
   private handleMessage(data: string): void {
     try {
       const message = JSON.parse(data);
-      
+
       if (message.type === 'Begin') {
         console.log('🎙️ AssemblyAI session began:', message.id);
         return;
@@ -180,15 +181,27 @@ export class AssemblyAITranscriptionService {
         const text = message.transcript;
         const isFinal = message.end_of_turn && message.turn_is_formatted;
 
-        // Use word-level timestamps for accuracy (words array excludes filler)
+        // Extract start time - use word-level timestamps for accuracy (words array excludes filler)
         // Fall back to audio_start if words not available
-        let timestamp: number | undefined;
+        let startTime: number | undefined;
         if (message.words && Array.isArray(message.words) && message.words.length > 0) {
           // Use the first word's start time (already cleaned of filler)
-          timestamp = message.words[0].start / 1000; // Convert ms to seconds
+          startTime = message.words[0].start / 1000; // Convert ms to seconds
         } else if (message.audio_start !== undefined) {
           // Fallback to turn's audio_start
-          timestamp = message.audio_start / 1000;
+          startTime = message.audio_start / 1000;
+        }
+
+        // Extract end time - use word-level timestamps for accuracy
+        // Fall back to audio_end if words not available
+        let endTime: number | undefined;
+        if (message.words && Array.isArray(message.words) && message.words.length > 0) {
+          // Use the last word's end time
+          const lastWord = message.words[message.words.length - 1];
+          endTime = lastWord.end / 1000; // Convert ms to seconds
+        } else if (message.audio_end !== undefined) {
+          // Fallback to turn's audio_end
+          endTime = message.audio_end / 1000;
         }
 
         console.log('📊 AssemblyAI Turn:', {
@@ -196,19 +209,28 @@ export class AssemblyAITranscriptionService {
           isFinal,
           wordCount: message.words?.length,
           firstWordStart: message.words?.[0]?.start,
+          lastWordEnd: message.words?.[message.words.length - 1]?.end,
           audio_start_ms: message.audio_start,
-          timestamp_seconds: timestamp,
-          audio_end_ms: message.audio_end
+          audio_end_ms: message.audio_end,
+          startTime_seconds: startTime,
+          endTime_seconds: endTime
         });
 
         if (text && text.trim().length > 0 && this.resultCallback) {
-          this.resultCallback(text, isFinal, timestamp);
+          this.resultCallback(text, isFinal, startTime, endTime);
         }
       }
 
       if (message.type === 'Termination') {
         console.log('Session terminated:', message.audio_duration_seconds, 'seconds processed');
         this.terminationReceived = true;
+
+        // Resolve the stop promise if waiting
+        if (this.stopPromiseResolve) {
+          this.stopPromiseResolve();
+          this.stopPromiseResolve = null;
+        }
+
         // Close the WebSocket after receiving termination confirmation
         this.closeWebSocket();
       }
@@ -224,11 +246,11 @@ export class AssemblyAITranscriptionService {
     }
   }
 
-  onResult(callback: (text: string, isFinal: boolean, timestamp?: number) => void): void {
+  onResult(callback: (text: string, isFinal: boolean, startTime?: number, endTime?: number) => void): void {
     this.resultCallback = callback;
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
     // Clear token refresh timer
     if (this.tokenRefreshTimer) {
       clearTimeout(this.tokenRefreshTimer);
@@ -236,18 +258,32 @@ export class AssemblyAITranscriptionService {
     }
 
     if (this.ws) {
+      // Create a promise that resolves when termination is received
+      const terminationPromise = new Promise<void>((resolve) => {
+        this.stopPromiseResolve = resolve;
+
+        // Set a timeout to resolve anyway if we don't receive termination confirmation
+        // This gives AssemblyAI 5 seconds to send final transcription segments
+        this.closeTimeout = setTimeout(() => {
+          console.log('⏱️ Termination timeout reached (5s), closing WebSocket');
+          if (this.stopPromiseResolve) {
+            this.stopPromiseResolve();
+            this.stopPromiseResolve = null;
+          }
+          this.closeWebSocket();
+        }, 5000);
+      });
+
       // Reset termination flag
       this.terminationReceived = false;
 
       // Send termination message
       this.ws.send(JSON.stringify({ type: 'Terminate' }));
+      console.log('📤 Sent termination message, waiting for final results...');
 
-      // Set a timeout to close the WebSocket if we don't receive termination confirmation
-      // This gives AssemblyAI 5 seconds to send final transcription segments
-      this.closeTimeout = setTimeout(() => {
-        console.log('Termination timeout reached, closing WebSocket');
-        this.closeWebSocket();
-      }, 5000);
+      // Wait for termination message or timeout
+      await terminationPromise;
+      console.log('✅ AssemblyAI stop complete, all final results received');
     } else {
       this.sessionId = null;
     }

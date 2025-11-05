@@ -71,7 +71,7 @@ export class TranscriptionModeService {
     if (this.currentMode === 'simulation') {
       await window.scribeCat.transcription.simulation.stop(this.sessionId);
     } else if (this.currentMode === 'assemblyai') {
-      this.stopAssemblyAIAudioStreaming();
+      await this.stopAssemblyAIAudioStreaming();
     }
 
     this.sessionId = null;
@@ -144,9 +144,12 @@ export class TranscriptionModeService {
     await this.assemblyAIService.initialize(apiKey);
 
     // Set up result callback
-    this.assemblyAIService.onResult((text: string, isFinal: boolean, timestamp?: number) => {
-      console.log('🎤 AssemblyAI:', isFinal ? 'Final' : 'Partial', text, timestamp !== undefined ? `@ ${timestamp.toFixed(1)}s` : '');
-      this.transcriptionManager.updateFlowing(text, isFinal, timestamp);
+    this.assemblyAIService.onResult((text: string, isFinal: boolean, startTime?: number, endTime?: number) => {
+      const timeInfo = startTime !== undefined
+        ? `@ ${startTime.toFixed(1)}s${endTime !== undefined ? `-${endTime.toFixed(1)}s` : ''}`
+        : '';
+      console.log('🎤 AssemblyAI:', isFinal ? 'Final' : 'Partial', text, timeInfo);
+      this.transcriptionManager.updateFlowing(text, isFinal, startTime, endTime);
     });
 
     // Start session
@@ -207,14 +210,14 @@ export class TranscriptionModeService {
   /**
    * Stop AssemblyAI audio streaming
    */
-  private stopAssemblyAIAudioStreaming(): void {
+  private async stopAssemblyAIAudioStreaming(): Promise<void> {
     if (this.assemblyAIStreamingInterval !== null) {
       clearInterval(this.assemblyAIStreamingInterval);
       this.assemblyAIStreamingInterval = null;
     }
 
     if (this.assemblyAIService) {
-      this.assemblyAIService.stop();
+      await this.assemblyAIService.stop();
       this.assemblyAIService = null;
     }
 

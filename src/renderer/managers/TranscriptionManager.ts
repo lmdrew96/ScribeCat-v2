@@ -6,7 +6,7 @@
 export class TranscriptionManager {
   private transcriptionContainer: HTMLElement;
   private lastPartialText: string = '';
-  private timestampedEntries: Array<{ timestamp: number; text: string }> = [];
+  private timestampedEntries: Array<{ startTime: number; endTime: number; text: string }> = [];
   private recordingStartTime: number = 0;
   private totalPausedTime: number = 0;
   private pauseStartTime: number = 0;
@@ -75,7 +75,10 @@ export class TranscriptionManager {
   addEntry(timestamp: number, text: string): void {
     // Use the timestamp provided by the simulation service
     // (it already accounts for paused time)
-    this.timestampedEntries.push({ timestamp, text });
+    // For simulation mode, we only have start time, so estimate end time
+    // This will be corrected later when the next entry arrives
+    const estimatedEndTime = timestamp + 1.0; // Estimate 1 second duration
+    this.timestampedEntries.push({ startTime: timestamp, endTime: estimatedEndTime, text });
 
     let flowingText = this.transcriptionContainer.querySelector('.flowing-transcription') as HTMLElement;
 
@@ -103,7 +106,7 @@ export class TranscriptionManager {
   /**
    * Update flowing transcription with partial/final results (for AssemblyAI)
    */
-  updateFlowing(text: string, isFinal: boolean, providedTimestamp?: number): void {
+  updateFlowing(text: string, isFinal: boolean, providedStartTime?: number, providedEndTime?: number): void {
     let flowingText = this.transcriptionContainer.querySelector('.flowing-transcription') as HTMLElement;
 
     if (!flowingText) {
@@ -116,20 +119,28 @@ export class TranscriptionManager {
     }
 
     if (isFinal) {
-      // Use timestamp provided by AssemblyAI if available, otherwise calculate it
-      const timestamp = providedTimestamp !== undefined
-        ? providedTimestamp
+      // Use timestamps provided by AssemblyAI if available, otherwise calculate them
+      const startTime = providedStartTime !== undefined
+        ? providedStartTime
         : (this.recordingStartTime > 0 ? this.getActiveRecordingTime() : 0);
 
+      // For end time, use provided value or estimate based on text length
+      const endTime = providedEndTime !== undefined
+        ? providedEndTime
+        : startTime + Math.max(1.0, text.length * 0.05); // Rough estimate: 50ms per character
+
       console.log('💾 Storing timestamped entry:', {
-        timestamp,
-        providedTimestamp,
+        startTime,
+        endTime,
+        providedStartTime,
+        providedEndTime,
         calculatedTime: this.getActiveRecordingTime(),
+        duration: endTime - startTime,
         text: text.substring(0, 50) + '...'
       });
 
       // Store timestamped entry
-      this.timestampedEntries.push({ timestamp, text });
+      this.timestampedEntries.push({ startTime, endTime, text });
 
       // Final text - append permanently and clear partial
       if (this.lastPartialText) {
@@ -194,7 +205,7 @@ export class TranscriptionManager {
   /**
    * Get timestamped entries collected during recording
    */
-  getTimestampedEntries(): Array<{ timestamp: number; text: string }> {
+  getTimestampedEntries(): Array<{ startTime: number; endTime: number; text: string }> {
     return this.timestampedEntries;
   }
 }

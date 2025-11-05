@@ -23,7 +23,7 @@ export class UpdateSessionTranscriptionUseCase {
     sessionId: string,
     transcriptionText: string,
     provider: 'assemblyai' | 'simulation' = 'simulation',
-    timestampedEntries?: Array<{ timestamp: number; text: string }>
+    timestampedEntries?: Array<{ startTime: number; endTime: number; text: string }>
   ): Promise<boolean> {
     try {
       // Load the session
@@ -103,19 +103,31 @@ export class UpdateSessionTranscriptionUseCase {
    * Uses real timestamps from the transcription service
    */
   private createSegmentsFromTimestampedEntries(
-    timestampedEntries: Array<{ timestamp: number; text: string }>,
+    timestampedEntries: Array<{ startTime: number; endTime: number; text: string }>,
     totalDuration: number
   ): Array<{ text: string; startTime: number; endTime: number; confidence?: number }> {
     return timestampedEntries.map((entry, index) => {
-      const startTime = entry.timestamp;
-      // Calculate end time as the start of the next entry, or session duration for the last entry
-      const endTime = index < timestampedEntries.length - 1
-        ? timestampedEntries[index + 1].timestamp
-        : totalDuration;
+      // Use the real end time from the entry (provided by AssemblyAI)
+      // This is accurate to when the speaker actually finished speaking
+      let endTime = entry.endTime;
+
+      // Safety check: ensure end time doesn't exceed session duration
+      if (endTime > totalDuration) {
+        console.warn(`Segment ${index} end time (${endTime}s) exceeds session duration (${totalDuration}s), clamping to session duration`);
+        endTime = totalDuration;
+      }
+
+      // Safety check: ensure end time is after start time
+      if (endTime <= entry.startTime) {
+        console.warn(`Segment ${index} end time (${endTime}s) is before or equal to start time (${entry.startTime}s), using next segment's start or session duration`);
+        endTime = index < timestampedEntries.length - 1
+          ? timestampedEntries[index + 1].startTime
+          : totalDuration;
+      }
 
       return {
         text: entry.text.trim(),
-        startTime: startTime,
+        startTime: entry.startTime,
         endTime: endTime,
         confidence: undefined
       };
