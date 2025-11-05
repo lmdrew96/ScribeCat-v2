@@ -6,6 +6,7 @@
 import type { ChatMessage } from '../../shared/types.js';
 import { ChatUI } from './ChatUI.js';
 import { AIClient } from './AIClient.js';
+import { config } from '../../config.js';
 
 export class AIManager {
   private chatUI: ChatUI;
@@ -58,10 +59,11 @@ export class AIManager {
   }
 
   /**
-   * Set up settings UI elements
+   * Set up settings UI elements (deprecated - API keys now configured via environment)
    */
   private setupSettingsUI(): void {
-    this.claudeApiKeyInput = document.getElementById('claude-api-key') as HTMLInputElement;
+    // API key input no longer exists in UI
+    this.claudeApiKeyInput = null;
     this.claudeStatusSpan = document.getElementById('claude-status');
     this.testConnectionBtn = document.getElementById('test-claude-connection') as HTMLButtonElement;
   }
@@ -82,28 +84,19 @@ export class AIManager {
   }
 
   /**
-   * Load API key from storage
+   * Load API key from storage (deprecated - API keys now configured via environment)
    */
   private async loadApiKey(): Promise<void> {
-    try {
-      const apiKey = await this.aiClient.getApiKey();
-      if (apiKey && this.claudeApiKeyInput) {
-        this.claudeApiKeyInput.value = apiKey;
-      }
-    } catch (error) {
-      console.error('Failed to load Claude API key:', error);
-    }
+    // No-op: API keys are now configured via environment variables
+    // and embedded at build time. No UI for user configuration.
   }
 
   /**
-   * Save API key and configure AI service
+   * Save API key and configure AI service (deprecated - API keys now configured via environment)
    */
   async saveApiKey(apiKey: string): Promise<boolean> {
-    const success = await this.aiClient.setApiKey(apiKey);
-    if (success) {
-      await this.checkConfiguration();
-    }
-    return success;
+    console.warn('⚠️ saveApiKey is deprecated - API keys are now configured via environment');
+    return true;
   }
 
   /**
@@ -159,7 +152,8 @@ export class AIManager {
    */
   private async initializeConnectionInBackground(): Promise<void> {
     try {
-      const apiKey = await this.aiClient.getApiKey();
+      // Check if API key is configured via environment
+      const apiKey = config.claude.apiKey;
 
       if (!apiKey) {
         console.log('🔑 No Claude API key found - AI features disabled');
@@ -171,6 +165,7 @@ export class AIManager {
         return;
       }
 
+      console.log('✅ Claude API key found in config, testing connection...');
       await this.attemptConnectionWithRetry();
     } catch (error) {
       console.error('❌ Fatal error during AI initialization:', error);
