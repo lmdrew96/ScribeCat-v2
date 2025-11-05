@@ -189,8 +189,8 @@ export class ShareModal {
    * Render a share item
    */
   private renderShare(share: any): string {
-    const email = share.user_profiles?.email || 'Unknown';
-    const userName = share.user_profiles?.full_name || email;
+    const email = share.shared_with?.email || 'Unknown';
+    const userName = share.shared_with?.full_name || email;
     const permissionLabel = share.permission_level === 'editor' ? 'Can edit' : 'Can view';
 
     return `
@@ -378,10 +378,7 @@ export class ShareModal {
    */
   private async updatePermission(shareId: string, permissionLevel: 'viewer' | 'editor'): Promise<void> {
     try {
-      const result = await this.sessionSharingManager.updateSharePermission({
-        shareId,
-        permissionLevel
-      });
+      const result = await this.sessionSharingManager.updateSharePermission(shareId, permissionLevel);
 
       if (result.success) {
         this.showMessage('Permission updated', 'success');

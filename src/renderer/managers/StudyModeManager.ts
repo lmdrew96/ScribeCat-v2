@@ -6,6 +6,8 @@
  */
 
 import type { Session } from '../../domain/entities/Session.js';
+import { SyncStatus } from '../../domain/entities/Session.js';
+import { Transcription } from '../../domain/entities/Transcription.js';
 import { AIClient } from '../ai/AIClient.js';
 import { SessionPlaybackManager } from '../services/SessionPlaybackManager.js';
 import { AISummaryManager } from '../services/AISummaryManager.js';
@@ -139,6 +141,11 @@ export class StudyModeManager {
     // Back to record mode
     this.backToRecordBtn.addEventListener('click', () => this.hide());
 
+    // Open shared sessions from menu
+    document.addEventListener('openSharedSessions', () => {
+      this.showSharedSessionsOnly();
+    });
+
     // Session list events
     this.sessionListContainer.addEventListener('hideStudyMode', () => this.hide());
     this.sessionListContainer.addEventListener('openSessionDetail', ((e: CustomEvent) => {
@@ -249,6 +256,12 @@ export class StudyModeManager {
 
     // Update button state
     this.studyModeBtn.classList.add('active');
+
+    // Reset title to "Study Mode"
+    const titleElement = this.studyModeView.querySelector('.study-mode-header h2');
+    if (titleElement) {
+      titleElement.textContent = '📚 Study Mode';
+    }
 
     // Populate course filter
     this.sessionListManager.populateCourseFilter();
@@ -646,14 +659,102 @@ export class StudyModeManager {
   private async loadSharedWithMeSessions(): Promise<void> {
     try {
       const result = await this.sessionSharingManager.getSharedWithMe();
+      logger.info('🔍 getSharedWithMe result:', {
+        success: result.success,
+        hasData: !!result.sessions,
+        sessionCount: result.sessions?.length || 0,
+        firstShare: result.sessions?.[0]
+      });
+
       if (result.success && result.sessions) {
         this.sharedWithMeSessions = result.sessions;
         logger.info(`Loaded ${this.sharedWithMeSessions.length} shared sessions`);
+
+        // Extract session data from shares and merge with owned sessions
+        // Transform database rows to Session entities (similar to SupabaseSessionRepository.rowToSession)
+        const sharedSessionsData = this.sharedWithMeSessions
+          .map((share: any) => {
+            logger.info('🔍 Processing share:', {
+              shareId: share.id,
+              hasSessionsProperty: 'sessions' in share,
+              sessionData: share.sessions
+            });
+            return share.sessions;
+          })
+          .filter((sessionData: any) => {
+            const isValid = sessionData != null;
+            if (!isValid) {
+              logger.warn('⚠️ Filtered out null/undefined session data');
+            }
+            return isValid;
+          })
+          .map((row: any) => {
+            // Create transcription if data exists (matching SupabaseSessionRepository logic)
+            let transcription: Transcription | undefined;
+            if (row.transcription_text) {
+              // Create a single segment from the full text
+              const segments = [{
+                text: row.transcription_text,
+                startTime: 0,
+                endTime: row.duration / 1000, // Convert to seconds
+                confidence: row.transcription_confidence
+              }];
+
+              transcription = new Transcription(
+                row.transcription_text,
+                segments,
+                row.transcription_language || 'en',
+                (row.transcription_provider as 'assemblyai' | 'simulation') || 'simulation',
+                row.transcription_timestamp ? new Date(row.transcription_timestamp) : new Date(),
+                row.transcription_confidence
+              );
+            }
+
+            // Use cloud:// path for shared audio files
+            const recordingPath = `cloud://${row.user_id}/${row.id}/audio.webm`;
+
+            // Create Session entity matching the structure from SupabaseSessionRepository
+            const session: any = {
+              id: row.id,
+              title: row.title || 'Untitled Session',
+              recordingPath: recordingPath,
+              notes: row.notes || '',
+              createdAt: new Date(row.created_at),
+              updatedAt: new Date(row.updated_at),
+              duration: row.duration / 1000, // Convert milliseconds to seconds
+              transcription: transcription,
+              tags: row.tags || [],
+              exportHistory: [], // Export history not stored in cloud
+              courseId: row.course_id,
+              courseTitle: row.course_title,
+              courseNumber: row.course_number,
+              // Cloud sync fields
+              userId: row.user_id,
+              cloudId: row.id,
+              syncStatus: SyncStatus.SYNCED,
+              lastSyncedAt: new Date(row.updated_at),
+              // Mark as shared so we can show a badge
+              isShared: true
+            };
+
+            return session;
+          });
+
+        // Merge with owned sessions and update both the main array and list manager
+        const allSessions = [...this.sessions, ...sharedSessionsData];
+        this.sessions = allSessions;
+        this.sessionListManager.setSessions(allSessions);
+        logger.info(`Total sessions (owned + shared): ${allSessions.length}`);
       } else {
+        logger.warn('⚠️ No shared sessions data or unsuccessful result:', {
+          success: result.success,
+          error: result.error,
+          sessionsLength: result.sessions?.length
+        });
         this.sharedWithMeSessions = [];
       }
     } catch (error) {
-      logger.error('Error loading shared sessions', error);
+      logger.error('❌ Error loading shared sessions:', error);
       this.sharedWithMeSessions = [];
     }
   }
@@ -685,5 +786,37 @@ export class StudyModeManager {
     if (this.isActive) {
       this.sessionListManager.render();
     }
+  }
+
+  /**
+   * Show only shared sessions
+   */
+  private async showSharedSessionsOnly(): Promise<void> {
+    // Load sessions first
+    await this.loadSessions();
+
+    // Filter to show only shared sessions
+    const sharedOnly = this.sessions.filter((s: any) => s.isShared === true);
+
+    logger.info(`Showing ${sharedOnly.length} shared sessions out of ${this.sessions.length} total`);
+
+    // Show study mode
+    this.recordModeView.classList.add('hidden');
+    this.studyModeView.classList.remove('hidden');
+    this.studyModeBtn.classList.add('active');
+
+    // Update title to "Shared Sessions"
+    const titleElement = this.studyModeView.querySelector('.study-mode-header h2');
+    if (titleElement) {
+      titleElement.textContent = '👥 Shared Sessions';
+    }
+
+    // Set filtered sessions
+    this.sessionListManager.setSessions(sharedOnly);
+    this.sessionListManager.populateCourseFilter();
+    this.sessionListManager.render();
+
+    this.isActive = true;
+    logger.info('Study mode activated with shared sessions filter');
   }
 }

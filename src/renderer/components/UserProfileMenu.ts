@@ -146,11 +146,12 @@ export class UserProfileMenu {
       this.hideMenu();
     });
 
-    // Shared sessions (placeholder for now)
+    // Shared sessions - open study mode filtered to shared sessions
     const sharedBtn = this.menu?.querySelector('#profile-menu-shared');
     sharedBtn?.addEventListener('click', () => {
-      console.log('Shared sessions clicked (not implemented yet)');
       this.hideMenu();
+      // Emit event to open study mode with shared sessions filter
+      document.dispatchEvent(new CustomEvent('openSharedSessions'));
     });
   }
 

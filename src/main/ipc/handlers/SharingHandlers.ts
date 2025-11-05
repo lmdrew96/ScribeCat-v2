@@ -255,13 +255,10 @@ export class SharingHandlers {
           };
         }
 
-        // Get shares with user profile info
+        // Get shares first
         const { data: shares, error: sharesError } = await client
           .from('session_shares')
-          .select(`
-            *,
-            user_profiles!shared_with_user_id(email, full_name)
-          `)
+          .select('*')
           .eq('session_id', sessionId)
           .order('created_at', { ascending: false });
 
@@ -273,9 +270,25 @@ export class SharingHandlers {
           };
         }
 
+        // Fetch user profiles separately for each share
+        const sharesWithProfiles = await Promise.all(
+          (shares || []).map(async (share) => {
+            const { data: profile, error: profileError } = await client
+              .from('user_profiles')
+              .select('email, full_name')
+              .eq('id', share.shared_with_user_id)
+              .single();
+
+            return {
+              ...share,
+              shared_with: profileError ? null : profile
+            };
+          })
+        );
+
         return {
           success: true,
-          shares: shares || []
+          shares: sharesWithProfiles
         };
       } catch (error) {
         logger.error('Error in sharing:getSessionShares:', error);
@@ -298,18 +311,28 @@ export class SharingHandlers {
 
         const client = SupabaseClient.getInstance().getClient();
 
-        // Get shares for current user with session details
+        // Get shares for current user with full session details
         const { data: shares, error: sharesError } = await client
           .from('session_shares')
           .select(`
             *,
             sessions (
               id,
+              user_id,
               title,
               notes,
               duration,
               created_at,
-              updated_at
+              updated_at,
+              transcription_text,
+              transcription_provider,
+              transcription_language,
+              transcription_confidence,
+              transcription_timestamp,
+              tags,
+              course_id,
+              course_title,
+              course_number
             )
           `)
           .eq('shared_with_user_id', this.currentUserId)
@@ -351,27 +374,41 @@ export class SharingHandlers {
 
         const client = SupabaseClient.getInstance().getClient();
 
-        // Verify user owns the session
+        logger.info('Updating permission for share:', params.shareId);
+
+        // Get the share first
         const { data: share, error: shareError } = await client
           .from('session_shares')
-          .select(`
-            id,
-            sessions!inner (
-              user_id
-            )
-          `)
+          .select('id, session_id')
           .eq('id', params.shareId)
           .single();
 
+        logger.info('Share query result:', { share, error: shareError });
+
         if (shareError || !share) {
+          logger.error('Error fetching share:', shareError);
           return {
             success: false,
-            error: 'Share not found or access denied'
+            error: `Share not found: ${shareError?.message || 'No data returned'}`
           };
         }
 
-        // @ts-ignore - Supabase typing issue with nested relations
-        if (share.sessions.user_id !== this.currentUserId) {
+        // Verify user owns the session
+        const { data: session, error: sessionError } = await client
+          .from('sessions')
+          .select('user_id')
+          .eq('id', share.session_id)
+          .single();
+
+        if (sessionError || !session) {
+          logger.error('Error fetching session:', sessionError);
+          return {
+            success: false,
+            error: 'Session not found'
+          };
+        }
+
+        if (session.user_id !== this.currentUserId) {
           return {
             success: false,
             error: 'Only the session owner can update permissions'
@@ -414,27 +451,37 @@ export class SharingHandlers {
 
         const client = SupabaseClient.getInstance().getClient();
 
-        // Verify user owns the session
+        // Get the share first
         const { data: share, error: shareError } = await client
           .from('session_shares')
-          .select(`
-            id,
-            sessions!inner (
-              user_id
-            )
-          `)
+          .select('id, session_id')
           .eq('id', shareId)
           .single();
 
         if (shareError || !share) {
+          logger.error('Error fetching share:', shareError);
           return {
             success: false,
-            error: 'Share not found or access denied'
+            error: 'Share not found'
           };
         }
 
-        // @ts-ignore - Supabase typing issue with nested relations
-        if (share.sessions.user_id !== this.currentUserId) {
+        // Verify user owns the session
+        const { data: session, error: sessionError } = await client
+          .from('sessions')
+          .select('user_id')
+          .eq('id', share.session_id)
+          .single();
+
+        if (sessionError || !session) {
+          logger.error('Error fetching session:', sessionError);
+          return {
+            success: false,
+            error: 'Session not found'
+          };
+        }
+
+        if (session.user_id !== this.currentUserId) {
           return {
             success: false,
             error: 'Only the session owner can revoke access'

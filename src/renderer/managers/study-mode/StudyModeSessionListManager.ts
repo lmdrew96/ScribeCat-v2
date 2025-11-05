@@ -309,7 +309,8 @@ export class StudyModeSessionListManager {
     const hasTranscription = session.transcription ? '✓ Transcribed' : '';
     const hasNotes = session.notes ? '✓ Notes' : '';
     const syncStatus = this.getSyncStatusIndicator(session);
-    const indicators = [hasTranscription, hasNotes, syncStatus].filter(Boolean).join(' • ');
+    const sharedBadge = (session as any).isShared ? '<span class="shared-badge" title="Shared with you">👥 Shared</span>' : '';
+    const indicators = [hasTranscription, hasNotes, syncStatus, sharedBadge].filter(Boolean).join(' • ');
     const indicatorsWithCourse = [indicators, courseTag].filter(Boolean).join(' • ');
 
     // Check if selected
