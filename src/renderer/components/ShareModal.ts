@@ -189,8 +189,8 @@ export class ShareModal {
    * Render a share item
    */
   private renderShare(share: any): string {
-    const email = share.shared_with_email;
-    const userName = email; // Use email as name since we don't have full user info yet
+    const email = share.user_profiles?.email || 'Unknown';
+    const userName = share.user_profiles?.full_name || email;
     const permissionLabel = share.permission_level === 'editor' ? 'Can edit' : 'Can view';
 
     return `
@@ -198,8 +198,8 @@ export class ShareModal {
         <div class="share-user">
           <div class="share-avatar-placeholder">${email.charAt(0).toUpperCase()}</div>
           <div class="share-info">
-            <div class="share-name">${this.escapeHtml(email)}</div>
-            <div class="share-email">${permissionLabel}</div>
+            <div class="share-name">${this.escapeHtml(userName)}</div>
+            <div class="share-email">${this.escapeHtml(email)} • ${permissionLabel}</div>
           </div>
         </div>
         <div class="share-actions">

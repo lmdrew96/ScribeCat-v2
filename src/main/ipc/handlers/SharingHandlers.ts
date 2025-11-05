@@ -168,7 +168,7 @@ export class SharingHandlers {
         // Find user by email
         const { data: users, error: userError } = await client
           .from('user_profiles')
-          .select('user_id')
+          .select('id')
           .eq('email', params.sharedWithEmail)
           .limit(1);
 
@@ -179,7 +179,7 @@ export class SharingHandlers {
           };
         }
 
-        const sharedWithUserId = users[0].user_id;
+        const sharedWithUserId = users[0].id;
 
         // Check if already shared
         const { data: existingShare, error: checkError } = await client
@@ -203,7 +203,6 @@ export class SharingHandlers {
             session_id: params.sessionId,
             shared_by_user_id: this.currentUserId,
             shared_with_user_id: sharedWithUserId,
-            shared_with_email: params.sharedWithEmail,
             permission_level: params.permissionLevel
           })
           .select()
@@ -256,10 +255,13 @@ export class SharingHandlers {
           };
         }
 
-        // Get shares
+        // Get shares with user profile info
         const { data: shares, error: sharesError } = await client
           .from('session_shares')
-          .select('*')
+          .select(`
+            *,
+            user_profiles!shared_with_user_id(email, full_name)
+          `)
           .eq('session_id', sessionId)
           .order('created_at', { ascending: false });
 
