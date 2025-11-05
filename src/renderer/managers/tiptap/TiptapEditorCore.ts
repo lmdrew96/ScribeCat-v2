@@ -6,7 +6,6 @@
 
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Superscript from '@tiptap/extension-superscript';
@@ -56,13 +55,6 @@ export class TiptapEditorCore {
               class: 'tiptap-list-item',
             },
           },
-        }),
-        Highlight.extend({
-          addKeyboardShortcuts() {
-            return {}; // Disable default Mod-Shift-h shortcut
-          }
-        }).configure({
-          multicolor: false,
         }),
         Link.extend({
           addKeyboardShortcuts() {

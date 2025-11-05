@@ -34,7 +34,6 @@ export class TiptapToolbarManager {
   private bulletListBtn: HTMLButtonElement;
   private numberedListBtn: HTMLButtonElement;
   private linkBtn: HTMLButtonElement;
-  private highlightBtn: HTMLButtonElement;
   private imageBtn: HTMLButtonElement;
   private imageInput: HTMLInputElement;
   private insertTableBtn: HTMLButtonElement;
@@ -83,7 +82,6 @@ export class TiptapToolbarManager {
     this.bulletListBtn = document.getElementById('bullet-list-btn') as HTMLButtonElement;
     this.numberedListBtn = document.getElementById('numbered-list-btn') as HTMLButtonElement;
     this.linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
-    this.highlightBtn = document.getElementById('highlight-btn') as HTMLButtonElement;
     this.imageBtn = document.getElementById('image-btn') as HTMLButtonElement;
     this.imageInput = document.getElementById('image-input') as HTMLInputElement;
     this.insertTableBtn = document.getElementById('insert-table-btn') as HTMLButtonElement;
@@ -224,11 +222,6 @@ export class TiptapToolbarManager {
     // Link
     this.linkBtn.addEventListener('click', () => {
       this.toggleLink();
-    });
-
-    // Highlight
-    this.highlightBtn.addEventListener('click', () => {
-      this.editorCore.chain()?.focus().toggleHighlight().run();
     });
 
     // Image
@@ -495,9 +488,8 @@ export class TiptapToolbarManager {
     this.updateButtonState(this.bulletListBtn, this.editorCore.isActive('bulletList'));
     this.updateButtonState(this.numberedListBtn, this.editorCore.isActive('orderedList'));
 
-    // Link & Highlight
+    // Link
     this.updateButtonState(this.linkBtn, this.editorCore.isActive('link'));
-    this.updateButtonState(this.highlightBtn, this.editorCore.isActive('highlight'));
 
     // Table toolbar visibility
     const isInTable = this.editorCore.isActive('table');

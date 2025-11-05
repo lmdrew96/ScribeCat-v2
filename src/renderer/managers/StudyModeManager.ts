@@ -597,11 +597,8 @@ export class StudyModeManager {
         </div>
 
         ${indicatorsWithCourse ? `<div class="session-indicators">${indicatorsWithCourse}</div>` : ''}
-        
+
         <div class="session-actions">
-          <button class="action-btn view-session-btn" data-session-id="${session.id}">
-            View Session
-          </button>
           <button class="action-btn share-session-btn" data-session-id="${session.id}">
             🔗 Share
           </button>
@@ -668,12 +665,6 @@ export class StudyModeManager {
         <div class="session-preview">
           ${session?.notes ? this.escapeHtml(session.notes.substring(0, 150)) + '...' : 'Click to view this shared session'}
         </div>
-
-        <div class="session-actions">
-          <button class="action-btn view-session-btn" data-session-id="${sessionId}">
-            View Session
-          </button>
-        </div>
       </div>
     `;
   }
@@ -695,19 +686,7 @@ export class StudyModeManager {
         }
       });
     });
-    
-    // View session buttons
-    const viewButtons = document.querySelectorAll('.view-session-btn');
-    viewButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const sessionId = (btn as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.openSessionDetail(sessionId);
-        }
-      });
-    });
-    
+
     // Share session buttons
     const shareButtons = document.querySelectorAll('.share-session-btn');
     shareButtons.forEach(btn => {

@@ -5,7 +5,6 @@
 
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Superscript from '@tiptap/extension-superscript';
@@ -45,7 +44,6 @@ export class TiptapEditorManager {
   private bulletListBtn: HTMLButtonElement;
   private numberedListBtn: HTMLButtonElement;
   private linkBtn: HTMLButtonElement;
-  private highlightBtn: HTMLButtonElement;
   private imageBtn: HTMLButtonElement;
   private imageInput: HTMLInputElement;
   private insertTableBtn: HTMLButtonElement;
@@ -97,7 +95,6 @@ export class TiptapEditorManager {
     this.bulletListBtn = document.getElementById('bullet-list-btn') as HTMLButtonElement;
     this.numberedListBtn = document.getElementById('numbered-list-btn') as HTMLButtonElement;
     this.linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
-    this.highlightBtn = document.getElementById('highlight-btn') as HTMLButtonElement;
     this.imageBtn = document.getElementById('image-btn') as HTMLButtonElement;
     this.imageInput = document.getElementById('image-input') as HTMLInputElement;
     this.insertTableBtn = document.getElementById('insert-table-btn') as HTMLButtonElement;
@@ -154,13 +151,6 @@ export class TiptapEditorManager {
               class: 'tiptap-list-item',
             },
           },
-        }),
-        Highlight.extend({
-          addKeyboardShortcuts() {
-            return {}; // Disable default Mod-Shift-h shortcut
-          }
-        }).configure({
-          multicolor: false,
         }),
         Link.extend({
           addKeyboardShortcuts() {
@@ -368,11 +358,6 @@ export class TiptapEditorManager {
     // Link
     this.linkBtn.addEventListener('click', () => {
       this.toggleLink();
-    });
-
-    // Highlight
-    this.highlightBtn.addEventListener('click', () => {
-      this.editor?.chain().focus().toggleHighlight().run();
     });
 
     // Image
@@ -661,9 +646,8 @@ export class TiptapEditorManager {
     this.updateButtonState(this.bulletListBtn, this.editor.isActive('bulletList'));
     this.updateButtonState(this.numberedListBtn, this.editor.isActive('orderedList'));
 
-    // Link & Highlight
+    // Link
     this.updateButtonState(this.linkBtn, this.editor.isActive('link'));
-    this.updateButtonState(this.highlightBtn, this.editor.isActive('highlight'));
 
     // Table toolbar visibility
     const isInTable = this.editor.isActive('table');

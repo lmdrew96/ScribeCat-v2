@@ -334,9 +334,6 @@ export class StudyModeSessionListManager {
         ${indicatorsWithCourse ? `<div class="session-indicators">${indicatorsWithCourse}</div>` : ''}
 
         <div class="session-actions">
-          <button class="action-btn view-session-btn" data-session-id="${session.id}">
-            View Session
-          </button>
           <button class="action-btn export-session-btn" data-session-id="${session.id}">
             Export
           </button>
@@ -362,18 +359,6 @@ export class StudyModeSessionListManager {
 
         if (sessionId) {
           this.handleSessionSelection(sessionId, isChecked);
-        }
-      });
-    });
-
-    // View session buttons
-    const viewButtons = document.querySelectorAll('.view-session-btn');
-    viewButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const sessionId = (btn as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.sessionListContainer.dispatchEvent(new CustomEvent('openSessionDetail', { detail: { sessionId } }));
         }
       });
     });
