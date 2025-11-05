@@ -1,9 +1,11 @@
+// Load environment variables FIRST before any other imports
+import './env-loader.js';
+
 import { app, BrowserWindow, ipcMain, session, systemPreferences } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as http from 'http';
 import * as fs from 'fs';
-import dotenv from 'dotenv';
 import { config } from '../config.js';
 import { RecordingManager } from './recording-manager.js';
 import { DirectoryManager } from '../infrastructure/setup/DirectoryManager.js';
@@ -117,9 +119,6 @@ class ScribeCatApp {
   private sessionHandlers: SessionHandlers | null = null;
 
   constructor() {
-    // Load environment variables
-    dotenv.config();
-
     // Initialize electron-store for settings (doesn't need app to be ready)
     this.store = new Store<StoreSchema>({
       projectName: 'scribecat-v2',

@@ -8,7 +8,8 @@
       "Bash(npm run compile:*)",
       "Bash(\"/Users/nae/Desktop/ScribeCat-v2/src/renderer/css/loading.css\")",
       "Bash(npm run clean:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

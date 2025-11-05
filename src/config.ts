@@ -2,7 +2,8 @@
  * Application Configuration
  *
  * Default API keys for AssemblyAI and Claude.
- * These keys are embedded into the application at build time.
+ * In main process: loaded via dotenv from .env file
+ * In renderer process: injected at build time via esbuild define
  */
 
 export const config = {
