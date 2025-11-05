@@ -187,7 +187,8 @@ export class RecordingManager {
       // Save notes immediately to ensure they're captured
       await this.notesAutoSaveManager.saveImmediately();
 
-      // Upload to cloud (async, don't await - runs in background)
+      // Trigger cloud sync NOW - after transcription and notes are saved
+      // This ensures we upload the complete session with all data
       logger.info('Triggering cloud sync for session');
       window.scribeCat.sync.uploadSession(saveResult.sessionId)
         .then(result => {

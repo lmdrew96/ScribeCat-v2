@@ -82,9 +82,14 @@ export class SupabaseSessionRepository implements ISessionRepository {
         transcription_timestamp: session.transcription?.createdAt?.toISOString()
       };
 
+      // Use upsert to INSERT new records or UPDATE existing ones
+      // This handles both new sessions and recording over existing sessions
       const { error } = await client
         .from(this.tableName)
-        .insert(row);
+        .upsert(row, {
+          onConflict: 'id', // Use the id column as the conflict target
+          ignoreDuplicates: false // Always update if exists
+        });
 
       if (error) {
         throw new Error(`Failed to save session: ${error.message}`);

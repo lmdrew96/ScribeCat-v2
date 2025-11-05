@@ -94,13 +94,8 @@ export class RecordingManager {
           userId: userId || undefined
         });
 
-        // Trigger auto-sync if callback is provided
-        if (this.onRecordingSaved) {
-          // Don't await - let sync happen in background
-          this.onRecordingSaved(result.sessionId).catch(error => {
-            console.error('Auto-sync failed after recording:', error);
-          });
-        }
+        // NOTE: Cloud sync is now triggered from renderer process AFTER transcription is saved
+        // to ensure we upload the complete session with all data
 
         return {
           success: true,

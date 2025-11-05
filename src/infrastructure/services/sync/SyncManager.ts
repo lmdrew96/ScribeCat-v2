@@ -83,20 +83,56 @@ export class SyncManager {
         };
       }
 
+      // CRITICAL: Check if sync is already in progress for this session
+      if (this.syncInProgress.has(session.id)) {
+        console.log(`⏭️ Sync already in progress for session ${session.id}, skipping duplicate request`);
+        return {
+          success: false,
+          error: 'Sync already in progress'
+        };
+      }
+
       // Mark as syncing
       this.updateSyncStatus(session.id, SyncStatus.SYNCING);
       this.syncInProgress.add(session.id);
 
       try {
+        // IMPORTANT: Reload session from local repository to ensure we have the latest version
+        // This is critical because transcription may have been added after the session was initially loaded
+        console.log('🔄 SyncManager.uploadSession - Reloading session to get latest data...');
+        const latestSession = await this.localRepository.findById(session.id);
+        if (!latestSession) {
+          throw new Error(`Session ${session.id} not found in local repository`);
+        }
+
+        console.log('📤 SyncManager.uploadSession - Uploading session:', {
+          sessionId: latestSession.id,
+          hasTranscription: !!latestSession.transcription,
+          transcriptionSegmentCount: latestSession.transcription?.segments.length
+        });
+
+        // Store the current state to verify nothing changes locally if remote fails
+        const transcriptionSnapshot = latestSession.transcription;
+
         // 1. Upload session metadata to database
-        await this.remoteRepository.save(session);
+        console.log('📡 SyncManager - Attempting remote save...');
+        try {
+          await this.remoteRepository.save(latestSession);
+          console.log('✅ SyncManager - Remote save succeeded');
+        } catch (remoteError) {
+          console.error('❌ SyncManager - Remote save failed:', remoteError);
+          // CRITICAL: Do NOT touch local data if remote save fails
+          // Just mark as failed and throw
+          throw remoteError;
+        }
 
         // 2. Upload audio file to storage
-        const audioData = await this.readAudioFile(session.recordingPath);
-        const fileName = this.getFileNameFromPath(session.recordingPath);
+        console.log('📡 SyncManager - Attempting audio upload...');
+        const audioData = await this.readAudioFile(latestSession.recordingPath);
+        const fileName = this.getFileNameFromPath(latestSession.recordingPath);
 
         const uploadResult = await this.storageService.uploadAudioFile({
-          sessionId: session.id,
+          sessionId: latestSession.id,
           userId: this.currentUserId,
           audioData,
           fileName,
@@ -104,18 +140,36 @@ export class SyncManager {
         });
 
         if (!uploadResult.success) {
+          console.error('❌ SyncManager - Audio upload failed:', uploadResult.error);
           throw new Error(uploadResult.error || 'Failed to upload audio');
         }
+        console.log('✅ SyncManager - Audio upload succeeded');
 
-        // Success! Mark the session as synced in local storage
-        session.markAsSynced(session.id); // Use session ID as cloudId
-        session.userId = this.currentUserId;
-        await this.localRepository.update(session);
+        // SUCCESS! Both remote save and audio upload completed successfully
+        // NOW it's safe to update the local file with sync status
+        console.log('✅ SyncManager - Both remote operations succeeded, updating local sync status...');
 
-        this.updateSyncStatus(session.id, SyncStatus.SYNCED);
-        this.removeFromQueue(session.id);
+        // Verify transcription is still intact before updating
+        if (transcriptionSnapshot && !latestSession.transcription) {
+          console.error('⚠️ CRITICAL: Transcription was lost during sync! Restoring...');
+          latestSession.addTranscription(transcriptionSnapshot);
+        }
+
+        latestSession.markAsSynced(latestSession.id); // Use session ID as cloudId
+        latestSession.userId = this.currentUserId;
+        await this.localRepository.update(latestSession);
+
+        console.log('✅ SyncManager.uploadSession - Session synced successfully with transcription intact');
+
+        this.updateSyncStatus(latestSession.id, SyncStatus.SYNCED);
+        this.removeFromQueue(latestSession.id);
 
         return { success: true };
+      } catch (syncError) {
+        // If ANY error occurred during sync, DO NOT touch the local file
+        // Just mark as failed and return error
+        console.error('❌ SyncManager.uploadSession - Sync failed, local data preserved:', syncError);
+        throw syncError; // Re-throw to outer catch
       } finally {
         this.syncInProgress.delete(session.id);
       }

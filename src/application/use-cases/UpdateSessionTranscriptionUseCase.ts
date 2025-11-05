@@ -61,11 +61,35 @@ export class UpdateSessionTranscriptionUseCase {
         undefined // No average confidence
       );
 
+      console.log('📝 Created transcription entity:', {
+        fullTextLength: transcription.fullText.length,
+        segmentCount: transcription.segments.length,
+        provider: transcription.provider
+      });
+
       // Add transcription to session
       session.addTranscription(transcription);
 
+      console.log('✅ Added transcription to session. Session state before save:', {
+        sessionId: session.id,
+        hasTranscription: !!session.transcription,
+        transcriptionSegmentCount: session.transcription?.segments.length,
+        transcriptionFullTextLength: session.transcription?.fullText.length
+      });
+
       // Save updated session
       await this.sessionRepository.save(session);
+
+      console.log('💾 Session saved. Verifying by reloading...');
+
+      // Verify the save worked by reloading
+      const reloadedSession = await this.sessionRepository.findById(sessionId);
+      console.log('🔍 Reloaded session verification:', {
+        sessionId: reloadedSession?.id,
+        hasTranscription: !!reloadedSession?.transcription,
+        transcriptionSegmentCount: reloadedSession?.transcription?.segments.length,
+        transcriptionFullTextLength: reloadedSession?.transcription?.fullText.length
+      });
 
       return true;
     } catch (error) {

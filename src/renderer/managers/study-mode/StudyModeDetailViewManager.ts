@@ -28,6 +28,14 @@ export class StudyModeDetailViewManager {
    */
   render(session: Session): void {
     this.currentSession = session;
+    console.log('🔍 StudyModeDetailViewManager.render - Session data:', {
+      id: session.id,
+      title: session.title,
+      hasTranscription: !!session.transcription,
+      transcription: session.transcription,
+      transcriptionType: typeof session.transcription,
+      transcriptionKeys: session.transcription ? Object.keys(session.transcription) : []
+    });
     const date = new Date(session.createdAt);
     const formattedDate = date.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -347,6 +355,16 @@ export class StudyModeDetailViewManager {
       return `<div class="transcription-text">${this.escapeHtml(transcription.fullText)}</div>`;
     }
 
+    console.log('📝 Rendering transcription segments:', {
+      segmentCount: transcription.segments.length,
+      firstSegment: transcription.segments[0],
+      sampleSegments: transcription.segments.slice(0, 3).map((s: any) => ({
+        startTime: s.startTime,
+        endTime: s.endTime,
+        text: s.text.substring(0, 30)
+      }))
+    });
+
     // Render each segment with timestamp
     const segmentsHtml = transcription.segments.map((segment: any, index: number) => {
       const timestamp = this.formatTimestamp(segment.startTime);
@@ -365,9 +383,12 @@ export class StudyModeDetailViewManager {
    * Format timestamp from seconds to MM:SS format
    */
   private formatTimestamp(seconds: number): string {
+    console.log('🕐 formatTimestamp input:', { seconds, type: typeof seconds });
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const result = `${mins}:${secs.toString().padStart(2, '0')}`;
+    console.log('🕐 formatTimestamp output:', { mins, secs, result });
+    return result;
   }
 
   /**

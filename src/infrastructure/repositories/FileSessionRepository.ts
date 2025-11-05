@@ -59,11 +59,23 @@ export class FileSessionRepository implements ISessionRepository {
    */
   async save(session: Session): Promise<void> {
     await this.ensureDirectory();
-    
+
     const sessionPath = this.getSessionPath(session.id);
-    const jsonData = JSON.stringify(session.toJSON(), null, 2);
-    
+    const sessionJSON = session.toJSON();
+
+    console.log('💾 FileSessionRepository.save - Saving session:', {
+      sessionId: session.id,
+      path: sessionPath,
+      hasTranscription: !!sessionJSON.transcription,
+      transcriptionSegmentCount: sessionJSON.transcription?.segments?.length,
+      transcriptionFullTextLength: sessionJSON.transcription?.fullText?.length
+    });
+
+    const jsonData = JSON.stringify(sessionJSON, null, 2);
+
     await fs.writeFile(sessionPath, jsonData, 'utf-8');
+
+    console.log('✅ FileSessionRepository.save - File written successfully');
   }
 
   /**
