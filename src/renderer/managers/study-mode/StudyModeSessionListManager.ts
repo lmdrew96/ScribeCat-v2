@@ -7,6 +7,7 @@
 import type { Session } from '../../../domain/entities/Session.js';
 import { SyncStatus } from '../../../domain/entities/Session.js';
 import { createLogger } from '../../../shared/logger.js';
+import { formatDuration, escapeHtml, formatCourseTitle } from '../../utils/formatting.js';
 
 const logger = createLogger('StudyModeSessionListManager');
 
@@ -279,7 +280,7 @@ export class StudyModeSessionListManager {
       minute: '2-digit'
     });
 
-    const duration = this.formatDuration(session.duration);
+    const duration = formatDuration(session.duration);
 
     // Get transcription preview
     const transcriptionPreview = session.transcription
@@ -290,8 +291,8 @@ export class StudyModeSessionListManager {
     let courseTag = '';
     if (session.courseTitle && session.courseTitle.trim()) {
       const fullTitle = session.courseTitle.trim();
-      const displayTitle = this.formatCourseTitle(fullTitle);
-      courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}"><span class="course-badge-text">${this.escapeHtml(displayTitle)}</span></span>`;
+      const displayTitle = formatCourseTitle(fullTitle);
+      courseTag = `<span class="course-badge" data-tooltip="${escapeHtml(fullTitle)}"><span class="course-badge-text">${escapeHtml(displayTitle)}</span></span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
       const courseTags = session.tags?.filter(tag =>
@@ -299,8 +300,8 @@ export class StudyModeSessionListManager {
       ) || [];
       if (courseTags.length > 0) {
         const fullTitle = courseTags[0].trim();
-        const displayTitle = this.formatCourseTitle(fullTitle);
-        courseTag = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}"><span class="course-badge-text">${this.escapeHtml(displayTitle)}</span></span>`;
+        const displayTitle = formatCourseTitle(fullTitle);
+        courseTag = `<span class="course-badge" data-tooltip="${escapeHtml(fullTitle)}"><span class="course-badge-text">${escapeHtml(displayTitle)}</span></span>`;
       }
     }
 
@@ -318,7 +319,7 @@ export class StudyModeSessionListManager {
       <div class="session-card ${isSelected ? 'selected' : ''}" data-session-id="${session.id}">
         <input type="checkbox" class="session-card-checkbox" data-session-id="${session.id}" ${isSelected ? 'checked' : ''}>
         <div class="session-card-header">
-          <h3 class="session-title" data-session-id="${session.id}">${this.escapeHtml(session.title)}</h3>
+          <h3 class="session-title" data-session-id="${session.id}">${escapeHtml(session.title)}</h3>
           <button class="edit-title-btn" data-session-id="${session.id}" title="Edit title">✏️</button>
         </div>
 
@@ -328,12 +329,15 @@ export class StudyModeSessionListManager {
         </div>
 
         <div class="session-preview">
-          ${this.escapeHtml(transcriptionPreview)}
+          ${escapeHtml(transcriptionPreview)}
         </div>
 
         ${indicatorsWithCourse ? `<div class="session-indicators">${indicatorsWithCourse}</div>` : ''}
 
         <div class="session-actions">
+          <button class="action-btn share-session-btn" data-session-id="${session.id}">
+            🔗 Share
+          </button>
           <button class="action-btn export-session-btn" data-session-id="${session.id}">
             Export
           </button>
@@ -359,6 +363,18 @@ export class StudyModeSessionListManager {
 
         if (sessionId) {
           this.handleSessionSelection(sessionId, isChecked);
+        }
+      });
+    });
+
+    // Share session buttons
+    const shareButtons = document.querySelectorAll('.share-session-btn');
+    shareButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sessionId = (btn as HTMLElement).dataset.sessionId;
+        if (sessionId) {
+          this.sessionListContainer.dispatchEvent(new CustomEvent('shareSession', { detail: { sessionId } }));
         }
       });
     });
@@ -438,11 +454,6 @@ export class StudyModeSessionListManager {
   /**
    * Format duration in MM:SS format
    */
-  private formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
 
   /**
    * Get sync status indicator HTML
@@ -472,27 +483,7 @@ export class StudyModeSessionListManager {
   /**
    * Escape HTML to prevent XSS
    */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
-  /**
-   * Format course title by removing course number and code
-   */
-  private formatCourseTitle(courseTitle: string): string {
-    // Strategy 1: If there's a colon, take everything after the first colon
-    if (courseTitle.includes(':')) {
-      const parts = courseTitle.split(':');
-      const afterColon = parts.slice(1).join(':').trim();
-      if (afterColon) return afterColon;
-    }
-
-    // Strategy 2: Remove common course number patterns at the start
-    const formatted = courseTitle.replace(/^[A-Z]{2,4}[-\s]?\d{3,4}[\s:-]*/, '').trim();
-    return formatted || courseTitle;
-  }
 
   /**
    * Handle session selection

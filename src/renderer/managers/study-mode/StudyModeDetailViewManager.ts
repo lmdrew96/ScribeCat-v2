@@ -7,6 +7,7 @@
 import type { Session } from '../../../domain/entities/Session.js';
 import { SessionPlaybackManager } from '../../services/SessionPlaybackManager.js';
 import { createLogger } from '../../../shared/logger.js';
+import { formatDuration, formatTimestamp, escapeHtml, formatCourseTitle } from '../../utils/formatting.js';
 
 const logger = createLogger('StudyModeDetailViewManager');
 
@@ -48,14 +49,14 @@ export class StudyModeDetailViewManager {
       minute: '2-digit'
     });
 
-    const duration = this.formatDuration(session.duration);
+    const duration = formatDuration(session.duration);
 
     // Get course information from dedicated fields first, fall back to tags
     let courseTagsHtml = '';
     if (session.courseTitle && session.courseTitle.trim()) {
       const fullTitle = session.courseTitle.trim();
-      const displayTitle = this.formatCourseTitle(fullTitle);
-      courseTagsHtml = `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}"><span class="course-badge-text">${this.escapeHtml(displayTitle)}</span></span>`;
+      const displayTitle = formatCourseTitle(fullTitle);
+      courseTagsHtml = `<span class="course-badge" data-tooltip="${escapeHtml(fullTitle)}"><span class="course-badge-text">${escapeHtml(displayTitle)}</span></span>`;
     } else {
       // Fall back to tag-based search if dedicated fields are empty
       const courseTags = session.tags?.filter(tag =>
@@ -64,8 +65,8 @@ export class StudyModeDetailViewManager {
       courseTagsHtml = courseTags.length > 0
         ? courseTags.map(tag => {
             const fullTitle = tag.trim();
-            const displayTitle = this.formatCourseTitle(fullTitle);
-            return `<span class="course-badge" data-tooltip="${this.escapeHtml(fullTitle)}"><span class="course-badge-text">${this.escapeHtml(displayTitle)}</span></span>`;
+            const displayTitle = formatCourseTitle(fullTitle);
+            return `<span class="course-badge" data-tooltip="${escapeHtml(fullTitle)}"><span class="course-badge-text">${escapeHtml(displayTitle)}</span></span>`;
           }).join('')
         : '';
     }
@@ -80,7 +81,7 @@ export class StudyModeDetailViewManager {
         <!-- Session Header -->
         <div class="session-detail-header">
           <div class="session-detail-title-row">
-            <h2 class="session-detail-title" data-session-id="${session.id}">${this.escapeHtml(session.title)}</h2>
+            <h2 class="session-detail-title" data-session-id="${session.id}">${escapeHtml(session.title)}</h2>
             <button class="edit-title-btn-detail" data-session-id="${session.id}" title="Edit title">✏️</button>
             ${courseTagsHtml}
           </div>
@@ -312,6 +313,12 @@ export class StudyModeDetailViewManager {
       });
     });
 
+    // Share button
+    const shareBtn = document.querySelector('.share-session-detail-btn');
+    shareBtn?.addEventListener('click', () => {
+      this.sessionDetailContainer.dispatchEvent(new CustomEvent('shareSession', { detail: { sessionId: session.id } }));
+    });
+
     // Export button
     const exportBtn = document.querySelector('.export-session-detail-btn');
     exportBtn?.addEventListener('click', () => {
@@ -352,7 +359,7 @@ export class StudyModeDetailViewManager {
   private renderTranscriptionSegments(transcription: any): string {
     // If no segments, fall back to full text
     if (!transcription.segments || transcription.segments.length === 0) {
-      return `<div class="transcription-text">${this.escapeHtml(transcription.fullText)}</div>`;
+      return `<div class="transcription-text">${escapeHtml(transcription.fullText)}</div>`;
     }
 
     console.log('📝 Rendering transcription segments:', {
@@ -367,11 +374,11 @@ export class StudyModeDetailViewManager {
 
     // Render each segment with timestamp
     const segmentsHtml = transcription.segments.map((segment: any, index: number) => {
-      const timestamp = this.formatTimestamp(segment.startTime);
+      const timestamp = formatTimestamp(segment.startTime);
       return `
         <div class="transcription-segment" data-start-time="${segment.startTime}" data-end-time="${segment.endTime}" data-segment-index="${index}">
           <span class="segment-timestamp">[${timestamp}]</span>
-          <span class="segment-text">${this.escapeHtml(segment.text)}</span>
+          <span class="segment-text">${escapeHtml(segment.text)}</span>
         </div>
       `;
     }).join('');
@@ -382,48 +389,9 @@ export class StudyModeDetailViewManager {
   /**
    * Format timestamp from seconds to MM:SS format
    */
-  private formatTimestamp(seconds: number): string {
-    console.log('🕐 formatTimestamp input:', { seconds, type: typeof seconds });
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    const result = `${mins}:${secs.toString().padStart(2, '0')}`;
-    console.log('🕐 formatTimestamp output:', { mins, secs, result });
-    return result;
-  }
 
-  /**
-   * Format duration in MM:SS format
-   */
-  private formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
 
-  /**
-   * Escape HTML to prevent XSS
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
-  /**
-   * Format course title by removing course number and code
-   */
-  private formatCourseTitle(courseTitle: string): string {
-    // Strategy 1: If there's a colon, take everything after the first colon
-    if (courseTitle.includes(':')) {
-      const parts = courseTitle.split(':');
-      const afterColon = parts.slice(1).join(':').trim();
-      if (afterColon) return afterColon;
-    }
-
-    // Strategy 2: Remove common course number patterns at the start
-    const formatted = courseTitle.replace(/^[A-Z]{2,4}[-\s]?\d{3,4}[\s:-]*/, '').trim();
-    return formatted || courseTitle;
-  }
 
   /**
    * Show detail view
