@@ -10,8 +10,6 @@ import type { Theme } from './themes/types.js';
 export class SettingsManager {
   private settingsModal: HTMLElement;
   private transcriptionMode: 'simulation' | 'assemblyai' = 'simulation';
-  private assemblyAIApiKey: string = '';
-  private claudeApiKey: string = '';
   private driveConnected: boolean = false;
   private driveUserEmail: string = '';
   private canvasUrl: string = '';
@@ -70,22 +68,7 @@ export class SettingsManager {
         this.updateSettingsSectionsVisibility(target.value as 'simulation' | 'assemblyai');
       });
     });
-    
-    // AssemblyAI API key input
-    const assemblyAIApiKeyInput = document.getElementById('assemblyai-api-key') as HTMLInputElement;
-    assemblyAIApiKeyInput?.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      this.assemblyAIApiKey = target.value.trim();
-      this.updateAssemblyAIStatus();
-    });
-    
-    // Claude API key input
-    const claudeApiKeyInput = document.getElementById('claude-api-key') as HTMLInputElement;
-    claudeApiKeyInput?.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      this.claudeApiKey = target.value.trim();
-    });
-    
+
     // Google Drive connect button
     const connectDriveBtn = document.getElementById('connect-drive-btn');
     connectDriveBtn?.addEventListener('click', () => this.connectGoogleDrive());
@@ -227,19 +210,6 @@ export class SettingsManager {
       const mode = await window.scribeCat.store.get('transcription-mode');
       this.transcriptionMode = (mode as 'simulation' | 'assemblyai') || 'simulation';
 
-      // Load AssemblyAI API key
-      const apiKey = await window.scribeCat.store.get('assemblyai-api-key');
-      this.assemblyAIApiKey = (apiKey as string) || '';
-      
-      // Load Claude API key
-      const claudeKey = await window.scribeCat.store.get('claude-api-key');
-      this.claudeApiKey = (claudeKey as string) || '';
-      
-      // Initialize AI service with stored key if it exists
-      if (this.claudeApiKey) {
-        await window.scribeCat.ai.setApiKey(this.claudeApiKey);
-      }
-      
       // Check Google Drive connection status
       await this.checkDriveConnection();
       
@@ -268,24 +238,9 @@ export class SettingsManager {
       modeRadio.checked = true;
     }
 
-    // Set AssemblyAI API key
-    const assemblyAIApiKeyInput = document.getElementById('assemblyai-api-key') as HTMLInputElement;
-    if (assemblyAIApiKeyInput) {
-      assemblyAIApiKeyInput.value = this.assemblyAIApiKey;
-    }
-    
-    // Set Claude API key
-    const claudeApiKeyInput = document.getElementById('claude-api-key') as HTMLInputElement;
-    if (claudeApiKeyInput) {
-      claudeApiKeyInput.value = this.claudeApiKey;
-    }
-
     // Update settings sections visibility
     this.updateSettingsSectionsVisibility(this.transcriptionMode);
 
-    // Update AssemblyAI status
-    this.updateAssemblyAIStatus();
-    
     // Update Google Drive status
     this.updateDriveConnectionUI();
     
@@ -325,17 +280,6 @@ export class SettingsManager {
         await window.scribeCat.store.set('transcription-mode', this.transcriptionMode);
       }
 
-      // Save AssemblyAI API key
-      await window.scribeCat.store.set('assemblyai-api-key', this.assemblyAIApiKey);
-      
-      // Save Claude API key
-      await window.scribeCat.store.set('claude-api-key', this.claudeApiKey);
-      
-      // Update AI service with new key
-      if (this.claudeApiKey) {
-        await window.scribeCat.ai.setApiKey(this.claudeApiKey);
-      }
-
       this.showNotification('Settings saved successfully!', 'success');
       this.closeSettings();
     } catch (error) {
@@ -348,32 +292,7 @@ export class SettingsManager {
    * Update settings sections visibility based on selected mode
    */
   private updateSettingsSectionsVisibility(mode: 'simulation' | 'assemblyai'): void {
-    const assemblyAISettings = document.getElementById('assemblyai-settings');
-    
-    // Update AssemblyAI settings visibility
-    if (assemblyAISettings) {
-      if (mode === 'assemblyai') {
-        assemblyAISettings.classList.add('active');
-      } else {
-        assemblyAISettings.classList.remove('active');
-      }
-    }
-  }
-  
-  /**
-   * Update AssemblyAI status indicator
-   */
-  private updateAssemblyAIStatus(): void {
-    const statusEl = document.getElementById('assemblyai-status');
-    if (!statusEl) return;
-    
-    if (this.assemblyAIApiKey) {
-      statusEl.textContent = '✅ API key configured';
-      statusEl.style.color = '#27ae60';
-    } else {
-      statusEl.textContent = '❌ Not configured';
-      statusEl.style.color = '#e74c3c';
-    }
+    // No-op: API key settings sections have been removed from UI
   }
 
   /**
@@ -414,13 +333,6 @@ export class SettingsManager {
     return this.transcriptionMode;
   }
 
-  /**
-   * Get AssemblyAI API key
-   */
-  public getAssemblyAIApiKey(): string {
-    return this.assemblyAIApiKey;
-  }
-  
   /**
    * Check Google Drive connection status
    */

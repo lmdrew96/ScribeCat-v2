@@ -25,30 +25,19 @@ export class AIClient {
   }
 
   /**
-   * Set API key
+   * Set API key (deprecated - API keys are now configured via environment)
    */
   async setApiKey(apiKey: string): Promise<boolean> {
-    try {
-      await window.scribeCat.store.set('claude-api-key', apiKey);
-      const result = await window.scribeCat.ai.setApiKey(apiKey);
-      return result.success;
-    } catch (error) {
-      console.error('Failed to set API key:', error);
-      return false;
-    }
+    console.warn('⚠️ setApiKey is deprecated - API keys are now configured via environment');
+    return true;
   }
 
   /**
-   * Get API key from storage
+   * Get API key from storage (deprecated - API keys are now configured via environment)
    */
   async getApiKey(): Promise<string | null> {
-    try {
-      const apiKey = await window.scribeCat.store.get('claude-api-key');
-      return (apiKey && typeof apiKey === 'string') ? apiKey : null;
-    } catch (error) {
-      console.error('Failed to get API key:', error);
-      return null;
-    }
+    console.warn('⚠️ getApiKey is deprecated - API keys are now configured via environment');
+    return null;
   }
 
   /**

@@ -1,5 +1,9 @@
 import * as esbuild from 'esbuild';
 import { copyFileSync, watch, cpSync, existsSync, mkdirSync } from 'fs';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const isWatch = process.argv.includes('--watch');
 
@@ -14,6 +18,11 @@ const buildConfig = {
   external: ['electron'], // Don't bundle electron
   loader: {
     '.ts': 'ts'
+  },
+  define: {
+    // Inject environment variables at build time
+    'process.env.ASSEMBLYAI_API_KEY': JSON.stringify(process.env.ASSEMBLYAI_API_KEY || ''),
+    'process.env.CLAUDE_API_KEY': JSON.stringify(process.env.CLAUDE_API_KEY || ''),
   }
 };
 

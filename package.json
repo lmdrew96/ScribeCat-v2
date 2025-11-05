@@ -59,6 +59,7 @@
     "@types/pdfkit": "^0.17.3",
     "docx": "^9.5.1",
     "dompurify": "^3.3.0",
+    "dotenv": "^17.2.3",
     "electron-store": "^11.0.2",
     "googleapis": "^164.1.0",
     "lib0": "^0.2.114",

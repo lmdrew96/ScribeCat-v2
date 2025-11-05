@@ -12,6 +12,7 @@ import { CourseManager } from './CourseManager.js';
 import { TranscriptionModeService } from '../services/TranscriptionModeService.js';
 import { NotesAutoSaveManager } from './NotesAutoSaveManager.js';
 import { createLogger } from '../../shared/logger.js';
+import { config } from '../../config.js';
 
 const logger = createLogger('RecordingManager');
 
@@ -88,7 +89,7 @@ export class RecordingManager {
 
     // Start transcription service
     const apiKey = transcriptionMode === 'assemblyai'
-      ? await window.scribeCat.store.get('assemblyai-api-key') as string
+      ? config.assemblyai.apiKey
       : undefined;
 
     await this.transcriptionService.start({

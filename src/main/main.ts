@@ -3,6 +3,8 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as http from 'http';
 import * as fs from 'fs';
+import dotenv from 'dotenv';
+import { config } from '../config.js';
 import { RecordingManager } from './recording-manager.js';
 import { DirectoryManager } from '../infrastructure/setup/DirectoryManager.js';
 import { FileSessionRepository } from '../infrastructure/repositories/FileSessionRepository.js';
@@ -115,6 +117,9 @@ class ScribeCatApp {
   private sessionHandlers: SessionHandlers | null = null;
 
   constructor() {
+    // Load environment variables
+    dotenv.config();
+
     // Initialize electron-store for settings (doesn't need app to be ready)
     this.store = new Store<StoreSchema>({
       projectName: 'scribecat-v2',
@@ -122,6 +127,9 @@ class ScribeCatApp {
         'simulation-mode': true // Default to simulation mode
       }
     });
+
+    // Initialize Claude AI service with default API key
+    this.initializeClaudeAI();
 
     // Initialize Google Drive service with pre-configured credentials
     this.initializeGoogleDrive();
@@ -139,16 +147,37 @@ class ScribeCatApp {
   }
 
   /**
+   * Initialize Claude AI service with default API key from config
+   */
+  private initializeClaudeAI(): void {
+    try {
+      const apiKey = config.claude.apiKey;
+
+      if (!apiKey) {
+        console.warn('⚠️ Claude API key not configured in environment. AI features will be unavailable.');
+        this.aiService = null;
+        return;
+      }
+
+      this.aiService = new ClaudeAIService({ apiKey });
+      console.log('✅ Claude AI service initialized with default API key');
+    } catch (error) {
+      console.error('❌ Failed to initialize Claude AI service:', error);
+      this.aiService = null;
+    }
+  }
+
+  /**
    * Initialize Google Drive service with stored credentials
    */
   private initializeGoogleDrive(): void {
     try {
       // Load stored credentials if they exist
       const storedCreds = (this.store as any).get('google-drive-credentials');
-      const config: GoogleDriveConfig = storedCreds ? JSON.parse(storedCreds) : {};
+      const driveConfig: GoogleDriveConfig = storedCreds ? JSON.parse(storedCreds) : {};
 
       // Initialize service (it will work with or without stored credentials)
-      this.googleDriveService = new GoogleDriveService(config);
+      this.googleDriveService = new GoogleDriveService(driveConfig);
 
       console.log('Google Drive service initialized');
     } catch (error) {
@@ -555,22 +584,10 @@ class ScribeCatApp {
     // Special handlers that need direct access to modify class properties
     // These cannot be in handler classes because they need to set this.aiService and this.googleDriveService
     
+    // API keys are now hardcoded from environment, not user-configurable
     ipcMain.handle('ai:setApiKey', async (event, apiKey: string) => {
-      try {
-        if (!apiKey || apiKey.trim().length === 0) {
-          this.aiService = null;
-          return { success: true };
-        }
-        
-        this.aiService = new ClaudeAIService({ apiKey });
-        return { success: true };
-      } catch (error) {
-        console.error('Failed to set AI API key:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        };
-      }
+      console.log('⚠️ ai:setApiKey called but API keys are now configured via environment');
+      return { success: true };
     });
     
     ipcMain.handle('drive:configure', async (event, config: GoogleDriveConfig) => {
