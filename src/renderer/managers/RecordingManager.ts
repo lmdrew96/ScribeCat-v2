@@ -132,11 +132,16 @@ export class RecordingManager {
       courseNumber: selectedCourse.code || selectedCourse.courseNumber
     } : undefined;
 
+    // Get current user ID (if authenticated)
+    const currentUser = window.authManager?.getCurrentUser();
+    const userId = currentUser?.id || null;
+
     // Save the recording to disk
     const saveResult = await window.scribeCat.recording.stop(
       result.audioData.buffer as ArrayBuffer,
       durationSeconds,
-      courseData
+      courseData,
+      userId
     );
 
     if (!saveResult.success) {

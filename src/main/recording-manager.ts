@@ -83,14 +83,15 @@ export class RecordingManager {
       }
     });
 
-    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }) => {
+    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null) => {
       try {
         const result = await this.saveRecordingUseCase.execute({
           audioData,
           duration,
           courseId: courseData?.courseId,
           courseTitle: courseData?.courseTitle,
-          courseNumber: courseData?.courseNumber
+          courseNumber: courseData?.courseNumber,
+          userId: userId || undefined
         });
 
         // Trigger auto-sync if callback is provided

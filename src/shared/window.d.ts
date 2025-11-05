@@ -31,7 +31,7 @@ declare global {
       };
       recording: {
         start: () => Promise<{ success: boolean; error?: string }>;
-        stop: (audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
+        stop: (audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
         pause: () => Promise<{ success: boolean; error?: string }>;
         resume: () => Promise<{ success: boolean; error?: string }>;
         getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;
@@ -118,6 +118,7 @@ declare global {
     // Global manager instances (set in app.ts)
     courseManager?: import('./types').CourseManager;
     aiManager?: import('../renderer/managers/AIManager').AIManager;
+    authManager?: import('../renderer/managers/AuthManager').AuthManager;
   }
 }
 

@@ -102,11 +102,17 @@ class ScribeCatApp {
   private getSharedSessionsUseCase!: GetSharedSessionsUseCase;
   private acceptShareInvitationUseCase!: AcceptShareInvitationUseCase;
 
+  // Current user ID (set by auth:sessionChanged handler)
+  private currentUserId: string | null = null;
+
   // OAuth callback server
   private oauthCallbackServer: http.Server | null = null;
 
   // Real-time sharing handlers (permission-based access control)
   private sharingHandlers: SharingHandlers | null = null;
+
+  // Session handlers (for setting current user ID)
+  private sessionHandlers: SessionHandlers | null = null;
 
   constructor() {
     // Initialize electron-store for settings (doesn't need app to be ready)
@@ -498,14 +504,15 @@ class ScribeCatApp {
   private setupIPC(): void {
     // Create handler registry
     const registry = new HandlerRegistry();
-    
+
     // Register all modular handlers
-    registry.add(new SessionHandlers(
+    this.sessionHandlers = new SessionHandlers(
       this.listSessionsUseCase,
       this.deleteSessionUseCase,
       this.exportSessionUseCase,
       this.updateSessionUseCase
-    ));
+    );
+    registry.add(this.sessionHandlers);
     
     registry.add(new AudioHandlers());
     
@@ -584,10 +591,19 @@ class ScribeCatApp {
       try {
         console.log('Received auth state change from renderer:', data.userId ? `User ID: ${data.userId}` : 'No user');
 
+        // Store current user ID for session claiming
+        this.currentUserId = data.userId;
+
         // Update local repository (FileSessionRepository) to filter by user ID
         if ('setUserId' in this.sessionRepository) {
           (this.sessionRepository as any).setUserId(data.userId);
           console.log('Updated FileSessionRepository with user ID');
+        }
+
+        // Update SessionHandlers with user ID for auto-claiming orphaned sessions
+        if (this.sessionHandlers) {
+          this.sessionHandlers.setCurrentUserId(data.userId);
+          console.log('Updated SessionHandlers with user ID');
         }
 
         // Update SyncManager with user ID (which also updates SupabaseSessionRepository)

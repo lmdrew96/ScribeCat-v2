@@ -8,10 +8,12 @@ import { UpdateSessionUseCase } from '../../../application/use-cases/UpdateSessi
 
 /**
  * Handles session-related IPC channels
- * 
+ *
  * Manages session listing, deletion, update, and export operations.
  */
 export class SessionHandlers extends BaseHandler {
+  private currentUserId: string | null = null;
+
   constructor(
     private listSessionsUseCase: ListSessionsUseCase,
     private deleteSessionUseCase: DeleteSessionUseCase,
@@ -19,6 +21,13 @@ export class SessionHandlers extends BaseHandler {
     private updateSessionUseCase: UpdateSessionUseCase
   ) {
     super();
+  }
+
+  /**
+   * Set the current user ID for session claiming
+   */
+  setCurrentUserId(userId: string | null): void {
+    this.currentUserId = userId;
   }
 
   register(ipcMain: IpcMain): void {
@@ -48,7 +57,7 @@ export class SessionHandlers extends BaseHandler {
 
     // Session update handler
     this.handle(ipcMain, 'sessions:update', async (event, sessionId: string, updates: { title?: string; notes?: string; tags?: string[] }) => {
-      const success = await this.updateSessionUseCase.execute(sessionId, updates);
+      const success = await this.updateSessionUseCase.execute(sessionId, updates, this.currentUserId);
       return { success };
     });
 

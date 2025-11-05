@@ -108,6 +108,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   authScreen = new AuthScreen(authManager);
   userProfileMenu = new UserProfileMenu(authManager);
 
+  // Expose authManager globally for RecordingManager to access current user
+  window.authManager = authManager;
+
   // Initialize study mode manager (requires authManager)
   studyModeManager = new StudyModeManager(authManager);
   await studyModeManager.initialize();

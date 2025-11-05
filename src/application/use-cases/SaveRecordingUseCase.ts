@@ -16,6 +16,7 @@ export interface SaveRecordingInput {
   courseId?: string;
   courseTitle?: string;
   courseNumber?: string;
+  userId?: string;
 }
 
 export interface SaveRecordingOutput {
@@ -58,7 +59,9 @@ export class SaveRecordingUseCase {
       [], // exportHistory
       input.courseId,
       input.courseTitle,
-      input.courseNumber
+      input.courseNumber,
+      // Cloud sync fields
+      input.userId // Set userId if user is authenticated (or undefined if logged out)
     );
 
     // Save session metadata

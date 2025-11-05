@@ -116,8 +116,11 @@ export class FileSessionRepository implements ISessionRepository {
               continue; // Skip all sessions when logged out
             }
 
-            // Only show sessions that belong to the current user
-            if (session.userId !== this.userId) {
+            // When logged in, show:
+            // 1. Sessions that belong to the current user
+            // 2. Orphaned sessions (userId = undefined) that can be claimed
+            // Never show sessions from other users
+            if (session.userId !== undefined && session.userId !== this.userId) {
               continue; // Skip sessions from other users
             }
 
