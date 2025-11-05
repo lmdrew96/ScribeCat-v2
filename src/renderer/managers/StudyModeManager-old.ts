@@ -6,6 +6,8 @@
  */
 
 import type { Session } from '../../domain/entities/Session.js';
+import { SyncStatus } from '../../domain/entities/Session.js';
+import { Transcription } from '../../domain/entities/Transcription.js';
 import { AIClient } from '../ai/AIClient.js';
 import { SessionPlaybackManager } from '../services/SessionPlaybackManager.js';
 import { AISummaryManager } from '../services/AISummaryManager.js';
@@ -18,8 +20,6 @@ import { StudyModeSessionListManager } from './study-mode/StudyModeSessionListMa
 import { StudyModeDetailViewManager } from './study-mode/StudyModeDetailViewManager.js';
 import { StudyModeNotesEditorManager } from './study-mode/StudyModeNotesEditorManager.js';
 import { StudyModeAIToolsManager } from './study-mode/StudyModeAIToolsManager.js';
-import { StudyModeEventCoordinator } from './study-mode/StudyModeEventCoordinator.js';
-import { StudyModeDataTransformer } from './study-mode/StudyModeDataTransformer.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('StudyModeManager');
@@ -30,8 +30,6 @@ export class StudyModeManager {
   private detailViewManager: StudyModeDetailViewManager;
   private notesEditorManager: StudyModeNotesEditorManager;
   private aiToolsManager: StudyModeAIToolsManager;
-  private eventCoordinator: StudyModeEventCoordinator;
-  private dataTransformer: StudyModeDataTransformer;
 
   // Services
   private authManager: AuthManager;
@@ -84,8 +82,6 @@ export class StudyModeManager {
     );
     this.notesEditorManager = new StudyModeNotesEditorManager();
     this.aiToolsManager = new StudyModeAIToolsManager(this.aiSummaryManager);
-    this.eventCoordinator = new StudyModeEventCoordinator();
-    this.dataTransformer = new StudyModeDataTransformer();
 
     this.initializeEventListeners();
     this.setupAuthListener();
@@ -138,70 +134,92 @@ export class StudyModeManager {
   }
 
   /**
-   * Initialize event listeners using EventCoordinator
+   * Initialize event listeners
    */
   private initializeEventListeners(): void {
-    const editNotesBtn = document.querySelector('.edit-notes-btn') as HTMLElement;
-    const saveNotesBtn = document.querySelector('.save-notes-btn') as HTMLElement;
-    const cancelEditNotesBtn = document.querySelector('.cancel-edit-notes-btn') as HTMLElement;
+    // Toggle to study mode
+    this.studyModeBtn.addEventListener('click', () => this.show());
 
-    this.eventCoordinator.setup({
-      // Button click events
-      buttons: [
-        { element: this.studyModeBtn, handler: () => this.show() },
-        { element: this.backToRecordBtn, handler: () => this.hide() },
-        { element: this.syncNowBtn, handler: () => this.handleSyncNow() },
-        {
-          element: editNotesBtn,
-          handler: (e) => {
-            const sessionId = (e as any)?.target?.dataset?.sessionId;
-            if (sessionId) {
-              const session = this.sessions.find(s => s.id === sessionId);
-              if (session) {
-                this.notesEditorManager.startNotesEdit(sessionId, session.notes || '');
-              }
-            }
-          }
-        },
-        {
-          element: saveNotesBtn,
-          handler: (e) => {
-            const sessionId = (e as any)?.target?.dataset?.sessionId;
-            if (sessionId) {
-              this.saveNotesEdit(sessionId);
-            }
-          }
-        },
-        { element: cancelEditNotesBtn, handler: () => this.cancelNotesEdit() }
-      ],
+    // Back to record mode
+    this.backToRecordBtn.addEventListener('click', () => this.hide());
 
-      // Document-level custom events
-      documentEvents: [
-        { eventName: 'openSharedSessions', handler: () => this.showSharedSessionsOnly() }
-      ],
+    // Sync now button
+    this.syncNowBtn.addEventListener('click', () => this.handleSyncNow());
 
-      // Session list custom events
-      customEvents: [
-        { element: this.sessionListContainer, eventName: 'hideStudyMode', handler: () => this.hide() },
-        { element: this.sessionListContainer, eventName: 'openSessionDetail', handler: (detail) => this.openSessionDetail(detail.sessionId) },
-        { element: this.sessionListContainer, eventName: 'exportSession', handler: (detail) => this.exportSession(detail.sessionId) },
-        { element: this.sessionListContainer, eventName: 'deleteSession', handler: (detail) => this.deleteSession(detail.sessionId) },
-        { element: this.sessionListContainer, eventName: 'leaveSession', handler: (detail) => this.leaveSession(detail.sessionId) },
-        { element: this.sessionListContainer, eventName: 'startTitleEdit', handler: (detail) => this.startTitleEdit(detail.sessionId) },
-        { element: this.sessionListContainer, eventName: 'shareSession', handler: (detail) => this.openShareModal(detail.sessionId) },
-        // Detail view custom events
-        { element: this.sessionDetailContainer, eventName: 'backToList', handler: () => this.backToSessionList() },
-        { element: this.sessionDetailContainer, eventName: 'exportSession', handler: (detail) => this.exportSession(detail.sessionId) },
-        { element: this.sessionDetailContainer, eventName: 'deleteSession', handler: (detail) => this.deleteSession(detail.sessionId) },
-        { element: this.sessionDetailContainer, eventName: 'startTitleEdit', handler: (detail) => this.startDetailTitleEdit(detail.sessionId) },
-        { element: this.sessionDetailContainer, eventName: 'shareSession', handler: (detail) => this.openShareModal(detail.sessionId) }
-      ],
+    // Open shared sessions from menu
+    document.addEventListener('openSharedSessions', () => {
+      this.showSharedSessionsOnly();
+    });
 
-      // Callback-based events
-      callbacks: [
-        { register: (handler) => this.sessionListManager.onBulkExport(handler), handler: (sessionIds) => this.handleBulkExport(sessionIds) },
-        { register: (handler) => this.sessionListManager.onBulkDelete(handler), handler: (sessionIds) => this.handleBulkDelete(sessionIds) }
-      ]
+    // Session list events
+    this.sessionListContainer.addEventListener('hideStudyMode', () => this.hide());
+    this.sessionListContainer.addEventListener('openSessionDetail', ((e: CustomEvent) => {
+      this.openSessionDetail(e.detail.sessionId);
+    }) as EventListener);
+    this.sessionListContainer.addEventListener('exportSession', ((e: CustomEvent) => {
+      this.exportSession(e.detail.sessionId);
+    }) as EventListener);
+    this.sessionListContainer.addEventListener('deleteSession', ((e: CustomEvent) => {
+      this.deleteSession(e.detail.sessionId);
+    }) as EventListener);
+    this.sessionListContainer.addEventListener('leaveSession', ((e: CustomEvent) => {
+      this.leaveSession(e.detail.sessionId);
+    }) as EventListener);
+    this.sessionListContainer.addEventListener('startTitleEdit', ((e: CustomEvent) => {
+      this.startTitleEdit(e.detail.sessionId);
+    }) as EventListener);
+    this.sessionListContainer.addEventListener('shareSession', ((e: CustomEvent) => {
+      this.openShareModal(e.detail.sessionId);
+    }) as EventListener);
+
+    // Bulk actions
+    this.sessionListManager.onBulkExport((sessionIds) => {
+      this.handleBulkExport(sessionIds);
+    });
+    this.sessionListManager.onBulkDelete((sessionIds) => {
+      this.handleBulkDelete(sessionIds);
+    });
+
+    // Detail view events
+    this.sessionDetailContainer.addEventListener('backToList', () => {
+      this.backToSessionList();
+    });
+    this.sessionDetailContainer.addEventListener('exportSession', ((e: CustomEvent) => {
+      this.exportSession(e.detail.sessionId);
+    }) as EventListener);
+    this.sessionDetailContainer.addEventListener('deleteSession', ((e: CustomEvent) => {
+      this.deleteSession(e.detail.sessionId);
+    }) as EventListener);
+    this.sessionDetailContainer.addEventListener('startTitleEdit', ((e: CustomEvent) => {
+      this.startDetailTitleEdit(e.detail.sessionId);
+    }) as EventListener);
+    this.sessionDetailContainer.addEventListener('shareSession', ((e: CustomEvent) => {
+      this.openShareModal(e.detail.sessionId);
+    }) as EventListener);
+
+    // Notes editing events
+    const editNotesBtn = document.querySelector('.edit-notes-btn');
+    editNotesBtn?.addEventListener('click', (e) => {
+      const sessionId = (e.target as HTMLElement).dataset.sessionId;
+      if (sessionId) {
+        const session = this.sessions.find(s => s.id === sessionId);
+        if (session) {
+          this.notesEditorManager.startNotesEdit(sessionId, session.notes || '');
+        }
+      }
+    });
+
+    const saveNotesBtn = document.querySelector('.save-notes-btn');
+    saveNotesBtn?.addEventListener('click', (e) => {
+      const sessionId = (e.target as HTMLElement).dataset.sessionId;
+      if (sessionId) {
+        this.saveNotesEdit(sessionId);
+      }
+    });
+
+    const cancelEditNotesBtn = document.querySelector('.cancel-edit-notes-btn');
+    cancelEditNotesBtn?.addEventListener('click', () => {
+      this.cancelNotesEdit();
     });
   }
 
@@ -700,7 +718,7 @@ export class StudyModeManager {
   private async loadSharedWithMeSessions(): Promise<void> {
     try {
       const result = await this.sessionSharingManager.getSharedWithMe();
-      logger.info('getSharedWithMe result:', {
+      logger.info('🔍 getSharedWithMe result:', {
         success: result.success,
         hasData: !!result.sessions,
         sessionCount: result.sessions?.length || 0,
@@ -711,15 +729,83 @@ export class StudyModeManager {
         this.sharedWithMeSessions = result.sessions;
         logger.info(`Loaded ${this.sharedWithMeSessions.length} shared sessions`);
 
-        // Transform shared session data using DataTransformer
-        const sharedSessionsData = this.dataTransformer.transformSharedSessions(this.sharedWithMeSessions);
+        // Extract session data from shares and merge with owned sessions
+        // Transform database rows to Session entities (similar to SupabaseSessionRepository.rowToSession)
+        const sharedSessionsData = this.sharedWithMeSessions
+          .map((share: any) => {
+            logger.info('🔍 Processing share:', {
+              shareId: share.id,
+              hasSessionsProperty: 'sessions' in share,
+              sessionData: share.sessions
+            });
+            return share.sessions;
+          })
+          .filter((sessionData: any) => {
+            const isValid = sessionData != null;
+            if (!isValid) {
+              logger.warn('⚠️ Filtered out null/undefined session data');
+            }
+            return isValid;
+          })
+          .map((row: any) => {
+            // Create transcription if data exists (matching SupabaseSessionRepository logic)
+            let transcription: Transcription | undefined;
+            if (row.transcription_text) {
+              // Create a single segment from the full text
+              const segments = [{
+                text: row.transcription_text,
+                startTime: 0,
+                endTime: row.duration / 1000, // Convert to seconds
+                confidence: row.transcription_confidence
+              }];
 
-        // Merge with owned sessions
-        const allSessions = this.dataTransformer.mergeSessions(this.sessions, sharedSessionsData);
+              transcription = new Transcription(
+                row.transcription_text,
+                segments,
+                row.transcription_language || 'en',
+                (row.transcription_provider as 'assemblyai' | 'simulation') || 'simulation',
+                row.transcription_timestamp ? new Date(row.transcription_timestamp) : new Date(),
+                row.transcription_confidence
+              );
+            }
+
+            // Use cloud:// path for shared audio files
+            const recordingPath = `cloud://${row.user_id}/${row.id}/audio.webm`;
+
+            // Create Session entity matching the structure from SupabaseSessionRepository
+            const session: any = {
+              id: row.id,
+              title: row.title || 'Untitled Session',
+              recordingPath: recordingPath,
+              notes: row.notes || '',
+              createdAt: new Date(row.created_at),
+              updatedAt: new Date(row.updated_at),
+              duration: row.duration / 1000, // Convert milliseconds to seconds
+              transcription: transcription,
+              tags: row.tags || [],
+              exportHistory: [], // Export history not stored in cloud
+              courseId: row.course_id,
+              courseTitle: row.course_title,
+              courseNumber: row.course_number,
+              // Cloud sync fields
+              userId: row.user_id,
+              cloudId: row.id,
+              syncStatus: SyncStatus.SYNCED,
+              lastSyncedAt: new Date(row.updated_at),
+              // Mark as shared so we can show a badge
+              isShared: true
+            };
+
+            return session;
+          });
+
+        // Merge with owned sessions and update both the main array and list manager
+        const allSessions = [...this.sessions, ...sharedSessionsData];
         this.sessions = allSessions;
         this.sessionListManager.setSessions(allSessions);
+        logger.info(`Total sessions (owned + shared): ${allSessions.length}`);
       } else {
-        logger.warn('No shared sessions data or unsuccessful result:', {
+        logger.warn('⚠️ No shared sessions data or unsuccessful result:', {
           success: result.success,
           error: result.error,
           sessionsLength: result.sessions?.length
@@ -727,7 +813,7 @@ export class StudyModeManager {
         this.sharedWithMeSessions = [];
       }
     } catch (error) {
-      logger.error('Error loading shared sessions:', error);
+      logger.error('❌ Error loading shared sessions:', error);
       this.sharedWithMeSessions = [];
     }
   }
@@ -846,8 +932,10 @@ export class StudyModeManager {
     // Load sessions first
     await this.loadSessions();
 
-    // Filter to show only shared sessions using DataTransformer
-    const sharedOnly = this.dataTransformer.filterSharedOnly(this.sessions);
+    // Filter to show only shared sessions
+    const sharedOnly = this.sessions.filter((s: any) => s.isShared === true);
+
+    logger.info(`Showing ${sharedOnly.length} shared sessions out of ${this.sessions.length} total`);
 
     // Show study mode
     this.recordModeView.classList.add('hidden');

@@ -13,15 +13,9 @@ import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
 import Typography from '@tiptap/extension-typography';
 import Underline from '@tiptap/extension-underline';
-import { Color } from '@tiptap/extension-color';
-import { BackgroundColor } from '@tiptap/extension-background-color';
-import { FontSize } from '@tiptap/extension-font-size';
-import TextStyle from '@tiptap/extension-text-style';
+import { Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import Image from '@tiptap/extension-image';
 import Collaboration from '@tiptap/extension-collaboration';
 import type { Editor, EditorOptions } from '@tiptap/core';
@@ -84,7 +78,6 @@ export class EditorConfigService {
       Superscript,
       Subscript,
       Typography,
-      TextStyle,
       Color,
       BackgroundColor,
       FontSize,
