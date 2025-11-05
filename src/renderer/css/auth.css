@@ -35,7 +35,7 @@
 }
 
 .auth-modal-content {
-  background: var(--surface-color, #ffffff);
+  background: var(--bg-primary);
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 90%;
@@ -76,8 +76,8 @@
 }
 
 .auth-close-btn:hover {
-  background: var(--hover-bg, #f0f0f0);
-  color: var(--text-primary, #000);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* =============================================================================
@@ -87,7 +87,7 @@
 .auth-header {
   text-align: center;
   padding: 40px 40px 30px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border);
 }
 
 .auth-logo {
@@ -129,8 +129,8 @@
 .config-message {
   margin: 0 0 20px;
   padding: 12px;
-  background: var(--info-bg, #e3f2fd);
-  border-left: 3px solid var(--info-color, #2196f3);
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--accent);
   border-radius: 4px;
   font-size: 14px;
   color: var(--text-primary, #000);
@@ -145,29 +145,29 @@
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary, #000);
+  color: var(--text-primary);
 }
 
 .form-group input {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
   transition: all 0.2s;
-  background: var(--input-bg, #fff);
-  color: var(--text-primary, #000);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color, #2196f3);
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
 }
 
 .form-group input::placeholder {
-  color: var(--text-tertiary, #999);
+  color: var(--text-tertiary);
 }
 
 .form-hint {
@@ -207,14 +207,14 @@
 }
 
 .auth-btn-primary {
-  background: var(--primary-color, #2196f3);
+  background: var(--accent);
   color: white;
 }
 
 .auth-btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover, #1976d2);
+  background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
 }
 
 .auth-btn-primary:active:not(:disabled) {
@@ -254,15 +254,15 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--border-color, #e0e0e0);
+  background: var(--border);
 }
 
 .auth-divider span {
   position: relative;
   display: inline-block;
   padding: 0 16px;
-  background: var(--surface-color, #fff);
-  color: var(--text-secondary, #666);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -281,7 +281,7 @@
 .auth-link {
   background: none;
   border: none;
-  color: var(--primary-color, #2196f3);
+  color: var(--accent);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -320,7 +320,7 @@
   text-align: center;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
+  border-top: 1px solid var(--border);
 }
 
 /* =============================================================================
@@ -337,15 +337,15 @@
 }
 
 .auth-error {
-  background: var(--error-bg, #ffebee);
-  color: var(--error-color, #c62828);
-  border: 1px solid var(--error-border, #ef5350);
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
 }
 
 .auth-success {
-  background: var(--success-bg, #e8f5e9);
-  color: var(--success-color, #2e7d32);
-  border: 1px solid var(--success-border, #66bb6a);
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.3);
 }
 
 .auth-error.hidden,
@@ -393,7 +393,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color, #2196f3), var(--secondary-color, #1976d2));
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -446,7 +446,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color, #2196f3), var(--secondary-color, #1976d2));
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -511,11 +511,11 @@
 }
 
 .profile-menu-item-danger {
-  color: var(--error-color, #d32f2f);
+  color: #dc3545;
 }
 
 .profile-menu-item-danger:hover {
-  background: var(--error-bg, #ffebee);
+  background: rgba(220, 53, 69, 0.1);
 }
 
 .profile-menu-icon {
@@ -549,6 +549,89 @@
 }
 
 .status-badge-danger {
-  background: var(--error-bg, #ffebee);
-  color: var(--error-color, #d32f2f);
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+/* =============================================================================
+   Account Settings Modal
+   ============================================================================= */
+
+.account-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.account-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.account-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+}
+
+.account-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.account-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-info-item label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.account-info-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.account-danger-zone {
+  border: 2px solid #dc3545;
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(220, 53, 69, 0.08);
+}
+
+.account-danger-zone .account-section-title {
+  color: #dc3545;
+}
+
+.auth-btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.auth-btn-secondary:hover {
+  background: var(--bg-secondary);
+}
+
+.auth-btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.auth-btn-danger:hover {
+  background: #c82333;
+}
+
+.auth-btn-danger:disabled {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+  opacity: 0.6;
 }

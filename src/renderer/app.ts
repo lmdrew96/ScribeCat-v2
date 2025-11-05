@@ -21,6 +21,7 @@ import { AuthManager } from './managers/AuthManager.js';
 import { AuthScreen } from './components/AuthScreen.js';
 import { UserProfileMenu } from './components/UserProfileMenu.js';
 import { ShareModal } from './components/ShareModal.js';
+import { AccountSettingsModal } from './components/AccountSettingsModal.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -39,6 +40,7 @@ let authManager: AuthManager;
 let authScreen: AuthScreen;
 let userProfileMenu: UserProfileMenu;
 let shareModal: ShareModal;
+let accountSettingsModal: AccountSettingsModal;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -106,7 +108,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   authManager = new AuthManager();
   await authManager.initialize();
   authScreen = new AuthScreen(authManager);
-  userProfileMenu = new UserProfileMenu(authManager);
+  accountSettingsModal = new AccountSettingsModal(authManager);
+  userProfileMenu = new UserProfileMenu(authManager, accountSettingsModal);
 
   // Expose authManager globally for RecordingManager to access current user
   window.authManager = authManager;

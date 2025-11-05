@@ -208,6 +208,9 @@ const electronAPI = {
     signOut: () => ipcRenderer.invoke('auth:signOut'),
     getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
     isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated'),
+    updateProfile: (updates: { fullName?: string }) => ipcRenderer.invoke('auth:updateProfile', updates),
+    resetPassword: (email: string) => ipcRenderer.invoke('auth:resetPassword', email),
+    deleteAccount: () => ipcRenderer.invoke('auth:deleteAccount'),
     // Send auth state changes to main process for cloud sync
     sessionChanged: (data: { userId: string | null; accessToken?: string; refreshToken?: string }) =>
       ipcRenderer.invoke('auth:sessionChanged', data)

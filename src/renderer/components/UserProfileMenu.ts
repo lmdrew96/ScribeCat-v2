@@ -5,15 +5,18 @@
  */
 
 import { AuthManager } from '../managers/AuthManager.js';
+import { AccountSettingsModal } from './AccountSettingsModal.js';
 
 export class UserProfileMenu {
   private authManager: AuthManager;
+  private accountSettingsModal: AccountSettingsModal | null = null;
   private button: HTMLElement | null = null;
   private menu: HTMLElement | null = null;
   private onSignOut?: () => void;
 
-  constructor(authManager: AuthManager) {
+  constructor(authManager: AuthManager, accountSettingsModal?: AccountSettingsModal) {
     this.authManager = authManager;
+    this.accountSettingsModal = accountSettingsModal || null;
     this.createButton();
     this.createMenu();
     this.setupEventListeners();
@@ -132,11 +135,11 @@ export class UserProfileMenu {
       this.handleSignOut();
     });
 
-    // Account settings (placeholder for now)
+    // Account settings
     const accountBtn = this.menu?.querySelector('#profile-menu-account');
     accountBtn?.addEventListener('click', () => {
-      console.log('Account settings clicked (not implemented yet)');
       this.hideMenu();
+      this.openAccountSettings();
     });
 
     // Sync status (placeholder for now)
@@ -278,5 +281,24 @@ export class UserProfileMenu {
         badge.classList.add('status-badge-danger');
         break;
     }
+  }
+
+  /**
+   * Open account settings modal
+   */
+  private openAccountSettings(): void {
+    if (this.accountSettingsModal) {
+      this.accountSettingsModal.show();
+    } else {
+      console.error('Account settings modal not available');
+      alert('Account settings is not available');
+    }
+  }
+
+  /**
+   * Set the account settings modal
+   */
+  setAccountSettingsModal(modal: AccountSettingsModal): void {
+    this.accountSettingsModal = modal;
   }
 }

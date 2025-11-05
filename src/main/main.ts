@@ -653,6 +653,103 @@ class ScribeCatApp {
       }
     });
 
+    // Profile update handler
+    // NOTE: Profile updates should be handled in the renderer process where Supabase client has access to localStorage
+    ipcMain.handle('auth:updateProfile', async (event, updates: { fullName?: string }) => {
+      try {
+        if (!this.supabaseClient) {
+          return { success: false, error: 'Auth service not initialized' };
+        }
+
+        const client = this.supabaseClient.getClient();
+        const { error } = await client.auth.updateUser({
+          data: {
+            full_name: updates.fullName
+          }
+        });
+
+        if (error) {
+          return { success: false, error: error.message };
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to update profile:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    // Password reset handler
+    ipcMain.handle('auth:resetPassword', async (event, email: string) => {
+      try {
+        if (!this.supabaseClient) {
+          return { success: false, error: 'Auth service not initialized' };
+        }
+
+        const client = this.supabaseClient.getClient();
+        const { error } = await client.auth.resetPasswordForEmail(email, {
+          redirectTo: 'http://localhost:3000/auth/reset-password'
+        });
+
+        if (error) {
+          return { success: false, error: error.message };
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to send password reset email:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    // Account deletion handler
+    ipcMain.handle('auth:deleteAccount', async (event) => {
+      try {
+        if (!this.supabaseClient) {
+          return { success: false, error: 'Auth service not initialized' };
+        }
+
+        // Delete all user sessions from cloud (if supabase session repo exists)
+        if (this.supabaseSessionRepository) {
+          try {
+            const sessions = await this.supabaseSessionRepository.findAll();
+            for (const session of sessions) {
+              await this.supabaseSessionRepository.delete(session.id);
+            }
+            console.log(`Deleted ${sessions.length} sessions from cloud`);
+          } catch (error) {
+            console.error('Error deleting user sessions:', error);
+            // Continue with account deletion even if session deletion fails
+          }
+        }
+
+        // Delete the user account
+        const client = this.supabaseClient.getClient();
+
+        // Supabase doesn't allow users to delete their own accounts via the client API
+        // They need to use the Management API or do it through the dashboard
+        // For now, just sign them out and return a message
+        await client.auth.signOut();
+
+        return {
+          success: true,
+          message: 'Account deletion initiated. Your account has been signed out. Please contact support to complete account deletion.'
+        };
+      } catch (error) {
+        console.error('Failed to delete account:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
     // Sync handlers
     ipcMain.handle('sync:uploadSession', async (event, sessionId: string) => {
       try {
