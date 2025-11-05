@@ -395,9 +395,9 @@ class ScribeCatApp {
    * Watches dist/ directory and reloads/restarts on changes
    */
   private setupHotReload(): void {
-    console.log('🔥 Hot reload will activate in 5 seconds...');
+    console.log('🔥 Hot reload will activate in 10 seconds...');
 
-    // Wait 5 seconds before enabling watchers
+    // Wait 10 seconds before enabling watchers
     // This prevents reload during initial TypeScript watch compilation
     setTimeout(() => {
       console.log('🔥 Hot reload enabled');
@@ -449,7 +449,7 @@ class ScribeCatApp {
 
       watchMainAndPreload('.', 'Main process');
       watchMainAndPreload('../preload', 'Preload');
-    }, 5000);
+    }, 10000);
   }
 
   /**

@@ -111,6 +111,41 @@ declare global {
       getImportedCourses: () => Promise<IPCResponse<CanvasCourse[]>>;
       deleteImportedCourse: (courseId: string) => Promise<IPCResponse<void>>;
     };
+      auth: {
+        signInWithEmail: (params: { email: string; password: string }) => Promise<IPCResponse<any>>;
+        signUpWithEmail: (params: { email: string; password: string; fullName?: string }) => Promise<IPCResponse<any>>;
+        signInWithGoogle: (codeChallenge: string) => Promise<IPCResponse<any>>;
+        signOut: () => Promise<IPCResponse<void>>;
+        getCurrentUser: () => Promise<IPCResponse<any>>;
+        isAuthenticated: () => Promise<IPCResponse<boolean>>;
+        sessionChanged: (data: { userId: string | null; accessToken?: string; refreshToken?: string }) => Promise<IPCResponse<void>>;
+      };
+      sync: {
+        uploadSession: (sessionId: string) => Promise<IPCResponse<void>>;
+        getStatus: (sessionId: string) => Promise<IPCResponse<any>>;
+        retrySync: (sessionId: string) => Promise<IPCResponse<void>>;
+        syncAllFromCloud: () => Promise<IPCResponse<void>>;
+      };
+      share: {
+        create: (params: { sessionId: string; email: string; permissionLevel: 'viewer' | 'editor' }) => Promise<IPCResponse<any>>;
+        remove: (params: { shareId?: string; invitationId?: string }) => Promise<IPCResponse<void>>;
+        updatePermission: (params: { shareId: string; permissionLevel: 'viewer' | 'editor' }) => Promise<IPCResponse<void>>;
+        getSessionShares: (sessionId: string) => Promise<IPCResponse<any[]>>;
+        getSharedWithMe: () => Promise<IPCResponse<any[]>>;
+        acceptInvitation: (token: string) => Promise<IPCResponse<any>>;
+      };
+      sharing: {
+        checkAccess: (sessionId: string) => Promise<IPCResponse<any>>;
+        shareSession: (params: { sessionId: string; sharedWithEmail: string; permissionLevel: 'viewer' | 'editor' }) => Promise<IPCResponse<any>>;
+        getSessionShares: (sessionId: string) => Promise<IPCResponse<any[]>>;
+        getSharedWithMe: () => Promise<IPCResponse<any[]>>;
+        updatePermission: (params: { shareId: string; permissionLevel: 'viewer' | 'editor' }) => Promise<IPCResponse<void>>;
+        revokeAccess: (shareId: string) => Promise<IPCResponse<void>>;
+      };
+      dev: {
+        onHotReloadNotification: (callback: (message: string) => void) => void;
+        removeHotReloadListener: () => void;
+      };
       // TODO: Add type declarations when features are implemented
       // files?: { ... };
       // themes?: { ... };
