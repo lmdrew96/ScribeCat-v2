@@ -102,15 +102,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load microphone devices
   await deviceManager.loadDevices();
 
-  // Initialize study mode manager
-  studyModeManager = new StudyModeManager();
-  await studyModeManager.initialize();
-
-  // Initialize authentication
+  // Initialize authentication FIRST (needed by StudyModeManager)
   authManager = new AuthManager();
   await authManager.initialize();
   authScreen = new AuthScreen(authManager);
   userProfileMenu = new UserProfileMenu(authManager);
+
+  // Initialize study mode manager (requires authManager)
+  studyModeManager = new StudyModeManager(authManager);
+  await studyModeManager.initialize();
 
   // Initialize sharing
   shareModal = new ShareModal();

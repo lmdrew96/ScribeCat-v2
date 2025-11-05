@@ -584,7 +584,13 @@ class ScribeCatApp {
       try {
         console.log('Received auth state change from renderer:', data.userId ? `User ID: ${data.userId}` : 'No user');
 
-        // Update SyncManager with user ID
+        // Update local repository (FileSessionRepository) to filter by user ID
+        if ('setUserId' in this.sessionRepository) {
+          (this.sessionRepository as any).setUserId(data.userId);
+          console.log('Updated FileSessionRepository with user ID');
+        }
+
+        // Update SyncManager with user ID (which also updates SupabaseSessionRepository)
         if (this.syncManager) {
           this.syncManager.setCurrentUserId(data.userId);
           console.log('Updated SyncManager with user ID');

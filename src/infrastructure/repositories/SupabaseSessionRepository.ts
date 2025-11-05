@@ -128,11 +128,18 @@ export class SupabaseSessionRepository implements ISessionRepository {
    */
   async findAll(): Promise<Session[]> {
     try {
+      // When logged out (userId is null), return no sessions
+      if (this.userId === null) {
+        return [];
+      }
+
       const client = SupabaseClient.getInstance().getClient();
 
+      // Query only sessions for the current user
       const { data, error } = await client
         .from(this.tableName)
         .select('*')
+        .eq('user_id', this.userId)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 

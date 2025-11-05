@@ -14,10 +14,20 @@ import { Session } from '../../domain/entities/Session.js';
 export class FileSessionRepository implements ISessionRepository {
   private sessionsDir: string;
   private directoryInitialized: boolean = false;
+  private userId: string | null = null;
 
   constructor() {
     const userDataPath = electron.app.getPath('userData');
     this.sessionsDir = path.join(userDataPath, 'sessions');
+  }
+
+  /**
+   * Set the current user ID for filtering sessions
+   * When set, only sessions belonging to this user will be returned by findAll()
+   */
+  setUserId(userId: string | null): void {
+    console.log('FileSessionRepository.setUserId called with:', userId);
+    this.userId = userId;
   }
 
   /**
@@ -76,6 +86,7 @@ export class FileSessionRepository implements ISessionRepository {
 
   /**
    * Find all sessions
+   * If userId is set, only returns sessions belonging to that user
    */
   async findAll(): Promise<Session[]> {
     await this.ensureDirectory();
@@ -97,7 +108,20 @@ export class FileSessionRepository implements ISessionRepository {
             }
 
             const sessionData = JSON.parse(data);
-            sessions.push(Session.fromJSON(sessionData));
+            const session = Session.fromJSON(sessionData);
+
+            // Filter by userId for multi-user support
+            // When logged out (userId is null), hide all sessions
+            if (this.userId === null) {
+              continue; // Skip all sessions when logged out
+            }
+
+            // Only show sessions that belong to the current user
+            if (session.userId !== this.userId) {
+              continue; // Skip sessions from other users
+            }
+
+            sessions.push(session);
           } catch (fileError) {
             // Log individual file error but continue loading other sessions
             console.error(`Failed to load session from ${file}:`, fileError);

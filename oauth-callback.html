@@ -252,25 +252,75 @@ All params: ${JSON.stringify(allParams, null, 2) || '(none)'}
       const code = document.getElementById('auth-code').textContent;
       const btn = document.getElementById('copy-btn');
 
-      // Copy to clipboard
-      navigator.clipboard.writeText(code).then(() => {
-        btn.textContent = '✓ Copied!';
-        btn.classList.add('copied');
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(code).then(() => {
+          btn.textContent = '✓ Copied!';
+          btn.classList.add('copied');
 
-        setTimeout(() => {
-          btn.textContent = '📋 Copy Code';
-          btn.classList.remove('copied');
-        }, 2000);
-      }).catch(err => {
-        console.error('Failed to copy:', err);
-        // Fallback: select the text
-        const codeElement = document.getElementById('auth-code');
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(codeElement);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      });
+          setTimeout(() => {
+            btn.textContent = '📋 Copy Code';
+            btn.classList.remove('copied');
+          }, 2000);
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          fallbackCopy();
+        });
+      } else {
+        // Use fallback method for file:// protocol and non-secure contexts
+        fallbackCopy();
+      }
+
+      function fallbackCopy() {
+        try {
+          // Create a temporary textarea
+          const textarea = document.createElement('textarea');
+          textarea.value = code;
+          textarea.style.position = 'fixed';
+          textarea.style.top = '0';
+          textarea.style.left = '0';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+
+          // Try to copy using execCommand
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textarea);
+
+          if (successful) {
+            btn.textContent = '✓ Copied!';
+            btn.classList.add('copied');
+
+            setTimeout(() => {
+              btn.textContent = '📋 Copy Code';
+              btn.classList.remove('copied');
+            }, 2000);
+          } else {
+            // If that also fails, just select the code text
+            const codeElement = document.getElementById('auth-code');
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(codeElement);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            btn.textContent = 'Code Selected - Press Ctrl+C';
+            setTimeout(() => {
+              btn.textContent = '📋 Copy Code';
+            }, 3000);
+          }
+        } catch (err) {
+          console.error('Fallback copy failed:', err);
+          // Last resort: just select the text
+          const codeElement = document.getElementById('auth-code');
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(codeElement);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
     }
   </script>
 </body>

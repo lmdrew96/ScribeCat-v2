@@ -28,9 +28,11 @@ import Collaboration from '@tiptap/extension-collaboration';
 import { ShareModal } from '../components/ShareModal.js';
 import { SessionSharingManager } from './SessionSharingManager.js';
 import { CollaborationManager } from './collaboration/CollaborationManager.js';
+import { AuthManager } from './AuthManager.js';
 import * as Y from 'yjs';
 
 export class StudyModeManager {
+  private authManager: AuthManager;
   private aiClient: AIClient;
   private sessionPlaybackManager: SessionPlaybackManager;
   private aiSummaryManager: AISummaryManager;
@@ -80,7 +82,7 @@ export class StudyModeManager {
   private bulkExportBtn: HTMLButtonElement | null = null;
   private bulkDeleteBtn: HTMLButtonElement | null = null;
 
-  constructor() {
+  constructor(authManager: AuthManager) {
     // Get UI elements
     this.studyModeView = document.getElementById('study-mode-view') as HTMLElement;
     this.recordModeView = document.querySelector('.main-content') as HTMLElement;
@@ -92,6 +94,7 @@ export class StudyModeManager {
     this.sessionDetailContainer = document.getElementById('session-detail') as HTMLElement;
 
     // Initialize services
+    this.authManager = authManager;
     this.aiClient = new AIClient();
     this.sessionPlaybackManager = new SessionPlaybackManager();
     this.aiSummaryManager = new AISummaryManager();
@@ -100,6 +103,7 @@ export class StudyModeManager {
     this.sessionSharingManager = new SessionSharingManager();
 
     this.initializeEventListeners();
+    this.setupAuthListener();
   }
 
   /**
@@ -115,6 +119,47 @@ export class StudyModeManager {
     } catch (error) {
       console.error('Failed to initialize StudyModeManager:', error);
     }
+  }
+
+  /**
+   * Set up auth state change listener to reload sessions when user logs in/out
+   */
+  private setupAuthListener(): void {
+    this.authManager.onAuthStateChange((user) => {
+      console.log('Auth state changed in StudyModeManager:', user ? `User ${user.id}` : 'No user');
+
+      // Clear current sessions
+      this.sessions = [];
+      this.filteredSessions = [];
+      this.sharedWithMeSessions = [];
+
+      // Clear selected session
+      this.currentEditingSessionId = null;
+
+      // Clear bulk selection
+      this.selectedSessionIds.clear();
+
+      // Clear detail view
+      if (this.sessionDetailContainer) {
+        this.sessionDetailContainer.innerHTML = '';
+      }
+
+      // Stop any active collaboration
+      if (this.collaborationManager) {
+        this.collaborationManager.disconnect();
+        this.collaborationManager = null;
+      }
+
+      // Reload sessions for the new user (or clear if logged out)
+      this.loadSessions().then(() => {
+        // Only update UI if study mode is active
+        if (this.isActive) {
+          this.renderSessionList();
+        }
+      }).catch(error => {
+        console.error('Failed to reload sessions after auth change:', error);
+      });
+    });
   }
 
   /**
