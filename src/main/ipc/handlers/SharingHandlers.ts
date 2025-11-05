@@ -454,7 +454,7 @@ export class SharingHandlers {
         // Get the share first
         const { data: share, error: shareError } = await client
           .from('session_shares')
-          .select('id, session_id')
+          .select('id, session_id, shared_by_user_id, shared_with_user_id')
           .eq('id', shareId)
           .single();
 
@@ -466,7 +466,7 @@ export class SharingHandlers {
           };
         }
 
-        // Verify user owns the session
+        // Verify user is either the session owner OR the recipient
         const { data: session, error: sessionError } = await client
           .from('sessions')
           .select('user_id')
@@ -481,12 +481,17 @@ export class SharingHandlers {
           };
         }
 
-        if (session.user_id !== this.currentUserId) {
+        const isOwner = session.user_id === this.currentUserId;
+        const isRecipient = share.shared_with_user_id === this.currentUserId;
+
+        if (!isOwner && !isRecipient) {
           return {
             success: false,
-            error: 'Only the session owner can revoke access'
+            error: 'You do not have permission to remove this share'
           };
         }
+
+        logger.info(`${isOwner ? 'Owner' : 'Recipient'} removing share:`, shareId);
 
         // Delete share
         const { error: deleteError } = await client

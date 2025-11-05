@@ -101,11 +101,11 @@ CREATE POLICY "Users can create shares for their sessions"
     )
   );
 
--- Users can delete shares they created
-CREATE POLICY "Users can delete shares they created"
+-- Users can delete shares they created OR shares they received
+CREATE POLICY "Users can delete shares they created or received"
   ON public.session_shares
   FOR DELETE
-  USING (auth.uid() = shared_by_user_id);
+  USING (auth.uid() = shared_by_user_id OR auth.uid() = shared_with_user_id);
 
 -- Users can accept shares (update accepted_at)
 CREATE POLICY "Users can accept shares"

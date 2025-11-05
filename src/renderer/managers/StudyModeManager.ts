@@ -157,6 +157,9 @@ export class StudyModeManager {
     this.sessionListContainer.addEventListener('deleteSession', ((e: CustomEvent) => {
       this.deleteSession(e.detail.sessionId);
     }) as EventListener);
+    this.sessionListContainer.addEventListener('leaveSession', ((e: CustomEvent) => {
+      this.leaveSession(e.detail.sessionId);
+    }) as EventListener);
     this.sessionListContainer.addEventListener('startTitleEdit', ((e: CustomEvent) => {
       this.startTitleEdit(e.detail.sessionId);
     }) as EventListener);
@@ -301,6 +304,10 @@ export class StudyModeManager {
     const session = this.sessions.find(s => s.id === sessionId);
     if (!session) {
       logger.error('Session not found', sessionId);
+      // Show user-friendly message
+      alert('This session is no longer available. It may have been deleted by its owner.');
+      // Reload sessions to remove stale entries
+      await this.loadSessions();
       return;
     }
 
@@ -575,6 +582,53 @@ export class StudyModeManager {
     } catch (error) {
       logger.error('Error deleting session', error);
       alert('An error occurred while deleting the session.');
+    }
+  }
+
+  /**
+   * Leave a shared session (remove yourself as recipient)
+   */
+  private async leaveSession(sessionId: string): Promise<void> {
+    const session = this.sessions.find(s => s.id === sessionId);
+    if (!session) {
+      logger.error('Session not found', sessionId);
+      return;
+    }
+
+    // Find the share ID for this session
+    const share = this.sharedWithMeSessions.find((s: any) => s.sessions?.id === sessionId);
+    if (!share) {
+      logger.error('Share not found for session', sessionId);
+      alert('Could not find share information for this session.');
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmed = confirm(
+      `Leave "${session.title}"?\n\n` +
+      `This session will be removed from your list. The owner can share it with you again later.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      // Revoke access via IPC
+      const result = await this.sessionSharingManager.revokeAccess(share.id);
+
+      if (result.success) {
+        logger.info('Left shared session successfully');
+        // Refresh the session list
+        await this.loadSessions();
+        this.sessionListManager.render();
+      } else {
+        logger.error('Failed to leave session', result.error);
+        alert(`Failed to leave session: ${result.error}`);
+      }
+    } catch (error) {
+      logger.error('Error leaving session', error);
+      alert('An error occurred while leaving the session.');
     }
   }
 

@@ -336,15 +336,24 @@ export class StudyModeSessionListManager {
         ${indicatorsWithCourse ? `<div class="session-indicators">${indicatorsWithCourse}</div>` : ''}
 
         <div class="session-actions">
-          <button class="action-btn share-session-btn" data-session-id="${session.id}">
-            🔗 Share
-          </button>
-          <button class="action-btn export-session-btn" data-session-id="${session.id}">
-            Export
-          </button>
-          <button class="action-btn delete-session-btn" data-session-id="${session.id}">
-            🗑️ Delete
-          </button>
+          ${(session as any).isShared ? `
+            <button class="action-btn export-session-btn" data-session-id="${session.id}">
+              Export
+            </button>
+            <button class="action-btn leave-session-btn" data-session-id="${session.id}">
+              👋 Leave
+            </button>
+          ` : `
+            <button class="action-btn share-session-btn" data-session-id="${session.id}">
+              🔗 Share
+            </button>
+            <button class="action-btn export-session-btn" data-session-id="${session.id}">
+              Export
+            </button>
+            <button class="action-btn delete-session-btn" data-session-id="${session.id}">
+              🗑️ Delete
+            </button>
+          `}
         </div>
       </div>
     `;
@@ -400,6 +409,18 @@ export class StudyModeSessionListManager {
         const sessionId = (btn as HTMLElement).dataset.sessionId;
         if (sessionId) {
           this.sessionListContainer.dispatchEvent(new CustomEvent('deleteSession', { detail: { sessionId } }));
+        }
+      });
+    });
+
+    // Leave button handlers (for shared sessions)
+    const leaveButtons = document.querySelectorAll('.leave-session-btn');
+    leaveButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sessionId = (btn as HTMLElement).dataset.sessionId;
+        if (sessionId) {
+          this.sessionListContainer.dispatchEvent(new CustomEvent('leaveSession', { detail: { sessionId } }));
         }
       });
     });
