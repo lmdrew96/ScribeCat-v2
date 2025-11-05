@@ -92,10 +92,13 @@ export class AuthManager {
 
   /**
    * Sign in with email and password
+   * Uses RendererSupabaseClient directly since auth is handled in renderer
    */
   async signInWithEmail(email: string, password: string): Promise<AuthResult> {
     try {
-      const result = await (window as any).scribeCat.auth.signInWithEmail({ email, password });
+      // Import and use RendererSupabaseClient directly
+      const { RendererSupabaseClient } = await import('../services/RendererSupabaseClient.js');
+      const result = await RendererSupabaseClient.getInstance().signInWithEmail(email, password);
 
       if (result.success && result.user) {
         this.currentUser = result.user;
@@ -113,14 +116,13 @@ export class AuthManager {
 
   /**
    * Sign up with email and password
+   * Uses RendererSupabaseClient directly since auth is handled in renderer
    */
   async signUpWithEmail(email: string, password: string, fullName?: string): Promise<AuthResult> {
     try {
-      const result = await (window as any).scribeCat.auth.signUpWithEmail({
-        email,
-        password,
-        fullName
-      });
+      // Import and use RendererSupabaseClient directly
+      const { RendererSupabaseClient } = await import('../services/RendererSupabaseClient.js');
+      const result = await RendererSupabaseClient.getInstance().signUpWithEmail(email, password, fullName);
 
       if (result.success && result.user) {
         this.currentUser = result.user;
@@ -138,24 +140,16 @@ export class AuthManager {
 
   /**
    * Sign in with Google OAuth
+   * Uses RendererSupabaseClient directly since auth is handled in renderer
+   * PKCE flow is handled automatically by Supabase
    */
-  async signInWithGoogle(codeChallenge: string): Promise<{ success: boolean; authUrl?: string; error?: string }> {
+  async signInWithGoogle(): Promise<{ success: boolean; authUrl?: string; error?: string }> {
     try {
-      const result = await (window as any).scribeCat.auth.signInWithGoogle(codeChallenge);
+      // Import and use RendererSupabaseClient directly
+      const { RendererSupabaseClient } = await import('../services/RendererSupabaseClient.js');
+      const result = await RendererSupabaseClient.getInstance().signInWithGoogle();
 
-      if (result.success && result.error) {
-        // The OAuth URL is returned in the error field (a bit confusing but that's how it works)
-        const authUrl = result.error;
-        return {
-          success: true,
-          authUrl
-        };
-      }
-
-      return {
-        success: false,
-        error: result.error || 'Failed to get OAuth URL'
-      };
+      return result;
     } catch (error) {
       return {
         success: false,
@@ -180,8 +174,8 @@ export class AuthManager {
         this.currentUser = result.user;
         this.notifyListeners();
 
-        // Notify main process about successful auth (optional - for app-wide state)
-        await (window as any).scribeCat.auth.getCurrentUser();
+        // Note: Main process is automatically notified via RendererSupabaseClient's
+        // auth state change listener (sessionChanged IPC call)
       }
 
       return result;
@@ -195,10 +189,13 @@ export class AuthManager {
 
   /**
    * Sign out
+   * Uses RendererSupabaseClient directly since auth is handled in renderer
    */
   async signOut(): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await (window as any).scribeCat.auth.signOut();
+      // Import and use RendererSupabaseClient directly
+      const { RendererSupabaseClient } = await import('../services/RendererSupabaseClient.js');
+      const result = await RendererSupabaseClient.getInstance().signOut();
 
       if (result.success) {
         this.currentUser = null;

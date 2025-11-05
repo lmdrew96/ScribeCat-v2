@@ -11,10 +11,81 @@ export class AuthScreen {
   private modal: HTMLElement | null = null;
   private isSignUpMode: boolean = false;
   private onAuthSuccess?: () => void;
+  private readonly originalFormSectionHTML: string;
 
   constructor(authManager: AuthManager) {
     this.authManager = authManager;
+    // Store original form HTML for resetting
+    this.originalFormSectionHTML = this.getOriginalFormHTML();
     this.createModal();
+  }
+
+  /**
+   * Get the original form section HTML
+   */
+  private getOriginalFormHTML(): string {
+    return `
+      <!-- Google Sign In Button -->
+      <button id="google-signin-btn" class="auth-btn auth-btn-google">
+        <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          <path fill="none" d="M0 0h48v48H0z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="auth-divider">
+        <span>or</span>
+      </div>
+
+      <!-- Email/Password Form -->
+      <form id="auth-form" novalidate>
+        <div id="name-field" class="form-group hidden">
+          <label for="auth-name">Full Name</label>
+          <input
+            type="text"
+            id="auth-name"
+            placeholder="Your name"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="auth-email">Email</label>
+          <input
+            type="email"
+            id="auth-email"
+            placeholder="your@email.com"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="auth-password">Password</label>
+          <input
+            type="password"
+            id="auth-password"
+            placeholder="••••••••"
+            required
+            minlength="8"
+          />
+          <small id="password-hint" class="form-hint hidden">
+            Password must be at least 8 characters
+          </small>
+        </div>
+
+        <button type="submit" id="submit-btn" class="auth-btn auth-btn-primary">
+          Sign In
+        </button>
+      </form>
+
+      <div class="auth-toggle">
+        <span id="toggle-text">Don't have an account?</span>
+        <button id="toggle-mode-btn" class="auth-link">Sign Up</button>
+      </div>
+    `;
   }
 
   /**
@@ -42,66 +113,7 @@ export class AuthScreen {
         <div class="auth-form">
           <!-- Sign In / Sign Up Form -->
           <div id="auth-form-section" class="auth-section">
-            <!-- Google Sign In Button -->
-            <button id="google-signin-btn" class="auth-btn auth-btn-google">
-              <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                <path fill="none" d="M0 0h48v48H0z"/>
-              </svg>
-              Continue with Google
-            </button>
-
-            <div class="auth-divider">
-              <span>or</span>
-            </div>
-
-            <!-- Email/Password Form -->
-            <form id="auth-form" novalidate>
-              <div id="name-field" class="form-group hidden">
-                <label for="auth-name">Full Name</label>
-                <input
-                  type="text"
-                  id="auth-name"
-                  placeholder="Your name"
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="auth-email">Email</label>
-                <input
-                  type="email"
-                  id="auth-email"
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="auth-password">Password</label>
-                <input
-                  type="password"
-                  id="auth-password"
-                  placeholder="••••••••"
-                  required
-                  minlength="8"
-                />
-                <small id="password-hint" class="form-hint hidden">
-                  Password must be at least 8 characters
-                </small>
-              </div>
-
-              <button type="submit" id="submit-btn" class="auth-btn auth-btn-primary">
-                Sign In
-              </button>
-            </form>
-
-            <div class="auth-toggle">
-              <span id="toggle-text">Don't have an account?</span>
-              <button id="toggle-mode-btn" class="auth-link">Sign Up</button>
-            </div>
+            ${this.originalFormSectionHTML}
           </div>
 
           <!-- Continue Offline Option -->
@@ -119,20 +131,26 @@ export class AuthScreen {
   }
 
   /**
-   * Set up event listeners
+   * Reset the form section to its original state
    */
-  private setupEventListeners(): void {
-    // Close button
-    const closeBtn = this.modal?.querySelector('.auth-close-btn');
-    closeBtn?.addEventListener('click', () => this.hide());
+  private resetFormSection(): void {
+    const formSection = this.modal?.querySelector('#auth-form-section');
+    if (!formSection) return;
 
-    // Click outside modal to close
-    this.modal?.addEventListener('click', (e) => {
-      if (e.target === this.modal) {
-        this.hide();
-      }
-    });
+    // Restore original HTML
+    formSection.innerHTML = this.originalFormSectionHTML;
 
+    // Re-attach event listeners for the form section
+    this.attachFormEventListeners();
+
+    // Reset mode to sign in
+    this.isSignUpMode = false;
+  }
+
+  /**
+   * Attach event listeners specifically for the form section elements
+   */
+  private attachFormEventListeners(): void {
     // Google sign in button
     const googleBtn = this.modal?.querySelector('#google-signin-btn');
     googleBtn?.addEventListener('click', () => this.handleGoogleSignIn());
@@ -148,10 +166,6 @@ export class AuthScreen {
     const toggleBtn = this.modal?.querySelector('#toggle-mode-btn');
     toggleBtn?.addEventListener('click', () => this.toggleMode());
 
-    // Continue offline
-    const offlineBtn = this.modal?.querySelector('#continue-offline-btn');
-    offlineBtn?.addEventListener('click', () => this.hide());
-
     // Show password hint on focus
     const passwordInput = this.modal?.querySelector('#auth-password');
     const passwordHint = this.modal?.querySelector('#password-hint');
@@ -163,25 +177,50 @@ export class AuthScreen {
   }
 
   /**
+   * Set up event listeners
+   */
+  private setupEventListeners(): void {
+    // Close button
+    const closeBtn = this.modal?.querySelector('.auth-close-btn');
+    closeBtn?.addEventListener('click', () => this.hide());
+
+    // Click outside modal to close
+    this.modal?.addEventListener('click', (e) => {
+      if (e.target === this.modal) {
+        this.hide();
+      }
+    });
+
+    // Continue offline
+    const offlineBtn = this.modal?.querySelector('#continue-offline-btn');
+    offlineBtn?.addEventListener('click', () => this.hide());
+
+    // Attach form-specific event listeners
+    this.attachFormEventListeners();
+  }
+
+  /**
    * Handle Google sign in
    */
   private async handleGoogleSignIn(): Promise<void> {
     this.showLoading('Opening Google Sign In...');
 
-    // Generate PKCE code verifier and challenge in renderer process (where localStorage exists)
-    const codeVerifier = this.generateCodeVerifier();
-    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
-
-    // Store code verifier in localStorage for later use
-    const projectRef = 'djlvwxmakxaffdqbuwkv';
-    const storageKey = `sb-${projectRef}-auth-token-code-verifier`;
-    localStorage.setItem(storageKey, codeVerifier);
-
-    const result = await this.authManager.signInWithGoogle(codeChallenge);
+    // PKCE code verifier and challenge are generated and stored automatically by Supabase
+    // when flowType is 'pkce' in the RendererSupabaseClient configuration
+    const result = await this.authManager.signInWithGoogle();
 
     this.hideLoading();
 
     if (result.success && result.authUrl) {
+      // Debug: Check localStorage for PKCE verifier
+      const projectRef = 'djlvwxmakxaffdqbuwkv';
+      const storageKey = `sb-${projectRef}-auth-token-code-verifier`;
+      const codeVerifier = localStorage.getItem(storageKey);
+      console.log('🔍 PKCE Code Verifier in localStorage:', codeVerifier ? '✓ Found' : '✗ Not found');
+      if (codeVerifier) {
+        console.log('🔍 Verifier length:', codeVerifier.length);
+      }
+
       // Open OAuth URL in default browser
       window.open(result.authUrl, '_blank');
 
@@ -230,8 +269,9 @@ export class AuthScreen {
 
     const cancelBtn = this.modal?.querySelector('#cancel-oauth-btn');
     cancelBtn?.addEventListener('click', () => {
-      this.hide();
-      this.show(); // Reset the modal
+      this.resetFormSection(); // Reset to original form
+      this.hideError();
+      this.hideSuccess();
     });
   }
 
@@ -353,6 +393,9 @@ export class AuthScreen {
   show(onSuccess?: () => void): void {
     this.onAuthSuccess = onSuccess;
 
+    // Reset form to original state (in case OAuth instructions were showing)
+    this.resetFormSection();
+
     this.modal?.classList.remove('hidden');
     this.clearForm();
     this.hideError();
@@ -454,33 +497,4 @@ export class AuthScreen {
     if (configureBtn) configureBtn.disabled = false;
   }
 
-  /**
-   * Generate a cryptographically random code verifier for PKCE
-   */
-  private generateCodeVerifier(): string {
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return this.base64URLEncode(array);
-  }
-
-  /**
-   * Generate code challenge from verifier using SHA-256
-   */
-  private async generateCodeChallenge(verifier: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(verifier);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return this.base64URLEncode(new Uint8Array(hash));
-  }
-
-  /**
-   * Base64 URL encode (without padding)
-   */
-  private base64URLEncode(buffer: Uint8Array): string {
-    const base64 = btoa(String.fromCharCode(...buffer));
-    return base64
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-  }
 }

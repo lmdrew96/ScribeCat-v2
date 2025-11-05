@@ -24,7 +24,8 @@ export class RendererSupabaseClient {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false
+        detectSessionInUrl: false,
+        flowType: 'pkce' // Use PKCE flow - Supabase handles code verifier/challenge automatically
         // Use default localStorage storage (works in renderer)
       }
     });
@@ -98,32 +99,152 @@ export class RendererSupabaseClient {
   }
 
   /**
-   * Exchange OAuth authorization code for session
-   * This runs in the renderer process where localStorage works properly
+   * Sign in with email and password
    */
-  async exchangeCodeForSession(code: string): Promise<AuthResult> {
+  async signInWithEmail(email: string, password: string): Promise<AuthResult> {
     try {
-      // Retrieve code verifier from localStorage (stored by AuthScreen)
-      const projectRef = 'djlvwxmakxaffdqbuwkv';
-      const storageKey = `sb-${projectRef}-auth-token-code-verifier`;
-      const codeVerifier = localStorage.getItem(storageKey);
+      const { data, error } = await this.client.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      if (!codeVerifier) {
+      if (error) {
         return {
           success: false,
-          error: 'Code verifier not found. Please try signing in again.'
+          error: error.message
         };
       }
 
-      // Store code verifier in the format Supabase expects
-      // Supabase client will automatically retrieve it during exchange
-      localStorage.setItem(storageKey, codeVerifier);
+      if (!data.session || !data.user) {
+        return {
+          success: false,
+          error: 'No session or user returned from sign in'
+        };
+      }
 
+      return {
+        success: true,
+        session: this.convertToAuthSession(data.session),
+        user: this.convertToUserProfile(data.user)
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during sign in'
+      };
+    }
+  }
+
+  /**
+   * Sign up with email and password
+   */
+  async signUpWithEmail(email: string, password: string, fullName?: string): Promise<AuthResult> {
+    try {
+      const { data, error } = await this.client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      if (!data.user) {
+        return {
+          success: false,
+          error: 'No user returned from sign up'
+        };
+      }
+
+      // Note: For email sign up, session might be null if email confirmation is required
+      return {
+        success: true,
+        session: data.session ? this.convertToAuthSession(data.session) : undefined,
+        user: this.convertToUserProfile(data.user)
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during sign up'
+      };
+    }
+  }
+
+  /**
+   * Sign in with Google OAuth
+   * Returns the OAuth URL to open in a browser
+   * Note: PKCE code verifier/challenge is handled automatically by Supabase when flowType is 'pkce'
+   */
+  async signInWithGoogle(): Promise<{ success: boolean; authUrl?: string; error?: string }> {
+    try {
+      const { data, error } = await this.client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'http://localhost:3000/auth/callback',
+          skipBrowserRedirect: true,
+          queryParams: {
+            // Show account picker - allows user to select account and use passkeys
+            prompt: 'select_account'
+          }
+        }
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      if (!data.url) {
+        return {
+          success: false,
+          error: 'No OAuth URL returned'
+        };
+      }
+
+      // With flowType: 'pkce', Supabase automatically:
+      // 1. Generates code verifier and stores in localStorage
+      // 2. Generates code challenge from verifier
+      // 3. Adds code_challenge and code_challenge_method to the OAuth URL
+
+      // Debug: Log the OAuth URL and its parameters
+      console.log('🔍 OAuth URL generated:', data.url);
+      const url = new URL(data.url);
+      console.log('🔍 OAuth URL parameters:', Object.fromEntries(url.searchParams));
+      console.log('🔍 Check localStorage for PKCE verifier...');
+
+      return {
+        success: true,
+        authUrl: data.url
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during Google sign in'
+      };
+    }
+  }
+
+  /**
+   * Exchange OAuth authorization code for session
+   * This runs in the renderer process where localStorage works properly
+   * The code verifier is automatically retrieved from localStorage by Supabase
+   */
+  async exchangeCodeForSession(code: string): Promise<AuthResult> {
+    try {
       // Exchange code for session
+      // Supabase automatically retrieves the code verifier from localStorage
+      // (it was stored when signInWithGoogle was called with flowType: 'pkce')
       const { data, error } = await this.client.auth.exchangeCodeForSession(code);
-
-      // Clean up code verifier
-      localStorage.removeItem(storageKey);
 
       if (error) {
         return {
@@ -148,6 +269,31 @@ export class RendererSupabaseClient {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error during OAuth exchange'
+      };
+    }
+  }
+
+  /**
+   * Sign out the current user
+   * This runs in the renderer process where auth state is managed
+   */
+  async signOut(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await this.client.auth.signOut();
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      // Auth state change listener will automatically notify main process
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during sign out'
       };
     }
   }

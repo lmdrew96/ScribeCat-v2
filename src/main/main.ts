@@ -615,50 +615,6 @@ class ScribeCatApp {
       }
     });
 
-    // Stub auth handlers - auth is handled in renderer, these just return not implemented
-    // The renderer-side auth should be used instead
-    ipcMain.handle('auth:isAuthenticated', async () => {
-      return {
-        success: false,
-        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
-      };
-    });
-
-    ipcMain.handle('auth:getCurrentUser', async () => {
-      return {
-        success: false,
-        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
-      };
-    });
-
-    ipcMain.handle('auth:signInWithEmail', async () => {
-      return {
-        success: false,
-        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
-      };
-    });
-
-    ipcMain.handle('auth:signUpWithEmail', async () => {
-      return {
-        success: false,
-        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
-      };
-    });
-
-    ipcMain.handle('auth:signInWithGoogle', async () => {
-      return {
-        success: false,
-        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
-      };
-    });
-
-    ipcMain.handle('auth:signOut', async () => {
-      return {
-        success: false,
-        error: 'Auth is handled in renderer process. Use RendererSupabaseClient instead.'
-      };
-    });
-
     // Sync handlers
     ipcMain.handle('sync:uploadSession', async (event, sessionId: string) => {
       try {
