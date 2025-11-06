@@ -1,6 +1,9 @@
 import electron from 'electron';
 import type { IpcMain, BrowserWindow } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
+import * as os from 'os';
+import * as path from 'path';
+import * as fs from 'fs';
 
 /**
  * Handles dialog-related IPC channels
@@ -22,6 +25,24 @@ export class DialogHandlers extends BaseHandler {
 
       const result = await electron.dialog.showSaveDialog(mainWindow, options);
       return { success: true, data: result };
+    });
+
+    // Dialog: Get temp directory path
+    this.handle(ipcMain, 'dialog:getTempPath', async () => {
+      return { success: true, data: os.tmpdir() };
+    });
+
+    // Dialog: Delete file
+    this.handle(ipcMain, 'dialog:deleteFile', async (event, filePath: string) => {
+      try {
+        fs.unlinkSync(filePath);
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error deleting file'
+        };
+      }
     });
   }
 }

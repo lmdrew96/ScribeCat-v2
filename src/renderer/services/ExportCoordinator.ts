@@ -9,6 +9,12 @@ import type { Session } from '../../domain/entities/Session.js';
 import { DriveFolderPicker } from '../components/DriveFolderPicker.js';
 
 export type ExportFormat = 'txt' | 'pdf' | 'docx' | 'html';
+export type ExportDestination = 'local' | 'drive' | 'both';
+
+export interface ExportOptions {
+  format: ExportFormat;
+  destination: ExportDestination;
+}
 
 export interface ExportCallbacks {
   onBulkExportComplete?: () => void;
@@ -30,29 +36,15 @@ export class ExportCoordinator {
         return;
       }
 
-      // Show format selection dialog
-      const format = await this.showExportFormatDialog();
-      if (!format) {
+      // Show format and destination selection dialog
+      const options = await this.showExportOptionsDialog();
+      if (!options) {
         return; // User cancelled
       }
 
       // Sanitize the session title for use in filename
       const sanitizedTitle = session.title.replace(/[^a-z0-9]/gi, '_');
-      const defaultFilename = `${sanitizedTitle}.${format}`;
-
-      // Show save dialog
-      const result = await window.scribeCat.dialog.showSaveDialog({
-        title: 'Export Session',
-        defaultPath: defaultFilename,
-        filters: [
-          { name: this.getFormatName(format), extensions: [format] },
-          { name: 'All Files', extensions: ['*'] }
-        ]
-      });
-
-      if (!result.success || !result.data || result.data.canceled || !result.data.filePath) {
-        return; // User cancelled or error
-      }
+      const defaultFilename = `${sanitizedTitle}.${options.format}`;
 
       // Show exporting indicator
       const exportButton = document.querySelector(`[data-session-id="${sessionId}"].export-session-btn`) as HTMLButtonElement;
@@ -62,30 +54,103 @@ export class ExportCoordinator {
         exportButton.textContent = 'Exporting...';
       }
 
-      // Perform the export
-      const exportResult = await window.scribeCat.session.exportWithDefaults(
-        sessionId,
-        format,
-        result.data.filePath
-      );
+      let filePath: string | null = null;
+      let exportResult: any = null;
+
+      // Handle different destinations
+      if (options.destination === 'local' || options.destination === 'both') {
+        // Show save dialog for local save
+        const result = await window.scribeCat.dialog.showSaveDialog({
+          title: 'Export Session',
+          defaultPath: defaultFilename,
+          filters: [
+            { name: this.getFormatName(options.format), extensions: [options.format] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        });
+
+        if (!result.success || !result.data || result.data.canceled || !result.data.filePath) {
+          // Restore button state
+          if (exportButton) {
+            exportButton.disabled = false;
+            exportButton.textContent = originalText;
+          }
+          return; // User cancelled or error
+        }
+
+        filePath = result.data.filePath;
+
+        // Perform the export
+        exportResult = await window.scribeCat.session.exportWithDefaults(
+          sessionId,
+          options.format,
+          filePath
+        );
+
+        if (!exportResult.success) {
+          // Restore button state
+          if (exportButton) {
+            exportButton.disabled = false;
+            exportButton.textContent = originalText;
+          }
+          alert(`Export failed: ${exportResult.error || 'Unknown error'}`);
+          return;
+        }
+      } else if (options.destination === 'drive') {
+        // Export to temp file for Drive-only export
+        const tempPathResult = await window.scribeCat.dialog.getTempPath();
+        if (!tempPathResult.success || !tempPathResult.data) {
+          // Restore button state
+          if (exportButton) {
+            exportButton.disabled = false;
+            exportButton.textContent = originalText;
+          }
+          alert('Failed to get temp directory');
+          return;
+        }
+
+        const tempPath = `${tempPathResult.data}/scribecat_temp_${Date.now()}.${options.format}`;
+
+        exportResult = await window.scribeCat.session.exportWithDefaults(
+          sessionId,
+          options.format,
+          tempPath
+        );
+
+        if (!exportResult.success) {
+          // Restore button state
+          if (exportButton) {
+            exportButton.disabled = false;
+            exportButton.textContent = originalText;
+          }
+          alert(`Export failed: ${exportResult.error || 'Unknown error'}`);
+          return;
+        }
+
+        filePath = tempPath;
+      }
+
+      // Handle Drive upload
+      if (options.destination === 'drive' || options.destination === 'both') {
+        await this.uploadToDrive(filePath!, session.title);
+
+        // Clean up temp file if Drive-only
+        if (options.destination === 'drive' && filePath) {
+          try {
+            await window.scribeCat.dialog.deleteFile(filePath);
+          } catch (error) {
+            console.error('Failed to delete temp file:', error);
+          }
+        }
+      } else {
+        // Local-only export
+        alert(`Session exported successfully to:\n${filePath}`);
+      }
 
       // Restore button state
       if (exportButton) {
         exportButton.disabled = false;
         exportButton.textContent = originalText;
-      }
-
-      if (exportResult.success) {
-        // Check if Google Drive is connected and ask if user wants to upload
-        const shouldUploadToDrive = await this.promptForDriveUpload();
-
-        if (shouldUploadToDrive) {
-          await this.uploadToDrive(exportResult.filePath!, session.title);
-        } else {
-          alert(`Session exported successfully to:\n${exportResult.filePath}`);
-        }
-      } else {
-        alert(`Export failed: ${exportResult.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error exporting session:', error);
@@ -109,37 +174,49 @@ export class ExportCoordinator {
     }
 
     try {
-      // Show format selection dialog
-      const format = await this.showExportFormatDialog();
-      if (!format) {
+      // Show format and destination selection dialog
+      const options = await this.showExportOptionsDialog();
+      if (!options) {
         return; // User cancelled
       }
 
-      // For the first file, let user choose the location
-      const firstSession = sessions.find(s => s.id === sessionIds[0]);
-      if (!firstSession) {
-        alert('Session not found');
-        return;
+      let outputDirectory: string = '';
+
+      // For local or both destinations, let user choose the location
+      if (options.destination === 'local' || options.destination === 'both') {
+        const firstSession = sessions.find(s => s.id === sessionIds[0]);
+        if (!firstSession) {
+          alert('Session not found');
+          return;
+        }
+
+        const sanitizedTitle = firstSession.title.replace(/[^a-z0-9]/gi, '_');
+        const defaultFilename = `${sanitizedTitle}.${options.format}`;
+
+        const result = await window.scribeCat.dialog.showSaveDialog({
+          title: 'Export Sessions - Choose Location',
+          defaultPath: defaultFilename,
+          filters: [
+            { name: this.getFormatName(options.format), extensions: [options.format] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        });
+
+        if (!result.success || !result.data || result.data.canceled || !result.data.filePath) {
+          return; // User cancelled or error
+        }
+
+        // Get the directory from the first file path
+        outputDirectory = result.data.filePath.substring(0, result.data.filePath.lastIndexOf('/'));
+      } else {
+        // For Drive-only, use temp directory
+        const tempPathResult = await window.scribeCat.dialog.getTempPath();
+        if (!tempPathResult.success || !tempPathResult.data) {
+          alert('Failed to get temp directory');
+          return;
+        }
+        outputDirectory = `${tempPathResult.data}/scribecat_bulk_${Date.now()}`;
       }
-
-      const sanitizedTitle = firstSession.title.replace(/[^a-z0-9]/gi, '_');
-      const defaultFilename = `${sanitizedTitle}.${format}`;
-
-      const result = await window.scribeCat.dialog.showSaveDialog({
-        title: 'Export Sessions - Choose Location',
-        defaultPath: defaultFilename,
-        filters: [
-          { name: this.getFormatName(format), extensions: [format] },
-          { name: 'All Files', extensions: ['*'] }
-        ]
-      });
-
-      if (!result.success || !result.data || result.data.canceled || !result.data.filePath) {
-        return; // User cancelled or error
-      }
-
-      // Get the directory from the first file path
-      const outputDirectory = result.data.filePath.substring(0, result.data.filePath.lastIndexOf('/'));
 
       // Disable export button during process
       if (bulkExportBtn) {
@@ -150,6 +227,7 @@ export class ExportCoordinator {
       // Export all sessions
       let successCount = 0;
       let errorCount = 0;
+      const exportedFiles: string[] = [];
 
       for (let i = 0; i < sessionIds.length; i++) {
         const sessionId = sessionIds[i];
@@ -161,26 +239,20 @@ export class ExportCoordinator {
         }
 
         // Generate output path
-        let outputPath: string;
-        if (i === 0) {
-          // Use the user-chosen path for the first file
-          outputPath = result.data.filePath;
-        } else {
-          // Generate path for subsequent files
-          const sanitizedTitle = session.title.replace(/[^a-z0-9]/gi, '_');
-          outputPath = `${outputDirectory}/${sanitizedTitle}.${format}`;
-        }
+        const sanitizedTitle = session.title.replace(/[^a-z0-9]/gi, '_');
+        const outputPath = `${outputDirectory}/${sanitizedTitle}.${options.format}`;
 
         // Export the session
         try {
           const exportResult = await window.scribeCat.session.exportWithDefaults(
             sessionId,
-            format,
+            options.format,
             outputPath
           );
 
           if (exportResult.success) {
             successCount++;
+            exportedFiles.push(outputPath);
           } else {
             errorCount++;
             console.error(`Failed to export session ${sessionId}:`, exportResult.error);
@@ -202,20 +274,27 @@ export class ExportCoordinator {
         bulkExportBtn.textContent = 'Export Selected';
       }
 
-      // Show results
-      const message = successCount > 0
-        ? `Successfully exported ${successCount} session${successCount > 1 ? 's' : ''} to:\n${outputDirectory}\n\n${errorCount > 0 ? `${errorCount} session${errorCount > 1 ? 's' : ''} failed.` : ''}`
-        : `Export failed for all sessions.`;
+      // Handle Drive upload if requested
+      if (successCount > 0 && (options.destination === 'drive' || options.destination === 'both')) {
+        await this.uploadBulkToDrive(sessionIds, sessions, options.format, outputDirectory);
 
-      alert(message);
-
-      // Check if Google Drive is connected and ask if user wants to upload
-      if (successCount > 0) {
-        const shouldUploadToDrive = await this.promptForDriveUpload();
-
-        if (shouldUploadToDrive) {
-          await this.uploadBulkToDrive(sessionIds, sessions, format, outputDirectory);
+        // Clean up temp files if Drive-only
+        if (options.destination === 'drive') {
+          for (const filePath of exportedFiles) {
+            try {
+              await window.scribeCat.dialog.deleteFile(filePath);
+            } catch (error) {
+              console.error('Failed to delete temp file:', error);
+            }
+          }
         }
+      } else if (options.destination === 'local') {
+        // Show results for local-only export
+        const message = successCount > 0
+          ? `Successfully exported ${successCount} session${successCount > 1 ? 's' : ''} to:\n${outputDirectory}\n\n${errorCount > 0 ? `${errorCount} session${errorCount > 1 ? 's' : ''} failed.` : ''}`
+          : `Export failed for all sessions.`;
+
+        alert(message);
       }
 
       // Notify completion
@@ -235,10 +314,13 @@ export class ExportCoordinator {
   }
 
   /**
-   * Show a dialog to select export format
+   * Show a dialog to select export format and destination
    */
-  async showExportFormatDialog(): Promise<ExportFormat | null> {
-    return new Promise((resolve) => {
+  async showExportOptionsDialog(): Promise<ExportOptions | null> {
+    return new Promise(async (resolve) => {
+      // First, check if Drive is connected
+      const driveConnected = await this.isDriveConnected();
+
       // Create dialog overlay
       const overlay = document.createElement('div');
       overlay.className = 'export-dialog-overlay';
@@ -262,13 +344,15 @@ export class ExportCoordinator {
         padding: 2rem;
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        max-width: 400px;
+        max-width: 500px;
         width: 90%;
       `;
 
       dialog.innerHTML = `
-        <h3 style="margin-top: 0; color: var(--text-color, #fff);">Select Export Format</h3>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin: 1.5rem 0;">
+        <h3 style="margin-top: 0; color: var(--text-color, #fff);">Export Session</h3>
+
+        <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-color, #fff); font-size: 0.9rem;">Select Format:</h4>
+        <div class="format-selection" style="display: flex; flex-direction: column; gap: 0.5rem;">
           <button class="format-btn" data-format="txt" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
             📄 Plain Text (.txt)
           </button>
@@ -282,6 +366,20 @@ export class ExportCoordinator {
             🌐 HTML Page (.html)
           </button>
         </div>
+
+        <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-color, #fff); font-size: 0.9rem;">Select Destination:</h4>
+        <div class="destination-selection" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+          <button class="dest-btn" data-destination="local" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
+            💾 Save to Computer
+          </button>
+          <button class="dest-btn" data-destination="drive" ${!driveConnected ? 'disabled' : ''} style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: ${driveConnected ? 'pointer' : 'not-allowed'}; text-align: left; opacity: ${driveConnected ? '1' : '0.5'};">
+            ☁️ Upload to Google Drive${!driveConnected ? ' (Not Connected)' : ''}
+          </button>
+          <button class="dest-btn" data-destination="both" ${!driveConnected ? 'disabled' : ''} style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: ${driveConnected ? 'pointer' : 'not-allowed'}; text-align: left; opacity: ${driveConnected ? '1' : '0.5'};">
+            💾☁️ Save & Upload to Drive${!driveConnected ? ' (Not Connected)' : ''}
+          </button>
+        </div>
+
         <button class="cancel-btn" style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border-color, #444); border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; width: 100%;">
           Cancel
         </button>
@@ -290,20 +388,84 @@ export class ExportCoordinator {
       overlay.appendChild(dialog);
       document.body.appendChild(overlay);
 
-      // Add hover effects
+      let selectedFormat: ExportFormat | null = null;
+      let selectedDestination: ExportDestination | null = null;
+
+      const updateButtonStates = () => {
+        const formatButtons = dialog.querySelectorAll('.format-btn');
+        const destButtons = dialog.querySelectorAll('.dest-btn');
+
+        formatButtons.forEach(btn => {
+          const format = btn.getAttribute('data-format');
+          if (format === selectedFormat) {
+            (btn as HTMLElement).style.background = 'var(--primary-color, #007acc)';
+            (btn as HTMLElement).style.borderLeft = '4px solid var(--accent-color, #00ff00)';
+          } else {
+            (btn as HTMLElement).style.background = 'var(--secondary-color, #2a2a2a)';
+            (btn as HTMLElement).style.borderLeft = 'none';
+          }
+        });
+
+        destButtons.forEach(btn => {
+          const destination = btn.getAttribute('data-destination');
+          const isDisabled = (btn as HTMLButtonElement).disabled;
+          if (!isDisabled && destination === selectedDestination) {
+            (btn as HTMLElement).style.background = 'var(--primary-color, #007acc)';
+            (btn as HTMLElement).style.borderLeft = '4px solid var(--accent-color, #00ff00)';
+          } else if (!isDisabled) {
+            (btn as HTMLElement).style.background = 'var(--secondary-color, #2a2a2a)';
+            (btn as HTMLElement).style.borderLeft = 'none';
+          }
+        });
+
+        // If both are selected, automatically close and resolve
+        if (selectedFormat && selectedDestination) {
+          setTimeout(() => {
+            document.body.removeChild(overlay);
+            resolve({ format: selectedFormat!, destination: selectedDestination! });
+          }, 200);
+        }
+      };
+
+      // Add hover effects and click handlers for format buttons
       const formatButtons = dialog.querySelectorAll('.format-btn');
       formatButtons.forEach(btn => {
         btn.addEventListener('mouseenter', () => {
-          (btn as HTMLElement).style.background = 'var(--primary-color, #007acc)';
+          if (btn.getAttribute('data-format') !== selectedFormat) {
+            (btn as HTMLElement).style.background = 'var(--primary-color, #007acc)';
+          }
         });
         btn.addEventListener('mouseleave', () => {
-          (btn as HTMLElement).style.background = 'var(--secondary-color, #2a2a2a)';
+          if (btn.getAttribute('data-format') !== selectedFormat) {
+            (btn as HTMLElement).style.background = 'var(--secondary-color, #2a2a2a)';
+          }
         });
         btn.addEventListener('click', () => {
-          const format = btn.getAttribute('data-format') as ExportFormat;
-          document.body.removeChild(overlay);
-          resolve(format);
+          selectedFormat = btn.getAttribute('data-format') as ExportFormat;
+          updateButtonStates();
         });
+      });
+
+      // Add hover effects and click handlers for destination buttons
+      const destButtons = dialog.querySelectorAll('.dest-btn');
+      destButtons.forEach(btn => {
+        const isDisabled = (btn as HTMLButtonElement).disabled;
+        if (!isDisabled) {
+          btn.addEventListener('mouseenter', () => {
+            if (btn.getAttribute('data-destination') !== selectedDestination) {
+              (btn as HTMLElement).style.background = 'var(--primary-color, #007acc)';
+            }
+          });
+          btn.addEventListener('mouseleave', () => {
+            if (btn.getAttribute('data-destination') !== selectedDestination) {
+              (btn as HTMLElement).style.background = 'var(--secondary-color, #2a2a2a)';
+            }
+          });
+          btn.addEventListener('click', () => {
+            selectedDestination = btn.getAttribute('data-destination') as ExportDestination;
+            updateButtonStates();
+          });
+        }
       });
 
       // Cancel button
@@ -321,6 +483,19 @@ export class ExportCoordinator {
         }
       });
     });
+  }
+
+  /**
+   * Check if Google Drive is connected
+   */
+  private async isDriveConnected(): Promise<boolean> {
+    try {
+      const result = await window.scribeCat.drive.isAuthenticated();
+      return result.data || false;
+    } catch (error) {
+      console.error('Error checking Drive connection:', error);
+      return false;
+    }
   }
 
   /**

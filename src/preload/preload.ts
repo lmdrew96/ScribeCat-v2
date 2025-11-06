@@ -75,7 +75,9 @@ interface SignUpWithEmailParams {
 // Expose the API to the renderer process
 const electronAPI = {
   dialog: {
-    showSaveDialog: (options: SaveDialogOptions) => ipcRenderer.invoke('dialog:showSaveDialog', options)
+    showSaveDialog: (options: SaveDialogOptions) => ipcRenderer.invoke('dialog:showSaveDialog', options),
+    getTempPath: () => ipcRenderer.invoke('dialog:getTempPath'),
+    deleteFile: (filePath: string) => ipcRenderer.invoke('dialog:deleteFile', filePath)
   },
   recording: {
     start: () => ipcRenderer.invoke('recording:start'),
