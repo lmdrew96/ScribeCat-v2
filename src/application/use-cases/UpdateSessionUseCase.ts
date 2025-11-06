@@ -53,17 +53,18 @@ export class UpdateSessionUseCase {
         session.userId = currentUserId;
       }
 
-      // Apply updates
+      // Apply updates using entity methods to ensure updatedAt is set
       if (updates.title !== undefined) {
-        session.title = updates.title;
+        session.updateTitle(updates.title);
       }
 
       if (updates.notes !== undefined) {
-        session.notes = updates.notes;
+        session.updateNotes(updates.notes);
       }
 
       if (updates.tags !== undefined) {
         session.tags = updates.tags;
+        session.updatedAt = new Date();
       }
 
       // Update course information if any course field is provided

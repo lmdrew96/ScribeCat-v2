@@ -74,6 +74,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
         course_id: session.courseId,
         course_title: session.courseTitle,
         course_number: session.courseNumber,
+        updated_at: session.updatedAt.toISOString(),
         // Transcription fields
         transcription_text: session.transcription?.fullText,
         transcription_provider: session.transcription?.provider,
