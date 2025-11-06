@@ -46,14 +46,12 @@ export class UpdateSessionUseCase {
       // Try to load from local file repository first
       let session = await this.sessionRepository.findById(sessionId);
       console.log('  ✅ Local repository search result:', session ? 'Found' : 'Not found');
-      let isCloudSession = false;
 
       // If not found locally and we have Supabase repository, try cloud
       if (!session && this.supabaseSessionRepository) {
         console.log('  🔍 Session not found locally, searching cloud...');
         session = await this.supabaseSessionRepository.findById(sessionId);
-        isCloudSession = !!session;
-        console.log('  ✅ Cloud repository search result:', session ? 'Found (isCloudSession=true)' : 'Not found');
+        console.log('  ✅ Cloud repository search result:', session ? 'Found' : 'Not found');
       }
 
       if (!session) {
@@ -65,6 +63,7 @@ export class UpdateSessionUseCase {
       console.log('  Session details:');
       console.log('    - id:', session.id);
       console.log('    - userId:', session.userId);
+      console.log('    - cloudId:', session.cloudId);
       console.log('    - permissionLevel:', session.permissionLevel);
 
       // Auto-claim orphaned sessions
@@ -102,6 +101,14 @@ export class UpdateSessionUseCase {
       }
 
       console.log('  ✅ All updates applied, updatedAt:', session.updatedAt.toISOString());
+
+      // Determine if this is a cloud session
+      // A session is a cloud session if it has a cloudId (whether found locally or in cloud)
+      const isCloudSession = !!session.cloudId && !!this.supabaseSessionRepository;
+      console.log('  🔍 Cloud session detection:');
+      console.log('    - has cloudId:', !!session.cloudId);
+      console.log('    - has supabaseRepo:', !!this.supabaseSessionRepository);
+      console.log('    - isCloudSession:', isCloudSession);
 
       // Save the updated session to the appropriate repository
       if (isCloudSession && this.supabaseSessionRepository) {
