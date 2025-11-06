@@ -88,7 +88,10 @@ export class StudyModeDataTransformer {
       syncStatus: SyncStatus.SYNCED,
       lastSyncedAt: new Date(row.updated_at),
       // Mark as shared so we can show a badge
-      isShared: true
+      isShared: true,
+      // Owner information for shared sessions
+      ownerName: row.owner_name,
+      ownerEmail: row.owner_email
     };
 
     return session as Session;

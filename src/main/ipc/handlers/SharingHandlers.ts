@@ -346,9 +346,36 @@ export class SharingHandlers {
           };
         }
 
+        // Fetch owner profiles for each share
+        const sharesWithOwner = await Promise.all(
+          (shares || []).map(async (share) => {
+            const sessionData = share.sessions as any;
+            if (!sessionData || !sessionData.user_id) {
+              return share;
+            }
+
+            // Fetch owner profile
+            const { data: ownerProfile, error: profileError } = await client
+              .from('user_profiles')
+              .select('email, full_name')
+              .eq('id', sessionData.user_id)
+              .single();
+
+            // Add owner info to the share object
+            return {
+              ...share,
+              sessions: {
+                ...sessionData,
+                owner_name: profileError ? null : ownerProfile?.full_name,
+                owner_email: profileError ? null : ownerProfile?.email
+              }
+            };
+          })
+        );
+
         return {
           success: true,
-          sessions: shares || []
+          sessions: sharesWithOwner
         };
       } catch (error) {
         logger.error('Error in sharing:getSharedWithMe:', error);

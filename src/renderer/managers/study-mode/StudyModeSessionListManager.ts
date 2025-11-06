@@ -309,7 +309,21 @@ export class StudyModeSessionListManager {
     const hasTranscription = session.transcription ? '✓ Transcribed' : '';
     const hasNotes = session.notes ? '✓ Notes' : '';
     const syncStatus = this.getSyncStatusIndicator(session);
-    const sharedBadge = (session as any).isShared ? '<span class="shared-badge" title="Shared with you">👥 Shared</span>' : '';
+
+    // Generate shared badge with owner's name if available
+    let sharedBadge = '';
+    if ((session as any).isShared) {
+      const ownerName = (session as any).ownerName;
+      const ownerEmail = (session as any).ownerEmail;
+      if (ownerName) {
+        sharedBadge = `<span class="shared-badge" title="Shared by ${escapeHtml(ownerName)} (${escapeHtml(ownerEmail || '')})">👥 Shared by ${escapeHtml(ownerName)}</span>`;
+      } else if (ownerEmail) {
+        sharedBadge = `<span class="shared-badge" title="Shared by ${escapeHtml(ownerEmail)}">👥 Shared by ${escapeHtml(ownerEmail)}</span>`;
+      } else {
+        sharedBadge = '<span class="shared-badge" title="Shared with you">👥 Shared</span>';
+      }
+    }
+
     const indicators = [hasTranscription, hasNotes, syncStatus, sharedBadge].filter(Boolean).join(' • ');
     const indicatorsWithCourse = [indicators, courseTag].filter(Boolean).join(' • ');
 
