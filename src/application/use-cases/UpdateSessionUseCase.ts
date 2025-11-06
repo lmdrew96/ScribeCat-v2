@@ -6,7 +6,10 @@ import { ISessionRepository } from '../../domain/repositories/ISessionRepository
  * Updates session properties like title, notes, tags, and course information.
  */
 export class UpdateSessionUseCase {
-  constructor(private sessionRepository: ISessionRepository) {}
+  constructor(
+    private sessionRepository: ISessionRepository,
+    private supabaseSessionRepository?: ISessionRepository
+  ) {}
 
   /**
    * Update session properties
@@ -28,8 +31,15 @@ export class UpdateSessionUseCase {
     currentUserId?: string | null
   ): Promise<boolean> {
     try {
-      // Load the session
-      const session = await this.sessionRepository.findById(sessionId);
+      // Try to load from local file repository first
+      let session = await this.sessionRepository.findById(sessionId);
+      let isCloudSession = false;
+
+      // If not found locally and we have Supabase repository, try cloud
+      if (!session && this.supabaseSessionRepository) {
+        session = await this.supabaseSessionRepository.findById(sessionId);
+        isCloudSession = !!session;
+      }
 
       if (!session) {
         console.error(`Session not found: ${sessionId}`);
@@ -65,8 +75,12 @@ export class UpdateSessionUseCase {
         );
       }
 
-      // Save the updated session
-      await this.sessionRepository.save(session);
+      // Save the updated session to the appropriate repository
+      if (isCloudSession && this.supabaseSessionRepository) {
+        await this.supabaseSessionRepository.save(session);
+      } else {
+        await this.sessionRepository.save(session);
+      }
 
       console.log(`Session updated successfully: ${sessionId}`);
       return true;

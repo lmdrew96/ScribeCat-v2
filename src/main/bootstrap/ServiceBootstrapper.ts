@@ -112,7 +112,10 @@ export class ServiceBootstrapper {
       sessionRepository,
       exportServices
     );
-    const updateSessionUseCase = new UpdateSessionUseCase(sessionRepository);
+    const updateSessionUseCase = new UpdateSessionUseCase(
+      sessionRepository,
+      supabaseSessionRepository
+    );
 
     // Initialize sync manager
     const syncManager = new SyncManager(
