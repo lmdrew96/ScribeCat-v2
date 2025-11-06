@@ -334,7 +334,90 @@ export class SupabaseSessionRepository implements ISessionRepository {
       row.user_id,           // userId
       row.id,                 // cloudId (use the session ID as cloudId)
       SyncStatus.SYNCED,      // syncStatus (it came from cloud, so it's synced)
-      new Date(row.updated_at) // lastSyncedAt
+      new Date(row.updated_at), // lastSyncedAt
+      undefined,              // permissionLevel
+      row.deleted_at ? new Date(row.deleted_at) : undefined // deletedAt
     );
+  }
+
+  /**
+   * Restore a soft-deleted session from trash
+   */
+  async restore(sessionId: string): Promise<void> {
+    try {
+      const client = SupabaseClient.getInstance().getClient();
+
+      // Restore by setting deleted_at to NULL and updating updated_at
+      const { error } = await client
+        .from(this.tableName)
+        .update({
+          deleted_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+
+      if (error) {
+        throw new Error(`Failed to restore session: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error restoring session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find all soft-deleted sessions for the current user
+   */
+  async findDeleted(userId?: string): Promise<Session[]> {
+    try {
+      const targetUserId = userId || this.userId;
+
+      // When logged out (userId is null), return no sessions
+      if (!targetUserId) {
+        return [];
+      }
+
+      const client = SupabaseClient.getInstance().getClient();
+
+      // Query only deleted sessions for the current user
+      const { data, error } = await client
+        .from(this.tableName)
+        .select('*')
+        .eq('user_id', targetUserId)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to fetch deleted sessions: ${error.message}`);
+      }
+
+      return (data as SessionRow[]).map(row => this.rowToSession(row));
+    } catch (error) {
+      console.error('Error finding deleted sessions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Permanently delete a session (hard delete)
+   * Removes the session completely from the database
+   */
+  async permanentlyDelete(sessionId: string): Promise<void> {
+    try {
+      const client = SupabaseClient.getInstance().getClient();
+
+      // Hard delete - physically remove from database
+      const { error } = await client
+        .from(this.tableName)
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) {
+        throw new Error(`Failed to permanently delete session: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error permanently deleting session:', error);
+      throw error;
+    }
   }
 }

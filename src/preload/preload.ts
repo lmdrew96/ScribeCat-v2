@@ -172,7 +172,18 @@ const electronAPI = {
       createDraft: () =>
         ipcRenderer.invoke('session:createDraft'),
       getAvailableFormats: () =>
-        ipcRenderer.invoke('export:getAvailableFormats')
+        ipcRenderer.invoke('export:getAvailableFormats'),
+      // Trash-related methods
+      getDeleted: (userId?: string) =>
+        ipcRenderer.invoke('sessions:getDeleted', userId),
+      restore: (sessionId: string) =>
+        ipcRenderer.invoke('sessions:restore', sessionId),
+      restoreMultiple: (sessionIds: string[]) =>
+        ipcRenderer.invoke('sessions:restoreMultiple', sessionIds),
+      permanentlyDelete: (sessionId: string) =>
+        ipcRenderer.invoke('sessions:permanentlyDelete', sessionId),
+      permanentlyDeleteMultiple: (sessionIds: string[]) =>
+        ipcRenderer.invoke('sessions:permanentlyDeleteMultiple', sessionIds)
     },
   drive: {
     configure: (config: GoogleDriveConfig) => ipcRenderer.invoke('drive:configure', config),

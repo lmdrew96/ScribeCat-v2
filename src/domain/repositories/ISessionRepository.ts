@@ -44,4 +44,24 @@ export interface ISessionRepository {
    * @param sessionId - The session ID to check
    */
   exists(sessionId: string): Promise<boolean>;
+
+  /**
+   * Restore a soft-deleted session from trash
+   * @param sessionId - The session ID to restore
+   */
+  restore(sessionId: string): Promise<void>;
+
+  /**
+   * Find all soft-deleted sessions in trash
+   * @param userId - Optional user ID for cloud repositories
+   * @returns Array of deleted sessions, sorted by deletion date (newest first)
+   */
+  findDeleted(userId?: string): Promise<Session[]>;
+
+  /**
+   * Permanently delete a session (hard delete)
+   * This removes the session completely from storage
+   * @param sessionId - The session ID to permanently delete
+   */
+  permanentlyDelete(sessionId: string): Promise<void>;
 }

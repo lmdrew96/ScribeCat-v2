@@ -77,7 +77,15 @@ export class DeletedSessionsTracker {
   }
 
   /**
-   * Remove a session from the deleted list (e.g., if user re-creates it)
+   * Remove a session from the deleted list (e.g., if user restores it or re-creates it)
+   * Alias for unmarkAsDeleted for better API consistency
+   */
+  async remove(sessionId: string): Promise<void> {
+    return this.unmarkAsDeleted(sessionId);
+  }
+
+  /**
+   * Remove a session from the deleted list (e.g., if user restores it or re-creates it)
    */
   async unmarkAsDeleted(sessionId: string): Promise<void> {
     await this.initialize();

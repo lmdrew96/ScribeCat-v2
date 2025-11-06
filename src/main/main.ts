@@ -15,6 +15,9 @@ import { ListSessionsUseCase } from '../application/use-cases/ListSessionsUseCas
 import { DeleteSessionUseCase } from '../application/use-cases/DeleteSessionUseCase.js';
 import { ExportSessionUseCase } from '../application/use-cases/ExportSessionUseCase.js';
 import { UpdateSessionUseCase } from '../application/use-cases/UpdateSessionUseCase.js';
+import { RestoreSessionUseCase } from '../application/use-cases/RestoreSessionUseCase.js';
+import { PermanentlyDeleteSessionUseCase } from '../application/use-cases/PermanentlyDeleteSessionUseCase.js';
+import { GetDeletedSessionsUseCase } from '../application/use-cases/GetDeletedSessionsUseCase.js';
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
 import { DocxExportService } from '../infrastructure/services/export/DocxExportService.js';
 import { PdfExportService } from '../infrastructure/services/export/PdfExportService.js';
@@ -76,6 +79,9 @@ class ScribeCatApp {
   private deleteSessionUseCase!: DeleteSessionUseCase;
   private exportSessionUseCase!: ExportSessionUseCase;
   private updateSessionUseCase!: UpdateSessionUseCase;
+  private restoreSessionUseCase!: RestoreSessionUseCase;
+  private permanentlyDeleteSessionUseCase!: PermanentlyDeleteSessionUseCase;
+  private getDeletedSessionsUseCase!: GetDeletedSessionsUseCase;
 
   // Export services
   private exportServices!: Map<string, any>;
@@ -295,6 +301,20 @@ class ScribeCatApp {
         this.exportServices
       );
       this.updateSessionUseCase = new UpdateSessionUseCase(
+        this.sessionRepository,
+        this.supabaseSessionRepository || undefined
+      );
+      this.restoreSessionUseCase = new RestoreSessionUseCase(
+        this.sessionRepository,
+        this.supabaseSessionRepository || undefined,
+        this.deletedSessionsTracker
+      );
+      this.permanentlyDeleteSessionUseCase = new PermanentlyDeleteSessionUseCase(
+        this.sessionRepository,
+        this.audioRepository,
+        this.supabaseSessionRepository || undefined
+      );
+      this.getDeletedSessionsUseCase = new GetDeletedSessionsUseCase(
         this.sessionRepository,
         this.supabaseSessionRepository || undefined
       );
@@ -547,7 +567,10 @@ class ScribeCatApp {
       this.listSessionsUseCase,
       this.deleteSessionUseCase,
       this.exportSessionUseCase,
-      this.updateSessionUseCase
+      this.updateSessionUseCase,
+      this.restoreSessionUseCase,
+      this.permanentlyDeleteSessionUseCase,
+      this.getDeletedSessionsUseCase
     );
     registry.add(this.sessionHandlers);
     

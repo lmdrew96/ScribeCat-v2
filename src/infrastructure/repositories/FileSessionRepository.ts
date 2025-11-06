@@ -79,15 +79,21 @@ export class FileSessionRepository implements ISessionRepository {
   }
 
   /**
-   * Find a session by ID
+   * Find a session by ID (excludes soft-deleted sessions)
    */
   async findById(sessionId: string): Promise<Session | null> {
     try {
       const sessionPath = this.getSessionPath(sessionId);
       const data = await fs.readFile(sessionPath, 'utf-8');
       const sessionData = JSON.parse(data);
-      
-      return Session.fromJSON(sessionData);
+      const session = Session.fromJSON(sessionData);
+
+      // Exclude soft-deleted sessions
+      if (session.deletedAt) {
+        return null;
+      }
+
+      return session;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return null;
@@ -121,6 +127,11 @@ export class FileSessionRepository implements ISessionRepository {
 
             const sessionData = JSON.parse(data);
             const session = Session.fromJSON(sessionData);
+
+            // Skip soft-deleted sessions
+            if (session.deletedAt) {
+              continue;
+            }
 
             // Filter by userId for multi-user support
             // When logged out (userId is null), hide all sessions
@@ -168,17 +179,26 @@ export class FileSessionRepository implements ISessionRepository {
   }
 
   /**
-   * Delete a session
+   * Delete a session (soft delete)
    */
   async delete(sessionId: string): Promise<void> {
     try {
-      const sessionPath = this.getSessionPath(sessionId);
-      await fs.unlink(sessionPath);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw error;
+      // Load the session
+      const session = await this.findById(sessionId);
+      if (!session) {
+        // Session doesn't exist, consider it deleted
+        return;
       }
-      // File doesn't exist, consider it deleted
+
+      // Mark as deleted by setting deletedAt
+      session.deletedAt = new Date();
+      session.updatedAt = new Date();
+
+      // Save the session with deletedAt set
+      await this.save(session);
+    } catch (error) {
+      console.error('Error soft-deleting session:', error);
+      throw error;
     }
   }
 
@@ -192,6 +212,104 @@ export class FileSessionRepository implements ISessionRepository {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Restore a soft-deleted session from trash
+   */
+  async restore(sessionId: string): Promise<void> {
+    try {
+      const sessionPath = this.getSessionPath(sessionId);
+      const data = await fs.readFile(sessionPath, 'utf-8');
+      const sessionData = JSON.parse(data);
+      const session = Session.fromJSON(sessionData);
+
+      // Remove deletedAt and update timestamp
+      session.deletedAt = undefined;
+      session.updatedAt = new Date();
+
+      // Save the restored session
+      await this.save(session);
+    } catch (error) {
+      console.error('Error restoring session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find all soft-deleted sessions
+   */
+  async findDeleted(userId?: string): Promise<Session[]> {
+    await this.ensureDirectory();
+
+    try {
+      const files = await fs.readdir(this.sessionsDir);
+      const deletedSessions: Session[] = [];
+
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          try {
+            const sessionPath = path.join(this.sessionsDir, file);
+            const data = await fs.readFile(sessionPath, 'utf-8');
+
+            // Skip empty files
+            if (!data || data.trim().length === 0) {
+              continue;
+            }
+
+            const sessionData = JSON.parse(data);
+            const session = Session.fromJSON(sessionData);
+
+            // Only include sessions with deletedAt set
+            if (!session.deletedAt) {
+              continue;
+            }
+
+            // Filter by userId for multi-user support
+            if (this.userId === null) {
+              continue; // Skip all sessions when logged out
+            }
+
+            // Filter by user
+            if (session.userId !== undefined && session.userId !== this.userId) {
+              continue; // Skip sessions from other users
+            }
+
+            deletedSessions.push(session);
+          } catch (fileError) {
+            console.error(`Failed to load session from ${file}:`, fileError);
+            continue;
+          }
+        }
+      }
+
+      // Sort by deletion date, newest first
+      return deletedSessions.sort((a, b) => {
+        if (!a.deletedAt || !b.deletedAt) return 0;
+        return b.deletedAt.getTime() - a.deletedAt.getTime();
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to read sessions directory: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Permanently delete a session (hard delete)
+   * This physically removes the JSON file from the file system
+   */
+  async permanentlyDelete(sessionId: string): Promise<void> {
+    try {
+      const sessionPath = this.getSessionPath(sessionId);
+      await fs.unlink(sessionPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+      // File doesn't exist, consider it deleted
     }
   }
 }

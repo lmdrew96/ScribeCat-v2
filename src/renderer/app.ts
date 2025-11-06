@@ -22,6 +22,7 @@ import { AuthScreen } from './components/AuthScreen.js';
 import { UserProfileMenu } from './components/UserProfileMenu.js';
 import { ShareModal } from './components/ShareModal.js';
 import { AccountSettingsModal } from './components/AccountSettingsModal.js';
+import { TrashModal } from './components/TrashModal.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -41,6 +42,7 @@ let authScreen: AuthScreen;
 let userProfileMenu: UserProfileMenu;
 let shareModal: ShareModal;
 let accountSettingsModal: AccountSettingsModal;
+let trashModal: TrashModal;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -108,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await authManager.initialize();
   authScreen = new AuthScreen(authManager);
   accountSettingsModal = new AccountSettingsModal(authManager);
+  trashModal = new TrashModal();
   userProfileMenu = new UserProfileMenu(authManager, accountSettingsModal);
 
   // Initialize settings manager (requires authManager for Drive settings)
@@ -159,7 +162,31 @@ function setupEventListeners(): void {
   clearNotesBtn.addEventListener('click', handleClearNotes);
   clearTranscriptionBtn.addEventListener('click', handleClearTranscription);
   clearBothBtn.addEventListener('click', handleClearBoth);
-  
+
+  // Trash button
+  const trashBtn = document.getElementById('trash-btn') as HTMLButtonElement;
+  if (trashBtn) {
+    trashBtn.addEventListener('click', () => {
+      trashModal.show();
+    });
+
+    // Set up callbacks for when sessions are restored or deleted
+    trashModal.onRestore((sessionId) => {
+      // Refresh the study mode session list
+      if (studyModeManager) {
+        studyModeManager.refresh();
+      }
+    });
+
+    trashModal.onPermanentDelete((sessionId) => {
+      // Optionally refresh or do nothing
+    });
+
+    trashModal.onEmptyTrash(() => {
+      // Optionally refresh or do nothing
+    });
+  }
+
   // Update button states on content changes
   updateClearButtonStates();
 }

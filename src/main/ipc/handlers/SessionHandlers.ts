@@ -5,6 +5,9 @@ import { ListSessionsUseCase } from '../../../application/use-cases/ListSessions
 import { DeleteSessionUseCase } from '../../../application/use-cases/DeleteSessionUseCase.js';
 import { ExportSessionUseCase } from '../../../application/use-cases/ExportSessionUseCase.js';
 import { UpdateSessionUseCase } from '../../../application/use-cases/UpdateSessionUseCase.js';
+import { RestoreSessionUseCase } from '../../../application/use-cases/RestoreSessionUseCase.js';
+import { PermanentlyDeleteSessionUseCase } from '../../../application/use-cases/PermanentlyDeleteSessionUseCase.js';
+import { GetDeletedSessionsUseCase } from '../../../application/use-cases/GetDeletedSessionsUseCase.js';
 
 /**
  * Handles session-related IPC channels
@@ -18,7 +21,10 @@ export class SessionHandlers extends BaseHandler {
     private listSessionsUseCase: ListSessionsUseCase,
     private deleteSessionUseCase: DeleteSessionUseCase,
     private exportSessionUseCase: ExportSessionUseCase,
-    private updateSessionUseCase: UpdateSessionUseCase
+    private updateSessionUseCase: UpdateSessionUseCase,
+    private restoreSessionUseCase: RestoreSessionUseCase,
+    private permanentlyDeleteSessionUseCase: PermanentlyDeleteSessionUseCase,
+    private getDeletedSessionsUseCase: GetDeletedSessionsUseCase
   ) {
     super();
   }
@@ -93,6 +99,36 @@ export class SessionHandlers extends BaseHandler {
     this.handle(ipcMain, 'export:getAvailableFormats', async () => {
       const formats = await this.exportSessionUseCase.getAvailableFormats();
       return { success: true, formats };
+    });
+
+    // Get deleted sessions handler (for trash view)
+    this.handle(ipcMain, 'sessions:getDeleted', async (event, userId?: string) => {
+      const sessions = await this.getDeletedSessionsUseCase.execute(userId || this.currentUserId || undefined);
+      return { success: true, sessions: sessions.map(s => s.toJSON()) };
+    });
+
+    // Restore session handler
+    this.handle(ipcMain, 'sessions:restore', async (event, sessionId: string) => {
+      await this.restoreSessionUseCase.execute(sessionId);
+      return { success: true };
+    });
+
+    // Restore multiple sessions handler
+    this.handle(ipcMain, 'sessions:restoreMultiple', async (event, sessionIds: string[]) => {
+      const result = await this.restoreSessionUseCase.executeMultiple(sessionIds);
+      return { success: true, result };
+    });
+
+    // Permanently delete session handler
+    this.handle(ipcMain, 'sessions:permanentlyDelete', async (event, sessionId: string) => {
+      await this.permanentlyDeleteSessionUseCase.execute(sessionId);
+      return { success: true };
+    });
+
+    // Permanently delete multiple sessions handler (for "Empty Trash")
+    this.handle(ipcMain, 'sessions:permanentlyDeleteMultiple', async (event, sessionIds: string[]) => {
+      const result = await this.permanentlyDeleteSessionUseCase.executeMultiple(sessionIds);
+      return { success: true, result };
     });
   }
 }

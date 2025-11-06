@@ -18,39 +18,26 @@ export class DeleteSessionUseCase {
   ) {}
 
   /**
-   * Execute the use case to delete a session
+   * Execute the use case to delete a session (soft delete)
+   * Moves the session to trash. Audio files and session data are kept for 30 days.
    * @param sessionId The ID of the session to delete
    * @throws Error if session not found or deletion fails
    */
   async execute(sessionId: string): Promise<void> {
     try {
-      // Load the session to get file paths
+      // Load the session to verify it exists
       const session = await this.sessionRepository.findById(sessionId);
-      
+
       if (!session) {
         throw new Error(`Session with ID ${sessionId} not found`);
       }
 
-      // Delete the audio file
-      try {
-        await this.audioRepository.deleteAudio(session.recordingPath);
-      } catch (error) {
-        // Log but don't fail if audio file is already missing
-        console.warn(`Failed to delete audio file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
+      // NOTE: We do NOT delete audio files during soft delete
+      // Audio files will be kept until the session is permanently deleted (after 30 days in trash)
 
-      // Delete any exported files
-      for (const exportRecord of session.exportHistory) {
-        try {
-          // We'll need to implement file deletion in infrastructure
-          // For now, just log the export paths that should be deleted
-          console.log(`Should delete export file: ${exportRecord.path}`);
-        } catch (error) {
-          console.warn(`Failed to delete export file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-      }
+      // NOTE: We do NOT delete exported files - user wants to keep them permanently
 
-      // Delete the session metadata from local repository
+      // Soft delete the session metadata from local repository
       await this.sessionRepository.delete(sessionId);
 
       // If session was synced to cloud, also delete from remote repository
