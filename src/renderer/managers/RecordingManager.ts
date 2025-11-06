@@ -84,7 +84,7 @@ export class RecordingManager {
       deviceId: deviceId,
       echoCancellation: true,
       noiseSuppression: true,
-      autoGainControl: false
+      autoGainControl: true  // Enable AGC for consistent volume levels
     });
 
     // Start transcription service
@@ -92,9 +92,13 @@ export class RecordingManager {
       ? config.assemblyai.apiKey
       : undefined;
 
+    // Load transcription accuracy settings
+    const transcriptionSettings = await window.scribeCat.store.get('transcription-accuracy-settings');
+
     await this.transcriptionService.start({
       mode: transcriptionMode,
-      apiKey
+      apiKey,
+      transcriptionSettings: transcriptionSettings || undefined
     });
 
     // Update state

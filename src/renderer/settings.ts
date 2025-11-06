@@ -13,9 +13,26 @@ import { SettingsUIManager } from './settings/SettingsUIManager.js';
 import { NotificationToast } from './components/shared/NotificationToast.js';
 import { AuthManager } from './managers/AuthManager.js';
 
+export interface TranscriptionAccuracySettings {
+  speechModel: 'best' | 'nano';
+  languageCode: string;
+  speakerLabels: boolean;
+  disfluencies: boolean;
+  punctuate: boolean;
+  formatText: boolean;
+}
+
 export class SettingsManager {
   private settingsModal: HTMLElement;
   private transcriptionMode: 'simulation' | 'assemblyai' = 'simulation';
+  private transcriptionSettings: TranscriptionAccuracySettings = {
+    speechModel: 'best',
+    languageCode: '',
+    speakerLabels: false,
+    disfluencies: true,
+    punctuate: true,
+    formatText: true
+  };
 
   // Specialized managers
   private themeManager: ThemeManager;
@@ -112,6 +129,12 @@ export class SettingsManager {
       const mode = await window.scribeCat.store.get('transcription-mode');
       this.transcriptionMode = (mode as 'simulation' | 'assemblyai') || 'simulation';
 
+      // Load transcription accuracy settings
+      const settings = await window.scribeCat.store.get('transcription-accuracy-settings');
+      if (settings) {
+        this.transcriptionSettings = settings as TranscriptionAccuracySettings;
+      }
+
       // Update UI
       this.updateUIFromSettings();
     } catch (error) {
@@ -129,6 +152,37 @@ export class SettingsManager {
     ) as HTMLInputElement;
     if (modeRadio) {
       modeRadio.checked = true;
+    }
+
+    // Set transcription accuracy settings
+    const speechModelSelect = document.getElementById('speech-model-select') as HTMLSelectElement;
+    if (speechModelSelect) {
+      speechModelSelect.value = this.transcriptionSettings.speechModel;
+    }
+
+    const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
+    if (languageSelect) {
+      languageSelect.value = this.transcriptionSettings.languageCode;
+    }
+
+    const speakerLabelsCheckbox = document.getElementById('speaker-labels-checkbox') as HTMLInputElement;
+    if (speakerLabelsCheckbox) {
+      speakerLabelsCheckbox.checked = this.transcriptionSettings.speakerLabels;
+    }
+
+    const disfluenciesCheckbox = document.getElementById('disfluencies-checkbox') as HTMLInputElement;
+    if (disfluenciesCheckbox) {
+      disfluenciesCheckbox.checked = this.transcriptionSettings.disfluencies;
+    }
+
+    const punctuateCheckbox = document.getElementById('punctuate-checkbox') as HTMLInputElement;
+    if (punctuateCheckbox) {
+      punctuateCheckbox.checked = this.transcriptionSettings.punctuate;
+    }
+
+    const formatTextCheckbox = document.getElementById('format-text-checkbox') as HTMLInputElement;
+    if (formatTextCheckbox) {
+      formatTextCheckbox.checked = this.transcriptionSettings.formatText;
     }
   }
 
@@ -163,6 +217,25 @@ export class SettingsManager {
         this.transcriptionMode = modeRadio.value as 'simulation' | 'assemblyai';
         await window.scribeCat.store.set('transcription-mode', this.transcriptionMode);
       }
+
+      // Save transcription accuracy settings
+      const speechModelSelect = document.getElementById('speech-model-select') as HTMLSelectElement;
+      const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
+      const speakerLabelsCheckbox = document.getElementById('speaker-labels-checkbox') as HTMLInputElement;
+      const disfluenciesCheckbox = document.getElementById('disfluencies-checkbox') as HTMLInputElement;
+      const punctuateCheckbox = document.getElementById('punctuate-checkbox') as HTMLInputElement;
+      const formatTextCheckbox = document.getElementById('format-text-checkbox') as HTMLInputElement;
+
+      this.transcriptionSettings = {
+        speechModel: speechModelSelect?.value as 'best' | 'nano' || 'best',
+        languageCode: languageSelect?.value || '',
+        speakerLabels: speakerLabelsCheckbox?.checked || false,
+        disfluencies: disfluenciesCheckbox?.checked || true,
+        punctuate: punctuateCheckbox?.checked || true,
+        formatText: formatTextCheckbox?.checked || true
+      };
+
+      await window.scribeCat.store.set('transcription-accuracy-settings', this.transcriptionSettings);
 
       NotificationToast.success('Settings saved successfully!');
       this.closeSettings();
@@ -244,6 +317,13 @@ export class SettingsManager {
         (card as HTMLElement).style.display = 'none';
       }
     });
+  }
+
+  /**
+   * Get current transcription accuracy settings
+   */
+  getTranscriptionSettings(): TranscriptionAccuracySettings {
+    return this.transcriptionSettings;
   }
 
   /**

@@ -4,6 +4,15 @@
  * Uses Universal Streaming API
  */
 
+export interface TranscriptionSettings {
+  speechModel?: 'best' | 'nano';
+  languageCode?: string;
+  speakerLabels?: boolean;
+  disfluencies?: boolean;
+  punctuate?: boolean;
+  formatText?: boolean;
+}
+
 export class AssemblyAITranscriptionService {
   private ws: WebSocket | null = null;
   private sessionId: string | null = null;
@@ -16,10 +25,19 @@ export class AssemblyAITranscriptionService {
   private tokenCreatedAt: number = 0;
   private isRefreshing: boolean = false;
   private stopPromiseResolve: (() => void) | null = null;
+  private settings: TranscriptionSettings = {};
 
-  async initialize(apiKey: string): Promise<void> {
+  async initialize(apiKey: string, settings?: TranscriptionSettings): Promise<void> {
     this.apiKey = apiKey;
-    console.log('AssemblyAI service initialized');
+    if (settings) {
+      this.settings = settings;
+    }
+    console.log('AssemblyAI service initialized with settings:', this.settings);
+  }
+
+  updateSettings(settings: TranscriptionSettings): void {
+    this.settings = settings;
+    console.log('AssemblyAI settings updated:', this.settings);
   }
 
   async start(): Promise<string> {
@@ -107,12 +125,38 @@ export class AssemblyAITranscriptionService {
 
   private async connectWebSocket(token: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Use browser's native WebSocket API with temporary token
-      // Note: sample_rate and encoding are set via query params
-      // format_turns enables Turn-based messages, format_words provides word-level timestamps
-      const url = `wss://streaming.assemblyai.com/v3/ws?token=${encodeURIComponent(token)}&sample_rate=16000&encoding=pcm_s16le&format_turns=true&format_words=true`;
+      // Build WebSocket URL with advanced parameters
+      const params = new URLSearchParams({
+        token: token,
+        sample_rate: '16000',
+        encoding: 'pcm_s16le',
+        format_turns: 'true',
+        format_words: 'true'
+      });
 
-      console.log('🔗 Connecting to AssemblyAI WebSocket with word-level timestamps...');
+      // Add advanced parameters based on settings
+      if (this.settings.speechModel) {
+        params.append('speech_model', this.settings.speechModel);
+      }
+      if (this.settings.languageCode) {
+        params.append('language_code', this.settings.languageCode);
+      }
+      if (this.settings.speakerLabels !== undefined) {
+        params.append('speaker_labels', String(this.settings.speakerLabels));
+      }
+      if (this.settings.disfluencies !== undefined) {
+        params.append('disfluencies', String(this.settings.disfluencies));
+      }
+      if (this.settings.punctuate !== undefined) {
+        params.append('punctuate', String(this.settings.punctuate));
+      }
+      if (this.settings.formatText !== undefined) {
+        params.append('format_text', String(this.settings.formatText));
+      }
+
+      const url = `wss://streaming.assemblyai.com/v3/ws?${params.toString()}`;
+
+      console.log('🔗 Connecting to AssemblyAI WebSocket with advanced settings:', this.settings);
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {

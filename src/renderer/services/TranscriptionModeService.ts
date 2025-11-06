@@ -5,7 +5,7 @@
  * Eliminates duplicate mode-switching logic from RecordingManager.
  */
 
-import { AssemblyAITranscriptionService } from '../assemblyai-transcription-service.js';
+import { AssemblyAITranscriptionService, TranscriptionSettings } from '../assemblyai-transcription-service.js';
 import { AudioManager } from '../audio-manager.js';
 import { TranscriptionManager } from '../managers/TranscriptionManager.js';
 
@@ -14,6 +14,7 @@ export type TranscriptionMode = 'simulation' | 'assemblyai';
 export interface TranscriptionModeConfig {
   mode: TranscriptionMode;
   apiKey?: string; // Required for AssemblyAI mode
+  transcriptionSettings?: TranscriptionSettings; // Optional settings for AssemblyAI
 }
 
 /**
@@ -56,7 +57,7 @@ export class TranscriptionModeService {
       if (!config.apiKey) {
         throw new Error('AssemblyAI API key not configured. Please add it in Settings.');
       }
-      await this.startAssemblyAIMode(config.apiKey);
+      await this.startAssemblyAIMode(config.apiKey, config.transcriptionSettings);
     }
   }
 
@@ -136,12 +137,12 @@ export class TranscriptionModeService {
   /**
    * Start AssemblyAI transcription mode
    */
-  private async startAssemblyAIMode(apiKey: string): Promise<void> {
-    console.log('Starting AssemblyAI transcription...');
+  private async startAssemblyAIMode(apiKey: string, settings?: TranscriptionSettings): Promise<void> {
+    console.log('Starting AssemblyAI transcription with settings:', settings);
 
     // Create and initialize service
     this.assemblyAIService = new AssemblyAITranscriptionService();
-    await this.assemblyAIService.initialize(apiKey);
+    await this.assemblyAIService.initialize(apiKey, settings);
 
     // Set up result callback
     this.assemblyAIService.onResult((text: string, isFinal: boolean, startTime?: number, endTime?: number) => {
@@ -226,7 +227,8 @@ export class TranscriptionModeService {
   }
 
   /**
-   * Resample audio to target sample rate
+   * Resample audio to target sample rate using cubic interpolation
+   * Provides better quality than linear interpolation while remaining efficient
    */
   private resampleAudio(
     audioData: Float32Array,
@@ -241,12 +243,28 @@ export class TranscriptionModeService {
     const newLength = Math.round(audioData.length / sampleRateRatio);
     const result = new Float32Array(newLength);
 
+    // Use cubic interpolation for better quality
     for (let i = 0; i < newLength; i++) {
       const srcIndex = i * sampleRateRatio;
       const srcIndexFloor = Math.floor(srcIndex);
-      const srcIndexCeil = Math.min(srcIndexFloor + 1, audioData.length - 1);
       const t = srcIndex - srcIndexFloor;
-      result[i] = audioData[srcIndexFloor] * (1 - t) + audioData[srcIndexCeil] * t;
+
+      // Get 4 surrounding samples for cubic interpolation
+      const y0 = audioData[Math.max(0, srcIndexFloor - 1)];
+      const y1 = audioData[Math.min(srcIndexFloor, audioData.length - 1)];
+      const y2 = audioData[Math.min(srcIndexFloor + 1, audioData.length - 1)];
+      const y3 = audioData[Math.min(srcIndexFloor + 2, audioData.length - 1)];
+
+      // Catmull-Rom cubic interpolation
+      const t2 = t * t;
+      const t3 = t2 * t;
+
+      result[i] = 0.5 * (
+        (2 * y1) +
+        (-y0 + y2) * t +
+        (2 * y0 - 5 * y1 + 4 * y2 - y3) * t2 +
+        (-y0 + 3 * y1 - 3 * y2 + y3) * t3
+      );
     }
 
     return result;
