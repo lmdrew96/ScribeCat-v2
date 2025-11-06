@@ -2,8 +2,8 @@ import { ISessionRepository } from '../../domain/repositories/ISessionRepository
 
 /**
  * UpdateSessionUseCase
- * 
- * Updates session properties like title, notes, and tags.
+ *
+ * Updates session properties like title, notes, tags, and course information.
  */
 export class UpdateSessionUseCase {
   constructor(private sessionRepository: ISessionRepository) {}
@@ -21,6 +21,9 @@ export class UpdateSessionUseCase {
       title?: string;
       notes?: string;
       tags?: string[];
+      courseId?: string;
+      courseTitle?: string;
+      courseNumber?: string;
     },
     currentUserId?: string | null
   ): Promise<boolean> {
@@ -51,6 +54,15 @@ export class UpdateSessionUseCase {
 
       if (updates.tags !== undefined) {
         session.tags = updates.tags;
+      }
+
+      // Update course information if any course field is provided
+      if (updates.courseId !== undefined || updates.courseTitle !== undefined || updates.courseNumber !== undefined) {
+        session.updateCourse(
+          updates.courseId !== undefined ? updates.courseId : session.courseId,
+          updates.courseTitle !== undefined ? updates.courseTitle : session.courseTitle,
+          updates.courseNumber !== undefined ? updates.courseNumber : session.courseNumber
+        );
       }
 
       // Save the updated session

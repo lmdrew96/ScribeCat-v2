@@ -27,7 +27,7 @@ export class StudyModeDetailViewManager {
   /**
    * Render session detail view
    */
-  render(session: Session): void {
+  render(session: Session, isEditable: boolean = true): void {
     this.currentSession = session;
     console.log('🔍 StudyModeDetailViewManager.render - Session data:', {
       id: session.id,
@@ -82,8 +82,11 @@ export class StudyModeDetailViewManager {
         <div class="session-detail-header">
           <div class="session-detail-title-row">
             <h2 class="session-detail-title" data-session-id="${session.id}">${escapeHtml(session.title)}</h2>
-            <button class="edit-title-btn-detail" data-session-id="${session.id}" title="Edit title">✏️</button>
-            ${courseTagsHtml}
+            ${isEditable ? `<button class="edit-title-btn-detail" data-session-id="${session.id}" title="Edit title">✏️</button>` : ''}
+            <div class="course-badge-container">
+              ${courseTagsHtml || '<span class="course-badge no-course">No Course</span>'}
+              ${isEditable ? `<button class="edit-course-btn-detail" data-session-id="${session.id}" title="Edit course">✏️</button>` : ''}
+            </div>
           </div>
           <div class="session-detail-meta">
             <span>📅 ${formattedDate} at ${formattedTime}</span>
@@ -163,6 +166,7 @@ export class StudyModeDetailViewManager {
 
             <!-- Notes Content (managed by StudyModeNotesEditorManager) -->
             <div class="session-content-panel" data-panel="notes">
+              ${isEditable ? `
               <div class="notes-edit-controls">
                 <button class="edit-notes-btn secondary-btn" data-session-id="${session.id}">
                   ✏️ Edit Notes
@@ -176,6 +180,7 @@ export class StudyModeDetailViewManager {
                   </button>
                 </div>
               </div>
+              ` : ''}
               <div class="content-panel-inner notes-view-content">
                 ${session.notes
                   ? session.notes
@@ -350,6 +355,12 @@ export class StudyModeDetailViewManager {
     const editTitleBtn = document.querySelector('.edit-title-btn-detail');
     editTitleBtn?.addEventListener('click', () => {
       this.sessionDetailContainer.dispatchEvent(new CustomEvent('startTitleEdit', { detail: { sessionId: session.id } }));
+    });
+
+    // Course edit handler
+    const editCourseBtn = document.querySelector('.edit-course-btn-detail');
+    editCourseBtn?.addEventListener('click', () => {
+      this.sessionDetailContainer.dispatchEvent(new CustomEvent('startCourseEdit', { detail: { sessionId: session.id } }));
     });
   }
 

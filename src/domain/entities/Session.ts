@@ -109,6 +109,16 @@ export class Session {
   }
 
   /**
+   * Update course information
+   */
+  updateCourse(courseId?: string, courseTitle?: string, courseNumber?: string): void {
+    this.courseId = courseId;
+    this.courseTitle = courseTitle;
+    this.courseNumber = courseNumber;
+    this.updatedAt = new Date();
+  }
+
+  /**
    * Check if session has transcription
    */
   hasTranscription(): boolean {

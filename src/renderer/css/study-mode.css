@@ -367,6 +367,13 @@
   color: var(--text-primary);
 }
 
+.course-badge-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
 .course-badge {
   padding: 4px 10px;
   background-color: var(--accent);
@@ -381,6 +388,30 @@
   display: inline-block;
   cursor: help;
   position: relative;
+}
+
+.course-badge.no-course {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.edit-course-btn-detail {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.edit-course-btn-detail:hover {
+  opacity: 1;
+  background-color: var(--bg-tertiary);
+  transform: scale(1.1);
 }
 
 .course-badge-text {

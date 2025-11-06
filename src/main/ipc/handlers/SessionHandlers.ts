@@ -56,7 +56,14 @@ export class SessionHandlers extends BaseHandler {
     });
 
     // Session update handler
-    this.handle(ipcMain, 'sessions:update', async (event, sessionId: string, updates: { title?: string; notes?: string; tags?: string[] }) => {
+    this.handle(ipcMain, 'sessions:update', async (event, sessionId: string, updates: {
+      title?: string;
+      notes?: string;
+      tags?: string[];
+      courseId?: string;
+      courseTitle?: string;
+      courseNumber?: string;
+    }) => {
       const success = await this.updateSessionUseCase.execute(sessionId, updates, this.currentUserId);
       return { success };
     });
