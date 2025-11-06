@@ -789,8 +789,8 @@ export class StudyModeManager {
     // Show confirmation dialog
     const confirmed = confirm(
       `Delete "${session.title}"?\n\n` +
-      `This will permanently delete the recording, transcription, and notes.\n` +
-      `This action cannot be undone.`
+      `This will move the session to trash where it will be kept for 30 days.\n` +
+      `You can restore it from trash before it's permanently deleted.`
     );
 
     if (!confirmed) {
@@ -892,8 +892,8 @@ export class StudyModeManager {
 
     const confirmed = confirm(
       `Delete ${sessionIdsArray.length} session${sessionIdsArray.length > 1 ? 's' : ''}?\n\n` +
-      `This will permanently delete the recordings, transcriptions, and notes.\n` +
-      `This action cannot be undone.`
+      `This will move the sessions to trash where they will be kept for 30 days.\n` +
+      `You can restore them from trash before they're permanently deleted.`
     );
 
     if (!confirmed) {
