@@ -78,7 +78,8 @@ export class UpdateSessionUseCase {
 
       // Save the updated session to the appropriate repository
       if (isCloudSession && this.supabaseSessionRepository) {
-        await this.supabaseSessionRepository.save(session);
+        // Use update() instead of save() to preserve user_id and respect RLS policies
+        await this.supabaseSessionRepository.update(session);
       } else {
         await this.sessionRepository.save(session);
       }
