@@ -294,7 +294,10 @@ class ScribeCatApp {
         this.sessionRepository,
         this.exportServices
       );
-      this.updateSessionUseCase = new UpdateSessionUseCase(this.sessionRepository);
+      this.updateSessionUseCase = new UpdateSessionUseCase(
+        this.sessionRepository,
+        this.supabaseSessionRepository || undefined
+      );
 
       // Initialize SyncManager for cloud sync (user ID will be set when renderer sends auth state)
       if (this.supabaseStorageService && this.supabaseSessionRepository) {
@@ -323,21 +326,24 @@ class ScribeCatApp {
       this.simulationTranscriptionService = new SimulationTranscriptionService();
 
       // Initialize recording manager with auto-sync callback
-      this.recordingManager = new RecordingManager(async (sessionId: string) => {
-        // Auto-sync after recording completes (if user is authenticated)
-        if (this.syncManager) {
-          const session = await this.sessionRepository.findById(sessionId);
-          if (session) {
-            console.log(`Auto-syncing session ${sessionId} after recording...`);
-            const result = await this.syncManager.uploadSession(session);
-            if (result.success) {
-              console.log(`✓ Session ${sessionId} auto-synced successfully`);
-            } else {
-              console.warn(`✗ Auto-sync failed: ${result.error}`);
+      this.recordingManager = new RecordingManager(
+        async (sessionId: string) => {
+          // Auto-sync after recording completes (if user is authenticated)
+          if (this.syncManager) {
+            const session = await this.sessionRepository.findById(sessionId);
+            if (session) {
+              console.log(`Auto-syncing session ${sessionId} after recording...`);
+              const result = await this.syncManager.uploadSession(session);
+              if (result.success) {
+                console.log(`✓ Session ${sessionId} auto-synced successfully`);
+              } else {
+                console.warn(`✗ Auto-sync failed: ${result.error}`);
+              }
             }
           }
-        }
-      });
+        },
+        this.supabaseSessionRepository || undefined
+      );
 
       // Initialize directory structure
       try {

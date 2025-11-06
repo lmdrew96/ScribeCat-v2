@@ -9,6 +9,7 @@ import { UpdateSessionTranscriptionUseCase } from '../application/use-cases/Upda
 import { CreateDraftSessionUseCase } from '../application/use-cases/CreateDraftSessionUseCase.js';
 import { FileAudioRepository } from '../infrastructure/repositories/FileAudioRepository.js';
 import { FileSessionRepository } from '../infrastructure/repositories/FileSessionRepository.js';
+import type { ISessionRepository } from '../domain/repositories/ISessionRepository.js';
 
 /**
  * RecordingManager
@@ -30,7 +31,10 @@ export class RecordingManager {
   // Optional callback for post-save actions (e.g., cloud sync)
   private onRecordingSaved?: (sessionId: string) => Promise<void>;
 
-  constructor(onRecordingSaved?: (sessionId: string) => Promise<void>) {
+  constructor(
+    onRecordingSaved?: (sessionId: string) => Promise<void>,
+    supabaseSessionRepository?: ISessionRepository
+  ) {
     this.onRecordingSaved = onRecordingSaved;
     // Initialize repositories
     const audioRepository = new FileAudioRepository();
@@ -43,7 +47,8 @@ export class RecordingManager {
     );
     this.loadSessionUseCase = new LoadSessionUseCase(sessionRepository);
     this.updateSessionNotesUseCase = new UpdateSessionNotesUseCase(
-      sessionRepository
+      sessionRepository,
+      supabaseSessionRepository
     );
     this.updateSessionTranscriptionUseCase = new UpdateSessionTranscriptionUseCase(
       sessionRepository
