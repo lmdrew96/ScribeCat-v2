@@ -23,26 +23,31 @@ export class StudyModeDataTransformer {
       .map((share: any) => {
         logger.info('Processing share:', {
           shareId: share.id,
+          permissionLevel: share.permission_level,
           hasSessionsProperty: 'sessions' in share,
           sessionData: share.sessions
         });
-        return share.sessions;
+        // Return both the session data AND the permission level
+        return {
+          sessionData: share.sessions,
+          permissionLevel: share.permission_level
+        };
       })
-      .filter((sessionData: any) => {
-        const isValid = sessionData != null;
+      .filter((item: any) => {
+        const isValid = item.sessionData != null;
         if (!isValid) {
           logger.warn('Filtered out null/undefined session data');
         }
         return isValid;
       })
-      .map((row: any) => this.rowToSession(row));
+      .map((item: any) => this.rowToSession(item.sessionData, item.permissionLevel));
   }
 
   /**
    * Transform a database row to a Session entity
    * Matches the logic from SupabaseSessionRepository.rowToSession
    */
-  private rowToSession(row: any): Session {
+  private rowToSession(row: any, permissionLevel?: 'viewer' | 'editor'): Session {
     // Create transcription if data exists
     let transcription: Transcription | undefined;
     if (row.transcription_text) {
@@ -91,7 +96,9 @@ export class StudyModeDataTransformer {
       isShared: true,
       // Owner information for shared sessions
       ownerName: row.owner_name,
-      ownerEmail: row.owner_email
+      ownerEmail: row.owner_email,
+      // Permission level for shared sessions
+      permissionLevel: permissionLevel
     };
 
     return session as Session;

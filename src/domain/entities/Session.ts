@@ -46,7 +46,9 @@ export class Session {
     public userId?: string,
     public cloudId?: string,
     public syncStatus: SyncStatus = SyncStatus.NOT_SYNCED,
-    public lastSyncedAt?: Date
+    public lastSyncedAt?: Date,
+    // Shared session fields
+    public permissionLevel?: 'viewer' | 'editor'
   ) {}
 
   /**
@@ -205,7 +207,8 @@ export class Session {
       userId: this.userId,
       cloudId: this.cloudId,
       syncStatus: this.syncStatus,
-      lastSyncedAt: this.lastSyncedAt
+      lastSyncedAt: this.lastSyncedAt,
+      permissionLevel: this.permissionLevel
     };
   }
 
@@ -230,7 +233,8 @@ export class Session {
       data.userId,
       data.cloudId,
       data.syncStatus || SyncStatus.NOT_SYNCED,
-      data.lastSyncedAt ? new Date(data.lastSyncedAt) : undefined
+      data.lastSyncedAt ? new Date(data.lastSyncedAt) : undefined,
+      data.permissionLevel
     );
   }
 }
@@ -257,4 +261,6 @@ export interface SessionData {
   cloudId?: string;
   syncStatus?: SyncStatus;
   lastSyncedAt?: Date;
+  // Shared session fields
+  permissionLevel?: 'viewer' | 'editor';
 }

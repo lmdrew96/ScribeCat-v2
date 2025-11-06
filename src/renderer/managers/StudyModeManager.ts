@@ -315,6 +315,11 @@ export class StudyModeManager {
       return true;
     }
 
+    // Check if this is a shared session with edit permission
+    if (session.permissionLevel === 'editor') {
+      return true;
+    }
+
     // Session is editable if owned by current user
     return session.userId === currentUser.id;
   }
