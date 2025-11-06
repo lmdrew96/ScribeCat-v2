@@ -84,7 +84,7 @@ export class ExportSessionUseCase {
   ): Promise<ExportResult> {
     const defaultOptions: ExportOptions = {
       includeMetadata: true,
-      includeTranscription: true,
+      includeTranscription: false,
       includeNotes: true,
       includeTimestamps: true
     };
