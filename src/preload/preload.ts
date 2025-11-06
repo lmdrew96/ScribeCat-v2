@@ -93,25 +93,9 @@ const electronAPI = {
       ipcRenderer.invoke('audio:get-metadata', filePath)
   },
   transcription: {
-    simulation: {
-      start: () => ipcRenderer.invoke('transcription:simulation:start'),
-      stop: (sessionId: string) => ipcRenderer.invoke('transcription:simulation:stop', sessionId),
-      pause: () => ipcRenderer.invoke('transcription:simulation:pause'),
-      resume: () => ipcRenderer.invoke('transcription:simulation:resume'),
-      onResult: (callback: (result: TranscriptionResult) => void) => {
-        ipcRenderer.on('transcription:result', (_event: Electron.IpcRendererEvent, result: TranscriptionResult) => callback(result));
-      },
-      removeResultListener: () => {
-        ipcRenderer.removeAllListeners('transcription:result');
-      }
-    },
     assemblyai: {
       getToken: (apiKey: string) => ipcRenderer.invoke('transcription:assemblyai:getToken', apiKey)
     }
-  },
-  settings: {
-    getSimulationMode: () => ipcRenderer.invoke('settings:get-simulation-mode'),
-    setSimulationMode: (enabled: boolean) => ipcRenderer.invoke('settings:set-simulation-mode', enabled)
   },
   store: {
     get: (key: string) => ipcRenderer.invoke('store:get', key),

@@ -1,12 +1,12 @@
-# Vosk/Whisper Removal - Major Refactor
+# Vosk/Whisper/Simulation Removal - Major Refactor
 
-**Date:** October 28, 2025 (Updated: October 29, 2025)  
-**Version:** 2.0.0-alpha  
-**Status:** ✅ Complete (Final Cleanup Complete)
+**Date:** October 28, 2025 (Updated: November 6, 2025)
+**Version:** 2.0.0-alpha
+**Status:** ✅ Complete (All Mock Transcription Removed)
 
 ## Overview
 
-Completed a comprehensive refactor to remove all Vosk and Whisper transcription references from the codebase. These offline transcription solutions were never fully functional in v2 and have been replaced by AssemblyAI for production use and Simulation mode for testing.
+Completed a comprehensive refactor to remove all Vosk, Whisper, and Simulation transcription references from the codebase. These offline transcription solutions were never fully functional in v2. Simulation mode was initially kept for testing but has since been removed. AssemblyAI is now the only transcription provider.
 
 ## Motivation
 
@@ -22,7 +22,7 @@ Completed a comprehensive refactor to remove all Vosk and Whisper transcription 
 
 **Files Modified:**
 - `src/domain/entities/Transcription.ts`
-  - Changed provider type: `'vosk' | 'whisper' | 'assemblyai'` → `'assemblyai' | 'simulation'`
+  - Changed provider type: `'vosk' | 'whisper' | 'assemblyai'` → `'assemblyai' | 'simulation'` → `'assemblyai'`
   - Updated both class constructor and `TranscriptionData` interface
 
 - `src/domain/services/ITranscriptionService.ts`
@@ -30,8 +30,8 @@ Completed a comprehensive refactor to remove all Vosk and Whisper transcription 
   - Updated interface documentation
 
 - `src/application/use-cases/UpdateSessionTranscriptionUseCase.ts`
-  - Changed provider parameter type to `'assemblyai' | 'simulation'`
-  - Changed default from `'vosk'` to `'simulation'`
+  - Changed provider parameter type to `'assemblyai' | 'simulation'` → `'assemblyai'`
+  - Changed default from `'vosk'` to `'simulation'` → `'assemblyai'`
 
 ### Phase 2: Infrastructure Cleanup ✅
 
@@ -122,18 +122,14 @@ Completed a comprehensive refactor to remove all Vosk and Whisper transcription 
 
 ### Current Transcription Options
 
-**1. Simulation Mode (Default)**
-- Purpose: Testing and development
-- No API key required
-- Generates realistic test transcriptions
-- Perfect for UI testing and demos
-
-**2. AssemblyAI (Production)**
+**AssemblyAI (Only Option)**
 - Purpose: Real-time production transcription
 - Requires API key from AssemblyAI
 - High accuracy speech-to-text
 - Real-time streaming with word-by-word display
 - Support for multiple languages
+
+**Note:** Simulation mode was removed on November 6, 2025 to simplify the codebase and focus on production-ready features.
 
 ### Breaking Changes
 
@@ -195,4 +191,27 @@ This refactor successfully removed all Vosk/Whisper references, reducing code co
 
 **Result:** ScribeCat v2 now has a clear, simple transcription architecture with two working modes instead of three non-working options.
 
-**Final Status:** All Vosk and Whisper code, styles, and compiled output have been completely removed from the active codebase. The application is ready for rebuild with clean code only.
+**Final Status:** All Vosk, Whisper, and Simulation code has been completely removed from the active codebase. The application now uses AssemblyAI as the sole transcription provider.
+
+## Simulation Mode Removal (November 6, 2025)
+
+**Files Deleted:**
+- `src/main/services/transcription/SimulationTranscriptionService.ts` (215 lines)
+- `docs/SIMULATION_TRANSCRIPTION.md` (358 lines)
+- `src/renderer/managers/RecordingManager.transcription.test.ts` (635 lines)
+
+**Files Modified:**
+- `src/main/main.ts` - Removed SimulationTranscriptionService instantiation and imports
+- `src/main/bootstrap/ServiceBootstrapper.ts` - Removed simulation service from bootstrap
+- `src/shared/ipc-channels.ts` - Removed 7 simulation IPC channels
+- `src/main/ipc/handlers/TranscriptionHandlers.ts` - Removed simulation handlers, kept AssemblyAI token handler
+- `src/main/ipc/handlers/SettingsHandlers.ts` - Removed simulation mode settings
+- `src/preload/preload.ts` - Removed simulation API bridge
+- `src/shared/window.d.ts` - Removed simulation type definitions
+- `src/test/setup.ts` - Removed simulation mocks
+
+**Impact:**
+- ~1,200 lines of simulation code removed
+- Application now requires AssemblyAI API key for transcription
+- Simplified transcription architecture with single provider
+- Removed confusion between test/production modes

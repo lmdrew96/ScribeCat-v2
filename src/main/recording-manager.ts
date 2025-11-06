@@ -197,7 +197,7 @@ export class RecordingManager {
     electron.ipcMain.handle('session:updateTranscription', async (event, sessionId: string, transcriptionText: string, provider?: string, timestampedEntries?: Array<{ startTime: number; endTime: number; text: string }>) => {
       try {
         // Use the provider as-is, defaulting to 'simulation'
-        const transcriptionProvider = (provider || 'simulation') as 'assemblyai' | 'simulation';
+        const transcriptionProvider = (provider || 'assemblyai') as 'assemblyai';
         const success = await this.updateSessionTranscriptionUseCase.execute(
           sessionId,
           transcriptionText,

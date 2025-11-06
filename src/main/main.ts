@@ -22,7 +22,6 @@ import { TextExportService } from '../infrastructure/services/export/TextExportS
 import { DocxExportService } from '../infrastructure/services/export/DocxExportService.js';
 import { PdfExportService } from '../infrastructure/services/export/PdfExportService.js';
 import { HtmlExportService } from '../infrastructure/services/export/HtmlExportService.js';
-import { SimulationTranscriptionService } from './services/transcription/SimulationTranscriptionService.js';
 import { ClaudeAIService } from '../infrastructure/services/ai/ClaudeAIService.js';
 import { GoogleDriveService } from '../infrastructure/services/drive/GoogleDriveService.js';
 import type { GoogleDriveConfig, SupabaseConfig } from '../shared/types.js';
@@ -60,7 +59,6 @@ const __dirname = path.dirname(__filename);
 
 // Define store schema
 interface StoreSchema {
-  'simulation-mode': boolean;
   'google-drive-credentials'?: string;
 }
 
@@ -85,9 +83,6 @@ class ScribeCatApp {
 
   // Export services
   private exportServices!: Map<string, any>;
-
-  // Transcription services
-  private simulationTranscriptionService!: SimulationTranscriptionService;
 
   // AI service
   private aiService: ClaudeAIService | null = null;
@@ -131,9 +126,7 @@ class ScribeCatApp {
     // Initialize electron-store for settings (doesn't need app to be ready)
     this.store = new Store<StoreSchema>({
       projectName: 'scribecat-v2',
-      defaults: {
-        'simulation-mode': true // Default to simulation mode
-      }
+      defaults: {}
     });
 
     // Initialize Claude AI service with default API key
@@ -341,9 +334,6 @@ class ScribeCatApp {
         this.acceptShareInvitationUseCase = new AcceptShareInvitationUseCase(this.supabaseShareRepository);
         console.log('Sharing use cases initialized');
       }
-
-      // Initialize simulation transcription service
-      this.simulationTranscriptionService = new SimulationTranscriptionService();
 
       // Initialize recording manager with auto-sync callback
       this.recordingManager = new RecordingManager(
@@ -573,14 +563,11 @@ class ScribeCatApp {
       this.getDeletedSessionsUseCase
     );
     registry.add(this.sessionHandlers);
-    
+
     registry.add(new AudioHandlers());
-    
-    registry.add(new TranscriptionHandlers(
-      this.simulationTranscriptionService,
-      () => this.mainWindow
-    ));
-    
+
+    registry.add(new TranscriptionHandlers());
+
     registry.add(new AIHandlers(
       () => this.aiService,
       () => this.mainWindow

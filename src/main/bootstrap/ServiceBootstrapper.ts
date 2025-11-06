@@ -20,7 +20,6 @@ import { TextExportService } from '../../infrastructure/services/export/TextExpo
 import { DocxExportService } from '../../infrastructure/services/export/DocxExportService.js';
 import { PdfExportService } from '../../infrastructure/services/export/PdfExportService.js';
 import { HtmlExportService } from '../../infrastructure/services/export/HtmlExportService.js';
-import { SimulationTranscriptionService } from '../services/transcription/SimulationTranscriptionService.js';
 import { ClaudeAIService } from '../../infrastructure/services/ai/ClaudeAIService.js';
 import { GoogleDriveService } from '../../infrastructure/services/drive/GoogleDriveService.js';
 import { SyncManager } from '../../infrastructure/services/sync/SyncManager.js';
@@ -48,7 +47,6 @@ export interface BootstrapResult {
   supabaseStorageService: SupabaseStorageService | null;
   aiService: ClaudeAIService | null;
   googleDriveService: GoogleDriveService | null;
-  simulationTranscriptionService: SimulationTranscriptionService;
   syncManager: SyncManager | null;
   deletedSessionsTracker: DeletedSessionsTracker;
 
@@ -140,9 +138,6 @@ export class ServiceBootstrapper {
     // Initialize Google Drive service
     const googleDriveService = this.initializeGoogleDrive();
 
-    // Initialize transcription service
-    const simulationTranscriptionService = new SimulationTranscriptionService();
-
     console.log('✓ All services bootstrapped successfully');
 
     return {
@@ -154,7 +149,6 @@ export class ServiceBootstrapper {
       supabaseStorageService,
       aiService,
       googleDriveService,
-      simulationTranscriptionService,
       syncManager,
       deletedSessionsTracker,
       listSessionsUseCase,

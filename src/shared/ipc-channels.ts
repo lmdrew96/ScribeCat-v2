@@ -22,15 +22,7 @@ export const IPC_CHANNELS = {
 
   // Transcription
   TRANSCRIPTION_RESULT: 'transcription:result',
-  TRANSCRIPTION_SIMULATION_START: 'transcription:simulation:start',
-  TRANSCRIPTION_SIMULATION_STOP: 'transcription:simulation:stop',
-  TRANSCRIPTION_SIMULATION_PAUSE: 'transcription:simulation:pause',
-  TRANSCRIPTION_SIMULATION_RESUME: 'transcription:simulation:resume',
   TRANSCRIPTION_ASSEMBLYAI_GET_TOKEN: 'transcription:assemblyai:getToken',
-
-  // Settings
-  SETTINGS_GET_SIMULATION_MODE: 'settings:get-simulation-mode',
-  SETTINGS_SET_SIMULATION_MODE: 'settings:set-simulation-mode',
 
   // Store
   STORE_GET: 'store:get',

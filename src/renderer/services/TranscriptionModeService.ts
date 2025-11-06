@@ -1,15 +1,14 @@
 /**
  * TranscriptionModeService
  *
- * Manages transcription mode switching between 'simulation' and 'assemblyai'.
- * Eliminates duplicate mode-switching logic from RecordingManager.
+ * Manages AssemblyAI transcription for recording sessions.
  */
 
 import { AssemblyAITranscriptionService, TranscriptionSettings } from '../assemblyai-transcription-service.js';
 import { AudioManager } from '../audio-manager.js';
 import { TranscriptionManager } from '../managers/TranscriptionManager.js';
 
-export type TranscriptionMode = 'simulation' | 'assemblyai';
+export type TranscriptionMode = 'assemblyai';
 
 export interface TranscriptionModeConfig {
   mode: TranscriptionMode;
@@ -18,10 +17,10 @@ export interface TranscriptionModeConfig {
 }
 
 /**
- * Service for managing transcription mode operations
+ * Service for managing transcription operations
  */
 export class TranscriptionModeService {
-  private currentMode: TranscriptionMode = 'simulation';
+  private currentMode: TranscriptionMode = 'assemblyai';
   private sessionId: string | null = null;
   private assemblyAIService: AssemblyAITranscriptionService | null = null;
   private assemblyAIStreamingInterval: ReturnType<typeof setInterval> | null = null;
@@ -51,14 +50,10 @@ export class TranscriptionModeService {
   async start(config: TranscriptionModeConfig): Promise<void> {
     this.currentMode = config.mode;
 
-    if (this.currentMode === 'simulation') {
-      await this.startSimulationMode();
-    } else if (this.currentMode === 'assemblyai') {
-      if (!config.apiKey) {
-        throw new Error('AssemblyAI API key not configured. Please add it in Settings.');
-      }
-      await this.startAssemblyAIMode(config.apiKey, config.transcriptionSettings);
+    if (!config.apiKey) {
+      throw new Error('AssemblyAI API key not configured. Please add it in Settings.');
     }
+    await this.startAssemblyAIMode(config.apiKey, config.transcriptionSettings);
   }
 
   /**
@@ -69,43 +64,28 @@ export class TranscriptionModeService {
       return;
     }
 
-    if (this.currentMode === 'simulation') {
-      await window.scribeCat.transcription.simulation.stop(this.sessionId);
-    } else if (this.currentMode === 'assemblyai') {
-      await this.stopAssemblyAIAudioStreaming();
-    }
-
+    await this.stopAssemblyAIAudioStreaming();
     this.sessionId = null;
   }
 
   /**
-   * Pause transcription (mode-specific behavior)
+   * Pause transcription
    */
   pause(): void {
-    if (this.currentMode === 'simulation') {
-      // Pause the simulation service to stop emitting phrases
-      window.scribeCat.transcription.simulation.pause();
-    } else if (this.currentMode === 'assemblyai') {
-      // For AssemblyAI, stop audio streaming but keep WebSocket open
-      if (this.assemblyAIStreamingInterval !== null) {
-        clearInterval(this.assemblyAIStreamingInterval);
-        this.assemblyAIStreamingInterval = null;
-      }
-      this.audioManager.removeAudioDataCallback();
+    // Stop audio streaming but keep WebSocket open
+    if (this.assemblyAIStreamingInterval !== null) {
+      clearInterval(this.assemblyAIStreamingInterval);
+      this.assemblyAIStreamingInterval = null;
     }
+    this.audioManager.removeAudioDataCallback();
   }
 
   /**
-   * Resume transcription (mode-specific behavior)
+   * Resume transcription
    */
   resume(): void {
-    if (this.currentMode === 'simulation') {
-      // Resume the simulation service to continue emitting phrases
-      window.scribeCat.transcription.simulation.resume();
-    } else if (this.currentMode === 'assemblyai') {
-      // For AssemblyAI, restart audio streaming
-      this.startAssemblyAIAudioStreaming();
-    }
+    // Restart audio streaming
+    this.startAssemblyAIAudioStreaming();
   }
 
   /**
@@ -120,19 +100,6 @@ export class TranscriptionModeService {
   }
 
   // ===== Private Methods =====
-
-  /**
-   * Start simulation transcription mode
-   */
-  private async startSimulationMode(): Promise<void> {
-    const result = await window.scribeCat.transcription.simulation.start();
-
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to start simulation transcription');
-    }
-
-    this.sessionId = result.sessionId!;
-  }
 
   /**
    * Start AssemblyAI transcription mode

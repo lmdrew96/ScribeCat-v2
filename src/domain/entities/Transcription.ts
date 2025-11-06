@@ -17,7 +17,7 @@ export class Transcription {
     public readonly fullText: string,
     public readonly segments: TranscriptionSegment[],
     public readonly language: string,
-    public readonly provider: 'assemblyai' | 'simulation',
+    public readonly provider: 'assemblyai',
     public readonly createdAt: Date,
     public readonly averageConfidence?: number
   ) {
@@ -106,7 +106,7 @@ export interface TranscriptionData {
   fullText: string;
   segments: TranscriptionSegment[];
   language: string;
-  provider: 'assemblyai' | 'simulation';
+  provider: 'assemblyai';
   createdAt: Date;
   averageConfidence?: number;
 }

@@ -29,12 +29,6 @@ export const mockWindowScribeCat = () => {
       getMetadata: vi.fn(),
     },
     transcription: {
-      simulation: {
-        start: vi.fn(),
-        stop: vi.fn(),
-        onResult: vi.fn(),
-        removeResultListener: vi.fn(),
-      },
       assemblyai: {
         start: vi.fn(),
         processAudio: vi.fn(),
@@ -43,10 +37,6 @@ export const mockWindowScribeCat = () => {
         removeResultListener: vi.fn(),
         getToken: vi.fn(),
       },
-    },
-    settings: {
-      getSimulationMode: vi.fn(),
-      setSimulationMode: vi.fn(),
     },
     store: {
       get: vi.fn(),

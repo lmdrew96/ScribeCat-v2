@@ -135,9 +135,10 @@ export class AssemblyAITranscriptionService {
       });
 
       // Add advanced parameters based on settings
-      if (this.settings.speechModel) {
-        params.append('speech_model', this.settings.speechModel);
-      }
+      // NOTE: speech_model is not supported in v3 WebSocket API
+      // if (this.settings.speechModel) {
+      //   params.append('speech_model', this.settings.speechModel);
+      // }
       if (this.settings.languageCode) {
         params.append('language_code', this.settings.languageCode);
       }

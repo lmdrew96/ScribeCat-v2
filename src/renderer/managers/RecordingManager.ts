@@ -57,12 +57,7 @@ export class RecordingManager {
    * Initialize recording manager
    */
   initialize(): void {
-    // Set up transcription listeners
-    window.scribeCat.transcription.simulation.onResult((result) => {
-      if (this.transcriptionService.getCurrentMode() === 'simulation') {
-        this.transcriptionManager.addEntry(result.timestamp, result.text);
-      }
-    });
+    // No initialization needed - transcription handled by TranscriptionModeService
   }
 
   /**
@@ -73,9 +68,9 @@ export class RecordingManager {
       throw new Error('Please select a microphone device');
     }
 
-    // Get transcription mode from settings
-    const mode = await window.scribeCat.store.get('transcription-mode') as string || 'simulation';
-    const transcriptionMode = mode as 'simulation' | 'assemblyai';
+    // Get transcription mode from settings (default to assemblyai)
+    const mode = await window.scribeCat.store.get('transcription-mode') as string || 'assemblyai';
+    const transcriptionMode = mode as 'assemblyai';
 
     logger.info(`Starting recording with ${transcriptionMode} mode`);
 

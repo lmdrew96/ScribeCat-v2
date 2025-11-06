@@ -24,7 +24,7 @@ export interface TranscriptionAccuracySettings {
 
 export class SettingsManager {
   private settingsModal: HTMLElement;
-  private transcriptionMode: 'simulation' | 'assemblyai' = 'simulation';
+  private transcriptionMode: 'assemblyai' = 'assemblyai';
   private transcriptionSettings: TranscriptionAccuracySettings = {
     speechModel: 'best',
     languageCode: '',
@@ -99,7 +99,7 @@ export class SettingsManager {
     modeRadios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         const target = e.target as HTMLInputElement;
-        this.transcriptionMode = target.value as 'simulation' | 'assemblyai';
+        this.transcriptionMode = target.value as 'assemblyai';
       });
     });
 
@@ -127,7 +127,7 @@ export class SettingsManager {
     try {
       // Load transcription mode
       const mode = await window.scribeCat.store.get('transcription-mode');
-      this.transcriptionMode = (mode as 'simulation' | 'assemblyai') || 'simulation';
+      this.transcriptionMode = (mode as 'assemblyai') || 'assemblyai';
 
       // Load transcription accuracy settings
       const settings = await window.scribeCat.store.get('transcription-accuracy-settings');
@@ -214,7 +214,7 @@ export class SettingsManager {
         'input[name="transcription-mode"]:checked'
       ) as HTMLInputElement;
       if (modeRadio) {
-        this.transcriptionMode = modeRadio.value as 'simulation' | 'assemblyai';
+        this.transcriptionMode = modeRadio.value as 'assemblyai';
         await window.scribeCat.store.set('transcription-mode', this.transcriptionMode);
       }
 

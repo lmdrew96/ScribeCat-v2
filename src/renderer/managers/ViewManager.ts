@@ -27,23 +27,23 @@ export class ViewManager {
   /**
    * Update UI state based on recording status
    */
-  updateRecordingState(isRecording: boolean, mode?: 'simulation' | 'assemblyai'): void {
+  updateRecordingState(isRecording: boolean, mode?: 'assemblyai'): void {
     if (isRecording) {
       // Update record button
       this.recordBtn.classList.add('recording');
       this.recordBtn.title = 'Stop Recording';
-      
+
       // Enable pause button
       this.pauseBtn.disabled = false;
-      
+
       // Update status
       this.recordingStatus.textContent = 'Recording';
       this.recordingStatus.classList.remove('idle');
       this.recordingStatus.classList.add('recording');
-      
+
       // Update transcription mode display
       if (mode) {
-        const modeText = mode === 'assemblyai' ? 'AssemblyAI' : 'Simulation';
+        const modeText = 'AssemblyAI';
         this.transcriptionMode.textContent = `Mode: ${modeText}`;
         this.transcriptionMode.className = `mode-indicator ${mode}`;
       }

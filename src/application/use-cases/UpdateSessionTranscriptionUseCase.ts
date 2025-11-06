@@ -15,14 +15,14 @@ export class UpdateSessionTranscriptionUseCase {
    * Execute the use case to update session transcription
    * @param sessionId The ID of the session to update
    * @param transcriptionText The full transcription text
-   * @param provider The transcription provider (e.g., 'simulation', 'assemblyai')
+   * @param provider The transcription provider (AssemblyAI)
    * @param timestampedEntries Optional array of timestamped text entries from recording
    * @returns Success status
    */
   async execute(
     sessionId: string,
     transcriptionText: string,
-    provider: 'assemblyai' | 'simulation' = 'simulation',
+    provider: 'assemblyai' = 'assemblyai',
     timestampedEntries?: Array<{ startTime: number; endTime: number; text: string }>
   ): Promise<boolean> {
     try {

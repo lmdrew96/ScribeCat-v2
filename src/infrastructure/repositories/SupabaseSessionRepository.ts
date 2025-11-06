@@ -306,7 +306,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
         row.transcription_text,
         segments,
         row.transcription_language || 'en',
-        (row.transcription_provider as 'assemblyai' | 'simulation') || 'simulation',
+        (row.transcription_provider as 'assemblyai') || 'assemblyai',
         row.transcription_timestamp ? new Date(row.transcription_timestamp) : new Date(),
         row.transcription_confidence
       );

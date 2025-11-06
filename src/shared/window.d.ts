@@ -41,12 +41,6 @@ declare global {
         getMetadata: (filePath: string) => Promise<{ success: boolean; data?: { duration: number; bitrate?: number; sampleRate?: number; numberOfChannels?: number; codec?: string }; error?: string }>;
       };
       transcription: {
-        simulation: {
-          start: () => Promise<{ success: boolean; sessionId?: string; error?: string }>;
-          stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
-          onResult: (callback: (result: TranscriptionResult) => void) => void;
-          removeResultListener: () => void;
-        };
         assemblyai: {
           start: (apiKey: string) => Promise<{ success: boolean; sessionId?: string; error?: string }>;
           processAudio: (sessionId: string, audioData: number[]) => Promise<{ success: boolean; error?: string }>;
@@ -55,10 +49,6 @@ declare global {
           removeResultListener: () => void;
           getToken: (apiKey: string) => Promise<{ success: boolean; token?: string; error?: string }>;
         };
-      };
-      settings: {
-        getSimulationMode: () => Promise<{ success: boolean; simulationMode?: boolean; error?: string }>;
-        setSimulationMode: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
       };
       store: {
         get: (key: string) => Promise<unknown>;
