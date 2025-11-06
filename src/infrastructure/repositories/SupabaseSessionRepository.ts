@@ -164,8 +164,21 @@ export class SupabaseSessionRepository implements ISessionRepository {
    * Update a session
    */
   async update(session: Session): Promise<void> {
+    console.log('🔷 SupabaseSessionRepository.update() called');
+    console.log('  Session ID:', session.id);
+    console.log('  Session title:', session.title);
+    console.log('  Session userId:', session.userId);
+    console.log('  Repository userId:', this.userId);
+
     try {
       const client = SupabaseClient.getInstance().getClient();
+
+      // Check if client is authenticated
+      const { data: { user }, error: authError } = await client.auth.getUser();
+      console.log('  🔐 Supabase auth status:');
+      console.log('    - authenticated:', !!user);
+      console.log('    - user id:', user?.id || 'none');
+      console.log('    - auth error:', authError?.message || 'none');
 
       const updates: Partial<SessionRow> = {
         title: session.title,
@@ -182,16 +195,46 @@ export class SupabaseSessionRepository implements ISessionRepository {
         updated_at: session.updatedAt.toISOString()
       };
 
-      const { error } = await client
+      console.log('  📦 Update payload:');
+      console.log('    - notes length:', updates.notes?.length || 0);
+      console.log('    - notes preview:', updates.notes?.substring(0, 100) || '(empty)');
+      console.log('    - updated_at:', updates.updated_at);
+      console.log('    - title:', updates.title);
+
+      console.log('  🚀 Sending update to Supabase...');
+      const { data, error } = await client
         .from(this.tableName)
         .update(updates)
-        .eq('id', session.id);
+        .eq('id', session.id)
+        .select(); // Add select() to see what was actually updated
+
+      console.log('  📨 Supabase response:');
+      console.log('    - error:', error || 'none');
+      console.log('    - data:', data);
+      console.log('    - rows affected:', data?.length || 0);
 
       if (error) {
+        console.error('  ❌ Supabase update error:', error);
+        console.error('    - code:', error.code);
+        console.error('    - message:', error.message);
+        console.error('    - details:', error.details);
+        console.error('    - hint:', error.hint);
         throw new Error(`Failed to update session: ${error.message}`);
       }
+
+      if (!data || data.length === 0) {
+        console.warn('  ⚠️ WARNING: Update succeeded but no rows were affected!');
+        console.warn('    This could mean:');
+        console.warn('    1. The session ID does not exist in the database');
+        console.warn('    2. RLS policy is blocking the update silently');
+        console.warn('    3. The WHERE clause did not match any rows');
+      } else {
+        console.log('  ✅ Successfully updated session in Supabase');
+        console.log('    - Updated notes length:', data[0].notes?.length || 0);
+        console.log('    - Updated timestamp:', data[0].updated_at);
+      }
     } catch (error) {
-      console.error('Error updating session:', error);
+      console.error('  ❌ Exception in SupabaseSessionRepository.update():', error);
       throw error;
     }
   }
