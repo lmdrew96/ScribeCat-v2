@@ -118,6 +118,9 @@ class ScribeCatApp {
   // Session handlers (for setting current user ID)
   private sessionHandlers: SessionHandlers | null = null;
 
+  // Drive handlers (for setting current user ID and auto-restoring credentials)
+  private driveHandlers: DriveHandlers | null = null;
+
   constructor() {
     // Initialize electron-store for settings (doesn't need app to be ready)
     this.store = new Store<StoreSchema>({
@@ -553,12 +556,13 @@ class ScribeCatApp {
       () => this.aiService,
       () => this.mainWindow
     ));
-    
-    registry.add(new DriveHandlers(
+
+    this.driveHandlers = new DriveHandlers(
       () => this.googleDriveService,
       this.store
-    ));
-    
+    );
+    registry.add(this.driveHandlers);
+
     registry.add(new SettingsHandlers(this.store));
     
     registry.add(new DialogHandlers(() => this.mainWindow));
@@ -634,10 +638,41 @@ class ScribeCatApp {
           console.log('Updated SharingHandlers with user ID');
         }
 
+        // Update DriveHandlers with user ID
+        if (this.driveHandlers) {
+          this.driveHandlers.setCurrentUserId(data.userId);
+          console.log('Updated DriveHandlers with user ID');
+        }
+
         // Set session on SupabaseClient for authenticated requests
         if (data.userId && data.accessToken && data.refreshToken && this.supabaseClient) {
           await this.supabaseClient.setSession(data.accessToken, data.refreshToken);
           console.log('Set Supabase session in main process');
+
+          // Auto-restore Google Drive credentials from cloud if user just signed in
+          setTimeout(async () => {
+            try {
+              if (this.driveHandlers) {
+                console.log('Attempting to restore Google Drive credentials from cloud...');
+                const restoreResult = await this.driveHandlers.restoreFromCloud();
+
+                if (restoreResult.success && restoreResult.data?.restored) {
+                  console.log('✓ Google Drive credentials auto-restored from cloud on sign-in');
+
+                  // Notify renderer that Drive was reconnected
+                  if (this.mainWindow) {
+                    this.mainWindow.webContents.send('drive:auto-reconnected');
+                  }
+                } else if (restoreResult.success && !restoreResult.data?.restored) {
+                  console.log('ℹ️  No Google Drive credentials found in cloud (user hasn\'t connected Drive yet)');
+                } else {
+                  console.warn('⚠️  Failed to restore Drive credentials:', restoreResult.error);
+                }
+              }
+            } catch (error) {
+              console.error('Failed to auto-restore Drive credentials:', error);
+            }
+          }, 1000); // Small delay to ensure everything is initialized
         } else if (!data.userId && this.supabaseClient) {
           await this.supabaseClient.clearSession();
           console.log('Cleared Supabase session in main process');

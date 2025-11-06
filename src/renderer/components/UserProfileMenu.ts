@@ -236,6 +236,18 @@ export class UserProfileMenu {
     const confirmed = confirm('Are you sure you want to sign out?');
     if (!confirmed) return;
 
+    // Disconnect Google Drive locally (preserve cloud credentials for auto-reconnect)
+    try {
+      const driveAuthResult = await window.scribeCat.drive.isAuthenticated();
+      if (driveAuthResult.data) {
+        await window.scribeCat.drive.disconnectLocal();
+        console.log('Google Drive disconnected locally on logout (cloud credentials preserved)');
+      }
+    } catch (error) {
+      console.error('Error disconnecting Google Drive on logout:', error);
+      // Continue with logout even if Drive disconnect fails
+    }
+
     // Sign out
     const result = await this.authManager.signOut();
 

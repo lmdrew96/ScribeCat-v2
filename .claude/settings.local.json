@@ -9,7 +9,8 @@
       "Bash(\"/Users/nae/Desktop/ScribeCat-v2/src/renderer/css/loading.css\")",
       "Bash(npm run clean:*)",
       "Bash(npm run:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix theme grid scrolling in settings modal to display all 40 themes\n\n- Change settings-group-content overflow from hidden to visible when expanded\n- Add overflow: hidden only when collapsed for proper animation\n- Make theme grid independently scrollable with max-height: 500px\n- Add custom scrollbar styling for better UX\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

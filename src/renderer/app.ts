@@ -49,10 +49,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize theme manager first
   themeManager = new ThemeManager();
   await themeManager.initialize();
-  
+
   // Initialize core managers
   audioManager = new AudioManager();
-  settingsManager = new SettingsManager(themeManager);
 
   // Initialize UI managers
   viewManager = new ViewManager();
@@ -110,6 +109,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   authScreen = new AuthScreen(authManager);
   accountSettingsModal = new AccountSettingsModal(authManager);
   userProfileMenu = new UserProfileMenu(authManager, accountSettingsModal);
+
+  // Initialize settings manager (requires authManager for Drive settings)
+  settingsManager = new SettingsManager(themeManager, authManager);
 
   // Expose authManager globally for RecordingManager to access current user
   window.authManager = authManager;

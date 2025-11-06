@@ -327,11 +327,12 @@ export class SupabaseAuthService implements ISupabaseAuthService {
     try {
       const client = SupabaseClient.getInstance().getClient();
 
+      // Update auth user metadata
       const { error } = await client.auth.updateUser({
         data: {
           full_name: updates.fullName,
           avatar_url: updates.avatarUrl,
-          ...updates.preferences
+          preferences: updates.preferences
         }
       });
 
@@ -347,6 +348,115 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error updating profile'
+      };
+    }
+  }
+
+  /**
+   * Get user preferences from user_profiles table
+   * This fetches preferences stored in the database (not just auth metadata)
+   */
+  async getUserPreferences(userId: string): Promise<{ success: boolean; data?: Record<string, any>; error?: string }> {
+    try {
+      const client = SupabaseClient.getInstance().getClient();
+
+      const { data, error } = await client
+        .from('user_profiles')
+        .select('preferences')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      return {
+        success: true,
+        data: data?.preferences || {}
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error getting preferences'
+      };
+    }
+  }
+
+  /**
+   * Update user preferences in user_profiles table
+   * This updates preferences stored in the database (not just auth metadata)
+   */
+  async updateUserPreferences(userId: string, preferences: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const client = SupabaseClient.getInstance().getClient();
+
+      const { error } = await client
+        .from('user_profiles')
+        .update({ preferences })
+        .eq('id', userId);
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error updating preferences'
+      };
+    }
+  }
+
+  /**
+   * Set a specific preference key in user_profiles table
+   */
+  async setUserPreference(userId: string, key: string, value: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get current preferences
+      const prefsResult = await this.getUserPreferences(userId);
+      if (!prefsResult.success) {
+        return prefsResult;
+      }
+
+      const preferences = prefsResult.data || {};
+      preferences[key] = value;
+
+      // Update with new preferences
+      return await this.updateUserPreferences(userId, preferences);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error setting preference'
+      };
+    }
+  }
+
+  /**
+   * Get a specific preference key from user_profiles table
+   */
+  async getUserPreference(userId: string, key: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const prefsResult = await this.getUserPreferences(userId);
+      if (!prefsResult.success) {
+        return prefsResult;
+      }
+
+      const preferences = prefsResult.data || {};
+      return {
+        success: true,
+        data: preferences[key]
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error getting preference'
       };
     }
   }

@@ -7,10 +7,16 @@
 
 import { NotificationToast } from '../components/shared/NotificationToast.js';
 import { ModalDialog } from '../components/shared/ModalDialog.js';
+import { AuthManager } from '../managers/AuthManager.js';
 
 export class DriveSettingsManager {
   private driveConnected: boolean = false;
   private driveUserEmail: string = '';
+  private authManager: AuthManager;
+
+  constructor(authManager: AuthManager) {
+    this.authManager = authManager;
+  }
 
   /**
    * Initialize Drive settings
@@ -19,6 +25,8 @@ export class DriveSettingsManager {
     await this.checkConnection();
     this.updateUI();
     this.attachEventListeners();
+    this.setupAutoReconnectListener();
+    this.setupAuthStateListener();
   }
 
   /**
@@ -161,5 +169,31 @@ export class DriveSettingsManager {
    */
   public getUserEmail(): string {
     return this.driveUserEmail;
+  }
+
+  /**
+   * Set up listener for auto-reconnection from cloud
+   */
+  private setupAutoReconnectListener(): void {
+    window.scribeCat.drive.onAutoReconnected(async () => {
+      console.log('Google Drive auto-reconnected from cloud');
+      await this.checkConnection();
+      this.updateUI();
+      NotificationToast.success('Google Drive auto-reconnected!');
+    });
+  }
+
+  /**
+   * Set up listener for auth state changes (to detect logout)
+   */
+  private setupAuthStateListener(): void {
+    this.authManager.onAuthStateChange(async (user) => {
+      // When user logs out, refresh Drive connection status
+      if (!user) {
+        console.log('User logged out, refreshing Drive connection status');
+        await this.checkConnection();
+        this.updateUI();
+      }
+    });
   }
 }

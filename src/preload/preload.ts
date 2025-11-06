@@ -180,12 +180,20 @@ const electronAPI = {
     setCredentials: (config: GoogleDriveConfig) => ipcRenderer.invoke('drive:setCredentials', config),
     getUserEmail: () => ipcRenderer.invoke('drive:getUserEmail'),
     disconnect: () => ipcRenderer.invoke('drive:disconnect'),
+    disconnectLocal: () => ipcRenderer.invoke('drive:disconnectLocal'),
     uploadFile: (filePath: string, options: GoogleDriveUploadOptions) =>
       ipcRenderer.invoke('drive:uploadFile', filePath, options),
-    listFiles: (folderId?: string) => 
+    listFiles: (folderId?: string) =>
       ipcRenderer.invoke('drive:listFiles', folderId),
-    createFolder: (name: string, parentId?: string) => 
-      ipcRenderer.invoke('drive:createFolder', name, parentId)
+    createFolder: (name: string, parentId?: string) =>
+      ipcRenderer.invoke('drive:createFolder', name, parentId),
+    restoreFromCloud: () => ipcRenderer.invoke('drive:restoreFromCloud'),
+    onAutoReconnected: (callback: () => void) => {
+      ipcRenderer.on('drive:auto-reconnected', () => callback());
+    },
+    removeAutoReconnectedListener: () => {
+      ipcRenderer.removeAllListeners('drive:auto-reconnected');
+    }
   },
   canvas: {
     configure: (config: { baseUrl: string; apiToken: string }) =>

@@ -11,6 +11,7 @@ import { DriveSettingsManager } from './settings/DriveSettingsManager.js';
 import { CanvasSettingsManager } from './settings/CanvasSettingsManager.js';
 import { SettingsUIManager } from './settings/SettingsUIManager.js';
 import { NotificationToast } from './components/shared/NotificationToast.js';
+import { AuthManager } from './managers/AuthManager.js';
 
 export class SettingsManager {
   private settingsModal: HTMLElement;
@@ -27,12 +28,12 @@ export class SettingsManager {
   private currentCategoryFilter: string = 'all';
   private currentVariantFilter: string = 'all';
 
-  constructor(themeManager: ThemeManager) {
+  constructor(themeManager: ThemeManager, authManager: AuthManager) {
     this.themeManager = themeManager;
     this.settingsModal = document.getElementById('settings-modal')!;
 
     // Initialize specialized managers
-    this.driveSettings = new DriveSettingsManager();
+    this.driveSettings = new DriveSettingsManager(authManager);
     this.canvasSettings = new CanvasSettingsManager();
     this.uiManager = new SettingsUIManager();
 
