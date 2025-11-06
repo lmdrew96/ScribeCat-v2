@@ -362,6 +362,32 @@ export class StudyModeDetailViewManager {
     editCourseBtn?.addEventListener('click', () => {
       this.sessionDetailContainer.dispatchEvent(new CustomEvent('startCourseEdit', { detail: { sessionId: session.id } }));
     });
+
+    // Notes editing handlers
+    const editNotesBtn = document.querySelector('.edit-notes-btn');
+    editNotesBtn?.addEventListener('click', (e) => {
+      const sessionId = (e.target as HTMLElement).dataset.sessionId;
+      if (sessionId) {
+        this.sessionDetailContainer.dispatchEvent(new CustomEvent('startNotesEdit', {
+          detail: { sessionId }
+        }));
+      }
+    });
+
+    const saveNotesBtn = document.querySelector('.save-notes-btn');
+    saveNotesBtn?.addEventListener('click', (e) => {
+      const sessionId = (e.target as HTMLElement).dataset.sessionId;
+      if (sessionId) {
+        this.sessionDetailContainer.dispatchEvent(new CustomEvent('saveNotesEdit', {
+          detail: { sessionId }
+        }));
+      }
+    });
+
+    const cancelEditNotesBtn = document.querySelector('.cancel-edit-notes-btn');
+    cancelEditNotesBtn?.addEventListener('click', () => {
+      this.sessionDetailContainer.dispatchEvent(new CustomEvent('cancelNotesEdit'));
+    });
   }
 
   /**

@@ -100,6 +100,13 @@ export class StudyModeNotesEditorManager {
   }
 
   /**
+   * Update notes view after save
+   */
+  updateNotesView(notesContent: string): void {
+    this.exitNotesEditMode(notesContent);
+  }
+
+  /**
    * Exit notes edit mode and update UI
    */
   private exitNotesEditMode(notesContent: string): void {

@@ -141,38 +141,12 @@ export class StudyModeManager {
    * Initialize event listeners using EventCoordinator
    */
   private initializeEventListeners(): void {
-    const editNotesBtn = document.querySelector('.edit-notes-btn') as HTMLElement;
-    const saveNotesBtn = document.querySelector('.save-notes-btn') as HTMLElement;
-    const cancelEditNotesBtn = document.querySelector('.cancel-edit-notes-btn') as HTMLElement;
-
     this.eventCoordinator.setup({
       // Button click events
       buttons: [
         { element: this.studyModeBtn, handler: () => this.show() },
         { element: this.backToRecordBtn, handler: () => this.hide() },
-        { element: this.syncNowBtn, handler: () => this.handleSyncNow() },
-        {
-          element: editNotesBtn,
-          handler: (e) => {
-            const sessionId = (e as any)?.target?.dataset?.sessionId;
-            if (sessionId) {
-              const session = this.sessions.find(s => s.id === sessionId);
-              if (session) {
-                this.notesEditorManager.startNotesEdit(sessionId, session.notes || '');
-              }
-            }
-          }
-        },
-        {
-          element: saveNotesBtn,
-          handler: (e) => {
-            const sessionId = (e as any)?.target?.dataset?.sessionId;
-            if (sessionId) {
-              this.saveNotesEdit(sessionId);
-            }
-          }
-        },
-        { element: cancelEditNotesBtn, handler: () => this.cancelNotesEdit() }
+        { element: this.syncNowBtn, handler: () => this.handleSyncNow() }
       ],
 
       // Document-level custom events
@@ -195,7 +169,11 @@ export class StudyModeManager {
         { element: this.sessionDetailContainer, eventName: 'deleteSession', handler: (detail) => this.deleteSession(detail.sessionId) },
         { element: this.sessionDetailContainer, eventName: 'startTitleEdit', handler: (detail) => this.startDetailTitleEdit(detail.sessionId) },
         { element: this.sessionDetailContainer, eventName: 'startCourseEdit', handler: (detail) => this.startCourseEdit(detail.sessionId) },
-        { element: this.sessionDetailContainer, eventName: 'shareSession', handler: (detail) => this.openShareModal(detail.sessionId) }
+        { element: this.sessionDetailContainer, eventName: 'shareSession', handler: (detail) => this.openShareModal(detail.sessionId) },
+        // Notes editing custom events
+        { element: this.sessionDetailContainer, eventName: 'startNotesEdit', handler: (detail) => this.startNotesEdit(detail.sessionId) },
+        { element: this.sessionDetailContainer, eventName: 'saveNotesEdit', handler: (detail) => this.saveNotesEdit(detail.sessionId) },
+        { element: this.sessionDetailContainer, eventName: 'cancelNotesEdit', handler: () => this.cancelNotesEdit() }
       ],
 
       // Callback-based events
@@ -727,6 +705,16 @@ export class StudyModeManager {
     okBtn.addEventListener('click', handleOk);
     cancelBtn.addEventListener('click', handleCancel);
     closeBtn.addEventListener('click', handleCancel);
+  }
+
+  /**
+   * Start editing notes
+   */
+  private startNotesEdit(sessionId: string): void {
+    const session = this.sessions.find(s => s.id === sessionId);
+    if (session) {
+      this.notesEditorManager.startNotesEdit(sessionId, session.notes || '');
+    }
   }
 
   /**
