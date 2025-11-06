@@ -35,15 +35,15 @@ export class StudyModeNotesEditorManager {
     // Show/hide appropriate UI elements
     this.toggleEditMode(true);
 
-    // Create editor container if needed
+    // Always recreate the editor container to ensure clean state
     const notesEditContent = document.querySelector('.notes-edit-content') as HTMLElement;
-    if (notesEditContent && !notesEditContent.querySelector('.study-editor-container')) {
+    if (notesEditContent) {
       notesEditContent.innerHTML = this.toolbar.getHTML();
     }
 
-    // Initialize editor if needed
+    // Initialize editor
     const editorElement = document.getElementById('study-notes-editor');
-    if (editorElement && !this.notesEditor) {
+    if (editorElement) {
       const config = EditorConfigService.getConfig({
         placeholder: 'Edit your notes here...',
       });
@@ -57,9 +57,6 @@ export class StudyModeNotesEditorManager {
 
       // Setup toolbar
       this.toolbar.setup(this.notesEditor);
-    } else if (this.notesEditor) {
-      // Update existing editor content
-      this.notesEditor.commands.setContent(currentNotes || '');
     }
   }
 
@@ -115,10 +112,16 @@ export class StudyModeNotesEditorManager {
     this.toggleEditMode(false);
     this.toolbar.cleanup();
 
+    // Destroy the editor instance to allow clean recreation
+    if (this.notesEditor) {
+      this.notesEditor.destroy();
+      this.notesEditor = null;
+    }
+
     // Update notes display
-    const notesDisplay = document.querySelector('.notes-display');
+    const notesDisplay = document.querySelector('.notes-view-content');
     if (notesDisplay) {
-      notesDisplay.innerHTML = notesContent || '<p style="color: #999;">No notes yet.</p>';
+      notesDisplay.innerHTML = notesContent || '<div class="empty-content">No notes available for this session.</div>';
     }
   }
 
