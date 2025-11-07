@@ -77,7 +77,8 @@ const electronAPI = {
   dialog: {
     showSaveDialog: (options: SaveDialogOptions) => ipcRenderer.invoke('dialog:showSaveDialog', options),
     getTempPath: () => ipcRenderer.invoke('dialog:getTempPath'),
-    deleteFile: (filePath: string) => ipcRenderer.invoke('dialog:deleteFile', filePath)
+    deleteFile: (filePath: string) => ipcRenderer.invoke('dialog:deleteFile', filePath),
+    fileExists: (filePath: string) => ipcRenderer.invoke('dialog:fileExists', filePath)
   },
   recording: {
     start: () => ipcRenderer.invoke('recording:start'),

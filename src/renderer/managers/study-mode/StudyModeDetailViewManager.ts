@@ -8,6 +8,7 @@ import type { Session } from '../../../domain/entities/Session.js';
 import { SessionPlaybackManager } from '../../services/SessionPlaybackManager.js';
 import { createLogger } from '../../../shared/logger.js';
 import { formatDuration, formatTimestamp, escapeHtml, formatCourseTitle } from '../../utils/formatting.js';
+import { SupabaseStorageService } from '../../../infrastructure/services/supabase/SupabaseStorageService.js';
 
 const logger = createLogger('StudyModeDetailViewManager');
 
@@ -102,8 +103,7 @@ export class StudyModeDetailViewManager {
             <div class="audio-player-container">
               <h3>🎧 Recording</h3>
               <div class="audio-player">
-                <audio id="session-audio" preload="metadata" style="display: none;">
-                  <source src="file://${session.recordingPath}" type="audio/webm">
+                <audio id="session-audio" preload="metadata" style="display: none;" data-recording-path="${session.recordingPath}">
                   Your browser does not support the audio element.
                 </audio>
 
@@ -270,6 +270,99 @@ export class StudyModeDetailViewManager {
     const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
 
     if (audioElement) {
+      // Set audio source based on recording path
+      const recordingPath = audioElement.dataset.recordingPath || '';
+
+      // Helper function to construct local file path from timestamp
+      const constructLocalPath = (timestamp: Date): string => {
+        const year = timestamp.getUTCFullYear();
+        const month = String(timestamp.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(timestamp.getUTCDate()).padStart(2, '0');
+        const hours = String(timestamp.getUTCHours()).padStart(2, '0');
+        const minutes = String(timestamp.getUTCMinutes()).padStart(2, '0');
+        const seconds = String(timestamp.getUTCSeconds()).padStart(2, '0');
+        const timestampStr = `${year}-${month}-${day}T${hours}-${minutes}-${seconds}`;
+        return `/Users/nae/Library/Application Support/scribecat-v2/recordings/recording-${timestampStr}.webm`;
+      };
+
+      // Track which fallback path we're trying
+      let fallbackAttempt = 0;
+      const fallbackPaths: string[] = [];
+
+      // Prepare fallback paths: try transcription.createdAt first (if exists), then session.createdAt variations
+      if (session.transcription?.createdAt) {
+        const transcriptionTime = new Date(session.transcription.createdAt);
+        fallbackPaths.push(constructLocalPath(transcriptionTime));
+
+        // Try ±1 second variations (recordings may be off by a second)
+        const transcriptionMinus1 = new Date(transcriptionTime);
+        transcriptionMinus1.setUTCSeconds(transcriptionMinus1.getUTCSeconds() - 1);
+        fallbackPaths.push(constructLocalPath(transcriptionMinus1));
+
+        const transcriptionPlus1 = new Date(transcriptionTime);
+        transcriptionPlus1.setUTCSeconds(transcriptionPlus1.getUTCSeconds() + 1);
+        fallbackPaths.push(constructLocalPath(transcriptionPlus1));
+      }
+
+      // Try session.createdAt with seconds rounded down to :00
+      const sessionTime = new Date(session.createdAt);
+      sessionTime.setUTCSeconds(0, 0);
+      fallbackPaths.push(constructLocalPath(sessionTime));
+
+      // Also try exact session.createdAt
+      fallbackPaths.push(constructLocalPath(session.createdAt));
+
+      if (recordingPath.startsWith('cloud://')) {
+        // Cloud recording - fetch signed URL from Supabase Storage
+        const storagePath = recordingPath.replace('cloud://', '');
+        const storageService = new SupabaseStorageService();
+
+        const tryLocalFallback = async () => {
+          if (fallbackAttempt < fallbackPaths.length) {
+            const localPath = fallbackPaths[fallbackAttempt];
+            fallbackAttempt++;
+
+            // Check if file exists before trying to load it (prevents browser console errors)
+            const result = await (window as any).scribeCat.dialog.fileExists(localPath);
+            if (result.success && result.exists) {
+              audioElement.src = `file://${localPath}`;
+              logger.info(`Loaded local audio from fallback path: ${localPath}`);
+            } else {
+              // File doesn't exist, try next path silently
+              await tryLocalFallback();
+            }
+          } else {
+            logger.error('All local fallback paths exhausted');
+          }
+        };
+
+        // Set up error handler for fallback retries (in case file exists but is corrupted/unreadable)
+        const errorHandler = () => {
+          if (audioElement.src.startsWith('file://') && fallbackAttempt < fallbackPaths.length) {
+            // Silently try next fallback path (expected behavior during retry)
+            tryLocalFallback();
+          }
+        };
+        audioElement.addEventListener('error', errorHandler, { once: false });
+
+        storageService.getSignedUrl(storagePath, 7200).then(async result => {
+          if (result.success && result.url) {
+            audioElement.src = result.url;
+            logger.info(`Loaded cloud audio from signed URL: ${storagePath}`);
+          } else {
+            // Silently fallback to local file (expected for legacy synced sessions)
+            await tryLocalFallback();
+          }
+        }).catch(async error => {
+          // Silently fallback to local file (expected for legacy synced sessions)
+          await tryLocalFallback();
+        });
+      } else if (recordingPath) {
+        // Local recording - use file:// protocol
+        audioElement.src = `file://${recordingPath}`;
+        logger.info(`Loaded local audio from: ${recordingPath}`);
+      }
+
       // Initialize custom audio controls with the session duration
       this.sessionPlaybackManager.initialize(
         audioElement,

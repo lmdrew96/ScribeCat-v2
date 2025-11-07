@@ -96,11 +96,19 @@ export class SessionPlaybackManager {
     audioElement.addEventListener('loadedmetadata', metadataHandler);
     this.cleanupFunctions.push(() => audioElement.removeEventListener('loadedmetadata', metadataHandler));
 
-    // Error handling
+    // Error handling - suppress expected loading errors during fallback attempts
     const errorHandler = (e: Event) => {
-      console.error('❌ Audio error:', e);
-      console.error('Error code:', audioElement.error?.code);
-      console.error('Error message:', audioElement.error?.message);
+      // Only log non-loading errors (errors after successful load)
+      // Suppress MEDIA_ERR_SRC_NOT_SUPPORTED (code 4) during initial load attempts
+      const errorCode = audioElement.error?.code;
+      const hasPlayed = audioElement.currentTime > 0 || !audioElement.paused;
+
+      // Only log if audio has already played (not an initial load error)
+      if (hasPlayed && errorCode !== 4) {
+        console.error('❌ Audio error:', e);
+        console.error('Error code:', errorCode);
+        console.error('Error message:', audioElement.error?.message);
+      }
     };
     audioElement.addEventListener('error', errorHandler);
     this.cleanupFunctions.push(() => audioElement.removeEventListener('error', errorHandler));

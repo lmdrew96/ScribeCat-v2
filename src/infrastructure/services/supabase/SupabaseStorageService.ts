@@ -235,7 +235,7 @@ export class SupabaseStorageService {
       const fileName = storagePath.split('/').pop();
       return data.some(file => file.name === fileName);
     } catch (error) {
-      console.error('Error checking file existence:', error);
+      // Silently return false (expected for files that don't exist)
       return false;
     }
   }

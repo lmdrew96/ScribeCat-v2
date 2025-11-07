@@ -44,5 +44,18 @@ export class DialogHandlers extends BaseHandler {
         };
       }
     });
+
+    // Dialog: Check if file exists
+    this.handle(ipcMain, 'dialog:fileExists', async (event, filePath: string) => {
+      try {
+        return { success: true, exists: fs.existsSync(filePath) };
+      } catch (error) {
+        return {
+          success: false,
+          exists: false,
+          error: error instanceof Error ? error.message : 'Unknown error checking file'
+        };
+      }
+    });
   }
 }
