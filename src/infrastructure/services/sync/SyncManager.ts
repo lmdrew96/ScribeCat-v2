@@ -114,7 +114,8 @@ export class SyncManager {
         // Store the current state to verify nothing changes locally if remote fails
         const transcriptionSnapshot = latestSession.transcription;
 
-        // 1. Upload session metadata to database
+        // Upload session (including transcription via dual storage)
+        // Note: repository.save() now handles uploading transcription to BOTH Storage and database
         console.log('📡 SyncManager - Attempting remote save...');
         try {
           await this.remoteRepository.save(latestSession);
@@ -126,7 +127,7 @@ export class SyncManager {
           throw remoteError;
         }
 
-        // 2. Upload audio file to storage
+        // 3. Upload audio file to storage
         console.log('📡 SyncManager - Attempting audio upload...');
         const audioData = await this.readAudioFile(latestSession.recordingPath);
         const fileName = this.getFileNameFromPath(latestSession.recordingPath);
@@ -192,7 +193,8 @@ export class SyncManager {
     error?: string;
   }> {
     try {
-      // Fetch session metadata
+      // Fetch session metadata from database
+      // Note: repository.findById() automatically loads transcription via dual storage (Storage + database fallback)
       const session = await this.remoteRepository.findById(sessionId);
       if (!session) {
         return {
@@ -243,6 +245,7 @@ export class SyncManager {
           }
 
           // Session doesn't exist locally and wasn't deleted - download it
+          // Note: remoteSession already has transcription loaded via dual storage by repository.findAll()
           await this.localRepository.save(remoteSession);
           downloadedCount++;
         } else {

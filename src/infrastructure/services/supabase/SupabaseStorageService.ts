@@ -25,8 +25,15 @@ export interface AudioFileMetadata {
   uploadedAt: Date;
 }
 
+export interface UploadTranscriptionParams {
+  sessionId: string;
+  userId: string;
+  transcriptionData: any; // TranscriptionData object
+}
+
 export class SupabaseStorageService {
   private readonly bucketName = 'audio-files';
+  private readonly transcriptionBucketName = 'transcription-data';
 
   /**
    * Upload an audio file to Supabase Storage
@@ -245,5 +252,126 @@ export class SupabaseStorageService {
       .getPublicUrl(storagePath);
 
     return data.publicUrl;
+  }
+
+  /**
+   * Upload a transcription file to Supabase Storage
+   * Stores transcription data as JSON to avoid database size limits
+   * Uses separate transcription-data bucket to avoid MIME type restrictions
+   */
+  async uploadTranscriptionFile(params: UploadTranscriptionParams): Promise<{
+    success: boolean;
+    storagePath?: string;
+    error?: string;
+  }> {
+    try {
+      const client = SupabaseClient.getInstance().getClient();
+
+      // Generate storage path: {user_id}/{session_id}/transcription.json
+      const storagePath = `${params.userId}/${params.sessionId}/transcription.json`;
+
+      // Convert transcription data to JSON string
+      const jsonData = JSON.stringify(params.transcriptionData);
+      const blob = new Blob([jsonData], { type: 'application/json' });
+
+      // Upload file to transcription-data bucket (NOT audio-files bucket)
+      const { data, error } = await client.storage
+        .from(this.transcriptionBucketName)
+        .upload(storagePath, blob, {
+          contentType: 'application/json',
+          cacheControl: '3600',
+          upsert: true // Allow overwriting (in case transcription is updated)
+        });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      return {
+        success: true,
+        storagePath: data.path
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error uploading transcription'
+      };
+    }
+  }
+
+  /**
+   * Download a transcription file from Supabase Storage
+   */
+  async downloadTranscriptionFile(userId: string, sessionId: string): Promise<{
+    success: boolean;
+    data?: any; // TranscriptionData object
+    error?: string;
+  }> {
+    try {
+      const client = SupabaseClient.getInstance().getClient();
+
+      // Generate storage path: {user_id}/{session_id}/transcription.json
+      const storagePath = `${userId}/${sessionId}/transcription.json`;
+
+      const { data, error } = await client.storage
+        .from(this.transcriptionBucketName)
+        .download(storagePath);
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      // Parse JSON from blob
+      const text = await data.text();
+      const transcriptionData = JSON.parse(text);
+
+      return {
+        success: true,
+        data: transcriptionData
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error downloading transcription'
+      };
+    }
+  }
+
+  /**
+   * Delete a transcription file from Supabase Storage
+   */
+  async deleteTranscriptionFile(userId: string, sessionId: string): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    try {
+      const client = SupabaseClient.getInstance().getClient();
+
+      const storagePath = `${userId}/${sessionId}/transcription.json`;
+
+      const { error } = await client.storage
+        .from(this.transcriptionBucketName)
+        .remove([storagePath]);
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error deleting transcription'
+      };
+    }
   }
 }

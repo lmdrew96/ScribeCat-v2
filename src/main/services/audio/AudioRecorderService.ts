@@ -85,31 +85,12 @@ export class AudioRecorderService {
       // Get audio stream
       this.audioStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      // ===== STREAM DEBUG CODE =====
-      console.log('🎙️ STREAM DEBUG:');
-      const audioTracks = this.audioStream.getAudioTracks();
-      console.log('  Number of audio tracks:', audioTracks.length);
-      
-      if (audioTracks.length > 0) {
-        const track = audioTracks[0];
-        console.log('  Track label:', track.label);
-        console.log('  Track enabled:', track.enabled);
-        console.log('  Track muted:', track.muted);
-        console.log('  Track readyState:', track.readyState);
-        console.log('  Track settings:', track.getSettings());
-        
-        // Check if track is actually producing audio
-        track.onmute = () => console.warn('⚠️ Audio track MUTED');
-        track.onunmute = () => console.log('✅ Audio track UNMUTED');
-        track.onended = () => console.warn('⚠️ Audio track ENDED');
-      } else {
-        console.error('❌ No audio tracks in stream!');
-      }
-      // ===== END DEBUG CODE =====
-
-      // Create MediaRecorder
+      // Create MediaRecorder with optimized bitrate for speech
       const mimeType = this.getSupportedMimeType();
-      this.mediaRecorder = new MediaRecorder(this.audioStream, { mimeType });
+      this.mediaRecorder = new MediaRecorder(this.audioStream, {
+        mimeType,
+        audioBitsPerSecond: 64000 // 64 kbps - excellent quality for speech, ~30MB per hour
+      });
 
       // Reset chunks
       this.audioChunks = [];

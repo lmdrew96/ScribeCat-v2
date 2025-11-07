@@ -12,6 +12,7 @@ import { Session, SyncStatus } from '../../domain/entities/Session.js';
 import { Transcription } from '../../domain/entities/Transcription.js';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository.js';
 import { SupabaseClient } from '../services/supabase/SupabaseClient.js';
+import { SupabaseStorageService } from '../services/supabase/SupabaseStorageService.js';
 
 // Database row type (matches sessions table schema)
 interface SessionRow {
@@ -22,7 +23,12 @@ interface SessionRow {
   created_at: string;
   updated_at: string;
   duration: number;
-  transcription_text?: string;
+  // DUAL STORAGE: Transcriptions stored in BOTH database AND Storage during migration
+  // - Small transcriptions: stored in transcription_text (backward compatible)
+  // - Large transcriptions: stored in Storage (new system)
+  // - Read priority: Try Storage first, fallback to database
+  transcription_text?: string; // JSON string of TranscriptionData (backward compatibility)
+  has_transcription?: boolean; // Flag to indicate if transcription file exists in Storage
   transcription_provider?: string;
   transcription_language?: string;
   transcription_confidence?: number;
@@ -37,6 +43,11 @@ interface SessionRow {
 export class SupabaseSessionRepository implements ISessionRepository {
   private tableName = 'sessions';
   private userId: string | null = null;
+  private storageService: SupabaseStorageService;
+
+  constructor(storageService?: SupabaseStorageService) {
+    this.storageService = storageService || new SupabaseStorageService();
+  }
 
   /**
    * Set the current user ID for this repository
@@ -54,6 +65,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   /**
    * Save a session to Supabase
+   * DUAL STORAGE: Writes transcription to BOTH Storage (for large files) AND database (for backward compatibility)
    */
   async save(session: Session): Promise<void> {
     try {
@@ -62,6 +74,44 @@ export class SupabaseSessionRepository implements ISessionRepository {
       }
 
       const client = SupabaseClient.getInstance().getClient();
+
+      // DUAL STORAGE Phase 1: Upload transcription to Storage (if exists)
+      let storageUploadSuccess = false;
+      if (session.transcription) {
+        console.log('📤 Uploading transcription to Storage...');
+        try {
+          const uploadResult = await this.storageService.uploadTranscriptionFile({
+            sessionId: session.id,
+            userId: this.userId,
+            transcriptionData: session.transcription.toJSON()
+          });
+          storageUploadSuccess = uploadResult.success;
+          if (storageUploadSuccess) {
+            console.log('✅ Transcription uploaded to Storage');
+          } else {
+            console.warn('⚠️ Storage upload failed, will use database fallback:', uploadResult.error);
+          }
+        } catch (storageError) {
+          console.warn('⚠️ Storage upload error, will use database fallback:', storageError);
+        }
+      }
+
+      // DUAL STORAGE Phase 2: Conditionally write to database based on size
+      // Calculate transcription size to avoid exceeding API payload limit
+      let transcriptionJson: string | null = null;
+      const MAX_DB_SIZE = 7 * 1024 * 1024; // 7MB safety margin (Supabase limit is ~8-10MB)
+
+      if (session.transcription) {
+        transcriptionJson = JSON.stringify(session.transcription.toJSON());
+        const transcriptionSize = new Blob([transcriptionJson]).size;
+
+        if (transcriptionSize >= MAX_DB_SIZE) {
+          console.log(`⚠️ Transcription too large for database (${(transcriptionSize / 1024 / 1024).toFixed(2)}MB), using Storage only`);
+          transcriptionJson = null; // Don't write to database, rely on Storage
+        } else {
+          console.log(`✅ Transcription small enough for database (${(transcriptionSize / 1024 / 1024).toFixed(2)}MB)`);
+        }
+      }
 
       // Convert Session entity to database row
       const row: Partial<SessionRow> = {
@@ -75,8 +125,10 @@ export class SupabaseSessionRepository implements ISessionRepository {
         course_title: session.courseTitle,
         course_number: session.courseNumber,
         updated_at: session.updatedAt.toISOString(),
-        // Transcription fields
-        transcription_text: session.transcription?.fullText,
+        // DUAL STORAGE: Write to database only if small enough, otherwise rely on Storage
+        transcription_text: transcriptionJson,
+        // Transcription metadata
+        has_transcription: storageUploadSuccess, // Only set true if Storage upload succeeded
         transcription_provider: session.transcription?.provider,
         transcription_language: session.transcription?.language,
         transcription_confidence: session.transcription?.averageConfidence,
@@ -122,7 +174,14 @@ export class SupabaseSessionRepository implements ISessionRepository {
         throw new Error(`Failed to find session: ${error.message}`);
       }
 
-      return this.rowToSession(data as SessionRow);
+      const session = this.rowToSession(data as SessionRow);
+
+      // DUAL STORAGE: Load transcription from Storage OR database
+      if (session && (data.has_transcription || data.transcription_text) && data.user_id) {
+        await this.loadTranscription(session, data as SessionRow);
+      }
+
+      return session;
     } catch (error) {
       console.error('Error finding session:', error);
       return null;
@@ -153,7 +212,19 @@ export class SupabaseSessionRepository implements ISessionRepository {
         throw new Error(`Failed to fetch sessions: ${error.message}`);
       }
 
-      return (data as SessionRow[]).map(row => this.rowToSession(row));
+      const sessions = (data as SessionRow[]).map(row => this.rowToSession(row));
+
+      // DUAL STORAGE: Load transcriptions for all sessions that have them
+      await Promise.all(
+        sessions.map(async (session, index) => {
+          const row = data[index];
+          if ((row.has_transcription || row.transcription_text) && row.user_id) {
+            await this.loadTranscription(session, row);
+          }
+        })
+      );
+
+      return sessions;
     } catch (error) {
       console.error('Error finding all sessions:', error);
       return [];
@@ -162,6 +233,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   /**
    * Update a session
+   * DUAL STORAGE: Writes transcription to BOTH Storage (for large files) AND database (for backward compatibility)
    */
   async update(session: Session): Promise<void> {
     console.log('🔷 SupabaseSessionRepository.update() called');
@@ -180,6 +252,43 @@ export class SupabaseSessionRepository implements ISessionRepository {
       console.log('    - user id:', user?.id || 'none');
       console.log('    - auth error:', authError?.message || 'none');
 
+      // DUAL STORAGE: Upload transcription to Storage (if exists)
+      let storageUploadSuccess = false;
+      if (session.transcription && session.userId) {
+        console.log('📤 Uploading transcription to Storage...');
+        try {
+          const uploadResult = await this.storageService.uploadTranscriptionFile({
+            sessionId: session.id,
+            userId: session.userId,
+            transcriptionData: session.transcription.toJSON()
+          });
+          storageUploadSuccess = uploadResult.success;
+          if (storageUploadSuccess) {
+            console.log('✅ Transcription uploaded to Storage');
+          } else {
+            console.warn('⚠️ Storage upload failed, will use database fallback:', uploadResult.error);
+          }
+        } catch (storageError) {
+          console.warn('⚠️ Storage upload error, will use database fallback:', storageError);
+        }
+      }
+
+      // DUAL STORAGE: Conditionally write to database based on size
+      let transcriptionJson: string | null = null;
+      const MAX_DB_SIZE = 7 * 1024 * 1024; // 7MB safety margin (Supabase limit is ~8-10MB)
+
+      if (session.transcription) {
+        transcriptionJson = JSON.stringify(session.transcription.toJSON());
+        const transcriptionSize = new Blob([transcriptionJson]).size;
+
+        if (transcriptionSize >= MAX_DB_SIZE) {
+          console.log(`⚠️ Transcription too large for database (${(transcriptionSize / 1024 / 1024).toFixed(2)}MB), using Storage only`);
+          transcriptionJson = null; // Don't write to database, rely on Storage
+        } else {
+          console.log(`✅ Transcription small enough for database (${(transcriptionSize / 1024 / 1024).toFixed(2)}MB)`);
+        }
+      }
+
       const updates: Partial<SessionRow> = {
         title: session.title,
         notes: session.notes,
@@ -187,7 +296,10 @@ export class SupabaseSessionRepository implements ISessionRepository {
         course_id: session.courseId,
         course_title: session.courseTitle,
         course_number: session.courseNumber,
-        transcription_text: session.transcription?.fullText,
+        // DUAL STORAGE: Write to database only if small enough, otherwise rely on Storage
+        transcription_text: transcriptionJson,
+        // Transcription metadata
+        has_transcription: storageUploadSuccess,
         transcription_provider: session.transcription?.provider,
         transcription_language: session.transcription?.language,
         transcription_confidence: session.transcription?.averageConfidence,
@@ -288,29 +400,12 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   /**
    * Convert database row to Session entity
+   * NOTE: Transcription is not included here - it must be loaded separately via loadTranscription()
    */
   private rowToSession(row: SessionRow): Session {
-    // Create transcription if data exists
-    let transcription: Transcription | undefined;
-    if (row.transcription_text) {
-      // Create a single segment from the full text
-      // (we don't store individual segments in the database for cloud sync)
-      const segments = [{
-        text: row.transcription_text,
-        startTime: 0,
-        endTime: row.duration,
-        confidence: row.transcription_confidence
-      }];
-
-      transcription = new Transcription(
-        row.transcription_text,
-        segments,
-        row.transcription_language || 'en',
-        (row.transcription_provider as 'assemblyai') || 'assemblyai',
-        row.transcription_timestamp ? new Date(row.transcription_timestamp) : new Date(),
-        row.transcription_confidence
-      );
-    }
+    // Transcription is stored in Supabase Storage, not in database
+    // Call loadTranscription() after creating the session to fetch it
+    // We only store metadata here to track if transcription exists
 
     // NOTE: recordingPath is not stored in cloud - it's local only
     // For cloud synced sessions, we'll use a placeholder or download path
@@ -324,7 +419,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       new Date(row.created_at),
       new Date(row.updated_at),
       row.duration / 1000, // Convert milliseconds to seconds
-      transcription,
+      undefined, // transcription loaded separately via loadTranscription()
       row.tags || [],
       [], // exportHistory not stored in cloud yet
       row.course_id,
@@ -338,6 +433,52 @@ export class SupabaseSessionRepository implements ISessionRepository {
       undefined,              // permissionLevel
       row.deleted_at ? new Date(row.deleted_at) : undefined // deletedAt
     );
+  }
+
+  /**
+   * Load transcription and attach it to the session
+   * DUAL STORAGE: Tries Storage first, falls back to database column for backward compatibility
+   */
+  private async loadTranscription(session: Session, row: SessionRow): Promise<void> {
+    try {
+      let transcriptionData: any = null;
+
+      // PHASE 1: Try to load from Storage first (new system)
+      if (row.has_transcription && row.user_id) {
+        console.log(`📥 Trying to load transcription from Storage for session ${session.id}...`);
+        const storageResult = await this.storageService.downloadTranscriptionFile(
+          row.user_id,
+          session.id
+        );
+
+        if (storageResult.success && storageResult.data) {
+          transcriptionData = storageResult.data;
+          console.log(`✅ Loaded transcription from Storage`);
+        } else {
+          console.log(`⚠️ Storage load failed, trying database fallback...`);
+        }
+      }
+
+      // PHASE 2: Fallback to database column (backward compatibility)
+      if (!transcriptionData && row.transcription_text) {
+        console.log(`📥 Loading transcription from database column for session ${session.id}...`);
+        try {
+          transcriptionData = JSON.parse(row.transcription_text);
+          console.log(`✅ Loaded transcription from database (${row.transcription_text.length} chars)`);
+        } catch (parseError) {
+          console.error(`❌ Failed to parse transcription_text:`, parseError);
+        }
+      }
+
+      // Attach transcription to session if we found it
+      if (transcriptionData) {
+        const transcription = Transcription.fromJSON(transcriptionData);
+        session.addTranscription(transcription);
+      }
+    } catch (error) {
+      console.error(`Error loading transcription for session ${session.id}:`, error);
+      // Don't throw - session is still valid without transcription
+    }
   }
 
   /**
@@ -391,7 +532,19 @@ export class SupabaseSessionRepository implements ISessionRepository {
         throw new Error(`Failed to fetch deleted sessions: ${error.message}`);
       }
 
-      return (data as SessionRow[]).map(row => this.rowToSession(row));
+      const sessions = (data as SessionRow[]).map(row => this.rowToSession(row));
+
+      // DUAL STORAGE: Load transcriptions for deleted sessions that have them
+      await Promise.all(
+        sessions.map(async (session, index) => {
+          const row = data[index];
+          if ((row.has_transcription || row.transcription_text) && row.user_id) {
+            await this.loadTranscription(session, row);
+          }
+        })
+      );
+
+      return sessions;
     } catch (error) {
       console.error('Error finding deleted sessions:', error);
       return [];
