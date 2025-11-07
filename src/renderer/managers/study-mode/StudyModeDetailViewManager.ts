@@ -4,7 +4,7 @@
  * Handles session detail view rendering, audio playback, and transcription display.
  */
 
-import type { Session } from '../../../domain/entities/Session.js';
+import { Session } from '../../../domain/entities/Session.js';
 import { SessionPlaybackManager } from '../../services/SessionPlaybackManager.js';
 import { createLogger } from '../../../shared/logger.js';
 import { formatDuration, formatTimestamp, escapeHtml, formatCourseTitle } from '../../utils/formatting.js';
@@ -16,6 +16,8 @@ export class StudyModeDetailViewManager {
   private sessionDetailContainer: HTMLElement;
   private sessionPlaybackManager: SessionPlaybackManager;
   private currentSession: Session | null = null;
+  private childSessions: Session[] = [];
+  private activeTabIndex: number = 0;
 
   constructor(
     sessionDetailContainer: HTMLElement,
@@ -28,8 +30,35 @@ export class StudyModeDetailViewManager {
   /**
    * Render session detail view
    */
-  render(session: Session, isEditable: boolean = true): void {
+  async render(session: Session, isEditable: boolean = true): Promise<void> {
     this.currentSession = session;
+
+    // Debug logging
+    console.log('🔍 StudyModeDetailViewManager.render - Checking session type:', {
+      sessionId: session.id,
+      sessionTitle: session.title,
+      sessionType: session.type,
+      hasIsMultiSessionMethod: typeof session.isMultiSessionStudySet,
+      isMultiSession: session.isMultiSessionStudySet ? session.isMultiSessionStudySet() : false,
+      childSessionIds: session.getChildSessionIds ? session.getChildSessionIds() : 'no method'
+    });
+
+    // Check if this is a multi-session study set
+    if (session.isMultiSessionStudySet && session.isMultiSessionStudySet()) {
+      console.log('✅ Rendering as multi-session study set');
+      await this.renderMultiSession(session, isEditable);
+      return;
+    }
+
+    // Render single session (existing logic)
+    console.log('📄 Rendering as single session');
+    this.renderSingleSession(session, isEditable);
+  }
+
+  /**
+   * Render single session detail view (original logic)
+   */
+  private renderSingleSession(session: Session, isEditable: boolean = true): void {
     console.log('🔍 StudyModeDetailViewManager.render - Session data:', {
       id: session.id,
       title: session.title,
@@ -254,6 +283,345 @@ export class StudyModeDetailViewManager {
     this.attachEventHandlers(session);
 
     logger.info(`Rendered detail view for session: ${session.id}`);
+  }
+
+  /**
+   * Render multi-session study set with tabs
+   */
+  private async renderMultiSession(session: Session, isEditable: boolean = true): Promise<void> {
+    logger.info(`Rendering multi-session study set: ${session.id}`);
+
+    // Load child sessions
+    await this.loadChildSessions(session);
+
+    if (this.childSessions.length === 0) {
+      logger.warn('No child sessions found for multi-session study set');
+      this.sessionDetailContainer.innerHTML = '<p>Error: No sessions found in this study set.</p>';
+      return;
+    }
+
+    const date = new Date(session.createdAt);
+    const formattedDate = date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Render tabs and current session
+    const tabsHtml = this.renderTabs();
+    const activeSession = this.childSessions[this.activeTabIndex];
+
+    const detailHtml = `
+      <div class="session-detail-container multi-session">
+        <!-- Back Button -->
+        <button class="back-to-list-btn secondary-btn">
+          ← Back to Sessions
+        </button>
+
+        <!-- Multi-Session Header -->
+        <div class="session-detail-header">
+          <div class="session-detail-title-row">
+            <span class="multi-session-badge">📚 Study Set</span>
+            <h2 class="session-detail-title">${escapeHtml(session.title)}</h2>
+          </div>
+          <div class="session-detail-meta">
+            <span>📅 Created ${formattedDate}</span>
+            <span>📑 ${this.childSessions.length} Sessions</span>
+          </div>
+        </div>
+
+        <!-- Two-column layout -->
+        <div class="session-detail-columns">
+          <!-- Left Column: Session Content -->
+          <div class="session-detail-left">
+            <!-- Session Tabs -->
+            <div class="session-tabs-container">
+              ${tabsHtml}
+            </div>
+
+            <!-- Active Session Content -->
+            <div class="session-tab-content" id="session-tab-content">
+              ${this.renderTabContent(activeSession, isEditable)}
+            </div>
+          </div>
+
+          <!-- Right Column: AI Study Tools -->
+          <div class="session-detail-right">
+            <div class="ai-study-tools">
+              <h3 class="study-tools-title">🤖 AI Study Tools</h3>
+
+              <!-- Quick Actions -->
+              <div class="study-tool-section">
+                <h4>Quick Actions</h4>
+                <div class="study-tool-buttons">
+                  <button class="study-tool-btn" id="generate-summary-btn">📝 Summary</button>
+                  <button class="study-tool-btn" id="extract-concepts-btn">💡 Key Concepts</button>
+                  <button class="study-tool-btn" id="generate-flashcards-btn">🃏 Flashcards</button>
+                  <button class="study-tool-btn" id="generate-quiz-btn">📋 Quiz</button>
+                </div>
+              </div>
+
+              <!-- Content Area for AI Output -->
+              <div class="study-content-area" id="study-content-area">
+                <p class="study-tool-placeholder">Select an AI study tool above to get started.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.sessionDetailContainer.innerHTML = detailHtml;
+    this.attachMultiSessionHandlers(session, isEditable);
+
+    logger.info(`Rendered multi-session study set with ${this.childSessions.length} sessions`);
+  }
+
+  /**
+   * Load child sessions for a multi-session study set
+   */
+  private async loadChildSessions(multiSession: Session): Promise<void> {
+    const childSessionIds = multiSession.getChildSessionIds();
+
+    if (childSessionIds.length === 0) {
+      logger.warn('Multi-session study set has no child session IDs');
+      return;
+    }
+
+    try {
+      // Load all sessions first
+      const result = await (window as any).scribeCat.session.list();
+
+      if (result.success && result.sessions) {
+        // Find child sessions in order
+        this.childSessions = childSessionIds
+          .map((id: string) => {
+            const sessionData = result.sessions.find((s: any) => s.id === id);
+            return sessionData ? this.dataToSession(sessionData) : null;
+          })
+          .filter((s: Session | null): s is Session => s !== null);
+
+        logger.info(`Loaded ${this.childSessions.length} child sessions`);
+      }
+    } catch (error) {
+      logger.error('Failed to load child sessions', error);
+      this.childSessions = [];
+    }
+  }
+
+  /**
+   * Convert session data to Session object
+   */
+  private dataToSession(data: any): Session {
+    // Use Session.fromJSON to properly reconstruct the session with all methods
+    return Session.fromJSON(data);
+  }
+
+  /**
+   * Render session tabs
+   */
+  private renderTabs(): string {
+    return `
+      <div class="session-tabs">
+        ${this.childSessions.map((session, index) => `
+          <button
+            class="session-tab ${index === this.activeTabIndex ? 'active' : ''}"
+            data-tab-index="${index}"
+          >
+            <span class="tab-number">${index + 1}</span>
+            <span class="tab-title">${escapeHtml(session.title)}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  /**
+   * Render content for a single tab
+   */
+  private renderTabContent(session: Session, isEditable: boolean): string {
+    const date = new Date(session.createdAt);
+    const formattedDate = date.toLocaleDateString();
+    const formattedTime = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const duration = formatDuration(session.duration);
+
+    return `
+      <div class="tab-session-info">
+        <h3>${escapeHtml(session.title)}</h3>
+        <div class="session-meta">
+          <span>📅 ${formattedDate} at ${formattedTime}</span>
+          <span>⏱️ ${duration}</span>
+        </div>
+      </div>
+
+      <!-- Audio Player -->
+      <div class="audio-player-container">
+        <h4>🎧 Recording</h4>
+        <div class="audio-player">
+          <audio id="session-audio" preload="metadata" style="display: none;" data-recording-path="${session.recordingPath}">
+            Your browser does not support the audio element.
+          </audio>
+          <div class="custom-audio-controls">
+            <button class="audio-control-btn play-pause-btn" id="play-pause-btn" title="Play/Pause">
+              <span class="play-icon">▶</span>
+            </button>
+            <div class="audio-time-display">
+              <span id="current-time">0:00</span>
+              <span class="time-separator">/</span>
+              <span id="total-duration">0:00</span>
+            </div>
+            <div class="audio-progress-container" id="audio-progress-container">
+              <div class="audio-progress-bar">
+                <div class="audio-progress-buffered" id="audio-progress-buffered"></div>
+                <div class="audio-progress-played" id="audio-progress-played"></div>
+                <div class="audio-progress-handle" id="audio-progress-handle"></div>
+              </div>
+            </div>
+            <button class="audio-control-btn volume-btn" id="volume-btn" title="Mute/Unmute">
+              <span class="volume-icon">🔊</span>
+            </button>
+          </div>
+          <div class="playback-controls">
+            <label>Playback Speed:</label>
+            <button class="speed-btn" data-speed="0.5">0.5x</button>
+            <button class="speed-btn" data-speed="0.75">0.75x</button>
+            <button class="speed-btn active" data-speed="1">1x</button>
+            <button class="speed-btn" data-speed="1.25">1.25x</button>
+            <button class="speed-btn" data-speed="1.5">1.5x</button>
+            <button class="speed-btn" data-speed="2">2x</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-tabs for Transcription and Notes -->
+      <div class="session-content-tabs">
+        <div class="content-tab-buttons">
+          <button class="content-tab-btn active" data-content-tab="transcription">📝 Transcription</button>
+          <button class="content-tab-btn" data-content-tab="notes">📓 Notes</button>
+        </div>
+
+        <!-- Transcription Tab Content -->
+        <div class="content-tab-panel active" data-panel="transcription">
+          <div class="transcription-content">
+            ${this.renderTranscription(session)}
+          </div>
+        </div>
+
+        <!-- Notes Tab Content -->
+        <div class="content-tab-panel" data-panel="notes">
+          <div class="notes-content" id="notes-content">
+            ${session.notes || '<p class="no-notes">No notes for this session.</p>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render transcription for a session
+   */
+  private renderTranscription(session: Session): string {
+    if (!session.transcription) {
+      return '<p class="no-transcription">No transcription available for this session.</p>';
+    }
+
+    const segments = session.transcription.segments || [];
+    if (segments.length === 0) {
+      return `<p>${escapeHtml(session.transcription.fullText)}</p>`;
+    }
+
+    return segments.map(segment => `
+      <p class="transcription-segment" data-start="${segment.startTime}">
+        <span class="timestamp clickable">[${formatTimestamp(segment.startTime)}]</span>
+        ${escapeHtml(segment.text)}
+      </p>
+    `).join('');
+  }
+
+  /**
+   * Attach event handlers for multi-session view
+   */
+  private attachMultiSessionHandlers(session: Session, isEditable: boolean): void {
+    // Back button
+    const backBtn = document.querySelector('.back-to-list-btn');
+    backBtn?.addEventListener('click', () => {
+      this.sessionDetailContainer.dispatchEvent(new CustomEvent('backToList'));
+    });
+
+    // Tab click handlers
+    const tabs = document.querySelectorAll('.session-tab');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const index = parseInt((tab as HTMLElement).dataset.tabIndex || '0');
+        this.switchTab(index, isEditable);
+      });
+    });
+
+    // Sub-tab click handlers (Transcription/Notes)
+    this.attachContentTabHandlers();
+
+    // Setup audio player for active session
+    const activeSession = this.childSessions[this.activeTabIndex];
+    this.attachEventHandlers(activeSession);
+  }
+
+  /**
+   * Attach event handlers for content sub-tabs (Transcription/Notes)
+   */
+  private attachContentTabHandlers(): void {
+    const contentTabBtns = document.querySelectorAll('.content-tab-btn');
+    contentTabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetTab = (btn as HTMLElement).dataset.contentTab;
+
+        // Update button active states
+        contentTabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Update panel visibility
+        const panels = document.querySelectorAll('.content-tab-panel');
+        panels.forEach((panel) => {
+          const panelElement = panel as HTMLElement;
+          if (panelElement.dataset.panel === targetTab) {
+            panelElement.classList.add('active');
+          } else {
+            panelElement.classList.remove('active');
+          }
+        });
+      });
+    });
+  }
+
+  /**
+   * Switch to a different tab
+   */
+  private switchTab(index: number, isEditable: boolean): void {
+    if (index < 0 || index >= this.childSessions.length) return;
+
+    this.activeTabIndex = index;
+    const activeSession = this.childSessions[index];
+
+    // Update tab active state
+    const tabs = document.querySelectorAll('.session-tab');
+    tabs.forEach((tab, i) => {
+      if (i === index) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
+    });
+
+    // Update tab content
+    const tabContent = document.getElementById('session-tab-content');
+    if (tabContent) {
+      tabContent.innerHTML = this.renderTabContent(activeSession, isEditable);
+      this.attachEventHandlers(activeSession);
+      // Re-attach content tab handlers after re-rendering
+      this.attachContentTabHandlers();
+    }
+
+    logger.info(`Switched to tab ${index}: ${activeSession.title}`);
   }
 
   /**

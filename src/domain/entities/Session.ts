@@ -21,6 +21,14 @@ export enum SyncStatus {
 }
 
 /**
+ * Session type for distinguishing single sessions from multi-session study sets
+ */
+export enum SessionType {
+  SINGLE = 'single',
+  MULTI_SESSION_STUDY_SET = 'multi-session-study-set'
+}
+
+/**
  * Session Entity
  * 
  * Represents a recording session with audio file and metadata.
@@ -50,7 +58,11 @@ export class Session {
     // Shared session fields
     public permissionLevel?: 'viewer' | 'editor',
     // Trash/soft delete field
-    public deletedAt?: Date
+    public deletedAt?: Date,
+    // Multi-session study set fields
+    public type: SessionType = SessionType.SINGLE,
+    public childSessionIds?: string[],
+    public sessionOrder?: number
   ) {}
 
   /**
@@ -189,6 +201,27 @@ export class Session {
   }
 
   /**
+   * Check if session is a multi-session study set
+   */
+  isMultiSessionStudySet(): boolean {
+    return this.type === SessionType.MULTI_SESSION_STUDY_SET;
+  }
+
+  /**
+   * Check if session is a single session
+   */
+  isSingleSession(): boolean {
+    return this.type === SessionType.SINGLE;
+  }
+
+  /**
+   * Get child session IDs for multi-session study sets
+   */
+  getChildSessionIds(): string[] {
+    return this.childSessionIds || [];
+  }
+
+  /**
    * Convert to plain object for serialization
    */
   toJSON(): SessionData {
@@ -211,7 +244,10 @@ export class Session {
       syncStatus: this.syncStatus,
       lastSyncedAt: this.lastSyncedAt,
       permissionLevel: this.permissionLevel,
-      deletedAt: this.deletedAt
+      deletedAt: this.deletedAt,
+      type: this.type,
+      childSessionIds: this.childSessionIds,
+      sessionOrder: this.sessionOrder
     };
   }
 
@@ -238,7 +274,10 @@ export class Session {
       data.syncStatus || SyncStatus.NOT_SYNCED,
       data.lastSyncedAt ? new Date(data.lastSyncedAt) : undefined,
       data.permissionLevel,
-      data.deletedAt ? new Date(data.deletedAt) : undefined
+      data.deletedAt ? new Date(data.deletedAt) : undefined,
+      data.type || SessionType.SINGLE,
+      data.childSessionIds,
+      data.sessionOrder
     );
   }
 }
@@ -269,4 +308,8 @@ export interface SessionData {
   permissionLevel?: 'viewer' | 'editor';
   // Trash/soft delete field
   deletedAt?: Date;
+  // Multi-session study set fields
+  type?: SessionType;
+  childSessionIds?: string[];
+  sessionOrder?: number;
 }

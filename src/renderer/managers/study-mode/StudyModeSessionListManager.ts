@@ -32,6 +32,7 @@ export class StudyModeSessionListManager {
   private bulkActionsBar: HTMLElement | null = null;
   private selectAllCheckbox: HTMLInputElement | null = null;
   private selectedCountSpan: HTMLElement | null = null;
+  private createStudySetBtn: HTMLButtonElement | null = null;
   private bulkExportBtn: HTMLButtonElement | null = null;
   private bulkDeleteBtn: HTMLButtonElement | null = null;
 
@@ -53,6 +54,7 @@ export class StudyModeSessionListManager {
     this.bulkActionsBar = document.getElementById('bulk-actions-bar') as HTMLElement;
     this.selectAllCheckbox = document.getElementById('select-all-sessions') as HTMLInputElement;
     this.selectedCountSpan = document.getElementById('selected-count') as HTMLElement;
+    this.createStudySetBtn = document.getElementById('create-study-set-btn') as HTMLButtonElement;
     this.bulkExportBtn = document.getElementById('bulk-export-btn') as HTMLButtonElement;
     this.bulkDeleteBtn = document.getElementById('bulk-delete-btn') as HTMLButtonElement;
 
@@ -90,6 +92,13 @@ export class StudyModeSessionListManager {
     if (this.selectAllCheckbox) {
       this.selectAllCheckbox.addEventListener('change', (e) => {
         this.handleSelectAll((e.target as HTMLInputElement).checked);
+      });
+    }
+
+    // Create Study Set button handler
+    if (this.createStudySetBtn) {
+      this.createStudySetBtn.addEventListener('click', () => {
+        this.handleCreateStudySet();
       });
     }
   }
@@ -522,10 +531,75 @@ export class StudyModeSessionListManager {
 
 
   /**
+   * Check if a session can be selected (same-course validation)
+   */
+  private canSelectSession(sessionId: string): boolean {
+    // If no sessions selected yet, allow selection
+    if (this.selectedSessionIds.size === 0) {
+      return true;
+    }
+
+    // Get the course ID of the first selected session
+    const firstSelectedId = Array.from(this.selectedSessionIds)[0];
+    const firstSelectedSession = this.sessions.find(s => s.id === firstSelectedId);
+    const targetSession = this.sessions.find(s => s.id === sessionId);
+
+    if (!firstSelectedSession || !targetSession) {
+      return false;
+    }
+
+    // Both must have the same course ID (or both must have no course)
+    return firstSelectedSession.courseId === targetSession.courseId;
+  }
+
+  /**
+   * Show a temporary notification message
+   */
+  private showNotification(message: string, type: 'success' | 'warning' | 'error' = 'success'): void {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#ef4444'};
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      animation: slideInRight 0.3s ease-out;
+    `;
+
+    document.body.appendChild(notification);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      notification.style.animation = 'slideOutRight 0.3s ease-in';
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  }
+
+  /**
    * Handle session selection
    */
   private handleSessionSelection(sessionId: string, isSelected: boolean): void {
     if (isSelected) {
+      // Check if this session can be selected (same-course validation)
+      if (!this.canSelectSession(sessionId)) {
+        // Uncheck the checkbox
+        const checkbox = document.querySelector(`.session-card-checkbox[data-session-id="${sessionId}"]`) as HTMLInputElement;
+        if (checkbox) {
+          checkbox.checked = false;
+        }
+
+        // Show notification
+        this.showNotification('Cannot select sessions from different courses for multi-session study sets', 'warning');
+        return;
+      }
+
       this.selectedSessionIds.add(sessionId);
     } else {
       this.selectedSessionIds.delete(sessionId);
@@ -554,13 +628,44 @@ export class StudyModeSessionListManager {
   }
 
   /**
+   * Handle create study set button click
+   */
+  private async handleCreateStudySet(): Promise<void> {
+    if (this.selectedSessionIds.size < 2) {
+      this.showNotification('Please select at least 2 sessions to create a study set', 'warning');
+      return;
+    }
+
+    // Get selected sessions in order
+    const selectedSessions = Array.from(this.selectedSessionIds)
+      .map(id => this.sessions.find(s => s.id === id))
+      .filter((s): s is Session => s !== undefined);
+
+    // Open reorder modal
+    this.openReorderModal(selectedSessions);
+  }
+
+  /**
+   * Open the reorder modal for session ordering
+   */
+  private openReorderModal(sessions: Session[]): void {
+    // Emit event to parent manager to handle modal display
+    this.sessionListContainer.dispatchEvent(
+      new CustomEvent('openReorderModal', {
+        detail: { sessions }
+      })
+    );
+  }
+
+  /**
    * Update bulk actions bar visibility and state
    */
   private updateBulkActionsBar(): void {
     const count = this.selectedSessionIds.size;
 
     if (!this.bulkActionsBar || !this.selectedCountSpan ||
-        !this.bulkExportBtn || !this.bulkDeleteBtn || !this.selectAllCheckbox) {
+        !this.bulkExportBtn || !this.bulkDeleteBtn || !this.selectAllCheckbox ||
+        !this.createStudySetBtn) {
       return;
     }
 
@@ -581,6 +686,7 @@ export class StudyModeSessionListManager {
     this.selectAllCheckbox.indeterminate = count > 0 && !allSelected;
 
     // Enable/disable action buttons
+    this.createStudySetBtn.disabled = count < 2; // Need at least 2 sessions for a study set
     this.bulkExportBtn.disabled = count === 0;
     this.bulkDeleteBtn.disabled = count === 0;
   }

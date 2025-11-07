@@ -33,6 +33,12 @@ export class AIManager {
   private studyModeContext: {
     transcription: string;
     notes: string;
+    isMultiSession?: boolean;
+    sessionMetadata?: Array<{
+      id: string;
+      title: string;
+      index: number;
+    }>;
   } | null = null;
 
   constructor(
@@ -307,9 +313,24 @@ export class AIManager {
   /**
    * Set study mode context (called when viewing a session in study mode)
    */
-  public setStudyModeContext(transcription: string, notes: string): void {
-    this.studyModeContext = { transcription, notes };
-    console.log('AI Chat: Study mode context set');
+  public setStudyModeContext(
+    transcription: string,
+    notes: string,
+    isMultiSession?: boolean,
+    sessionMetadata?: Array<{ id: string; title: string; index: number }>
+  ): void {
+    this.studyModeContext = {
+      transcription,
+      notes,
+      isMultiSession,
+      sessionMetadata
+    };
+
+    if (isMultiSession && sessionMetadata) {
+      console.log(`AI Chat: Multi-session study mode context set with ${sessionMetadata.length} sessions`);
+    } else {
+      console.log('AI Chat: Study mode context set');
+    }
   }
 
   /**

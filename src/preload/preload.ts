@@ -168,7 +168,9 @@ const electronAPI = {
       permanentlyDelete: (sessionId: string) =>
         ipcRenderer.invoke('sessions:permanentlyDelete', sessionId),
       permanentlyDeleteMultiple: (sessionIds: string[]) =>
-        ipcRenderer.invoke('sessions:permanentlyDeleteMultiple', sessionIds)
+        ipcRenderer.invoke('sessions:permanentlyDeleteMultiple', sessionIds),
+      createMultiSessionStudySet: (sessionIds: string[], title: string) =>
+        ipcRenderer.invoke('sessions:createMultiSessionStudySet', sessionIds, title)
     },
   drive: {
     configure: (config: GoogleDriveConfig) => ipcRenderer.invoke('drive:configure', config),

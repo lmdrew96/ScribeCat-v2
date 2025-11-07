@@ -29,7 +29,7 @@ export class StudyModeAIToolsManager {
     }
 
     this.attachStudyToolHandlers(session);
-    logger.info(`Initialized AI tools for session: ${session.id}`);
+    logger.info(`Initialized AI tools for session: ${session.id}, type: ${session.type}, isMultiSession: ${session.isMultiSessionStudySet ? session.isMultiSessionStudySet() : 'N/A'}`);
   }
 
   /**

@@ -26,25 +26,83 @@ export class AISummaryManager {
     `;
 
     try {
-      // Check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
-        contentArea.innerHTML = `
-          <div class="study-summary">
-            <div class="summary-section">
-              <p style="text-align: center; color: var(--text-tertiary);">
-                No transcription available for this session. Please record and transcribe a session first.
-              </p>
+      // Check if this is a multi-session study set
+      const isMultiSession = session.type === 'multi-session-study-set';
+      console.log(`🎯 AISummaryManager.generateSummary - Session type: ${session.type}, isMultiSession: ${isMultiSession}, childSessionIds:`, session.childSessionIds);
+
+      let transcriptionText: string;
+      let notesText: string = session.notes || '';
+
+      if (isMultiSession) {
+        // Load child sessions dynamically
+        const childSessions = await this.loadChildSessions(session);
+        console.log(`📚 Loaded ${childSessions.length} child sessions for multi-session study set`);
+
+        if (childSessions.length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-summary">
+              <div class="summary-section">
+                <p style="text-align: center; color: var(--text-tertiary);">
+                  No child sessions found in this study set.
+                </p>
+              </div>
             </div>
-          </div>
-        `;
-        return;
+          `;
+          return;
+        }
+
+        // Merge transcriptions from all child sessions
+        transcriptionText = this.mergeTranscriptions(childSessions);
+      } else {
+        // Single session
+        if (!session.transcription || !session.transcription.fullText) {
+          contentArea.innerHTML = `
+            <div class="study-summary">
+              <div class="summary-section">
+                <p style="text-align: center; color: var(--text-tertiary);">
+                  No transcription available for this session. Please record and transcribe a session first.
+                </p>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        transcriptionText = session.transcription.fullText;
       }
 
       // Generate summary using AI
-      const result = await window.scribeCat.ai.generateSummary(
-        session.transcription.fullText,
-        session.notes || undefined
-      );
+      let summaryResult;
+      if (isMultiSession) {
+        // For multi-session study sets, use chat with custom prompt
+        const prompt = `You are analyzing a multi-session study set that combines content from multiple lecture/recording sessions. The transcription below contains clear session markers (e.g., "━━━ SESSION 1: Title ━━━").
+
+Please generate a comprehensive summary that:
+1. Summarizes the key points from ALL sessions
+2. Tags each major point with its source session (e.g., "Session 1:", "Session 2:")
+3. Shows how concepts build across sessions if applicable
+4. Maintains clear separation between different sessions' content
+
+Transcription:
+${transcriptionText}
+
+${notesText ? `Notes:\n${notesText}` : ''}
+
+Format your response as a clear, organized summary with session attribution.`;
+
+        summaryResult = await window.scribeCat.ai.chat(prompt, [], {
+          includeTranscription: false,
+          includeNotes: false
+        });
+      } else {
+        // For single sessions, use the standard summary API
+        summaryResult = await window.scribeCat.ai.generateSummary(
+          transcriptionText,
+          notesText || undefined
+        );
+      }
+
+      const result = summaryResult;
 
       if (result.success && result.data) {
         // Extract summary from SummaryResult object
@@ -101,20 +159,60 @@ export class AISummaryManager {
     `;
 
     try {
-      // Check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
-        contentArea.innerHTML = `
-          <div class="study-concepts">
-            <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-              No transcription available for this session.
+      // Check if this is a multi-session study set
+      const isMultiSession = session.type === 'multi-session-study-set';
+
+      let transcriptionText: string;
+
+      if (isMultiSession) {
+        // Load child sessions dynamically
+        const childSessions = await this.loadChildSessions(session);
+
+        if (childSessions.length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-concepts">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No child sessions found in this study set.
+              </div>
             </div>
-          </div>
-        `;
-        return;
+          `;
+          return;
+        }
+
+        transcriptionText = this.mergeTranscriptions(childSessions);
+      } else {
+        // Single session
+        if (!session.transcription || !session.transcription.fullText) {
+          contentArea.innerHTML = `
+            <div class="study-concepts">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available for this session.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        transcriptionText = session.transcription.fullText;
       }
 
       // Use AI to extract key concepts
-      const prompt = `Extract the key concepts from this transcription. For each concept, provide the term and a brief definition. Format as a JSON array with objects containing "term" and "definition" fields. Limit to 5-7 most important concepts.\n\nTranscription:\n${session.transcription.fullText}`;
+      const prompt = isMultiSession
+        ? `Extract the key concepts from this MULTI-SESSION study set. The transcription contains content from multiple sessions marked with headers like "━━━ SESSION 1: Title ━━━".
+
+For each concept, provide:
+1. The term/concept name
+2. A brief definition
+3. Which session(s) it appears in (e.g., "Session 1" or "Sessions 1-3")
+
+Format as a JSON array with objects containing "term", "definition", and "sessions" fields. Limit to 7-10 most important concepts across all sessions.
+
+Transcription:
+${transcriptionText}`
+        : `Extract the key concepts from this transcription. For each concept, provide the term and a brief definition. Format as a JSON array with objects containing "term" and "definition" fields. Limit to 5-7 most important concepts.
+
+Transcription:
+${transcriptionText}`;
 
       const result = await window.scribeCat.ai.chat(prompt, [], {
         includeTranscription: false,
@@ -123,13 +221,13 @@ export class AISummaryManager {
 
       if (result.success && result.data) {
         // result.data is a string response from AI
-        let concepts: Array<{term: string; definition: string}> = [];
+        let concepts: Array<{term: string; definition: string; sessions?: string}> = [];
 
         try {
           concepts = this.parseAIJsonResponse(
             result.data,
             'Key Concepts',
-            (data): data is Array<{ term: string; definition: string }> => {
+            (data): data is Array<{ term: string; definition: string; sessions?: string }> => {
               return Array.isArray(data) && data.length > 0 &&
                      typeof data[0] === 'object' && 'term' in data[0] && 'definition' in data[0];
             }
@@ -146,7 +244,10 @@ export class AISummaryManager {
 
         const conceptsHtml = concepts.map(concept => `
           <div class="concept-item">
-            <div class="concept-term">${this.escapeHtml(concept.term)}</div>
+            <div class="concept-term">
+              ${this.escapeHtml(concept.term)}
+              ${concept.sessions ? `<span class="concept-sessions"> (${this.escapeHtml(concept.sessions)})</span>` : ''}
+            </div>
             <div class="concept-definition">${renderMarkdown(concept.definition)}</div>
           </div>
         `).join('');
@@ -190,20 +291,72 @@ export class AISummaryManager {
     `;
 
     try {
-      // Check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
-        contentArea.innerHTML = `
-          <div class="study-flashcards">
-            <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-              No transcription available for this session.
+      // Check if this is a multi-session study set
+      const isMultiSession = session.type === 'multi-session-study-set';
+
+      let transcriptionText: string;
+
+      if (isMultiSession) {
+        // Load child sessions dynamically
+        const childSessions = await this.loadChildSessions(session);
+
+        if (childSessions.length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-flashcards">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No child sessions found for this multi-session study set.
+              </div>
             </div>
-          </div>
-        `;
-        return;
+          `;
+          return;
+        }
+
+        // Merge transcriptions from all child sessions
+        transcriptionText = this.mergeTranscriptions(childSessions);
+
+        if (!transcriptionText || transcriptionText.trim().length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-flashcards">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available in child sessions.
+              </div>
+            </div>
+          `;
+          return;
+        }
+      } else {
+        // Single session - check if transcription exists
+        if (!session.transcription || !session.transcription.fullText) {
+          contentArea.innerHTML = `
+            <div class="study-flashcards">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available for this session.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        transcriptionText = session.transcription.fullText;
       }
 
       // Use AI to generate flashcards
-      const prompt = `Create 5-7 flashcards from this transcription. Each flashcard should have a question on the front and an answer on the back. Format as a JSON array with objects containing "question" and "answer" fields. Focus on the most important concepts and facts.\n\nTranscription:\n${session.transcription.fullText}`;
+      const prompt = isMultiSession
+        ? `Create 8-12 flashcards from this MULTI-SESSION study set. The transcription contains content from multiple sessions marked with headers like "━━━ SESSION 1: Title ━━━".
+
+For each flashcard:
+1. Create a question on the front
+2. Provide a clear answer on the back
+3. Include which session the content is from (e.g., "(Session 1)" or "(Sessions 2-3)")
+
+Format as a JSON array with objects containing "question", "answer", and "session" fields. Cover important concepts from ALL sessions.
+
+Transcription:
+${transcriptionText}`
+        : `Create 5-7 flashcards from this transcription. Each flashcard should have a question on the front and an answer on the back. Format as a JSON array with objects containing "question" and "answer" fields. Focus on the most important concepts and facts.
+
+Transcription:
+${transcriptionText}`;
 
       const result = await window.scribeCat.ai.chat(prompt, [], {
         includeTranscription: false,
@@ -212,13 +365,13 @@ export class AISummaryManager {
 
       if (result.success && result.data) {
         // result.data is a string response from AI
-        let flashcards: Array<{question: string; answer: string}> = [];
+        let flashcards: Array<{question: string; answer: string; session?: string}> = [];
 
         try {
           flashcards = this.parseAIJsonResponse(
             result.data,
             'Flashcards',
-            (data): data is Array<{ question: string; answer: string }> => {
+            (data): data is Array<{ question: string; answer: string; session?: string }> => {
               return Array.isArray(data) && data.length > 0 &&
                      typeof data[0] === 'object' && 'question' in data[0] && 'answer' in data[0];
             }
@@ -255,7 +408,7 @@ export class AISummaryManager {
   /**
    * Render flashcards with navigation
    */
-  private renderFlashcards(flashcards: Array<{question: string; answer: string}>, contentArea: HTMLElement): void {
+  private renderFlashcards(flashcards: Array<{question: string; answer: string; session?: string}>, contentArea: HTMLElement): void {
     let currentIndex = 0;
     let isFlipped = false;
 
@@ -268,7 +421,10 @@ export class AISummaryManager {
       contentArea.innerHTML = `
         <div class="study-flashcards">
           <div class="flashcard-controls">
-            <div class="flashcard-counter">Card ${currentIndex + 1} of ${flashcards.length}</div>
+            <div class="flashcard-counter">
+              Card ${currentIndex + 1} of ${flashcards.length}
+              ${card.session ? `<span class="flashcard-session-badge">${this.escapeHtml(card.session)}</span>` : ''}
+            </div>
             <div class="flashcard-nav">
               <button class="flashcard-nav-btn" id="prev-card-btn" ${currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
               <button class="flashcard-nav-btn" id="next-card-btn" ${currentIndex === flashcards.length - 1 ? 'disabled' : ''}>Next →</button>
@@ -330,20 +486,72 @@ export class AISummaryManager {
     `;
 
     try {
-      // Check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
-        contentArea.innerHTML = `
-          <div class="study-quiz">
-            <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-              No transcription available for this session.
+      // Check if this is a multi-session study set
+      const isMultiSession = session.type === 'multi-session-study-set';
+
+      let transcriptionText: string;
+
+      if (isMultiSession) {
+        // Load child sessions dynamically
+        const childSessions = await this.loadChildSessions(session);
+
+        if (childSessions.length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-quiz">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No child sessions found for this multi-session study set.
+              </div>
             </div>
-          </div>
-        `;
-        return;
+          `;
+          return;
+        }
+
+        // Merge transcriptions from all child sessions
+        transcriptionText = this.mergeTranscriptions(childSessions);
+
+        if (!transcriptionText || transcriptionText.trim().length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-quiz">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available in child sessions.
+              </div>
+            </div>
+          `;
+          return;
+        }
+      } else {
+        // Single session - check if transcription exists
+        if (!session.transcription || !session.transcription.fullText) {
+          contentArea.innerHTML = `
+            <div class="study-quiz">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available for this session.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        transcriptionText = session.transcription.fullText;
       }
 
       // Use AI to generate quiz questions
-      const prompt = `Create 5 multiple-choice quiz questions from this transcription. Each question should have 4 options (A, B, C, D) with one correct answer. Format as a JSON array with objects containing "question", "options" (array of 4 strings), and "correctAnswer" (0-3 index). Focus on testing understanding of key concepts.\n\nTranscription:\n${session.transcription.fullText}`;
+      const prompt = isMultiSession
+        ? `Create 8-10 multiple-choice quiz questions from this MULTI-SESSION study set. The transcription contains content from multiple sessions marked with headers like "━━━ SESSION 1: Title ━━━".
+
+For each question:
+1. Create a clear question that tests understanding
+2. Provide 4 options (A, B, C, D) with one correct answer
+3. Indicate which session the content is from (e.g., "Session 1" or "Session 2-3")
+
+Format as a JSON array with objects containing "question", "options" (array of 4 strings), "correctAnswer" (0-3 index), and "session" (string). Cover content from ALL sessions.
+
+Transcription:
+${transcriptionText}`
+        : `Create 5 multiple-choice quiz questions from this transcription. Each question should have 4 options (A, B, C, D) with one correct answer. Format as a JSON array with objects containing "question", "options" (array of 4 strings), and "correctAnswer" (0-3 index). Focus on testing understanding of key concepts.
+
+Transcription:
+${transcriptionText}`;
 
       const result = await window.scribeCat.ai.chat(prompt, [], {
         includeTranscription: false,
@@ -352,13 +560,13 @@ export class AISummaryManager {
 
       if (result.success && result.data) {
         // result.data is a string response from AI
-        let questions: Array<{question: string; options: string[]; correctAnswer: number}> = [];
+        let questions: Array<{question: string; options: string[]; correctAnswer: number; session?: string}> = [];
 
         try {
           questions = this.parseAIJsonResponse(
             result.data,
             'Quiz',
-            (data): data is Array<{ question: string; options: string[]; correctAnswer: number }> => {
+            (data): data is Array<{ question: string; options: string[]; correctAnswer: number; session?: string }> => {
               return Array.isArray(data) && data.length > 0 &&
                      typeof data[0] === 'object' && 'question' in data[0] &&
                      'options' in data[0] && 'correctAnswer' in data[0] &&
@@ -397,7 +605,7 @@ export class AISummaryManager {
   /**
    * Render interactive quiz
    */
-  private renderQuiz(questions: Array<{question: string; options: string[]; correctAnswer: number}>, contentArea: HTMLElement): void {
+  private renderQuiz(questions: Array<{question: string; options: string[]; correctAnswer: number; session?: string}>, contentArea: HTMLElement): void {
     let currentIndex = 0;
     let score = 0;
     let answered = false;
@@ -458,7 +666,10 @@ export class AISummaryManager {
       contentArea.innerHTML = `
         <div class="study-quiz">
           <div class="quiz-progress">
-            <div class="quiz-question-number">Question ${currentIndex + 1} of ${questions.length}</div>
+            <div class="quiz-question-number">
+              Question ${currentIndex + 1} of ${questions.length}
+              ${question.session ? `<span class="quiz-session-badge">${this.escapeHtml(question.session)}</span>` : ''}
+            </div>
             <div class="quiz-score">Score: ${score}/${currentIndex}</div>
           </div>
 
@@ -601,5 +812,70 @@ export class AISummaryManager {
         throw new Error(`Invalid ${contextName.toLowerCase()} structure`);
       }
     }
+  }
+
+  /**
+   * Load child sessions for a multi-session study set
+   */
+  private async loadChildSessions(multiSession: Session): Promise<Session[]> {
+    const childSessionIds = multiSession.childSessionIds || [];
+    console.log(`🔍 loadChildSessions - Looking for child session IDs:`, childSessionIds);
+
+    if (childSessionIds.length === 0) {
+      console.warn('⚠️ No child session IDs found in multi-session study set');
+      return [];
+    }
+
+    try {
+      const result = await (window as any).scribeCat.session.list();
+
+      if (result.success && result.sessions) {
+        console.log(`📋 Loaded ${result.sessions.length} total sessions from IPC`);
+        const childSessionData = childSessionIds
+          .map((id: string) => result.sessions.find((s: any) => s.id === id))
+          .filter((s: any) => s !== null && s !== undefined);
+
+        // Import Session class for reconstruction
+        const { Session: SessionClass } = await import('../../domain/entities/Session.js');
+
+        // Convert plain JSON objects to Session instances with methods
+        const childSessions = childSessionData.map((data: any) => SessionClass.fromJSON(data));
+
+        console.log(`✅ Found ${childSessions.length} child sessions out of ${childSessionIds.length} IDs`);
+        return childSessions;
+      }
+
+      console.error('❌ IPC session.list failed or returned no sessions');
+      return [];
+    } catch (error) {
+      console.error('Failed to load child sessions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Merge transcriptions from child sessions dynamically
+   */
+  private mergeTranscriptions(childSessions: Session[]): string {
+    const transcriptionParts: string[] = [];
+
+    childSessions.forEach((session, index) => {
+      // Add session header
+      transcriptionParts.push(
+        `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `SESSION ${index + 1}: ${session.title}\n` +
+        `Date: ${new Date(session.createdAt).toLocaleDateString()}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`
+      );
+
+      // Add transcription content
+      if (session.transcription && session.transcription.fullText) {
+        transcriptionParts.push(session.transcription.fullText);
+      } else {
+        transcriptionParts.push('(No transcription available for this session)');
+      }
+    });
+
+    return transcriptionParts.join('\n');
   }
 }

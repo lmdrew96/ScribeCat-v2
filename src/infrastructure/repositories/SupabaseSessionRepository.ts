@@ -8,7 +8,7 @@
  * by SupabaseStorageService.
  */
 
-import { Session, SyncStatus } from '../../domain/entities/Session.js';
+import { Session, SyncStatus, SessionType } from '../../domain/entities/Session.js';
 import { Transcription } from '../../domain/entities/Transcription.js';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository.js';
 import { SupabaseClient } from '../services/supabase/SupabaseClient.js';
@@ -38,6 +38,10 @@ interface SessionRow {
   course_title?: string;
   course_number?: string;
   deleted_at?: string | null;
+  // Multi-session study set fields
+  type?: string; // 'single' | 'multi-session-study-set'
+  child_session_ids?: string[]; // Array of session IDs for multi-session study sets
+  session_order?: number; // Order within a multi-session study set
 }
 
 export class SupabaseSessionRepository implements ISessionRepository {
@@ -132,7 +136,11 @@ export class SupabaseSessionRepository implements ISessionRepository {
         transcription_provider: session.transcription?.provider,
         transcription_language: session.transcription?.language,
         transcription_confidence: session.transcription?.averageConfidence,
-        transcription_timestamp: session.transcription?.createdAt?.toISOString()
+        transcription_timestamp: session.transcription?.createdAt?.toISOString(),
+        // Multi-session study set fields
+        type: session.type,
+        child_session_ids: session.childSessionIds,
+        session_order: session.sessionOrder
       };
 
       // Use upsert to INSERT new records or UPDATE existing ones
@@ -304,7 +312,11 @@ export class SupabaseSessionRepository implements ISessionRepository {
         transcription_language: session.transcription?.language,
         transcription_confidence: session.transcription?.averageConfidence,
         transcription_timestamp: session.transcription?.createdAt?.toISOString(),
-        updated_at: session.updatedAt.toISOString()
+        updated_at: session.updatedAt.toISOString(),
+        // Multi-session study set fields
+        type: session.type,
+        child_session_ids: session.childSessionIds,
+        session_order: session.sessionOrder
       };
 
       console.log('  📦 Update payload:');
@@ -431,7 +443,11 @@ export class SupabaseSessionRepository implements ISessionRepository {
       SyncStatus.SYNCED,      // syncStatus (it came from cloud, so it's synced)
       new Date(row.updated_at), // lastSyncedAt
       undefined,              // permissionLevel
-      row.deleted_at ? new Date(row.deleted_at) : undefined // deletedAt
+      row.deleted_at ? new Date(row.deleted_at) : undefined, // deletedAt
+      // Multi-session study set fields
+      row.type ? (row.type as SessionType) : SessionType.SINGLE, // type
+      row.child_session_ids,  // childSessionIds
+      row.session_order       // sessionOrder
     );
   }
 

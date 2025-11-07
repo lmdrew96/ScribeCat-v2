@@ -5,7 +5,7 @@
  * Delegates functionality to specialized managers for better separation of concerns.
  */
 
-import type { Session } from '../../domain/entities/Session.js';
+import { Session } from '../../domain/entities/Session.js';
 import { AIClient } from '../ai/AIClient.js';
 import { SessionPlaybackManager } from '../services/SessionPlaybackManager.js';
 import { AISummaryManager } from '../services/AISummaryManager.js';
@@ -20,6 +20,7 @@ import { StudyModeNotesEditorManager } from './study-mode/StudyModeNotesEditorMa
 import { StudyModeAIToolsManager } from './study-mode/StudyModeAIToolsManager.js';
 import { StudyModeEventCoordinator } from './study-mode/StudyModeEventCoordinator.js';
 import { StudyModeDataTransformer } from './study-mode/StudyModeDataTransformer.js';
+import { SessionReorderModal } from './study-mode/SessionReorderModal.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('StudyModeManager');
@@ -32,6 +33,7 @@ export class StudyModeManager {
   private aiToolsManager: StudyModeAIToolsManager;
   private eventCoordinator: StudyModeEventCoordinator;
   private dataTransformer: StudyModeDataTransformer;
+  private reorderModal: SessionReorderModal;
 
   // Services
   private authManager: AuthManager;
@@ -86,6 +88,7 @@ export class StudyModeManager {
     this.aiToolsManager = new StudyModeAIToolsManager(this.aiSummaryManager);
     this.eventCoordinator = new StudyModeEventCoordinator();
     this.dataTransformer = new StudyModeDataTransformer();
+    this.reorderModal = new SessionReorderModal();
 
     this.initializeEventListeners();
     this.setupAuthListener();
@@ -163,6 +166,7 @@ export class StudyModeManager {
         { element: this.sessionListContainer, eventName: 'leaveSession', handler: (detail) => this.leaveSession(detail.sessionId) },
         { element: this.sessionListContainer, eventName: 'startTitleEdit', handler: (detail) => this.startTitleEdit(detail.sessionId) },
         { element: this.sessionListContainer, eventName: 'shareSession', handler: (detail) => this.openShareModal(detail.sessionId) },
+        { element: this.sessionListContainer, eventName: 'openReorderModal', handler: (detail) => this.handleOpenReorderModal(detail.sessions) },
         // Detail view custom events
         { element: this.sessionDetailContainer, eventName: 'backToList', handler: () => this.backToSessionList() },
         { element: this.sessionDetailContainer, eventName: 'exportSession', handler: (detail) => this.exportSession(detail.sessionId) },
@@ -194,7 +198,8 @@ export class StudyModeManager {
       if (result.success) {
         // Handle both 'data' and 'sessions' response formats
         const sessionsData = result.data || result.sessions || [];
-        this.sessions = sessionsData;
+        // Convert JSON data to Session instances with methods
+        this.sessions = sessionsData.map((data: any) => Session.fromJSON(data));
         this.sessionListManager.setSessions(this.sessions);
         logger.info(`Loaded ${this.sessions.length} sessions`);
       } else {
@@ -280,9 +285,55 @@ export class StudyModeManager {
     // Set AI Chat context to this session's data
     const aiManager = window.aiManager;
     if (aiManager) {
-      const transcriptionText = session.transcription?.fullText || '';
+      // Check if this is a multi-session study set
+      const isMultiSession = session.isMultiSessionStudySet && session.isMultiSessionStudySet();
+
+      let transcriptionText: string;
       const notesText = session.notes || '';
-      aiManager.setStudyModeContext(transcriptionText, notesText);
+
+      if (isMultiSession) {
+        // Load child sessions dynamically
+        const childSessionIds = session.getChildSessionIds();
+        const result = await (window as any).scribeCat.session.list();
+        const allSessions = result.sessions.map((s: any) => Session.fromJSON(s));
+        const childSessions = childSessionIds
+          .map(id => allSessions.find(s => s.id === id))
+          .filter(s => s !== null && s !== undefined);
+
+        // Merge transcriptions from all child sessions
+        const transcriptionParts: string[] = [];
+        childSessions.forEach((childSession, index) => {
+          // Add session header
+          transcriptionParts.push(
+            `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `SESSION ${index + 1}: ${childSession.title}\n` +
+            `Date: ${childSession.createdAt.toLocaleDateString()}\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`
+          );
+
+          // Add transcription content
+          if (childSession.transcription && childSession.transcription.fullText) {
+            transcriptionParts.push(childSession.transcription.fullText);
+          } else {
+            transcriptionParts.push('(No transcription available for this session)');
+          }
+        });
+
+        transcriptionText = transcriptionParts.join('\n');
+
+        // Create session metadata array
+        const sessionMetadata = childSessions.map((childSession, index) => ({
+          id: childSession.id,
+          title: childSession.title,
+          index: index + 1
+        }));
+
+        aiManager.setStudyModeContext(transcriptionText, notesText, true, sessionMetadata);
+      } else {
+        // Single session - use existing transcription
+        transcriptionText = session.transcription?.fullText || '';
+        aiManager.setStudyModeContext(transcriptionText, notesText);
+      }
     }
 
     // Hide session list, show detail view
@@ -291,9 +342,9 @@ export class StudyModeManager {
 
     // Check if session is editable (owned by current user)
     const isEditable = this.isSessionEditable(session);
-    this.detailViewManager.render(session, isEditable);
+    await this.detailViewManager.render(session, isEditable);
 
-    // Initialize AI tools
+    // Initialize AI tools (after render completes so DOM is ready)
     this.aiToolsManager.initialize(session);
 
     logger.info(`Opened session detail: ${sessionId}`);
@@ -985,6 +1036,50 @@ export class StudyModeManager {
     } else {
       logger.error('ShareModal not available');
       alert('Share feature is not available');
+    }
+  }
+
+  /**
+   * Handle opening the reorder modal for creating a multi-session study set
+   */
+  private handleOpenReorderModal(sessions: Session[]): void {
+    this.reorderModal.show(sessions, (orderedSessionIds, title) => {
+      this.createMultiSessionStudySet(orderedSessionIds, title);
+    });
+  }
+
+  /**
+   * Create a multi-session study set
+   */
+  private async createMultiSessionStudySet(sessionIds: string[], title: string): Promise<void> {
+    try {
+      logger.info('Creating multi-session study set', { sessionIds, title });
+
+      // Call IPC to create the study set
+      const result = await (window as any).scribeCat.session.createMultiSessionStudySet(sessionIds, title);
+
+      if (result.success) {
+        logger.info('Multi-session study set created successfully', result.session);
+
+        // Refresh the session list to show the new study set
+        await this.loadSessions();
+        this.sessionListManager.render();
+
+        // Show success notification
+        alert(`Study set "${title}" created successfully! 📚`);
+
+        // Optionally, open the newly created study set
+        if (result.session?.id) {
+          await this.openSessionDetail(result.session.id);
+        }
+      } else {
+        const errorMsg = (result as any).error || 'Unknown error';
+        logger.error('Failed to create multi-session study set:', errorMsg);
+        alert(`Failed to create study set: ${errorMsg}`);
+      }
+    } catch (error) {
+      logger.error('Error creating multi-session study set', error);
+      alert('An error occurred while creating the study set.');
     }
   }
 

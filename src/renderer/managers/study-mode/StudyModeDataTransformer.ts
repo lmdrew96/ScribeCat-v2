@@ -5,8 +5,7 @@
  * Handles shared session data transformation and merging.
  */
 
-import type { Session } from '../../../domain/entities/Session.js';
-import { SyncStatus } from '../../../domain/entities/Session.js';
+import { Session, SyncStatus } from '../../../domain/entities/Session.js';
 import { Transcription } from '../../../domain/entities/Transcription.js';
 import { createLogger } from '../../../shared/logger.js';
 
@@ -72,16 +71,16 @@ export class StudyModeDataTransformer {
     // Use cloud:// path for shared audio files
     const recordingPath = `cloud://${row.user_id}/${row.id}/audio.webm`;
 
-    // Create Session entity matching the structure from SupabaseSessionRepository
-    const session: any = {
+    // Create Session entity using Session.fromJSON for proper method initialization
+    const sessionData = {
       id: row.id,
       title: row.title || 'Untitled Session',
       recordingPath: recordingPath,
       notes: row.notes || '',
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
       duration: row.duration / 1000, // Convert milliseconds to seconds
-      transcription: transcription,
+      transcription: transcription?.toJSON(),
       tags: row.tags || [],
       exportHistory: [], // Export history not stored in cloud
       courseId: row.course_id,
@@ -91,17 +90,24 @@ export class StudyModeDataTransformer {
       userId: row.user_id,
       cloudId: row.id,
       syncStatus: SyncStatus.SYNCED,
-      lastSyncedAt: new Date(row.updated_at),
-      // Mark as shared so we can show a badge
-      isShared: true,
-      // Owner information for shared sessions
-      ownerName: row.owner_name,
-      ownerEmail: row.owner_email,
+      lastSyncedAt: row.updated_at,
       // Permission level for shared sessions
-      permissionLevel: permissionLevel
+      permissionLevel: permissionLevel,
+      // Multi-session study set fields
+      type: row.type || 'single',
+      childSessionIds: row.child_session_ids,
+      sessionOrder: row.session_order
     };
 
-    return session as Session;
+    // Use Session.fromJSON to create proper instance with methods
+    const session = Session.fromJSON(sessionData);
+
+    // Add custom properties for shared sessions
+    (session as any).isShared = true;
+    (session as any).ownerName = row.owner_name;
+    (session as any).ownerEmail = row.owner_email;
+
+    return session;
   }
 
   /**

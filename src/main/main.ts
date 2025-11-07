@@ -18,6 +18,7 @@ import { UpdateSessionUseCase } from '../application/use-cases/UpdateSessionUseC
 import { RestoreSessionUseCase } from '../application/use-cases/RestoreSessionUseCase.js';
 import { PermanentlyDeleteSessionUseCase } from '../application/use-cases/PermanentlyDeleteSessionUseCase.js';
 import { GetDeletedSessionsUseCase } from '../application/use-cases/GetDeletedSessionsUseCase.js';
+import { CreateMultiSessionStudySetUseCase } from '../application/use-cases/CreateMultiSessionStudySetUseCase.js';
 import { TextExportService } from '../infrastructure/services/export/TextExportService.js';
 import { DocxExportService } from '../infrastructure/services/export/DocxExportService.js';
 import { PdfExportService } from '../infrastructure/services/export/PdfExportService.js';
@@ -80,6 +81,7 @@ class ScribeCatApp {
   private restoreSessionUseCase!: RestoreSessionUseCase;
   private permanentlyDeleteSessionUseCase!: PermanentlyDeleteSessionUseCase;
   private getDeletedSessionsUseCase!: GetDeletedSessionsUseCase;
+  private createMultiSessionStudySetUseCase!: CreateMultiSessionStudySetUseCase;
 
   // Export services
   private exportServices!: Map<string, any>;
@@ -310,6 +312,9 @@ class ScribeCatApp {
       this.getDeletedSessionsUseCase = new GetDeletedSessionsUseCase(
         this.sessionRepository,
         this.supabaseSessionRepository || undefined
+      );
+      this.createMultiSessionStudySetUseCase = new CreateMultiSessionStudySetUseCase(
+        this.sessionRepository
       );
 
       // Initialize SyncManager for cloud sync (user ID will be set when renderer sends auth state)
@@ -560,7 +565,8 @@ class ScribeCatApp {
       this.updateSessionUseCase,
       this.restoreSessionUseCase,
       this.permanentlyDeleteSessionUseCase,
-      this.getDeletedSessionsUseCase
+      this.getDeletedSessionsUseCase,
+      this.createMultiSessionStudySetUseCase
     );
     registry.add(this.sessionHandlers);
 

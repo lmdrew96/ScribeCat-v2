@@ -8,6 +8,7 @@ import { UpdateSessionUseCase } from '../../../application/use-cases/UpdateSessi
 import { RestoreSessionUseCase } from '../../../application/use-cases/RestoreSessionUseCase.js';
 import { PermanentlyDeleteSessionUseCase } from '../../../application/use-cases/PermanentlyDeleteSessionUseCase.js';
 import { GetDeletedSessionsUseCase } from '../../../application/use-cases/GetDeletedSessionsUseCase.js';
+import { CreateMultiSessionStudySetUseCase } from '../../../application/use-cases/CreateMultiSessionStudySetUseCase.js';
 
 /**
  * Handles session-related IPC channels
@@ -24,7 +25,8 @@ export class SessionHandlers extends BaseHandler {
     private updateSessionUseCase: UpdateSessionUseCase,
     private restoreSessionUseCase: RestoreSessionUseCase,
     private permanentlyDeleteSessionUseCase: PermanentlyDeleteSessionUseCase,
-    private getDeletedSessionsUseCase: GetDeletedSessionsUseCase
+    private getDeletedSessionsUseCase: GetDeletedSessionsUseCase,
+    private createMultiSessionStudySetUseCase: CreateMultiSessionStudySetUseCase
   ) {
     super();
   }
@@ -129,6 +131,16 @@ export class SessionHandlers extends BaseHandler {
     this.handle(ipcMain, 'sessions:permanentlyDeleteMultiple', async (event, sessionIds: string[]) => {
       const result = await this.permanentlyDeleteSessionUseCase.executeMultiple(sessionIds);
       return { success: true, result };
+    });
+
+    // Create multi-session study set handler
+    this.handle(ipcMain, 'sessions:createMultiSessionStudySet', async (event, sessionIds: string[], title: string) => {
+      const multiSession = await this.createMultiSessionStudySetUseCase.execute({
+        sessionIds,
+        title,
+        userId: this.currentUserId || undefined
+      });
+      return { success: true, session: multiSession.toJSON() };
     });
   }
 }
