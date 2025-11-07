@@ -409,7 +409,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
     // NOTE: recordingPath is not stored in cloud - it's local only
     // For cloud synced sessions, we'll use a placeholder or download path
-    const recordingPath = `cloud://${row.id}/audio.webm`;
+    const recordingPath = `cloud://${row.user_id}/${row.id}/audio.webm`;
 
     return new Session(
       row.id,
