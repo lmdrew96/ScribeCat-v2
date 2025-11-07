@@ -38,6 +38,7 @@ import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
 import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
 import { ShareHandlers } from './ipc/handlers/ShareHandlers.js';
 import { SharingHandlers } from './ipc/handlers/SharingHandlers.js';
+import { PowerHandlers } from './ipc/handlers/PowerHandlers.js';
 import { SupabaseStorageService } from '../infrastructure/services/supabase/SupabaseStorageService.js';
 import { SupabaseSessionRepository } from '../infrastructure/repositories/SupabaseSessionRepository.js';
 import { SupabaseShareRepository } from '../infrastructure/repositories/SupabaseShareRepository.js';
@@ -590,6 +591,8 @@ class ScribeCatApp {
     registry.add(new DialogHandlers(() => this.mainWindow));
 
     registry.add(new CanvasHandlers());
+
+    registry.add(new PowerHandlers());
 
     // Add sharing handlers if Supabase is configured
     if (this.shareSessionUseCase) {

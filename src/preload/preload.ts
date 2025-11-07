@@ -253,6 +253,11 @@ const electronAPI = {
       ipcRenderer.invoke('sharing:updatePermission', params),
     revokeAccess: (shareId: string) => ipcRenderer.invoke('sharing:revokeAccess', shareId)
   },
+  power: {
+    preventSleep: () => ipcRenderer.invoke('power:preventSleep'),
+    allowSleep: () => ipcRenderer.invoke('power:allowSleep'),
+    isPreventingSleep: () => ipcRenderer.invoke('power:isPreventingSleep')
+  },
   dev: {
     onHotReloadNotification: (callback: (message: string) => void) => {
       ipcRenderer.on('dev:hot-reload-notification', (_event: Electron.IpcRendererEvent, message: string) => callback(message));

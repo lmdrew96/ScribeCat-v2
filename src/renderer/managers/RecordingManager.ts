@@ -100,6 +100,14 @@ export class RecordingManager {
     this.isRecording = true;
     this.startTime = Date.now();
 
+    // Prevent system sleep during recording
+    try {
+      await window.scribeCat.power.preventSleep();
+      logger.info('Sleep prevention enabled');
+    } catch (error) {
+      logger.warn('Failed to prevent sleep (recording will continue)', error);
+    }
+
     // Update UI
     this.viewManager.updateRecordingState(true, transcriptionMode);
     this.transcriptionManager.clear();
@@ -206,6 +214,14 @@ export class RecordingManager {
     // Update state
     this.isRecording = false;
 
+    // Allow system sleep now that recording is complete
+    try {
+      await window.scribeCat.power.allowSleep();
+      logger.info('Sleep prevention disabled');
+    } catch (error) {
+      logger.warn('Failed to allow sleep', error);
+    }
+
     // Update UI
     this.viewManager.updateRecordingState(false);
     this.stopElapsedTimer();
@@ -306,6 +322,14 @@ export class RecordingManager {
     try {
       await this.transcriptionService.cleanup();
       await this.audioManager.stopRecording();
+
+      // Ensure sleep prevention is disabled during cleanup
+      try {
+        await window.scribeCat.power.allowSleep();
+        logger.info('Sleep prevention disabled during cleanup');
+      } catch (error) {
+        logger.warn('Failed to allow sleep during cleanup', error);
+      }
     } catch (error) {
       logger.error('Error during cleanup', error);
     }
