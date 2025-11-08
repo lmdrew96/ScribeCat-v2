@@ -331,7 +331,7 @@ export class StudyModeSessionListManager {
     // Status indicators
     const hasTranscription = session.transcription ? '✓ Transcribed' : '';
     const hasNotes = session.notes ? '✓ Notes' : '';
-    const syncStatus = this.getSyncStatusIndicator(session);
+    const syncStatus = isStudySet ? '' : this.getSyncStatusIndicator(session);
 
     // Generate shared badge with owner's name if available
     let sharedBadge = '';
@@ -379,6 +379,10 @@ export class StudyModeSessionListManager {
             </button>
             <button class="action-btn leave-session-btn" data-session-id="${session.id}">
               👋 Leave
+            </button>
+          ` : isStudySet ? `
+            <button class="action-btn delete-session-btn" data-session-id="${session.id}">
+              🗑️ Delete
             </button>
           ` : `
             <button class="action-btn share-session-btn" data-session-id="${session.id}">
