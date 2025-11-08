@@ -154,6 +154,8 @@ const electronAPI = {
         ipcRenderer.invoke('session:updateTranscription', sessionId, transcriptionText, provider, timestampedEntries),
       updateNotes: (sessionId: string, notes: string) =>
         ipcRenderer.invoke('session:updateNotes', sessionId, notes),
+      updateSummary: (sessionId: string, summary: string) =>
+        ipcRenderer.invoke('session:updateSummary', sessionId, summary),
       createDraft: () =>
         ipcRenderer.invoke('session:createDraft'),
       getAvailableFormats: () =>

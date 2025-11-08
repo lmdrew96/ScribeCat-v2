@@ -51,7 +51,15 @@ ${session.transcription.fullText}`;
       });
 
       if (result.success && result.data) {
-        let summary = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+        // Extract message from AI response
+        let summary: string;
+        if (typeof result.data === 'string') {
+          summary = result.data;
+        } else if (result.data && typeof result.data === 'object' && 'message' in result.data) {
+          summary = (result.data as { message: string }).message;
+        } else {
+          summary = JSON.stringify(result.data);
+        }
 
         // Ensure summary is no longer than 150 characters
         if (summary.length > 150) {
@@ -61,6 +69,12 @@ ${session.transcription.fullText}`;
         // Save summary to session via IPC
         await (window as any).scribeCat.session.updateSummary(sessionId, summary);
         console.log(`✅ Short summary saved for session ${sessionId}: ${summary}`);
+
+        // Refresh study mode to show the new summary
+        if (window.studyModeManager) {
+          await window.studyModeManager.refresh();
+          console.log('📚 Study mode refreshed to display new summary');
+        }
       }
     } catch (error) {
       console.error('Error generating short summary:', error);

@@ -75,6 +75,7 @@ declare global {
         exportWithDefaults: (sessionId: string, format: string, outputPath: string) => Promise<IPCResponse<{ filePath: string; format: string }>>;
         updateTranscription: (sessionId: string, transcriptionText: string, provider?: string, timestampedEntries?: Array<{ startTime: number; endTime: number; text: string }>) => Promise<IPCResponse<void>>;
         updateNotes: (sessionId: string, notes: string) => Promise<IPCResponse<void>>;
+        updateSummary: (sessionId: string, summary: string) => Promise<IPCResponse<void>>;
         createDraft: () => Promise<IPCResponse<{ sessionId: string }>>;
         getAvailableFormats: () => Promise<IPCResponse<ExportFormat[]>>;
       };
@@ -144,6 +145,7 @@ declare global {
     courseManager?: import('./types').CourseManager;
     aiManager?: import('../renderer/managers/AIManager').AIManager;
     authManager?: import('../renderer/managers/AuthManager').AuthManager;
+    studyModeManager?: import('../renderer/managers/StudyModeManager').StudyModeManager;
   }
 }
 

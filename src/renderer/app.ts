@@ -123,6 +123,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   studyModeManager = new StudyModeManager(authManager);
   await studyModeManager.initialize();
 
+  // Expose studyModeManager globally for other managers to trigger refresh
+  window.studyModeManager = studyModeManager;
+
   // Initialize sharing
   shareModal = new ShareModal();
   shareModal.initialize();
