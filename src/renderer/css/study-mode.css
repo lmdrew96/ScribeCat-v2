@@ -1576,7 +1576,7 @@
 
 /* ===== Reorder Modal Styles ===== */
 
-.modal-overlay {
+.reorder-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;

@@ -42,7 +42,7 @@ export class SessionReorderModal {
    */
   private createModal(): void {
     const modalHTML = `
-      <div class="modal-overlay" id="reorder-modal-overlay">
+      <div class="reorder-modal-overlay" id="reorder-modal-overlay">
         <div class="reorder-modal">
           <div class="modal-header">
             <h2>Create Multi-Session Study Set</h2>
