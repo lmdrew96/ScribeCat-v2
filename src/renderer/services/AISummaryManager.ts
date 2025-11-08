@@ -11,6 +11,64 @@ import { renderMarkdown } from '../markdown-renderer.js';
 
 export class AISummaryManager {
   /**
+   * Generate and save a short summary (150 chars) for card display
+   * This is automatically called after transcription completes
+   */
+  async generateAndSaveShortSummary(sessionId: string): Promise<void> {
+    try {
+      // Get session via IPC
+      const sessionResult = await (window as any).scribeCat.session.list();
+      if (!sessionResult.success || !sessionResult.sessions) {
+        console.error('Failed to load sessions for short summary generation');
+        return;
+      }
+
+      const sessionData = sessionResult.sessions.find((s: any) => s.id === sessionId);
+      if (!sessionData) {
+        console.error(`Session ${sessionId} not found`);
+        return;
+      }
+
+      // Import Session class for reconstruction
+      const { Session: SessionClass } = await import('../../domain/entities/Session.js');
+      const session = SessionClass.fromJSON(sessionData);
+
+      // Check if session has transcription
+      if (!session.transcription || !session.transcription.fullText) {
+        console.log('No transcription available for short summary generation');
+        return;
+      }
+
+      // Generate a very short summary using AI (max 150 chars)
+      const prompt = `Provide a 1-2 sentence summary (maximum 150 characters) of this lecture transcription. Be concise and focus on the main topic only.
+
+Transcription:
+${session.transcription.fullText}`;
+
+      const result = await (window as any).scribeCat.ai.chat(prompt, [], {
+        includeTranscription: false,
+        includeNotes: false
+      });
+
+      if (result.success && result.data) {
+        let summary = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+
+        // Ensure summary is no longer than 150 characters
+        if (summary.length > 150) {
+          summary = summary.substring(0, 147) + '...';
+        }
+
+        // Save summary to session via IPC
+        await (window as any).scribeCat.session.updateSummary(sessionId, summary);
+        console.log(`✅ Short summary saved for session ${sessionId}: ${summary}`);
+      }
+    } catch (error) {
+      console.error('Error generating short summary:', error);
+      // Don't throw - this is a background operation
+    }
+  }
+
+  /**
    * Generate AI summary of the session
    */
   async generateSummary(session: Session, contentArea: HTMLElement): Promise<void> {

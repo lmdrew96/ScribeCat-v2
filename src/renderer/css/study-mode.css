@@ -508,6 +508,13 @@
   -webkit-box-orient: vertical;
 }
 
+/* Multi-session badge in card preview */
+.session-preview .multi-session-badge {
+  display: inline-block;
+  margin: 0;
+  vertical-align: middle;
+}
+
 /* Session Indicators */
 .session-indicators {
   font-size: 12px;

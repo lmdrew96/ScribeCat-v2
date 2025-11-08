@@ -62,7 +62,9 @@ export class Session {
     // Multi-session study set fields
     public type: SessionType = SessionType.SINGLE,
     public childSessionIds?: string[],
-    public sessionOrder?: number
+    public sessionOrder?: number,
+    // AI-generated summary
+    public summary?: string
   ) {}
 
   /**
@@ -131,6 +133,14 @@ export class Session {
     this.courseId = courseId;
     this.courseTitle = courseTitle;
     this.courseNumber = courseNumber;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Update session summary
+   */
+  updateSummary(summary: string): void {
+    this.summary = summary;
     this.updatedAt = new Date();
   }
 
@@ -247,7 +257,8 @@ export class Session {
       deletedAt: this.deletedAt,
       type: this.type,
       childSessionIds: this.childSessionIds,
-      sessionOrder: this.sessionOrder
+      sessionOrder: this.sessionOrder,
+      summary: this.summary
     };
   }
 
@@ -277,7 +288,8 @@ export class Session {
       data.deletedAt ? new Date(data.deletedAt) : undefined,
       data.type || SessionType.SINGLE,
       data.childSessionIds,
-      data.sessionOrder
+      data.sessionOrder,
+      data.summary
     );
   }
 }
@@ -312,4 +324,6 @@ export interface SessionData {
   type?: SessionType;
   childSessionIds?: string[];
   sessionOrder?: number;
+  // AI-generated summary
+  summary?: string;
 }

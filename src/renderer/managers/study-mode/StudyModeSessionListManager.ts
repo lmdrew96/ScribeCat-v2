@@ -291,10 +291,24 @@ export class StudyModeSessionListManager {
 
     const duration = formatDuration(session.duration);
 
-    // Get transcription preview
-    const transcriptionPreview = session.transcription
-      ? session.transcription.fullText.substring(0, 150) + '...'
-      : 'No transcription available';
+    // Check if this is a multi-session study set
+    const isStudySet = session.isMultiSessionStudySet();
+
+    // Get preview content based on session type
+    let previewContent = '';
+    if (isStudySet) {
+      // For study sets, show badge with session count
+      const sessionCount = session.getChildSessionIds().length;
+      previewContent = `<span class="multi-session-badge">📚 Study Set • ${sessionCount} session${sessionCount !== 1 ? 's' : ''}</span>`;
+    } else {
+      // For regular sessions, show summary (or transcription preview as fallback)
+      const summaryPreview = session.summary
+        ? session.summary.substring(0, 150) + (session.summary.length > 150 ? '...' : '')
+        : session.transcription
+        ? session.transcription.fullText.substring(0, 150) + '...'
+        : 'No summary or transcription available';
+      previewContent = escapeHtml(summaryPreview);
+    }
 
     // Get course information from dedicated fields first, fall back to tags
     let courseTag = '';
@@ -353,7 +367,7 @@ export class StudyModeSessionListManager {
         </div>
 
         <div class="session-preview">
-          ${escapeHtml(transcriptionPreview)}
+          ${previewContent}
         </div>
 
         ${indicatorsWithCourse ? `<div class="session-indicators">${indicatorsWithCourse}</div>` : ''}

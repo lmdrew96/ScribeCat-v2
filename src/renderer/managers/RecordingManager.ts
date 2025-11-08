@@ -11,6 +11,7 @@ import { AIManager } from '../ai/AIManager.js';
 import { CourseManager } from './CourseManager.js';
 import { TranscriptionModeService } from '../services/TranscriptionModeService.js';
 import { NotesAutoSaveManager } from './NotesAutoSaveManager.js';
+import { AISummaryManager } from '../services/AISummaryManager.js';
 import { createLogger } from '../../shared/logger.js';
 import { config } from '../../config.js';
 
@@ -183,6 +184,17 @@ export class RecordingManager {
 
         if (transcriptionResult.success) {
           logger.info('Transcription saved to session');
+
+          // Generate and save short summary for card display
+          logger.info('Generating short summary for session');
+          const summaryManager = new AISummaryManager();
+          summaryManager.generateAndSaveShortSummary(saveResult.sessionId)
+            .then(() => {
+              logger.info('Short summary generated and saved');
+            })
+            .catch(error => {
+              logger.warn('Failed to generate short summary (non-critical):', error);
+            });
         } else {
           logger.error('Failed to save transcription', transcriptionResult.error);
         }

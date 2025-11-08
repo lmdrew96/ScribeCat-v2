@@ -6,6 +6,7 @@ import { SaveRecordingUseCase } from '../application/use-cases/SaveRecordingUseC
 import { LoadSessionUseCase } from '../application/use-cases/LoadSessionUseCase.js';
 import { UpdateSessionNotesUseCase } from '../application/use-cases/UpdateSessionNotesUseCase.js';
 import { UpdateSessionTranscriptionUseCase } from '../application/use-cases/UpdateSessionTranscriptionUseCase.js';
+import { UpdateSessionSummaryUseCase } from '../application/use-cases/UpdateSessionSummaryUseCase.js';
 import { CreateDraftSessionUseCase } from '../application/use-cases/CreateDraftSessionUseCase.js';
 import { FileAudioRepository } from '../infrastructure/repositories/FileAudioRepository.js';
 import { FileSessionRepository } from '../infrastructure/repositories/FileSessionRepository.js';
@@ -26,6 +27,7 @@ export class RecordingManager {
   private loadSessionUseCase: LoadSessionUseCase;
   private updateSessionNotesUseCase: UpdateSessionNotesUseCase;
   private updateSessionTranscriptionUseCase: UpdateSessionTranscriptionUseCase;
+  private updateSessionSummaryUseCase: UpdateSessionSummaryUseCase;
   private createDraftSessionUseCase: CreateDraftSessionUseCase;
 
   // Optional callback for post-save actions (e.g., cloud sync)
@@ -52,6 +54,10 @@ export class RecordingManager {
     );
     this.updateSessionTranscriptionUseCase = new UpdateSessionTranscriptionUseCase(
       sessionRepository
+    );
+    this.updateSessionSummaryUseCase = new UpdateSessionSummaryUseCase(
+      sessionRepository,
+      supabaseSessionRepository
     );
     this.createDraftSessionUseCase = new CreateDraftSessionUseCase(
       sessionRepository
@@ -177,7 +183,27 @@ export class RecordingManager {
     electron.ipcMain.handle('session:updateNotes', async (event, sessionId: string, notes: string) => {
       try {
         const success = await this.updateSessionNotesUseCase.execute(sessionId, notes);
-        
+
+        if (!success) {
+          return {
+            success: false,
+            error: 'Session not found'
+          };
+        }
+
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    electron.ipcMain.handle('session:updateSummary', async (event, sessionId: string, summary: string) => {
+      try {
+        const success = await this.updateSessionSummaryUseCase.execute(sessionId, summary);
+
         if (!success) {
           return {
             success: false,

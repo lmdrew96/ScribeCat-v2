@@ -42,6 +42,8 @@ interface SessionRow {
   type?: string; // 'single' | 'multi-session-study-set'
   child_session_ids?: string[]; // Array of session IDs for multi-session study sets
   session_order?: number; // Order within a multi-session study set
+  // AI-generated summary
+  summary?: string;
 }
 
 export class SupabaseSessionRepository implements ISessionRepository {
@@ -140,7 +142,9 @@ export class SupabaseSessionRepository implements ISessionRepository {
         // Multi-session study set fields
         type: session.type,
         child_session_ids: session.childSessionIds,
-        session_order: session.sessionOrder
+        session_order: session.sessionOrder,
+        // AI-generated summary
+        summary: session.summary
       };
 
       // Use upsert to INSERT new records or UPDATE existing ones
@@ -316,7 +320,9 @@ export class SupabaseSessionRepository implements ISessionRepository {
         // Multi-session study set fields
         type: session.type,
         child_session_ids: session.childSessionIds,
-        session_order: session.sessionOrder
+        session_order: session.sessionOrder,
+        // AI-generated summary
+        summary: session.summary
       };
 
       console.log('  📦 Update payload:');
@@ -447,7 +453,9 @@ export class SupabaseSessionRepository implements ISessionRepository {
       // Multi-session study set fields
       row.type ? (row.type as SessionType) : SessionType.SINGLE, // type
       row.child_session_ids,  // childSessionIds
-      row.session_order       // sessionOrder
+      row.session_order,      // sessionOrder
+      // AI-generated summary
+      row.summary             // summary
     );
   }
 
