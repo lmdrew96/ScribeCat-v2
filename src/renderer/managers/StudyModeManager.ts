@@ -198,8 +198,34 @@ export class StudyModeManager {
       if (result.success) {
         // Handle both 'data' and 'sessions' response formats
         const sessionsData = result.data || result.sessions || [];
+
+        // DEBUG: Log first session's transcription data
+        if (sessionsData.length > 0) {
+          console.log('🔍 DEBUG: First session raw data:', {
+            hasTranscription: !!sessionsData[0].transcription,
+            transcriptionKeys: sessionsData[0].transcription ? Object.keys(sessionsData[0].transcription) : [],
+            segmentCount: sessionsData[0].transcription?.segments?.length,
+            firstSegment: sessionsData[0].transcription?.segments?.[0],
+            sampleSegments: sessionsData[0].transcription?.segments?.slice(0, 3)
+          });
+        }
+
         // Convert JSON data to Session instances with methods
         this.sessions = sessionsData.map((data: any) => Session.fromJSON(data));
+
+        // DEBUG: Log first session after conversion
+        if (this.sessions.length > 0 && this.sessions[0].transcription) {
+          console.log('🔍 DEBUG: First session after Session.fromJSON():', {
+            segmentCount: this.sessions[0].transcription.segments.length,
+            firstSegment: this.sessions[0].transcription.segments[0],
+            sampleSegments: this.sessions[0].transcription.segments.slice(0, 3).map((s: any) => ({
+              text: s.text.substring(0, 30),
+              startTime: s.startTime,
+              endTime: s.endTime
+            }))
+          });
+        }
+
         this.sessionListManager.setSessions(this.sessions);
         logger.info(`Loaded ${this.sessions.length} sessions`);
       } else {

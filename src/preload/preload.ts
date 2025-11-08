@@ -150,8 +150,8 @@ const electronAPI = {
         ipcRenderer.invoke('session:export', sessionId, format, outputPath, options),
       exportWithDefaults: (sessionId: string, format: string, outputPath: string) =>
         ipcRenderer.invoke('session:exportWithDefaults', sessionId, format, outputPath),
-      updateTranscription: (sessionId: string, transcriptionText: string, provider?: string) =>
-        ipcRenderer.invoke('session:updateTranscription', sessionId, transcriptionText, provider),
+      updateTranscription: (sessionId: string, transcriptionText: string, provider?: string, timestampedEntries?: Array<{ startTime: number; endTime: number; text: string }>) =>
+        ipcRenderer.invoke('session:updateTranscription', sessionId, transcriptionText, provider, timestampedEntries),
       updateNotes: (sessionId: string, notes: string) =>
         ipcRenderer.invoke('session:updateNotes', sessionId, notes),
       createDraft: () =>

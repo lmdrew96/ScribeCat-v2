@@ -50,22 +50,35 @@ export class StudyModeDataTransformer {
     // Create transcription if data exists
     let transcription: Transcription | undefined;
     if (row.transcription_text) {
-      // Create a single segment from the full text
-      const segments = [{
-        text: row.transcription_text,
-        startTime: 0,
-        endTime: row.duration / 1000, // Convert to seconds
-        confidence: row.transcription_confidence
-      }];
+      try {
+        // Parse the JSON and use Transcription.fromJSON() to properly reconstruct
+        // This matches the approach used in SupabaseSessionRepository
+        const transcriptionData = typeof row.transcription_text === 'string'
+          ? JSON.parse(row.transcription_text)
+          : row.transcription_text;
 
-      transcription = new Transcription(
-        row.transcription_text,
-        segments,
-        row.transcription_language || 'en',
-        (row.transcription_provider as 'assemblyai' | 'simulation') || 'simulation',
-        row.transcription_timestamp ? new Date(row.transcription_timestamp) : new Date(),
-        row.transcription_confidence
-      );
+        transcription = Transcription.fromJSON(transcriptionData);
+      } catch (error) {
+        // If JSON parsing fails, create a fallback transcription (backward compatibility)
+        logger.debug('Failed to parse transcription JSON, creating fallback transcription', error);
+
+        // Create a single segment from the full text as fallback
+        const segments = [{
+          text: row.transcription_text,
+          startTime: 0,
+          endTime: row.duration / 1000, // Convert to seconds
+          confidence: row.transcription_confidence
+        }];
+
+        transcription = new Transcription(
+          row.transcription_text,
+          segments,
+          row.transcription_language || 'en',
+          'assemblyai', // Must be 'assemblyai' as per Transcription type definition
+          row.transcription_timestamp ? new Date(row.transcription_timestamp) : new Date(),
+          row.transcription_confidence
+        );
+      }
     }
 
     // Use cloud:// path for shared audio files

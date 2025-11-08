@@ -73,7 +73,7 @@ declare global {
         update: (sessionId: string, updates: { title?: string; notes?: string; tags?: string[] }) => Promise<IPCResponse<void>>;
         export: (sessionId: string, format: string, outputPath: string, options?: ExportOptions) => Promise<IPCResponse<{ filePath: string; format: string }>>;
         exportWithDefaults: (sessionId: string, format: string, outputPath: string) => Promise<IPCResponse<{ filePath: string; format: string }>>;
-        updateTranscription: (sessionId: string, transcriptionText: string, provider?: string) => Promise<IPCResponse<void>>;
+        updateTranscription: (sessionId: string, transcriptionText: string, provider?: string, timestampedEntries?: Array<{ startTime: number; endTime: number; text: string }>) => Promise<IPCResponse<void>>;
         updateNotes: (sessionId: string, notes: string) => Promise<IPCResponse<void>>;
         createDraft: () => Promise<IPCResponse<{ sessionId: string }>>;
         getAvailableFormats: () => Promise<IPCResponse<ExportFormat[]>>;
