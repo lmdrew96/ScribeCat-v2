@@ -207,6 +207,7 @@ export class AIManager {
           this.isConfigured = true;
           this.connectionTested = true;
           this.retryCount = 0;
+          this.isTestingConnection = false;
           this.updateUIState();
           this.updateConnectionStatus('connected', 'Connected');
           console.log(`✅ AI connection established on attempt ${attemptNum}`);
@@ -218,6 +219,7 @@ export class AIManager {
             this.isConfigured = false;
             this.connectionTested = true;
             this.retryCount = 0;
+            this.isTestingConnection = false;
             this.updateUIState();
             this.updateConnectionStatus('error', `Failed after ${this.maxRetries + 1} attempts`);
             console.error(`❌ AI connection failed after ${this.maxRetries + 1} attempts`);
@@ -235,6 +237,7 @@ export class AIManager {
           this.isConfigured = false;
           this.connectionTested = true;
           this.retryCount = 0;
+          this.isTestingConnection = false;
           this.updateUIState();
           this.updateConnectionStatus('error', 'Connection error');
           return;

@@ -190,16 +190,16 @@ export class ChatUI {
   updateUIState(isConfigured: boolean, isTesting: boolean): void {
     if (this.chatInput) {
       this.chatInput.disabled = !isConfigured;
-      
+
       if (isTesting) {
         this.chatInput.placeholder = 'Connecting to AI...';
       } else if (isConfigured) {
-        this.chatInput.placeholder = 'Ask about your transcription or notes...';
+        this.chatInput.placeholder = 'Type your message here...';
       } else {
         this.chatInput.placeholder = 'Configure Claude API key in settings to use AI chat';
       }
     }
-    
+
     if (this.sendBtn) {
       this.sendBtn.disabled = !isConfigured;
     }
