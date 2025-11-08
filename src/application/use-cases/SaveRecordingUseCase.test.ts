@@ -53,8 +53,8 @@ describe('SaveRecordingUseCase', () => {
 
         const result = await useCase.execute(input);
 
-        // Should return session ID and file path
-        expect(result.sessionId).toMatch(/^session-\d+-[a-z0-9]+$/);
+        // Should return session ID (UUID format) and file path
+        expect(result.sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
         expect(result.filePath).toBe('/recordings/recording-2025-01-15T12-00-00.webm');
 
         // Should have called audio repository
@@ -192,7 +192,7 @@ describe('SaveRecordingUseCase', () => {
     });
 
     describe('Session ID Generation', () => {
-      it('should generate unique session ID with timestamp', async () => {
+      it('should generate unique session ID in UUID format', async () => {
         const input: SaveRecordingInput = {
           audioData: testAudioData,
           duration: 300,
@@ -200,8 +200,9 @@ describe('SaveRecordingUseCase', () => {
 
         const result = await useCase.execute(input);
 
-        expect(result.sessionId).toMatch(/^session-\d+-[a-z0-9]+$/);
-        expect(result.sessionId).toContain('session-');
+        // Should be a valid UUID (v4 format)
+        expect(result.sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+        expect(result.sessionId).toHaveLength(36); // UUID length with dashes
       });
 
       it('should generate different IDs for multiple calls', async () => {

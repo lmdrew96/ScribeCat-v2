@@ -4,12 +4,18 @@
  */
 
 import { expect, afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/dom';
 
-// Cleanup DOM after each test
+// Clear all mocks after each test
 afterEach(() => {
-  cleanup();
+  vi.clearAllMocks();
 });
+
+// Mock crypto.randomUUID for consistent testing
+if (typeof global.crypto === 'undefined') {
+  (global as any).crypto = {
+    randomUUID: () => '00000000-0000-0000-0000-000000000000',
+  };
+}
 
 // Mock window.scribeCat API for renderer tests
 export const mockWindowScribeCat = () => {

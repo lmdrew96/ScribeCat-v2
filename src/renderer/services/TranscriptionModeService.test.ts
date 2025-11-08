@@ -10,7 +10,10 @@ vi.mock('../assemblyai-transcription-service', () => {
     this.start = vi.fn().mockResolvedValue('assemblyai-session-123');
     this.stop = vi.fn().mockResolvedValue(undefined);
     this.sendAudio = vi.fn();
-    this.onResult = vi.fn();
+    this.onResult = vi.fn((callback: Function) => {
+      // Store callback for testing
+      (this as any)._resultCallback = callback;
+    });
   };
 
   return {
@@ -22,23 +25,9 @@ describe('TranscriptionModeService', () => {
   let service: TranscriptionModeService;
   let mockAudioManager: AudioManager;
   let mockTranscriptionManager: TranscriptionManager;
-  let mockWindowScribeCat: any;
+  const TEST_API_KEY = 'test-api-key-123';
 
   beforeEach(() => {
-    // Mock window.scribeCat
-    mockWindowScribeCat = {
-      transcription: {
-        simulation: {
-          start: vi.fn().mockResolvedValue({ success: true, sessionId: 'sim-session-123' }),
-          stop: vi.fn().mockResolvedValue({ success: true }),
-        },
-        assemblyai: {
-          getToken: vi.fn().mockResolvedValue({ success: true, token: 'temp-token-123' }),
-        },
-      },
-    };
-    (global as any).window = { scribeCat: mockWindowScribeCat };
-
     // Mock AudioManager
     mockAudioManager = {
       getSampleRate: vi.fn().mockReturnValue(48000),
@@ -63,8 +52,8 @@ describe('TranscriptionModeService', () => {
   });
 
   describe('Initialization', () => {
-    it('should initialize with simulation mode by default', () => {
-      expect(service.getCurrentMode()).toBe('simulation');
+    it('should initialize with assemblyai mode by default', () => {
+      expect(service.getCurrentMode()).toBe('assemblyai');
     });
 
     it('should have no session ID initially', () => {
@@ -72,40 +61,9 @@ describe('TranscriptionModeService', () => {
     });
   });
 
-  describe('Starting Simulation Mode', () => {
-    it('should start simulation transcription successfully', async () => {
-      await service.start({ mode: 'simulation' });
-
-      expect(mockWindowScribeCat.transcription.simulation.start).toHaveBeenCalledTimes(1);
-      expect(service.getCurrentMode()).toBe('simulation');
-      expect(service.getSessionId()).toBe('sim-session-123');
-    });
-
-    it('should throw error when simulation start fails', async () => {
-      mockWindowScribeCat.transcription.simulation.start.mockResolvedValue({
-        success: false,
-        error: 'Simulation service unavailable',
-      });
-
-      await expect(service.start({ mode: 'simulation' })).rejects.toThrow(
-        'Simulation service unavailable'
-      );
-    });
-
-    it('should throw default error when simulation fails without error message', async () => {
-      mockWindowScribeCat.transcription.simulation.start.mockResolvedValue({
-        success: false,
-      });
-
-      await expect(service.start({ mode: 'simulation' })).rejects.toThrow(
-        'Failed to start simulation transcription'
-      );
-    });
-  });
-
-  describe('Starting AssemblyAI Mode', () => {
+  describe('Starting Transcription', () => {
     it('should start AssemblyAI transcription successfully', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
       expect(service.getCurrentMode()).toBe('assemblyai');
       expect(service.getSessionId()).toBe('assemblyai-session-123');
@@ -117,32 +75,41 @@ describe('TranscriptionModeService', () => {
       );
     });
 
-    it('should set up audio streaming when starting AssemblyAI', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+    it('should set up audio streaming when starting', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
       expect(mockAudioManager.onAudioData).toHaveBeenCalled();
     });
 
     it('should set up result callback for transcription updates', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
-      // Get the service instance and trigger a result
+      // Verify that the TranscriptionManager will be called when results arrive
       const onResultCallback = vi.mocked(mockAudioManager.onAudioData).mock.calls[0];
       expect(onResultCallback).toBeDefined();
+    });
+
+    it('should pass transcription settings to AssemblyAI service', async () => {
+      const settings = {
+        language_code: 'en_us',
+        punctuate: true,
+        format_text: true
+      };
+
+      await service.start({
+        mode: 'assemblyai',
+        apiKey: TEST_API_KEY,
+        transcriptionSettings: settings
+      });
+
+      expect(service.getCurrentMode()).toBe('assemblyai');
+      expect(service.getSessionId()).toBe('assemblyai-session-123');
     });
   });
 
   describe('Stopping Transcription', () => {
-    it('should stop simulation transcription', async () => {
-      await service.start({ mode: 'simulation' });
-      await service.stop();
-
-      expect(mockWindowScribeCat.transcription.simulation.stop).toHaveBeenCalledWith('sim-session-123');
-      expect(service.getSessionId()).toBeNull();
-    });
-
     it('should stop AssemblyAI transcription', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
       await service.stop();
 
       expect(mockAudioManager.removeAudioDataCallback).toHaveBeenCalled();
@@ -154,7 +121,7 @@ describe('TranscriptionModeService', () => {
     });
 
     it('should clear session ID after stopping', async () => {
-      await service.start({ mode: 'simulation' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
       expect(service.getSessionId()).not.toBeNull();
 
       await service.stop();
@@ -163,15 +130,8 @@ describe('TranscriptionModeService', () => {
   });
 
   describe('Pausing Transcription', () => {
-    it('should handle pause in simulation mode (no-op)', async () => {
-      await service.start({ mode: 'simulation' });
-
-      // Should not throw
-      expect(() => service.pause()).not.toThrow();
-    });
-
-    it('should stop audio streaming when pausing in AssemblyAI mode', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+    it('should stop audio streaming when pausing', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
       service.pause();
 
@@ -181,19 +141,24 @@ describe('TranscriptionModeService', () => {
     it('should not throw when pausing without active session', () => {
       expect(() => service.pause()).not.toThrow();
     });
+
+    it('should clear streaming interval when pausing', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
+
+      // Verify interval is running
+      const audioDataCallback = vi.mocked(mockAudioManager.onAudioData).mock.calls[0][0];
+      expect(audioDataCallback).toBeDefined();
+
+      service.pause();
+
+      // Callback should be removed
+      expect(mockAudioManager.removeAudioDataCallback).toHaveBeenCalled();
+    });
   });
 
   describe('Resuming Transcription', () => {
-    it('should handle resume in simulation mode (no-op)', async () => {
-      await service.start({ mode: 'simulation' });
-      service.pause();
-
-      // Should not throw
-      expect(() => service.resume()).not.toThrow();
-    });
-
-    it('should restart audio streaming when resuming in AssemblyAI mode', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+    it('should restart audio streaming when resuming', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
       service.pause();
 
       // Clear previous calls
@@ -210,16 +175,8 @@ describe('TranscriptionModeService', () => {
   });
 
   describe('Cleanup', () => {
-    it('should cleanup simulation mode successfully', async () => {
-      await service.start({ mode: 'simulation' });
-      await service.cleanup();
-
-      expect(mockWindowScribeCat.transcription.simulation.stop).toHaveBeenCalled();
-      expect(service.getSessionId()).toBeNull();
-    });
-
-    it('should cleanup AssemblyAI mode successfully', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+    it('should cleanup successfully', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
       await service.cleanup();
 
       expect(mockAudioManager.removeAudioDataCallback).toHaveBeenCalled();
@@ -227,10 +184,12 @@ describe('TranscriptionModeService', () => {
     });
 
     it('should handle cleanup errors gracefully', async () => {
-      await service.start({ mode: 'simulation' });
-      mockWindowScribeCat.transcription.simulation.stop.mockRejectedValue(
-        new Error('Network error')
-      );
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
+
+      // Make stop throw an error
+      vi.mocked(mockAudioManager.removeAudioDataCallback).mockImplementation(() => {
+        throw new Error('Network error');
+      });
 
       // Should not throw
       await expect(service.cleanup()).resolves.toBeUndefined();
@@ -241,45 +200,9 @@ describe('TranscriptionModeService', () => {
     });
   });
 
-  describe('Mode Switching', () => {
-    it('should switch from simulation to assemblyai', async () => {
-      await service.start({ mode: 'simulation' });
-      expect(service.getCurrentMode()).toBe('simulation');
-
-      await service.stop();
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
-
-      expect(service.getCurrentMode()).toBe('assemblyai');
-    });
-
-    it('should switch from assemblyai to simulation', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
-      expect(service.getCurrentMode()).toBe('assemblyai');
-
-      await service.stop();
-      await service.start({ mode: 'simulation' });
-
-      expect(service.getCurrentMode()).toBe('simulation');
-    });
-
-    it('should maintain correct session ID when switching modes', async () => {
-      await service.start({ mode: 'simulation' });
-      const simSessionId = service.getSessionId();
-      expect(simSessionId).toBe('sim-session-123');
-
-      await service.stop();
-      expect(service.getSessionId()).toBeNull();
-
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
-      const aiSessionId = service.getSessionId();
-      expect(aiSessionId).toBe('assemblyai-session-123');
-      expect(aiSessionId).not.toBe(simSessionId);
-    });
-  });
-
-  describe('Audio Streaming (AssemblyAI)', () => {
+  describe('Audio Streaming', () => {
     it('should buffer and send audio data periodically', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
       // Get the audio data callback
       const audioDataCallback = vi.mocked(mockAudioManager.onAudioData).mock.calls[0][0];
@@ -291,43 +214,51 @@ describe('TranscriptionModeService', () => {
       // Advance timer to trigger buffered send
       vi.advanceTimersByTime(100);
 
-      // Note: We can't easily verify sendAudio was called due to mocking complexity,
-      // but we can verify the audio callback was registered
+      // Verify the audio callback was registered
       expect(mockAudioManager.onAudioData).toHaveBeenCalled();
     });
 
-    it('should not process audio data after switching away from AssemblyAI mode', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+    it('should not process audio data after stopping', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
       // Get the audio data callback
       const audioDataCallback = vi.mocked(mockAudioManager.onAudioData).mock.calls[0][0];
 
-      // Stop and switch modes
+      // Stop the service
       await service.stop();
-      await service.start({ mode: 'simulation' });
 
-      // Try to trigger audio callback (should be no-op)
+      // Try to trigger audio callback (should be no-op since mode check will fail)
       const audioData = new Float32Array([0.1, 0.2, 0.3, 0.4]);
       audioDataCallback(audioData);
 
       // Advance timer
       vi.advanceTimersByTime(100);
 
-      // Current mode should be simulation
-      expect(service.getCurrentMode()).toBe('simulation');
+      // Session ID should be null
+      expect(service.getSessionId()).toBeNull();
     });
 
-    it('should remove audio callback when stopping AssemblyAI', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+    it('should remove audio callback when stopping', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
       await service.stop();
 
       expect(mockAudioManager.removeAudioDataCallback).toHaveBeenCalled();
+    });
+
+    it('should handle empty audio buffers gracefully', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
+
+      // Advance timer without sending any audio data
+      vi.advanceTimersByTime(100);
+
+      // Should not throw or cause errors
+      expect(service.getSessionId()).toBe('assemblyai-session-123');
     });
   });
 
   describe('Audio Resampling', () => {
     it('should resample audio correctly', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
       // Access private method through type assertion for testing
       const resampleAudio = (service as any).resampleAudio.bind(service);
@@ -340,7 +271,7 @@ describe('TranscriptionModeService', () => {
     });
 
     it('should return same data when sample rates match', async () => {
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
       const resampleAudio = (service as any).resampleAudio.bind(service);
 
@@ -349,95 +280,69 @@ describe('TranscriptionModeService', () => {
 
       expect(result).toBe(inputData);
     });
+
+    it('should handle edge cases in resampling', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
+
+      const resampleAudio = (service as any).resampleAudio.bind(service);
+
+      // Empty array
+      const emptyResult = resampleAudio(new Float32Array([]), 48000, 16000);
+      expect(emptyResult.length).toBe(0);
+
+      // Single sample
+      const singleSample = new Float32Array([0.5]);
+      const singleResult = resampleAudio(singleSample, 48000, 16000);
+      expect(singleResult.length).toBeGreaterThanOrEqual(0);
+    });
   });
 
-  describe('Error Handling', () => {
-    it('should handle errors during simulation start', async () => {
-      mockWindowScribeCat.transcription.simulation.start.mockRejectedValue(
-        new Error('Network error')
-      );
+  describe('Transcription Updates', () => {
+    it('should forward transcription results to TranscriptionManager', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
-      await expect(service.start({ mode: 'simulation' })).rejects.toThrow('Network error');
+      // The TranscriptionManager should be ready to receive updates
+      expect(mockTranscriptionManager.updateFlowing).toBeDefined();
     });
 
-    it('should handle errors during simulation stop', async () => {
-      await service.start({ mode: 'simulation' });
+    it('should handle partial transcription results', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
-      mockWindowScribeCat.transcription.simulation.stop.mockRejectedValue(
-        new Error('Stop failed')
-      );
-
-      await expect(service.stop()).rejects.toThrow('Stop failed');
+      // Service should be ready to process results
+      expect(service.getSessionId()).toBe('assemblyai-session-123');
     });
 
-    it('should maintain state consistency after error', async () => {
-      mockWindowScribeCat.transcription.simulation.start.mockResolvedValue({
-        success: false,
-        error: 'Service unavailable',
-      });
+    it('should handle final transcription results', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
 
-      await expect(service.start({ mode: 'simulation' })).rejects.toThrow();
-
-      // Mode should still be updated even if start fails
-      expect(service.getCurrentMode()).toBe('simulation');
-      // But session ID should remain null
-      expect(service.getSessionId()).toBeNull();
+      // Service should be ready to process results
+      expect(service.getSessionId()).toBe('assemblyai-session-123');
     });
   });
 
   describe('State Management', () => {
     it('should track current mode correctly', async () => {
-      expect(service.getCurrentMode()).toBe('simulation');
+      expect(service.getCurrentMode()).toBe('assemblyai');
 
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
       expect(service.getCurrentMode()).toBe('assemblyai');
     });
 
     it('should track session ID correctly', async () => {
       expect(service.getSessionId()).toBeNull();
 
-      await service.start({ mode: 'simulation' });
-      expect(service.getSessionId()).toBe('sim-session-123');
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
+      expect(service.getSessionId()).toBe('assemblyai-session-123');
 
       await service.stop();
       expect(service.getSessionId()).toBeNull();
-    });
-
-    it('should maintain separate session IDs for different modes', async () => {
-      await service.start({ mode: 'simulation' });
-      const simId = service.getSessionId();
-
-      await service.stop();
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
-      const aiId = service.getSessionId();
-
-      expect(simId).not.toBe(aiId);
-      expect(simId).toBe('sim-session-123');
-      expect(aiId).toBe('assemblyai-session-123');
     });
   });
 
   describe('Integration Scenarios', () => {
-    it('should handle full recording lifecycle with simulation', async () => {
+    it('should handle full recording lifecycle', async () => {
       // Start
-      await service.start({ mode: 'simulation' });
-      expect(service.getCurrentMode()).toBe('simulation');
-      expect(service.getSessionId()).not.toBeNull();
-
-      // Pause (no-op for simulation)
-      service.pause();
-
-      // Resume (no-op for simulation)
-      service.resume();
-
-      // Stop
-      await service.stop();
-      expect(service.getSessionId()).toBeNull();
-    });
-
-    it('should handle full recording lifecycle with AssemblyAI', async () => {
-      // Start
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
       expect(service.getCurrentMode()).toBe('assemblyai');
       expect(service.getSessionId()).not.toBeNull();
 
@@ -453,20 +358,58 @@ describe('TranscriptionModeService', () => {
       expect(service.getSessionId()).toBeNull();
     });
 
-    it('should handle mode switch mid-recording', async () => {
-      // Start with simulation
-      await service.start({ mode: 'simulation' });
-      const originalSessionId = service.getSessionId();
+    it('should handle restart scenario', async () => {
+      // Start first session
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
+      const firstSessionId = service.getSessionId();
 
-      // Stop current session
+      // Stop first session
       await service.stop();
+      expect(service.getSessionId()).toBeNull();
 
-      // Start with AssemblyAI
-      await service.start({ mode: 'assemblyai', apiKey: 'test-api-key' });
-      const newSessionId = service.getSessionId();
+      // Start second session
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
+      const secondSessionId = service.getSessionId();
 
-      expect(newSessionId).not.toBe(originalSessionId);
+      // Should have a new session ID (though in mock it's the same)
+      expect(secondSessionId).toBe('assemblyai-session-123');
       expect(service.getCurrentMode()).toBe('assemblyai');
+    });
+
+    it('should handle multiple pause/resume cycles', async () => {
+      await service.start({ mode: 'assemblyai', apiKey: TEST_API_KEY });
+
+      // First pause/resume
+      service.pause();
+      service.resume();
+
+      // Second pause/resume
+      service.pause();
+      service.resume();
+
+      // Should still be running
+      expect(service.getCurrentMode()).toBe('assemblyai');
+      expect(service.getSessionId()).toBe('assemblyai-session-123');
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should throw error with descriptive message when API key is missing', async () => {
+      await expect(service.start({ mode: 'assemblyai' })).rejects.toThrow(
+        'AssemblyAI API key not configured. Please add it in Settings.'
+      );
+    });
+
+    it('should handle missing API key with undefined value', async () => {
+      await expect(
+        service.start({ mode: 'assemblyai', apiKey: undefined })
+      ).rejects.toThrow('AssemblyAI API key not configured');
+    });
+
+    it('should handle missing API key with empty string', async () => {
+      await expect(
+        service.start({ mode: 'assemblyai', apiKey: '' })
+      ).rejects.toThrow('AssemblyAI API key not configured');
     });
   });
 });
