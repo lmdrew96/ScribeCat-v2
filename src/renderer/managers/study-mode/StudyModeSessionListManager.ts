@@ -545,25 +545,12 @@ export class StudyModeSessionListManager {
 
 
   /**
-   * Check if a session can be selected (same-course validation)
+   * Check if a session can be selected
    */
   private canSelectSession(sessionId: string): boolean {
-    // If no sessions selected yet, allow selection
-    if (this.selectedSessionIds.size === 0) {
-      return true;
-    }
-
-    // Get the course ID of the first selected session
-    const firstSelectedId = Array.from(this.selectedSessionIds)[0];
-    const firstSelectedSession = this.sessions.find(s => s.id === firstSelectedId);
-    const targetSession = this.sessions.find(s => s.id === sessionId);
-
-    if (!firstSelectedSession || !targetSession) {
-      return false;
-    }
-
-    // Both must have the same course ID (or both must have no course)
-    return firstSelectedSession.courseId === targetSession.courseId;
+    // Allow all sessions to be selected for bulk actions
+    // Course validation is done at the action level (e.g., study set creation)
+    return true;
   }
 
   /**
@@ -601,19 +588,6 @@ export class StudyModeSessionListManager {
    */
   private handleSessionSelection(sessionId: string, isSelected: boolean): void {
     if (isSelected) {
-      // Check if this session can be selected (same-course validation)
-      if (!this.canSelectSession(sessionId)) {
-        // Uncheck the checkbox
-        const checkbox = document.querySelector(`.session-card-checkbox[data-session-id="${sessionId}"]`) as HTMLInputElement;
-        if (checkbox) {
-          checkbox.checked = false;
-        }
-
-        // Show notification
-        this.showNotification('Cannot select sessions from different courses for multi-session study sets', 'warning');
-        return;
-      }
-
       this.selectedSessionIds.add(sessionId);
     } else {
       this.selectedSessionIds.delete(sessionId);
@@ -654,6 +628,15 @@ export class StudyModeSessionListManager {
     const selectedSessions = Array.from(this.selectedSessionIds)
       .map(id => this.sessions.find(s => s.id === id))
       .filter((s): s is Session => s !== undefined);
+
+    // Validate that all selected sessions are from the same course
+    const courseIds = selectedSessions.map(s => s.courseId);
+    const uniqueCourseIds = new Set(courseIds);
+
+    if (uniqueCourseIds.size > 1) {
+      this.showNotification('Cannot create study set: all sessions must be from the same course', 'warning');
+      return;
+    }
 
     // Open reorder modal
     this.openReorderModal(selectedSessions);
