@@ -411,8 +411,6 @@ window.addEventListener('beforeunload', async (event) => {
     recordingManager.cleanup();
   }
 
-  window.scribeCat.transcription.simulation.removeResultListener();
-
   // Clean up hot reload listener if it exists
   if ((window.scribeCat as any).dev) {
     (window.scribeCat as any).dev.removeHotReloadListener();

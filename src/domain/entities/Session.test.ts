@@ -18,7 +18,7 @@ describe('Session Entity', () => {
       'Test transcription',
       segments,
       'en',
-      'simulation',
+      'assemblyai',
       testDate
     );
   });
@@ -480,7 +480,7 @@ describe('Session Entity', () => {
           fullText: 'Test',
           segments,
           language: 'en',
-          provider: 'simulation' as const,
+          provider: 'assemblyai' as const,
           createdAt: testDate,
         },
         tags: ['tag1'],

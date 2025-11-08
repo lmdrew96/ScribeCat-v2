@@ -42,7 +42,7 @@ export class TranscribeAudioUseCase {
         return session;
       }
 
-      // Try primary transcription service (Vosk - offline)
+      // Try primary transcription service
       let transcription;
       try {
         const isPrimaryAvailable = await this.primaryTranscriptionService.isAvailable();
@@ -59,7 +59,7 @@ export class TranscribeAudioUseCase {
       } catch (primaryError) {
         console.warn(`Primary transcription failed: ${primaryError instanceof Error ? primaryError.message : 'Unknown error'}`);
         
-        // Try fallback service (Whisper - online)
+        // Try fallback service
         if (this.fallbackTranscriptionService) {
           try {
             const isFallbackAvailable = await this.fallbackTranscriptionService.isAvailable();

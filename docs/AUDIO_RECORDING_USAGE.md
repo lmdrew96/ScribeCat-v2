@@ -235,8 +235,7 @@ The main process grants media permission to the renderer via `setPermissionReque
 
 ## Next Steps
 
-- [ ] Integrate with transcription services (Vosk/Whisper)
-- [ ] Add audio format conversion (WebM → WAV for Vosk)
+- [ ] Integrate with transcription services (AssemblyAI)
 - [ ] Implement audio playback for review
 - [ ] Add waveform visualization
 - [ ] Support multiple audio tracks
@@ -266,4 +265,3 @@ The main process grants media permission to the renderer via `setPermissionReque
 - [MDN: MediaRecorder API](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder)
 - [MDN: Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 - [MDN: getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
-- [V1 Audio Analysis](./V1_AUDIO_VOSK_ANALYSIS.md)

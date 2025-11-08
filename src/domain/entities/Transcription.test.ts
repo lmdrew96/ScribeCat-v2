@@ -15,7 +15,7 @@ describe('Transcription Entity', () => {
         'Hello world This is a test of transcription',
         segments,
         'en',
-        'simulation',
+        'assemblyai',
         new Date(),
         0.95
       );
@@ -23,7 +23,7 @@ describe('Transcription Entity', () => {
       expect(transcription.fullText).toBe('Hello world This is a test of transcription');
       expect(transcription.segments).toEqual(segments);
       expect(transcription.language).toBe('en');
-      expect(transcription.provider).toBe('simulation');
+      expect(transcription.provider).toBe('assemblyai');
       expect(transcription.averageConfidence).toBe(0.95);
     });
 
@@ -33,7 +33,7 @@ describe('Transcription Entity', () => {
           '',
           createValidSegments(),
           'en',
-          'simulation',
+          'assemblyai',
           new Date()
         );
       }).toThrow('Transcription text cannot be empty');
@@ -45,7 +45,7 @@ describe('Transcription Entity', () => {
           '   ',
           createValidSegments(),
           'en',
-          'simulation',
+          'assemblyai',
           new Date()
         );
       }).toThrow('Transcription text cannot be empty');
@@ -57,7 +57,7 @@ describe('Transcription Entity', () => {
           'Hello world',
           [],
           'en',
-          'simulation',
+          'assemblyai',
           new Date()
         );
       }).toThrow('Transcription must have at least one segment');
@@ -74,7 +74,7 @@ describe('Transcription Entity', () => {
           'First Second',
           invalidSegments,
           'en',
-          'simulation',
+          'assemblyai',
           new Date()
         );
       }).toThrow('Transcription segments must be in chronological order');
@@ -86,7 +86,7 @@ describe('Transcription Entity', () => {
           'Hello world',
           createValidSegments(),
           'en',
-          'simulation',
+          'assemblyai',
           new Date(),
           -0.5
         );
@@ -99,7 +99,7 @@ describe('Transcription Entity', () => {
           'Hello world',
           createValidSegments(),
           'en',
-          'simulation',
+          'assemblyai',
           new Date(),
           1.5
         );
@@ -111,7 +111,7 @@ describe('Transcription Entity', () => {
         'Hello world',
         createValidSegments(),
         'en',
-        'simulation',
+        'assemblyai',
         new Date(),
         undefined
       );
@@ -126,7 +126,7 @@ describe('Transcription Entity', () => {
         'Hello world This is a test of transcription',
         createValidSegments(),
         'en',
-        'simulation',
+        'assemblyai',
         new Date()
       );
 
@@ -139,7 +139,7 @@ describe('Transcription Entity', () => {
         'Hello world This is a test',
         createValidSegments(),
         'en',
-        'simulation',
+        'assemblyai',
         new Date()
       );
 
@@ -152,7 +152,7 @@ describe('Transcription Entity', () => {
         'Hello world This is a test of transcription',
         createValidSegments(),
         'en',
-        'simulation',
+        'assemblyai',
         new Date()
       );
 
@@ -167,7 +167,7 @@ describe('Transcription Entity', () => {
         'Hello world This is a test of transcription',
         createValidSegments(),
         'en',
-        'simulation',
+        'assemblyai',
         new Date()
       );
 
@@ -184,7 +184,7 @@ describe('Transcription Entity', () => {
         'Test',
         segments,
         'en',
-        'simulation',
+        'assemblyai',
         new Date()
       );
 
@@ -224,7 +224,7 @@ describe('Transcription Entity', () => {
         fullText: 'Hello world This is a test',
         segments,
         language: 'en',
-        provider: 'simulation' as const,
+        provider: 'assemblyai' as const,
         createdAt,
         averageConfidence: 0.92,
       };
@@ -244,7 +244,7 @@ describe('Transcription Entity', () => {
         'Hello world',
         createValidSegments(),
         'en',
-        'simulation',
+        'assemblyai',
         new Date('2025-01-01'),
         0.95
       );
@@ -264,7 +264,7 @@ describe('Transcription Entity', () => {
         fullText: 'Hello world',
         segments: createValidSegments(),
         language: 'en',
-        provider: 'simulation' as const,
+        provider: 'assemblyai' as const,
         createdAt: new Date(),
       };
 
@@ -285,18 +285,6 @@ describe('Transcription Entity', () => {
 
       expect(transcription.provider).toBe('assemblyai');
     });
-
-    it('should accept "simulation" provider', () => {
-      const transcription = new Transcription(
-        'Hello world',
-        createValidSegments(),
-        'en',
-        'simulation',
-        new Date()
-      );
-
-      expect(transcription.provider).toBe('simulation');
-    });
   });
 
   describe('Edge Cases', () => {
@@ -309,7 +297,7 @@ describe('Transcription Entity', () => {
         'Only segment',
         segments,
         'en',
-        'simulation',
+        'assemblyai',
         new Date()
       );
 
@@ -327,7 +315,7 @@ describe('Transcription Entity', () => {
         'No confidence segment',
         segments,
         'en',
-        'simulation',
+        'assemblyai',
         new Date()
       );
 
@@ -349,7 +337,7 @@ describe('Transcription Entity', () => {
         longText,
         segments,
         'en',
-        'simulation',
+        'assemblyai',
         new Date()
       );
 

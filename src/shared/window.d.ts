@@ -159,7 +159,7 @@ export interface CourseManager {
 }
 
 /**
- * Transcription result from simulation or real transcription service
+ * Transcription result from transcription service
  */
 interface TranscriptionResult {
   /** The transcribed text */

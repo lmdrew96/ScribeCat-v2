@@ -1,7 +1,7 @@
 /**
  * Transcription Service Interface
- * 
- * Defines the contract for transcription services (simulation, Vosk, Whisper).
+ *
+ * Defines the contract for transcription services.
  * Services implementing this interface handle real-time speech-to-text conversion.
  */
 
@@ -26,7 +26,7 @@ export interface TranscriptionConfig {
   /** Language code (e.g., 'en-US', 'es-ES') */
   language?: string;
   
-  /** Model path for Vosk/Whisper (not used in simulation) */
+  /** Model path for transcription service (if applicable) */
   modelPath?: string;
   
   /** Sample rate for audio processing */
@@ -38,8 +38,8 @@ export interface TranscriptionConfig {
 
 /**
  * Transcription Service Interface
- * 
- * All transcription services (simulation, Vosk, Whisper) must implement this interface.
+ *
+ * All transcription services must implement this interface.
  */
 export interface ITranscriptionService {
   /**

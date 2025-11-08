@@ -16,7 +16,7 @@ describe('TranscribeAudioUseCase', () => {
     mockRepository = createMockSessionRepository();
     mockPrimaryService = createMockTranscriptionService();
     mockFallbackService = createMockTranscriptionService({
-      getProviderName: vi.fn().mockReturnValue('simulation'),
+      getProviderName: vi.fn().mockReturnValue('assemblyai'),
     });
 
     // Suppress console logs in tests
@@ -430,7 +430,7 @@ describe('TranscribeAudioUseCase', () => {
           'Fallback transcription',
           [{ text: 'Fallback transcription', startTime: 0, endTime: 5 }],
           'en',
-          'simulation',
+          'assemblyai',
           new Date(),
           0.85
         )
@@ -445,7 +445,7 @@ describe('TranscribeAudioUseCase', () => {
       const result = await useCase.execute('session-123');
 
       expect(result.transcription?.fullText).toBe('Fallback transcription');
-      expect(result.transcription?.provider).toBe('simulation');
+      expect(result.transcription?.provider).toBe('assemblyai');
     });
 
     it('should allow re-transcription with different options', async () => {

@@ -41,12 +41,6 @@
   transition: all 0.3s ease;
 }
 
-.mode-indicator.simulation {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
 .status-value.recording {
   color: var(--record-color);
 }

@@ -3,7 +3,7 @@
 ## Project Context
 You're helping Lanae rebuild ScribeCat from scratch as v2 (currently 2.0.0-alpha). The original v1.8.5 is feature-complete but has architectural issues. Work through GitHub issues sequentially.
 
-**Tech Stack:** Electron + Vite, TypeScript (strict mode), Claude API, Vosk, electron-store, Clean Architecture
+**Tech Stack:** Electron + Vite, TypeScript (strict mode), Claude API, AssemblyAI, electron-store, Clean Architecture
 
 ## Adapt to Lanae's Workflow
 

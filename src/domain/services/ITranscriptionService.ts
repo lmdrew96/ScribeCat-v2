@@ -1,8 +1,8 @@
 /**
  * ITranscriptionService Interface
- * 
+ *
  * Contract for transcription service implementations.
- * Allows for multiple providers (AssemblyAI, Simulation, etc.)
+ * Allows for multiple providers (e.g., AssemblyAI).
  */
 
 import { Transcription } from '../entities/Transcription.js';
@@ -29,5 +29,5 @@ export interface ITranscriptionService {
   /**
    * Get the name of the transcription provider
    */
-  getProviderName(): 'assemblyai' | 'simulation';
+  getProviderName(): 'assemblyai';
 }

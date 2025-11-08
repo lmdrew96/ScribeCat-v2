@@ -70,41 +70,7 @@ export class TranscriptionManager {
   }
 
   /**
-   * Add transcription entry (for simulation mode)
-   */
-  addEntry(timestamp: number, text: string): void {
-    // Use the timestamp provided by the simulation service
-    // (it already accounts for paused time)
-    // For simulation mode, we only have start time, so estimate end time
-    // This will be corrected later when the next entry arrives
-    const estimatedEndTime = timestamp + 1.0; // Estimate 1 second duration
-    this.timestampedEntries.push({ startTime: timestamp, endTime: estimatedEndTime, text });
-
-    let flowingText = this.transcriptionContainer.querySelector('.flowing-transcription') as HTMLElement;
-
-    if (!flowingText) {
-      // Remove placeholder if it exists
-      const placeholder = this.transcriptionContainer.querySelector('.transcription-placeholder');
-      if (placeholder) {
-        placeholder.remove();
-      }
-
-      // Create flowing text container
-      flowingText = document.createElement('div');
-      flowingText.className = 'flowing-transcription';
-      this.transcriptionContainer.appendChild(flowingText);
-    }
-
-    // Append text with a space
-    const textNode = document.createTextNode(' ' + text);
-    flowingText.appendChild(textNode);
-
-    // Auto-scroll to bottom
-    this.transcriptionContainer.scrollTop = this.transcriptionContainer.scrollHeight;
-  }
-
-  /**
-   * Update flowing transcription with partial/final results (for AssemblyAI)
+   * Update flowing transcription with partial/final results
    */
   updateFlowing(text: string, isFinal: boolean, providedStartTime?: number, providedEndTime?: number): void {
     let flowingText = this.transcriptionContainer.querySelector('.flowing-transcription') as HTMLElement;
