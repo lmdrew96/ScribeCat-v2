@@ -34,7 +34,8 @@
   height: 100%;
   background-color: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(2px);
-  z-index: -1;
+  z-index: 1;
+  pointer-events: auto;
 }
 
 .modal-content {
@@ -49,7 +50,8 @@
   flex-direction: column;
   animation: slideUp 0.3s ease;
   border: 1px solid var(--border);
-  z-index: 0;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .modal-content.modal-small {
