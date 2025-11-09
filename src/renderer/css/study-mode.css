@@ -7,7 +7,6 @@
   flex-direction: column;
   background-color: var(--bg-primary);
   overflow: hidden;
-  height: 100%;
 }
 
 /* Study Mode Header */
