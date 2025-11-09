@@ -77,16 +77,24 @@ export class StudyModeDetailViewManager {
     this.sessionDetailContainer.innerHTML = detailHtml;
 
     // Attach event handlers
+    const searchState = {
+      currentSearchQuery: this.currentSearchQuery,
+      currentMatchIndex: this.currentMatchIndex,
+      totalMatches: this.totalMatches
+    };
+
     DetailViewEventHandler.attachEventHandlers(
       session,
       this.sessionDetailContainer,
       this.sessionPlaybackManager,
-      {
-        currentSearchQuery: this.currentSearchQuery,
-        currentMatchIndex: this.currentMatchIndex,
-        totalMatches: this.totalMatches
-      },
-      () => this.updateTranscriptionView(session)
+      searchState,
+      () => {
+        // Sync search state from event handler back to manager instance
+        this.currentSearchQuery = searchState.currentSearchQuery;
+        this.currentMatchIndex = searchState.currentMatchIndex;
+        this.totalMatches = searchState.totalMatches;
+        this.updateTranscriptionView(session);
+      }
     );
 
     logger.info(`Rendered detail view for session: ${session.id}`);
