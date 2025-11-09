@@ -32,6 +32,7 @@ import { ToastManager } from './managers/ToastManager.js';
 import { ConfettiManager } from './utils/confetti.js';
 import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
 import { getRandomCatFact } from './utils/cat-facts.js';
+import { Phase3Integration } from './managers/Phase3Integration.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -59,6 +60,7 @@ let layoutManager: LayoutManager;
 let layoutPicker: WorkspaceLayoutPicker;
 let toastManager: ToastManager;
 let confettiManager: ConfettiManager;
+let phase3Integration: Phase3Integration;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -168,6 +170,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Expose studyModeManager globally for other managers to trigger refresh
   window.studyModeManager = studyModeManager;
+
+  // ===== Phase 3: Discovery & Navigation =====
+  // Initialize Phase 3 features (search, view modes, etc.)
+  phase3Integration = new Phase3Integration(studyModeManager);
+  await phase3Integration.initialize();
+
+  // Expose Phase3 globally for integration with study mode
+  window.phase3Integration = phase3Integration;
 
   // Initialize sharing
   shareModal = new ShareModal();

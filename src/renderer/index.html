@@ -328,14 +328,17 @@
                 </div>
             </div>
             
-            <div class="study-mode-filters">
-                <input 
-                    type="text" 
-                    id="study-search-input" 
-                    class="filter-input" 
-                    placeholder="🔍 Search sessions..."
-                    aria-label="Search sessions"
-                >
+            <!-- Phase 3: Advanced Search & View Modes -->
+            <div class="study-mode-controls">
+                <!-- Advanced Search Bar (replaces basic search) -->
+                <div id="advanced-search-container"></div>
+
+                <!-- View Mode Switcher -->
+                <div id="view-mode-switcher-container" class="view-mode-switcher-wrapper"></div>
+            </div>
+
+            <!-- Legacy filters (kept for backwards compatibility) -->
+            <div class="study-mode-filters hidden">
                 <select id="study-course-filter" class="filter-select" aria-label="Filter by course">
                     <option value="">All Courses</option>
                 </select>

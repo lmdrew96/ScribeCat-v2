@@ -97,7 +97,27 @@
   color: #666;
 }
 
-/* Study Mode Filters */
+/* Phase 3: Study Mode Controls */
+.study-mode-controls {
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+#advanced-search-container {
+  flex: 1;
+}
+
+.view-mode-switcher-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Study Mode Filters (hidden by default - legacy) */
 .study-mode-filters {
   padding: 15px 20px;
   background-color: var(--bg-secondary);
