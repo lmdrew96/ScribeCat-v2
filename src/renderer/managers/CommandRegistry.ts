@@ -526,4 +526,73 @@ export class CommandRegistry {
 
     this.commandPalette.registerCommands(commands);
   }
+
+  /**
+   * Register focus mode commands
+   */
+  public registerFocusModeCommands(): void {
+    const focusModeManager = (window as any).focusModeManager;
+    if (!focusModeManager) return;
+
+    const commands: Command[] = [
+      {
+        id: 'focus.cycle',
+        title: 'Cycle Focus Mode',
+        description: 'Cycle through all focus modes',
+        category: 'Focus',
+        icon: '🔄',
+        shortcut: 'Cmd+Shift+F',
+        keywords: ['focus', 'mode', 'cycle', 'switch'],
+        action: () => {
+          focusModeManager.cycleMode();
+        }
+      },
+      {
+        id: 'focus.normal',
+        title: 'Normal Mode',
+        description: 'All panels visible, balanced layout',
+        category: 'Focus',
+        icon: '📋',
+        keywords: ['focus', 'normal', 'default', 'all panels'],
+        action: () => {
+          focusModeManager.setMode('normal');
+        }
+      },
+      {
+        id: 'focus.recording',
+        title: 'Recording Focus Mode',
+        description: 'Hide transcription, focus on note-taking during class',
+        category: 'Focus',
+        icon: '🎙️',
+        keywords: ['focus', 'recording', 'notes', 'class', 'lecture'],
+        action: () => {
+          focusModeManager.setMode('recording');
+        }
+      },
+      {
+        id: 'focus.review',
+        title: 'Review Focus Mode',
+        description: 'Hide AI tools, focus on reading transcription and notes',
+        category: 'Focus',
+        icon: '📖',
+        keywords: ['focus', 'review', 'read', 'content'],
+        action: () => {
+          focusModeManager.setMode('review');
+        }
+      },
+      {
+        id: 'focus.study',
+        title: 'Study Focus Mode',
+        description: 'AI tools prominent, optimize for active studying',
+        category: 'Focus',
+        icon: '🧠',
+        keywords: ['focus', 'study', 'ai', 'tools', 'flashcards', 'quiz'],
+        action: () => {
+          focusModeManager.setMode('study');
+        }
+      }
+    ];
+
+    this.commandPalette.registerCommands(commands);
+  }
 }

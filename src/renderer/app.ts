@@ -26,6 +26,8 @@ import { TrashModal } from './components/TrashModal.js';
 import { CommandPalette } from './components/CommandPalette.js';
 import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
+import { FocusModeManager } from './managers/FocusModeManager.js';
+import { FocusModeIndicator } from './components/FocusModeIndicator.js';
 import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
 import { getRandomCatFact } from './utils/cat-facts.js';
 
@@ -51,6 +53,8 @@ let trashModal: TrashModal;
 let commandPalette: CommandPalette;
 let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
+let focusModeManager: FocusModeManager;
+let focusModeIndicator: FocusModeIndicator;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -211,6 +215,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Expose for RecordingManager
   (window as any).aiSuggestionChip = aiSuggestionChip;
 
+  // Initialize Focus Mode Manager
+  focusModeManager = new FocusModeManager();
+  focusModeManager.loadPreference(); // Load saved preference
+
+  // Initialize Focus Mode Indicator
+  focusModeIndicator = new FocusModeIndicator(focusModeManager);
+  focusModeIndicator.initialize();
+
+  // Expose for command palette
+  (window as any).focusModeManager = focusModeManager;
+
+  // Register focus mode commands now that manager is initialized
+  commandRegistry.registerFocusModeCommands();
+
   // 🎉 Initialize Easter Eggs
   initializeEasterEggs();
 
@@ -262,6 +280,15 @@ function setupEventListeners(): void {
       // Optionally refresh or do nothing
     });
   }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Cmd+Shift+F (Mac) or Ctrl+Shift+F (Windows/Linux) - Cycle focus modes
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
+      e.preventDefault();
+      focusModeManager.cycleMode();
+    }
+  });
 
   // Update button states on content changes
   updateClearButtonStates();
