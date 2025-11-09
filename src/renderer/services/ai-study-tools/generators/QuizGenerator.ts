@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class QuizGenerator {
   /**
@@ -21,12 +22,7 @@ export class QuizGenerator {
     }
 
     // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Generating ${questionCount} quiz questions...</div>
-      </div>
-    `;
+    contentArea.innerHTML = createLoadingHTML(`Generating ${questionCount} quiz questions...`);
 
     try {
       // Check if this is a multi-session study set

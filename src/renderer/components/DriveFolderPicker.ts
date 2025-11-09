@@ -1,8 +1,10 @@
 /**
  * DriveFolderPicker
- * 
+ *
  * A modal component for browsing and selecting Google Drive folders
  */
+
+import { getRandomCatFact } from '../utils/cat-facts.js';
 
 interface DriveFolder {
   id: string;
@@ -142,8 +144,12 @@ export class DriveFolderPicker {
     if (!folderList) return;
 
     try {
-      // Show loading
-      folderList.innerHTML = '<div class="loading-spinner">Loading folders...</div>';
+      // Show loading with cat fact
+      const catFact = getRandomCatFact();
+      folderList.innerHTML = `
+        <div class="loading-spinner">Loading folders...</div>
+        <div class="loading-cat-fact">${catFact}</div>
+      `;
 
       // Fetch folders from Google Drive
       const result = await window.scribeCat.drive.listFiles(folderId);

@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class FlashcardGenerator {
   /**
@@ -15,12 +16,7 @@ export class FlashcardGenerator {
    */
   static async generate(session: Session, contentArea: HTMLElement): Promise<void> {
     // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Creating flashcards...</div>
-      </div>
-    `;
+    contentArea.innerHTML = createLoadingHTML('Creating flashcards...');
 
     try {
       // Check if this is a multi-session study set

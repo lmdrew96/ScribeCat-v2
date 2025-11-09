@@ -7,6 +7,7 @@
 import type { Session } from '../../../../domain/entities/Session.js';
 import { renderMarkdown } from '../../../markdown-renderer.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
+import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class SummaryGenerator {
   /**
@@ -86,12 +87,7 @@ ${session.transcription.fullText}`;
    */
   static async generate(session: Session, contentArea: HTMLElement): Promise<void> {
     // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Generating summary...</div>
-      </div>
-    `;
+    contentArea.innerHTML = createLoadingHTML('Generating summary...');
 
     try {
       // Check if this is a multi-session study set

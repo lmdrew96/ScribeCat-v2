@@ -5,6 +5,7 @@
  */
 
 import { AuthManager } from '../managers/AuthManager.js';
+import { getRandomCatFact } from '../utils/cat-facts.js';
 
 export class AuthScreen {
   private authManager: AuthManager;
@@ -101,6 +102,7 @@ export class AuthScreen {
 
         <div id="auth-error" class="auth-error hidden"></div>
         <div id="auth-success" class="auth-success hidden"></div>
+        <div id="auth-loading-cat-fact" class="auth-loading-cat-fact hidden"></div>
 
         <div class="auth-form">
           <!-- Sign In / Sign Up Form -->
@@ -434,6 +436,7 @@ export class AuthScreen {
     const submitBtn = this.modal?.querySelector('#submit-btn') as HTMLButtonElement;
     const googleBtn = this.modal?.querySelector('#google-signin-btn') as HTMLButtonElement;
     const configureBtn = this.modal?.querySelector('#configure-btn') as HTMLButtonElement;
+    const catFactDiv = this.modal?.querySelector('#auth-loading-cat-fact') as HTMLElement;
 
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -441,12 +444,19 @@ export class AuthScreen {
     }
     if (googleBtn) googleBtn.disabled = true;
     if (configureBtn) configureBtn.disabled = true;
+
+    // Show a random cat fact during loading
+    if (catFactDiv) {
+      catFactDiv.textContent = getRandomCatFact();
+      catFactDiv.classList.remove('hidden');
+    }
   }
   /** Hide loading state */
   private hideLoading(): void {
     const submitBtn = this.modal?.querySelector('#submit-btn') as HTMLButtonElement;
     const googleBtn = this.modal?.querySelector('#google-signin-btn') as HTMLButtonElement;
     const configureBtn = this.modal?.querySelector('#configure-btn') as HTMLButtonElement;
+    const catFactDiv = this.modal?.querySelector('#auth-loading-cat-fact') as HTMLElement;
 
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -454,6 +464,11 @@ export class AuthScreen {
     }
     if (googleBtn) googleBtn.disabled = false;
     if (configureBtn) configureBtn.disabled = false;
+
+    // Hide the cat fact
+    if (catFactDiv) {
+      catFactDiv.classList.add('hidden');
+    }
   }
 
 }

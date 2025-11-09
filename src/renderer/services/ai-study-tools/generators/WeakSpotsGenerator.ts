@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class WeakSpotsGenerator {
   /**
@@ -15,12 +16,7 @@ export class WeakSpotsGenerator {
    */
   static async generate(session: Session, contentArea: HTMLElement): Promise<void> {
     // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Analyzing weak spots...</div>
-      </div>
-    `;
+    contentArea.innerHTML = createLoadingHTML('Analyzing weak spots...');
 
     try {
       // Check if this is a multi-session study set

@@ -24,6 +24,7 @@ import { ShareModal } from './components/ShareModal.js';
 import { AccountSettingsModal } from './components/AccountSettingsModal.js';
 import { TrashModal } from './components/TrashModal.js';
 import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
+import { getRandomCatFact } from './utils/cat-facts.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -82,7 +83,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   editorManager = new TiptapEditorManager();
   transcriptionManager = new TranscriptionManager();
   deviceManager = new DeviceManager();
-  
+
+  // Initialize transcription placeholder with random cat fact
+  const transcriptionPlaceholder = document.getElementById('transcription-placeholder');
+  if (transcriptionPlaceholder) {
+    transcriptionPlaceholder.textContent = getRandomCatFact();
+  }
+
   // Initialize AI manager first (needed by recording manager)
   aiManager = new AIManager(
     () => transcriptionManager.getText(),

@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class ELI5Generator {
   /**
@@ -15,12 +16,7 @@ export class ELI5Generator {
    */
   static async generate(session: Session, contentArea: HTMLElement): Promise<void> {
     // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Finding complex concepts to simplify...</div>
-      </div>
-    `;
+    contentArea.innerHTML = createLoadingHTML('Finding complex concepts to simplify...');
 
     try {
       const isMultiSession = session.type === 'multi-session-study-set';

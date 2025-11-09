@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class StudyPlanGenerator {
   /**
@@ -21,12 +22,7 @@ export class StudyPlanGenerator {
     }
 
     // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Creating your study plan...</div>
-      </div>
-    `;
+    contentArea.innerHTML = createLoadingHTML('Creating your study plan...');
 
     try {
       // Check if this is a multi-session study set

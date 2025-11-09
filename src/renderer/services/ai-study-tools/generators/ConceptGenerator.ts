@@ -9,6 +9,7 @@ import { renderMarkdown } from '../../../markdown-renderer.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class ConceptGenerator {
   /**
@@ -16,12 +17,7 @@ export class ConceptGenerator {
    */
   static async extractKeyConcepts(session: Session, contentArea: HTMLElement): Promise<void> {
     // Show loading state
-    contentArea.innerHTML = `
-      <div class="study-loading">
-        <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Extracting key concepts...</div>
-      </div>
-    `;
+    contentArea.innerHTML = createLoadingHTML('Extracting key concepts...');
 
     try {
       // Check if this is a multi-session study set
