@@ -495,6 +495,13 @@ export class AIManager {
   }
 
   /**
+   * Get ContentAnalyzer instance (for FloatingAIChip integration)
+   */
+  public getContentAnalyzer(): ContentAnalyzer {
+    return this.contentAnalyzer;
+  }
+
+  /**
    * Get suggestion statistics
    */
   public getSuggestionStats() {

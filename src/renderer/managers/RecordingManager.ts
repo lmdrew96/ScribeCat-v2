@@ -12,6 +12,7 @@ import { CourseManager } from './CourseManager.js';
 import { TranscriptionModeService } from '../services/TranscriptionModeService.js';
 import { NotesAutoSaveManager } from './NotesAutoSaveManager.js';
 import { AISummaryManager } from '../services/AISummaryManager.js';
+import { FloatingAIChip } from '../components/FloatingAIChip.js';
 import { createLogger } from '../../shared/logger.js';
 import { config } from '../../config.js';
 
@@ -26,6 +27,7 @@ export class RecordingManager {
   private courseManager: CourseManager;
   private transcriptionService: TranscriptionModeService;
   private notesAutoSaveManager: NotesAutoSaveManager;
+  private floatingChip: FloatingAIChip | null = null;
 
   private isRecording: boolean = false;
   private isPaused: boolean = false;
@@ -53,6 +55,15 @@ export class RecordingManager {
     this.courseManager = courseManager;
     this.notesAutoSaveManager = notesAutoSaveManager;
     this.transcriptionService = new TranscriptionModeService(audioManager, transcriptionManager);
+
+    // Initialize FloatingAIChip with ContentAnalyzer
+    this.floatingChip = new FloatingAIChip(this.aiManager.getContentAnalyzer(), {
+      onSuggestionClick: (suggestion) => {
+        logger.info('AI chip suggestion clicked:', suggestion);
+        // Handle suggestion actions (bookmark, note prompt, etc.)
+        this.handleChipSuggestion(suggestion);
+      }
+    });
   }
 
   /**
@@ -113,6 +124,10 @@ export class RecordingManager {
     // Start AI content analysis
     this.aiManager.startContentAnalysis();
     this.startSuggestionChecks();
+
+    // Show floating AI chip
+    this.floatingChip?.show();
+    this.floatingChip?.reset(); // Reset for new session
 
     // Update UI
     this.viewManager.updateRecordingState(true, transcriptionMode);
@@ -242,6 +257,9 @@ export class RecordingManager {
     // Stop suggestion checks and reset AI analysis
     this.stopSuggestionChecks();
     this.aiManager.resetContentAnalysis();
+
+    // Hide floating AI chip
+    this.floatingChip?.hide();
 
     // Update UI
     this.viewManager.updateRecordingState(false);
@@ -455,21 +473,54 @@ export class RecordingManager {
    * Check for suggestions and show if available
    */
   private checkAndShowSuggestions(): void {
-    // Update content analysis
-    this.aiManager.updateContentAnalysis();
+    if (!this.floatingChip) return;
 
-    // Get top suggestion for RECORDING mode (passive suggestions only)
-    const suggestion = this.aiManager.getSmartSuggestion('recording');
+    // Calculate elapsed time in minutes
+    const elapsed = Date.now() - this.startTime;
+    const durationMinutes = elapsed / (1000 * 60);
 
-    if (suggestion) {
-      logger.info(`💡 Showing recording suggestion: ${suggestion.title} (confidence: ${suggestion.confidence})`);
+    // Get transcription and notes
+    const transcription = this.transcriptionManager.getText();
+    const notes = this.editorManager.getText();
 
-      // Show suggestion chip
-      const suggestionChip = (window as any).aiSuggestionChip;
-      if (suggestionChip && !suggestionChip.getIsVisible()) {
-        suggestionChip.show(suggestion);
-        this.aiManager.markSuggestionShown(suggestion.id);
-      }
+    // Update chip with latest content and duration
+    this.floatingChip.updateSuggestions(transcription, notes, durationMinutes);
+
+    logger.debug('FloatingAIChip updated with latest content');
+  }
+
+  /**
+   * Handle suggestion actions from FloatingAIChip
+   */
+  private handleChipSuggestion(suggestion: any): void {
+    logger.info('Handling chip suggestion:', suggestion);
+
+    // Handle different suggestion actions
+    switch (suggestion.suggestedAction) {
+      case 'bookmark':
+        logger.info('User wants to bookmark this moment');
+        // TODO: Implement bookmark functionality
+        break;
+
+      case 'note_prompt':
+        logger.info('Prompting user to add notes');
+        // Focus the notes editor
+        this.editorManager.focus();
+        break;
+
+      case 'highlight':
+        logger.info('User wants to highlight important moment');
+        // TODO: Implement highlight functionality
+        break;
+
+      case 'break':
+        logger.info('Suggesting break to user');
+        // Pause recording
+        this.pause();
+        break;
+
+      default:
+        logger.warn('Unknown suggestion action:', suggestion.suggestedAction);
     }
   }
 }
