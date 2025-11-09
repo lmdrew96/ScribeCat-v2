@@ -77,10 +77,10 @@ export class StudyModeAIToolsManager {
     });
 
     // Row 3: Advanced Tools
-    // Study Coach button
-    const studyCoachBtn = document.getElementById('study-coach-btn');
-    studyCoachBtn?.addEventListener('click', () => {
-      this.generateStudyCoach(session);
+    // ELI5 Explainer button
+    const eli5Btn = document.getElementById('eli5-explainer-btn');
+    eli5Btn?.addEventListener('click', () => {
+      this.generateELI5Explainer(session);
     });
 
     // Concept Map button
@@ -151,12 +151,12 @@ export class StudyModeAIToolsManager {
   }
 
   /**
-   * Generate study coach
+   * Generate ELI5 explainer
    */
-  private generateStudyCoach(session: Session): void {
+  private generateELI5Explainer(session: Session): void {
     if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateStudyCoach(session, this.studyContentArea);
-    logger.info('Generating study coach for session');
+    this.aiSummaryManager.generateELI5Explainer(session, this.studyContentArea);
+    logger.info('Generating ELI5 explainer for session');
   }
 
   /**

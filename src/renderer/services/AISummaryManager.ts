@@ -418,14 +418,14 @@ ${transcriptionText}`;
 
 For each flashcard:
 1. Put the term/concept on the front
-2. Provide a clear definition/explanation on the back
+2. Provide a SHORT, textbook-style definition on the back (1-2 sentences max, concise and direct)
 3. Include which session the content is from (e.g., "(Session 1)" or "(Sessions 2-3)")
 
 Format as a JSON array with objects containing "term", "definition", and "session" fields. Cover important concepts from ALL sessions.
 
 Transcription:
 ${transcriptionText}`
-        : `Create 5-7 flashcards from this transcription. Each flashcard should have a term or concept on the front and a definition or explanation on the back. Format as a JSON array with objects containing "term" and "definition" fields. Focus on the most important concepts and terminology.
+        : `Create 5-7 flashcards from this transcription. Each flashcard should have a term or concept on the front and a SHORT, textbook-style definition on the back (1-2 sentences max, concise and direct). Format as a JSON array with objects containing "term" and "definition" fields. Focus on the most important concepts and terminology.
 
 Transcription:
 ${transcriptionText}`;
@@ -1239,17 +1239,17 @@ ${transcriptionText}`;
   }
 
   /**
-   * Generate AI study coach
+   * Generate ELI5 (Explain Like I'm 5) explanations for complex concepts
    */
-  async generateStudyCoach(session: Session, contentArea: HTMLElement): Promise<void> {
+  async generateELI5Explainer(session: Session, contentArea: HTMLElement): Promise<void> {
     // Set active state
-    this.setActiveStudyTool('study-coach-btn');
+    this.setActiveStudyTool('eli5-explainer-btn');
 
     // Show loading state
     contentArea.innerHTML = `
       <div class="study-loading">
         <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Starting study coach...</div>
+        <div class="study-loading-text">Finding complex concepts to simplify...</div>
       </div>
     `;
 
@@ -1271,90 +1271,86 @@ ${transcriptionText}`;
         transcriptionText = session.transcription.fullText;
       }
 
-      // Start coaching session
-      this.startStudyCoachSession(transcriptionText, contentArea);
-    } catch (error) {
-      console.error('Error starting study coach:', error);
-      contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--record-color);">Failed to start study coach.</div>`;
-    }
-  }
+      // Use AI to identify complex concepts and create simple explanations
+      const prompt = isMultiSession
+        ? `Analyze this MULTI-SESSION transcription and identify 5-7 concepts that might be difficult to understand. For each concept, provide an "Explain Like I'm 5" (ELI5) version - a super simple explanation using everyday language and analogies.
 
-  /**
-   * Start study coach session
-   */
-  private async startStudyCoachSession(transcriptionText: string, contentArea: HTMLElement): Promise<void> {
-    let conversationHistory: Array<{role: string; content: string}> = [];
+For each concept:
+1. The complex concept/term name
+2. A simple, beginner-friendly explanation (use analogies, avoid jargon)
+3. Which session it's from (if the transcription has session markers like "━━━ SESSION 1 ━━━")
 
-    const render = async (userMessage?: string) => {
-      if (userMessage) {
-        conversationHistory.push({ role: 'user', content: userMessage });
+Format as JSON array with "concept", "simpleExplanation", and "session" fields.
 
-        // Get AI response
-        const prompt = `You are a Socratic study coach helping a student understand this material. Ask thought-provoking questions, give hints, and guide them to deeper understanding.
+Transcription:
+${transcriptionText}`
+        : `Analyze this transcription and identify 5-7 concepts that might be difficult to understand. For each concept, provide an "Explain Like I'm 5" (ELI5) version - a super simple explanation using everyday language and analogies.
 
-Material:
-${transcriptionText.substring(0, 2000)}...
+For each concept:
+1. The complex concept/term name
+2. A simple, beginner-friendly explanation (use analogies, avoid jargon)
 
-Conversation so far:
-${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+Format as JSON array with "concept" and "simpleExplanation" fields.
 
-Respond as the coach. Be encouraging and guide the student with questions rather than just giving answers.`;
+Transcription:
+${transcriptionText}`;
+
+      const result = await window.scribeCat.ai.chat(prompt, [], {
+        includeTranscription: false,
+        includeNotes: false
+      });
+
+      if (result.success && result.data) {
+        let explanations: Array<{concept: string; simpleExplanation: string; session?: string}> = [];
 
         try {
-          const result = await window.scribeCat.ai.chat(prompt, [], { includeTranscription: false, includeNotes: false });
-          if (result.success && result.data) {
-            const response = typeof result.data === 'string' ? result.data : (result.data as any).message || JSON.stringify(result.data);
-            conversationHistory.push({ role: 'coach', content: response });
-          }
+          explanations = this.parseAIJsonResponse(
+            result.data,
+            'ELI5 Explanations',
+            (data): data is Array<{ concept: string; simpleExplanation: string; session?: string }> => {
+              return Array.isArray(data) && data.length > 0 &&
+                     typeof data[0] === 'object' && 'concept' in data[0] && 'simpleExplanation' in data[0];
+            }
+          );
         } catch (e) {
-          console.error('Coach response error:', e);
+          console.error('Failed to parse ELI5 response:', e);
+          throw new Error('Invalid response format from AI');
         }
+
+        // Render explanations
+        contentArea.innerHTML = `
+          <div class="eli5-explainer">
+            <div class="eli5-header">
+              <h4>💡 Complex Concepts Made Simple</h4>
+              <p>Here are the tricky concepts explained in simple terms</p>
+            </div>
+            <div class="eli5-list">
+              ${explanations.map(item => `
+                <div class="eli5-item">
+                  <div class="eli5-concept">
+                    <span class="eli5-icon">🔍</span>
+                    <span class="eli5-concept-name">${this.escapeHtml(item.concept)}</span>
+                    ${item.session ? `<span class="eli5-session-badge">${this.escapeHtml(item.session)}</span>` : ''}
+                  </div>
+                  <div class="eli5-explanation">
+                    ${this.escapeHtml(item.simpleExplanation)}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        throw new Error(result.error || 'Failed to generate ELI5 explanations');
       }
-
-      const messagesHtml = conversationHistory.map(msg => `
-        <div class="coach-message ${msg.role}">
-          <div class="coach-message-role">${msg.role === 'coach' ? '🤖 Coach' : '👤 You'}</div>
-          <div class="coach-message-content">${this.escapeHtml(msg.content)}</div>
-        </div>
-      `).join('');
-
+    } catch (error) {
+      console.error('Error generating ELI5:', error);
       contentArea.innerHTML = `
-        <div class="study-coach">
-          <div class="coach-header">
-            <h4>🤖 AI Study Coach</h4>
-            <p>I'll ask questions to help you understand the material better</p>
-          </div>
-          <div class="coach-messages" id="coach-messages">
-            ${messagesHtml || '<div class="coach-welcome">Hi! I\'m your study coach. What would you like to review?</div>'}
-          </div>
-          <div class="coach-input-container">
-            <input type="text" class="coach-input" id="coach-input" placeholder="Type your response..." />
-            <button class="coach-send-btn" id="coach-send-btn">Send</button>
-          </div>
+        <div style="text-align: center; padding: 20px; color: var(--record-color);">
+          Failed to generate explanations: ${error instanceof Error ? error.message : 'Unknown error'}
         </div>
       `;
-
-      // Scroll to bottom
-      const messagesDiv = document.getElementById('coach-messages');
-      if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      // Event listeners
-      const input = document.getElementById('coach-input') as HTMLInputElement;
-      const sendBtn = document.getElementById('coach-send-btn');
-
-      const send = () => {
-        const message = input?.value.trim();
-        if (message) {
-          input.value = '';
-          render(message);
-        }
-      };
-
-      sendBtn?.addEventListener('click', send);
-      input?.addEventListener('keypress', (e) => { if (e.key === 'Enter') send(); });
-    };
-
-    render();
+    }
   }
 
   /**

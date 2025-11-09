@@ -263,9 +263,9 @@ export class StudyModeDetailViewManager {
                   </button>
 
                   <!-- Row 3: Advanced Tools -->
-                  <button class="study-tool-btn" id="study-coach-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">🤖</span>
-                    <span class="tool-label">Study Coach</span>
+                  <button class="study-tool-btn" id="eli5-explainer-btn" data-session-id="${session.id}">
+                    <span class="tool-icon">👶</span>
+                    <span class="tool-label">ELI5 Explainer</span>
                   </button>
                   <button class="study-tool-btn" id="concept-map-btn" data-session-id="${session.id}">
                     <span class="tool-icon">🗺️</span>
@@ -412,9 +412,9 @@ export class StudyModeDetailViewManager {
                   </button>
 
                   <!-- Row 3: Advanced Tools -->
-                  <button class="study-tool-btn" id="study-coach-btn">
-                    <span class="tool-icon">🤖</span>
-                    <span class="tool-label">Study Coach</span>
+                  <button class="study-tool-btn" id="eli5-explainer-btn">
+                    <span class="tool-icon">👶</span>
+                    <span class="tool-label">ELI5 Explainer</span>
                   </button>
                   <button class="study-tool-btn" id="concept-map-btn">
                     <span class="tool-icon">🗺️</span>

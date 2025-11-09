@@ -1792,142 +1792,85 @@
   box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
 }
 
-/* Study Coach Display */
-.study-coach {
+/* ELI5 Explainer Display */
+.eli5-explainer {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  height: 100%;
+  gap: 20px;
 }
 
-.coach-header {
+.eli5-header {
   text-align: center;
-  padding-bottom: 12px;
+  padding-bottom: 16px;
   border-bottom: 2px solid var(--border);
 }
 
-.coach-header h4 {
+.eli5-header h4 {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
 }
 
-.coach-header p {
-  font-size: 13px;
+.eli5-header p {
+  font-size: 14px;
   color: var(--text-secondary);
   margin: 0;
 }
 
-.coach-messages {
-  flex: 1;
+.eli5-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
-  max-height: 350px;
-  padding: 4px;
+  gap: 16px;
 }
 
-.coach-messages::-webkit-scrollbar {
-  width: 6px;
-}
-
-.coach-messages::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-}
-
-.coach-messages::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-
-.coach-message {
-  padding: 14px;
+.eli5-item {
+  padding: 18px;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
-  max-width: 85%;
-  line-height: 1.6;
-  font-size: 14px;
+  border-left: 4px solid var(--accent);
+  transition: all 0.2s ease;
 }
 
-.coach-message.coach {
-  background-color: var(--bg-secondary);
-  border-left: 3px solid var(--accent);
-  align-self: flex-start;
-  color: var(--text-primary);
+.eli5-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.coach-message.user {
-  background-color: rgba(0, 122, 204, 0.15);
-  border-left: 3px solid var(--success);
-  align-self: flex-end;
-  color: var(--text-primary);
+.eli5-concept {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
-.coach-message-label {
-  font-size: 11px;
+.eli5-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.eli5-concept-name {
+  font-size: 16px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-tertiary);
-  margin-bottom: 6px;
-}
-
-.coach-input-area {
-  padding-top: 12px;
-  border-top: 2px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.coach-input-container {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-}
-
-.coach-input {
-  flex: 1;
-  padding: 10px 14px;
-  background-color: var(--bg-secondary);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 14px;
-  resize: vertical;
-  min-height: 44px;
-  max-height: 100px;
-  font-family: inherit;
-  transition: all 0.2s ease;
+  flex: 1;
 }
 
-.coach-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
-}
-
-.coach-send-btn {
-  padding: 10px 20px;
-  background-color: var(--accent);
-  border: none;
-  border-radius: 6px;
-  color: white;
-  font-size: 14px;
+.eli5-session-badge {
+  font-size: 11px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 3px 8px;
+  border-radius: 10px;
 }
 
-.coach-send-btn:hover {
-  background-color: var(--accent-hover);
-}
-
-.coach-send-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.eli5-explanation {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  padding-left: 30px;
 }
 
 /* Concept Map Display */
