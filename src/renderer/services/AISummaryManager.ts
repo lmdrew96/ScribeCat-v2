@@ -417,15 +417,15 @@ ${transcriptionText}`;
         ? `Create 8-12 flashcards from this MULTI-SESSION study set. The transcription contains content from multiple sessions marked with headers like "━━━ SESSION 1: Title ━━━".
 
 For each flashcard:
-1. Create a question on the front
-2. Provide a clear answer on the back
+1. Put the term/concept on the front
+2. Provide a clear definition/explanation on the back
 3. Include which session the content is from (e.g., "(Session 1)" or "(Sessions 2-3)")
 
-Format as a JSON array with objects containing "question", "answer", and "session" fields. Cover important concepts from ALL sessions.
+Format as a JSON array with objects containing "term", "definition", and "session" fields. Cover important concepts from ALL sessions.
 
 Transcription:
 ${transcriptionText}`
-        : `Create 5-7 flashcards from this transcription. Each flashcard should have a question on the front and an answer on the back. Format as a JSON array with objects containing "question" and "answer" fields. Focus on the most important concepts and facts.
+        : `Create 5-7 flashcards from this transcription. Each flashcard should have a term or concept on the front and a definition or explanation on the back. Format as a JSON array with objects containing "term" and "definition" fields. Focus on the most important concepts and terminology.
 
 Transcription:
 ${transcriptionText}`;
@@ -437,15 +437,15 @@ ${transcriptionText}`;
 
       if (result.success && result.data) {
         // result.data is a string response from AI
-        let flashcards: Array<{question: string; answer: string; session?: string}> = [];
+        let flashcards: Array<{term: string; definition: string; session?: string}> = [];
 
         try {
           flashcards = this.parseAIJsonResponse(
             result.data,
             'Flashcards',
-            (data): data is Array<{ question: string; answer: string; session?: string }> => {
+            (data): data is Array<{ term: string; definition: string; session?: string }> => {
               return Array.isArray(data) && data.length > 0 &&
-                     typeof data[0] === 'object' && 'question' in data[0] && 'answer' in data[0];
+                     typeof data[0] === 'object' && 'term' in data[0] && 'definition' in data[0];
             }
           );
         } catch (e) {
@@ -480,15 +480,15 @@ ${transcriptionText}`;
   /**
    * Render flashcards with navigation
    */
-  private renderFlashcards(flashcards: Array<{question: string; answer: string; session?: string}>, contentArea: HTMLElement): void {
+  private renderFlashcards(flashcards: Array<{term: string; definition: string; session?: string}>, contentArea: HTMLElement): void {
     let currentIndex = 0;
     let isFlipped = false;
 
     const render = () => {
       const card = flashcards[currentIndex];
-      const side = isFlipped ? 'answer' : 'question';
-      const label = isFlipped ? 'BACK' : 'FRONT';
-      const content = isFlipped ? card.answer : card.question;
+      const side = isFlipped ? 'definition' : 'term';
+      const label = isFlipped ? 'DEFINITION' : 'TERM';
+      const content = isFlipped ? card.definition : card.term;
 
       contentArea.innerHTML = `
         <div class="study-flashcards">
@@ -543,17 +543,69 @@ ${transcriptionText}`;
   }
 
   /**
+   * Show quiz settings selector
+   */
+  private showQuizSettings(session: Session, contentArea: HTMLElement): void {
+    contentArea.innerHTML = `
+      <div class="study-quiz-settings">
+        <div class="quiz-settings-header">
+          <h4>📝 Quiz Settings</h4>
+          <p>Choose how many questions you'd like in your quiz</p>
+        </div>
+
+        <div class="quiz-question-count-selector">
+          <button class="quiz-count-btn" data-count="5">
+            <span class="count-number">5</span>
+            <span class="count-label">Questions</span>
+            <span class="count-time">~5 min</span>
+          </button>
+          <button class="quiz-count-btn" data-count="10">
+            <span class="count-number">10</span>
+            <span class="count-label">Questions</span>
+            <span class="count-time">~10 min</span>
+          </button>
+          <button class="quiz-count-btn" data-count="15">
+            <span class="count-number">15</span>
+            <span class="count-label">Questions</span>
+            <span class="count-time">~15 min</span>
+          </button>
+          <button class="quiz-count-btn" data-count="20">
+            <span class="count-number">20</span>
+            <span class="count-label">Questions</span>
+            <span class="count-time">~20 min</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Attach event listeners
+    const countButtons = contentArea.querySelectorAll('.quiz-count-btn');
+    countButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const count = parseInt((btn as HTMLElement).dataset.count || '5');
+        this.generateQuiz(session, contentArea, count);
+      });
+    });
+  }
+
+  /**
    * Generate a quiz from the session
    */
-  async generateQuiz(session: Session, contentArea: HTMLElement): Promise<void> {
+  async generateQuiz(session: Session, contentArea: HTMLElement, questionCount?: number): Promise<void> {
     // Set active state
     this.setActiveStudyTool('generate-quiz-btn');
+
+    // If no question count provided, show selector first
+    if (!questionCount) {
+      this.showQuizSettings(session, contentArea);
+      return;
+    }
 
     // Show loading state
     contentArea.innerHTML = `
       <div class="study-loading">
         <div class="study-loading-spinner"></div>
-        <div class="study-loading-text">Generating quiz...</div>
+        <div class="study-loading-text">Generating ${questionCount} quiz questions...</div>
       </div>
     `;
 
@@ -609,18 +661,19 @@ ${transcriptionText}`;
 
       // Use AI to generate quiz questions
       const prompt = isMultiSession
-        ? `Create 8-10 multiple-choice quiz questions from this MULTI-SESSION study set. The transcription contains content from multiple sessions marked with headers like "━━━ SESSION 1: Title ━━━".
+        ? `Create ${questionCount} multiple-choice quiz questions from this MULTI-SESSION study set. The transcription contains content from multiple sessions marked with headers like "━━━ SESSION 1: Title ━━━".
 
 For each question:
 1. Create a clear question that tests understanding
 2. Provide 4 options (A, B, C, D) with one correct answer
 3. Indicate which session the content is from (e.g., "Session 1" or "Session 2-3")
+4. Provide a brief explanation for why the correct answer is right
 
-Format as a JSON array with objects containing "question", "options" (array of 4 strings), "correctAnswer" (0-3 index), and "session" (string). Cover content from ALL sessions.
+Format as a JSON array with objects containing "question", "options" (array of 4 strings), "correctAnswer" (0-3 index), "explanation" (string), and "session" (string). Cover content from ALL sessions.
 
 Transcription:
 ${transcriptionText}`
-        : `Create 5 multiple-choice quiz questions from this transcription. Each question should have 4 options (A, B, C, D) with one correct answer. Format as a JSON array with objects containing "question", "options" (array of 4 strings), and "correctAnswer" (0-3 index). Focus on testing understanding of key concepts.
+        : `Create ${questionCount} multiple-choice quiz questions from this transcription. Each question should have 4 options (A, B, C, D) with one correct answer. For each question, also provide a brief explanation for why the correct answer is right. Format as a JSON array with objects containing "question", "options" (array of 4 strings), "correctAnswer" (0-3 index), and "explanation" (string). Focus on testing understanding of key concepts.
 
 Transcription:
 ${transcriptionText}`;
@@ -632,17 +685,18 @@ ${transcriptionText}`;
 
       if (result.success && result.data) {
         // result.data is a string response from AI
-        let questions: Array<{question: string; options: string[]; correctAnswer: number; session?: string}> = [];
+        let questions: Array<{question: string; options: string[]; correctAnswer: number; explanation: string; session?: string}> = [];
 
         try {
           questions = this.parseAIJsonResponse(
             result.data,
             'Quiz',
-            (data): data is Array<{ question: string; options: string[]; correctAnswer: number; session?: string }> => {
+            (data): data is Array<{ question: string; options: string[]; correctAnswer: number; explanation: string; session?: string }> => {
               return Array.isArray(data) && data.length > 0 &&
                      typeof data[0] === 'object' && 'question' in data[0] &&
                      'options' in data[0] && 'correctAnswer' in data[0] &&
-                     typeof data[0].correctAnswer === 'number';
+                     typeof data[0].correctAnswer === 'number' &&
+                     'explanation' in data[0];
             }
           );
         } catch (e) {
@@ -677,7 +731,7 @@ ${transcriptionText}`;
   /**
    * Render interactive quiz
    */
-  private renderQuiz(questions: Array<{question: string; options: string[]; correctAnswer: number; session?: string}>, contentArea: HTMLElement): void {
+  private renderQuiz(questions: Array<{question: string; options: string[]; correctAnswer: number; explanation: string; session?: string}>, contentArea: HTMLElement): void {
     let currentIndex = 0;
     let score = 0;
     let answered = false;
@@ -752,9 +806,14 @@ ${transcriptionText}`;
             </div>
             ${answered ? `
               <div class="quiz-feedback">
-                ${selectedAnswer === question.correctAnswer ?
-                  '✅ Correct! Well done.' :
-                  `❌ Incorrect. The correct answer is ${optionLabels[question.correctAnswer]}.`}
+                <div class="quiz-feedback-result">
+                  ${selectedAnswer === question.correctAnswer ?
+                    '✅ Correct! Well done.' :
+                    `❌ Incorrect. The correct answer is ${optionLabels[question.correctAnswer]}.`}
+                </div>
+                <div class="quiz-feedback-explanation">
+                  <strong>Explanation:</strong> ${this.escapeHtml(question.explanation)}
+                </div>
               </div>
               <button class="quiz-next-btn" id="next-question-btn">
                 ${currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
@@ -792,6 +851,889 @@ ${transcriptionText}`;
     };
 
     render();
+  }
+
+  /**
+   * Generate weak spots analysis
+   */
+  async generateWeakSpots(session: Session, contentArea: HTMLElement): Promise<void> {
+    // Set active state
+    this.setActiveStudyTool('weak-spots-btn');
+
+    // Show loading state
+    contentArea.innerHTML = `
+      <div class="study-loading">
+        <div class="study-loading-spinner"></div>
+        <div class="study-loading-text">Analyzing weak spots...</div>
+      </div>
+    `;
+
+    try {
+      // Check if this is a multi-session study set
+      const isMultiSession = session.type === 'multi-session-study-set';
+
+      let transcriptionText: string;
+
+      if (isMultiSession) {
+        // Load child sessions dynamically
+        const childSessions = await this.loadChildSessions(session);
+
+        if (childSessions.length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-weak-spots">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No child sessions found for this multi-session study set.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        // Merge transcriptions from all child sessions
+        transcriptionText = this.mergeTranscriptions(childSessions);
+
+        if (!transcriptionText || transcriptionText.trim().length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-weak-spots">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available in child sessions.
+              </div>
+            </div>
+          `;
+          return;
+        }
+      } else {
+        // Single session - check if transcription exists
+        if (!session.transcription || !session.transcription.fullText) {
+          contentArea.innerHTML = `
+            <div class="study-weak-spots">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available for this session.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        transcriptionText = session.transcription.fullText;
+      }
+
+      // Use AI to identify weak spots
+      const prompt = isMultiSession
+        ? `Analyze this MULTI-SESSION study set transcription and identify 5-7 concepts that a student is MOST LIKELY TO STRUGGLE WITH. The transcription contains content from multiple sessions marked with headers.
+
+For each weak spot, identify:
+1. The concept/topic name
+2. Why it's a weak spot (e.g., "explained briefly", "complex terminology", "assumed prior knowledge", "mentioned once", "high information density")
+3. A brief mini-lesson or tip to help understand it better
+4. Severity level: "high" (critical to understand), "medium" (important), or "low" (good to review)
+5. Which session(s) it appears in
+
+Format as a JSON array with objects containing "concept", "reason", "miniLesson", "severity", and "session" fields.
+
+Transcription:
+${transcriptionText}`
+        : `Analyze this transcription and identify 5-7 concepts that a student is MOST LIKELY TO STRUGGLE WITH.
+
+For each weak spot, identify:
+1. The concept/topic name
+2. Why it's a weak spot (e.g., "explained briefly", "complex terminology", "assumed prior knowledge", "mentioned once", "high information density")
+3. A brief mini-lesson or tip to help understand it better
+4. Severity level: "high" (critical to understand), "medium" (important), or "low" (good to review)
+
+Format as a JSON array with objects containing "concept", "reason", "miniLesson", and "severity" fields.
+
+Transcription:
+${transcriptionText}`;
+
+      const result = await window.scribeCat.ai.chat(prompt, [], {
+        includeTranscription: false,
+        includeNotes: false
+      });
+
+      if (result.success && result.data) {
+        // result.data is a string response from AI
+        let weakSpots: Array<{concept: string; reason: string; miniLesson: string; severity: string; session?: string}> = [];
+
+        try {
+          weakSpots = this.parseAIJsonResponse(
+            result.data,
+            'Weak Spots',
+            (data): data is Array<{ concept: string; reason: string; miniLesson: string; severity: string; session?: string }> => {
+              return Array.isArray(data) && data.length > 0 &&
+                     typeof data[0] === 'object' && 'concept' in data[0] &&
+                     'reason' in data[0] && 'miniLesson' in data[0] &&
+                     'severity' in data[0];
+            }
+          );
+        } catch (e) {
+          console.error('Failed to parse weak spots:', e);
+          throw new Error('Failed to parse weak spots from AI response. The AI may not have returned the expected format.');
+        }
+
+        if (weakSpots.length === 0) {
+          throw new Error('No weak spots identified');
+        }
+
+        // Render weak spots
+        this.renderWeakSpots(weakSpots, contentArea);
+      } else {
+        throw new Error(result.error || 'Failed to analyze weak spots');
+      }
+    } catch (error) {
+      console.error('Error analyzing weak spots:', error);
+      contentArea.innerHTML = `
+        <div class="study-weak-spots">
+          <div style="text-align: center; padding: 20px; color: var(--record-color);">
+            Failed to analyze weak spots: ${error instanceof Error ? error.message : 'Unknown error'}
+          </div>
+          <div style="text-align: center; padding: 10px; color: var(--text-tertiary);">
+            Make sure Claude AI is configured in Settings.
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Render weak spots analysis
+   */
+  private renderWeakSpots(weakSpots: Array<{concept: string; reason: string; miniLesson: string; severity: string; session?: string}>, contentArea: HTMLElement): void {
+    const severityIcons = {
+      high: '🔴',
+      medium: '🟡',
+      low: '🟢'
+    };
+
+    const severityLabels = {
+      high: 'Priority',
+      medium: 'Review',
+      low: 'Optional'
+    };
+
+    const weakSpotsHtml = weakSpots
+      .sort((a, b) => {
+        // Sort by severity: high > medium > low
+        const severityOrder = { high: 0, medium: 1, low: 2 };
+        return (severityOrder[a.severity.toLowerCase() as keyof typeof severityOrder] || 1) -
+               (severityOrder[b.severity.toLowerCase() as keyof typeof severityOrder] || 1);
+      })
+      .map(spot => {
+        const severity = spot.severity.toLowerCase();
+        const icon = severityIcons[severity as keyof typeof severityIcons] || '🟡';
+        const label = severityLabels[severity as keyof typeof severityLabels] || 'Review';
+
+        return `
+          <div class="weak-spot-item" data-severity="${severity}">
+            <div class="weak-spot-header">
+              <div class="weak-spot-title">
+                <span class="weak-spot-icon">${icon}</span>
+                <span class="weak-spot-concept">${this.escapeHtml(spot.concept)}</span>
+                <span class="weak-spot-severity-badge">${label}</span>
+              </div>
+              ${spot.session ? `<span class="weak-spot-session-badge">${this.escapeHtml(spot.session)}</span>` : ''}
+            </div>
+            <div class="weak-spot-reason">
+              <strong>Why it's tricky:</strong> ${this.escapeHtml(spot.reason)}
+            </div>
+            <div class="weak-spot-mini-lesson">
+              <strong>💡 Quick tip:</strong> ${this.escapeHtml(spot.miniLesson)}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+    contentArea.innerHTML = `
+      <div class="study-weak-spots">
+        <div class="weak-spots-header">
+          <h4>🎯 Potential Weak Spots</h4>
+          <p>These concepts might be challenging. Focus on these for deeper understanding.</p>
+        </div>
+        <div class="weak-spots-list">
+          ${weakSpotsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Generate learn mode with spaced repetition
+   */
+  async generateLearnMode(session: Session, contentArea: HTMLElement): Promise<void> {
+    // Set active state
+    this.setActiveStudyTool('learn-mode-btn');
+
+    // Show loading state
+    contentArea.innerHTML = `
+      <div class="study-loading">
+        <div class="study-loading-spinner"></div>
+        <div class="study-loading-text">Preparing learn mode...</div>
+      </div>
+    `;
+
+    try {
+      // Check if this is a multi-session study set
+      const isMultiSession = session.type === 'multi-session-study-set';
+      let transcriptionText: string;
+
+      if (isMultiSession) {
+        const childSessions = await this.loadChildSessions(session);
+        if (childSessions.length === 0) {
+          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No child sessions found.</div>`;
+          return;
+        }
+        transcriptionText = this.mergeTranscriptions(childSessions);
+        if (!transcriptionText || transcriptionText.trim().length === 0) {
+          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No transcription available.</div>`;
+          return;
+        }
+      } else {
+        if (!session.transcription || !session.transcription.fullText) {
+          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No transcription available.</div>`;
+          return;
+        }
+        transcriptionText = session.transcription.fullText;
+      }
+
+      // Generate concepts for learning
+      const prompt = `Create 10-12 key concept pairs for spaced repetition learning from this transcription. Each pair should have a term/concept and its definition.
+
+Format as a JSON array with objects containing "term" and "definition" fields. Focus on the most important concepts that a student needs to master.
+
+Transcription:
+${transcriptionText}`;
+
+      const result = await window.scribeCat.ai.chat(prompt, [], {
+        includeTranscription: false,
+        includeNotes: false
+      });
+
+      if (result.success && result.data) {
+        let concepts: Array<{term: string; definition: string}> = [];
+
+        try {
+          concepts = this.parseAIJsonResponse(
+            result.data,
+            'Learn Mode Concepts',
+            (data): data is Array<{ term: string; definition: string }> => {
+              return Array.isArray(data) && data.length > 0 &&
+                     typeof data[0] === 'object' && 'term' in data[0] && 'definition' in data[0];
+            }
+          );
+        } catch (e) {
+          console.error('Failed to parse learn mode concepts:', e);
+          throw new Error('Failed to parse concepts from AI response.');
+        }
+
+        if (concepts.length === 0) {
+          throw new Error('No concepts generated');
+        }
+
+        // Start learn mode session
+        this.startLearnModeSession(concepts, contentArea);
+      } else {
+        throw new Error(result.error || 'Failed to generate learn mode concepts');
+      }
+    } catch (error) {
+      console.error('Error generating learn mode:', error);
+      contentArea.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: var(--record-color);">
+          Failed to start learn mode: ${error instanceof Error ? error.message : 'Unknown error'}
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Start learn mode session
+   */
+  private startLearnModeSession(concepts: Array<{term: string; definition: string}>, contentArea: HTMLElement): void {
+    let currentIndex = 0;
+    let masteredConcepts: Set<number> = new Set();
+    let reviewQueue: number[] = Array.from({ length: concepts.length }, (_, i) => i);
+
+    const render = () => {
+      if (currentIndex >= reviewQueue.length) {
+        // Session complete
+        const masteryPercentage = Math.round((masteredConcepts.size / concepts.length) * 100);
+        contentArea.innerHTML = `
+          <div class="learn-mode-complete">
+            <div class="learn-complete-icon">🎉</div>
+            <h4>Learning Session Complete!</h4>
+            <div class="learn-stats">
+              <div class="learn-stat">
+                <span class="stat-number">${masteredConcepts.size}</span>
+                <span class="stat-label">Mastered</span>
+              </div>
+              <div class="learn-stat">
+                <span class="stat-number">${concepts.length - masteredConcepts.size}</span>
+                <span class="stat-label">Review</span>
+              </div>
+              <div class="learn-stat">
+                <span class="stat-number">${masteryPercentage}%</span>
+                <span class="stat-label">Progress</span>
+              </div>
+            </div>
+            <button class="learn-restart-btn" id="restart-learn-btn">Start New Session</button>
+          </div>
+        `;
+
+        const restartBtn = document.getElementById('restart-learn-btn');
+        restartBtn?.addEventListener('click', () => {
+          currentIndex = 0;
+          masteredConcepts.clear();
+          reviewQueue = Array.from({ length: concepts.length }, (_, i) => i);
+          render();
+        });
+        return;
+      }
+
+      const conceptIndex = reviewQueue[currentIndex];
+      const concept = concepts[conceptIndex];
+      const isMastered = masteredConcepts.has(conceptIndex);
+
+      contentArea.innerHTML = `
+        <div class="learn-mode-session">
+          <div class="learn-progress-bar">
+            <div class="learn-progress-fill" style="width: ${(currentIndex / reviewQueue.length) * 100}%"></div>
+          </div>
+          <div class="learn-progress-text">${currentIndex + 1} of ${reviewQueue.length} concepts</div>
+
+          <div class="learn-card">
+            <div class="learn-card-term">${this.escapeHtml(concept.term)}</div>
+            <div class="learn-card-definition">${this.escapeHtml(concept.definition)}</div>
+          </div>
+
+          <div class="learn-actions">
+            <button class="learn-action-btn learn-still-learning" id="still-learning-btn">
+              Still Learning
+            </button>
+            <button class="learn-action-btn learn-know-it" id="know-it-btn">
+              Know It!
+            </button>
+          </div>
+
+          <div class="learn-stats-mini">
+            <span>Mastered: ${masteredConcepts.size}/${concepts.length}</span>
+          </div>
+        </div>
+      `;
+
+      // Event listeners
+      const stillLearningBtn = document.getElementById('still-learning-btn');
+      stillLearningBtn?.addEventListener('click', () => {
+        masteredConcepts.delete(conceptIndex);
+        currentIndex++;
+        render();
+      });
+
+      const knowItBtn = document.getElementById('know-it-btn');
+      knowItBtn?.addEventListener('click', () => {
+        masteredConcepts.add(conceptIndex);
+        currentIndex++;
+        render();
+      });
+    };
+
+    render();
+  }
+
+  /**
+   * Generate AI study coach
+   */
+  async generateStudyCoach(session: Session, contentArea: HTMLElement): Promise<void> {
+    // Set active state
+    this.setActiveStudyTool('study-coach-btn');
+
+    // Show loading state
+    contentArea.innerHTML = `
+      <div class="study-loading">
+        <div class="study-loading-spinner"></div>
+        <div class="study-loading-text">Starting study coach...</div>
+      </div>
+    `;
+
+    try {
+      const isMultiSession = session.type === 'multi-session-study-set';
+      let transcriptionText: string;
+
+      if (isMultiSession) {
+        const childSessions = await this.loadChildSessions(session);
+        if (childSessions.length === 0 || !(transcriptionText = this.mergeTranscriptions(childSessions))) {
+          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No content available.</div>`;
+          return;
+        }
+      } else {
+        if (!session.transcription?.fullText) {
+          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No transcription available.</div>`;
+          return;
+        }
+        transcriptionText = session.transcription.fullText;
+      }
+
+      // Start coaching session
+      this.startStudyCoachSession(transcriptionText, contentArea);
+    } catch (error) {
+      console.error('Error starting study coach:', error);
+      contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--record-color);">Failed to start study coach.</div>`;
+    }
+  }
+
+  /**
+   * Start study coach session
+   */
+  private async startStudyCoachSession(transcriptionText: string, contentArea: HTMLElement): Promise<void> {
+    let conversationHistory: Array<{role: string; content: string}> = [];
+
+    const render = async (userMessage?: string) => {
+      if (userMessage) {
+        conversationHistory.push({ role: 'user', content: userMessage });
+
+        // Get AI response
+        const prompt = `You are a Socratic study coach helping a student understand this material. Ask thought-provoking questions, give hints, and guide them to deeper understanding.
+
+Material:
+${transcriptionText.substring(0, 2000)}...
+
+Conversation so far:
+${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+
+Respond as the coach. Be encouraging and guide the student with questions rather than just giving answers.`;
+
+        try {
+          const result = await window.scribeCat.ai.chat(prompt, [], { includeTranscription: false, includeNotes: false });
+          if (result.success && result.data) {
+            const response = typeof result.data === 'string' ? result.data : (result.data as any).message || JSON.stringify(result.data);
+            conversationHistory.push({ role: 'coach', content: response });
+          }
+        } catch (e) {
+          console.error('Coach response error:', e);
+        }
+      }
+
+      const messagesHtml = conversationHistory.map(msg => `
+        <div class="coach-message ${msg.role}">
+          <div class="coach-message-role">${msg.role === 'coach' ? '🤖 Coach' : '👤 You'}</div>
+          <div class="coach-message-content">${this.escapeHtml(msg.content)}</div>
+        </div>
+      `).join('');
+
+      contentArea.innerHTML = `
+        <div class="study-coach">
+          <div class="coach-header">
+            <h4>🤖 AI Study Coach</h4>
+            <p>I'll ask questions to help you understand the material better</p>
+          </div>
+          <div class="coach-messages" id="coach-messages">
+            ${messagesHtml || '<div class="coach-welcome">Hi! I\'m your study coach. What would you like to review?</div>'}
+          </div>
+          <div class="coach-input-container">
+            <input type="text" class="coach-input" id="coach-input" placeholder="Type your response..." />
+            <button class="coach-send-btn" id="coach-send-btn">Send</button>
+          </div>
+        </div>
+      `;
+
+      // Scroll to bottom
+      const messagesDiv = document.getElementById('coach-messages');
+      if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+      // Event listeners
+      const input = document.getElementById('coach-input') as HTMLInputElement;
+      const sendBtn = document.getElementById('coach-send-btn');
+
+      const send = () => {
+        const message = input?.value.trim();
+        if (message) {
+          input.value = '';
+          render(message);
+        }
+      };
+
+      sendBtn?.addEventListener('click', send);
+      input?.addEventListener('keypress', (e) => { if (e.key === 'Enter') send(); });
+    };
+
+    render();
+  }
+
+  /**
+   * Generate concept map
+   */
+  async generateConceptMap(session: Session, contentArea: HTMLElement): Promise<void> {
+    // Set active state
+    this.setActiveStudyTool('concept-map-btn');
+
+    // Show loading state
+    contentArea.innerHTML = `
+      <div class="study-loading">
+        <div class="study-loading-spinner"></div>
+        <div class="study-loading-text">Generating concept map...</div>
+      </div>
+    `;
+
+    try {
+      const isMultiSession = session.type === 'multi-session-study-set';
+      let transcriptionText: string;
+
+      if (isMultiSession) {
+        const childSessions = await this.loadChildSessions(session);
+        if (childSessions.length === 0) {
+          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No child sessions found.</div>`;
+          return;
+        }
+        transcriptionText = this.mergeTranscriptions(childSessions);
+        if (!transcriptionText || !transcriptionText.trim()) {
+          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No transcription available.</div>`;
+          return;
+        }
+      } else {
+        if (!session.transcription?.fullText) {
+          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No transcription available.</div>`;
+          return;
+        }
+        transcriptionText = session.transcription.fullText;
+      }
+
+      // Generate hierarchical concept structure
+      const prompt = `Create a hierarchical concept map from this transcription. Identify:
+1. Main topic (1 central concept)
+2. Major subtopics (3-5 concepts)
+3. Supporting concepts for each subtopic (2-3 each)
+
+Format as a JSON object with:
+- "mainTopic": string
+- "subtopics": array of {"name": string, "supporting": array of strings}
+
+Transcription:
+${transcriptionText}`;
+
+      const result = await window.scribeCat.ai.chat(prompt, [], { includeTranscription: false, includeNotes: false });
+
+      if (result.success && result.data) {
+        let conceptMap: {mainTopic: string; subtopics: Array<{name: string; supporting: string[]}>};
+
+        try {
+          conceptMap = this.parseAIJsonResponse(
+            result.data,
+            'Concept Map',
+            (data): data is {mainTopic: string; subtopics: Array<{name: string; supporting: string[]}> } => {
+              return typeof data === 'object' && data !== null && 'mainTopic' in data && 'subtopics' in data;
+            }
+          );
+        } catch (e) {
+          console.error('Failed to parse concept map:', e);
+          throw new Error('Failed to parse concept map from AI response.');
+        }
+
+        // Render concept map
+        this.renderConceptMap(conceptMap, contentArea);
+      } else {
+        throw new Error(result.error || 'Failed to generate concept map');
+      }
+    } catch (error) {
+      console.error('Error generating concept map:', error);
+      contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--record-color);">Failed to generate concept map: ${error instanceof Error ? error.message : 'Unknown error'}</div>`;
+    }
+  }
+
+  /**
+   * Render concept map
+   */
+  private renderConceptMap(conceptMap: {mainTopic: string; subtopics: Array<{name: string; supporting: string[]}>}, contentArea: HTMLElement): void {
+    const subtopicsHtml = conceptMap.subtopics.map(subtopic => {
+      const supportingHtml = subtopic.supporting.map(concept => `
+        <div class="map-supporting-concept">${this.escapeHtml(concept)}</div>
+      `).join('');
+
+      return `
+        <div class="map-subtopic-branch">
+          <div class="map-subtopic">${this.escapeHtml(subtopic.name)}</div>
+          <div class="map-supporting-concepts">${supportingHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    contentArea.innerHTML = `
+      <div class="concept-map">
+        <div class="map-header">
+          <h4>🗺️ Concept Map</h4>
+          <p>Visual representation of how concepts relate</p>
+        </div>
+        <div class="map-diagram">
+          <div class="map-main-topic">${this.escapeHtml(conceptMap.mainTopic)}</div>
+          <div class="map-subtopics">${subtopicsHtml}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Generate study plan
+   */
+  async generateStudyPlan(session: Session, contentArea: HTMLElement, daysUntilExam?: number, hoursPerDay?: number): Promise<void> {
+    // Set active state
+    this.setActiveStudyTool('study-plan-btn');
+
+    // If no parameters provided, show the form
+    if (daysUntilExam === undefined || hoursPerDay === undefined) {
+      this.showStudyPlanForm(session, contentArea);
+      return;
+    }
+
+    // Show loading state
+    contentArea.innerHTML = `
+      <div class="study-loading">
+        <div class="study-loading-spinner"></div>
+        <div class="study-loading-text">Creating your study plan...</div>
+      </div>
+    `;
+
+    try {
+      // Check if this is a multi-session study set
+      const isMultiSession = session.type === 'multi-session-study-set';
+
+      let transcriptionText: string;
+      let sessionTitles: string[] = [];
+
+      if (isMultiSession) {
+        // Load child sessions dynamically
+        const childSessions = await this.loadChildSessions(session);
+
+        if (childSessions.length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-plan">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No child sessions found for this multi-session study set.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        // Merge transcriptions from all child sessions
+        transcriptionText = this.mergeTranscriptions(childSessions);
+        sessionTitles = childSessions.map(s => s.title);
+
+        if (!transcriptionText || transcriptionText.trim().length === 0) {
+          contentArea.innerHTML = `
+            <div class="study-plan">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available in child sessions.
+              </div>
+            </div>
+          `;
+          return;
+        }
+      } else {
+        // Single session - check if transcription exists
+        if (!session.transcription || !session.transcription.fullText) {
+          contentArea.innerHTML = `
+            <div class="study-plan">
+              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
+                No transcription available for this session.
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        transcriptionText = session.transcription.fullText;
+        sessionTitles = [session.title];
+      }
+
+      const totalHours = daysUntilExam * hoursPerDay;
+
+      // Use AI to generate study plan
+      const prompt = isMultiSession
+        ? `Create a personalized ${daysUntilExam}-day study plan for this MULTI-SESSION study set. The student has ${hoursPerDay} hours available per day (total: ${totalHours} hours).
+
+Sessions to cover:
+${sessionTitles.map((title, i) => `${i + 1}. ${title}`).join('\n')}
+
+For each day, create:
+1. Day number (1-${daysUntilExam})
+2. Focus topics for that day
+3. Recommended study tools to use (e.g., "Key Concepts", "Quiz", "Weak Spots", "Flashcards")
+4. Time allocation for each activity
+5. Brief description of what to accomplish
+
+Format as a JSON array with objects containing "day", "topics", "tools" (array), "activities" (array of {activity, duration}), and "goal" fields. Ensure the plan progressively builds knowledge and includes review sessions.
+
+Transcription summary (analyze to understand content):
+${transcriptionText.substring(0, 3000)}...`
+        : `Create a personalized ${daysUntilExam}-day study plan for this session. The student has ${hoursPerDay} hours available per day (total: ${totalHours} hours).
+
+Topic: ${session.title}
+
+For each day, create:
+1. Day number (1-${daysUntilExam})
+2. Focus topics for that day
+3. Recommended study tools to use (e.g., "Key Concepts", "Quiz", "Weak Spots", "Flashcards")
+4. Time allocation for each activity
+5. Brief description of what to accomplish
+
+Format as a JSON array with objects containing "day", "topics", "tools" (array of strings), "activities" (array of {activity, duration}), and "goal" fields. Ensure the plan progressively builds knowledge and includes review sessions.
+
+Transcription summary (analyze to understand content):
+${transcriptionText.substring(0, 3000)}...`;
+
+      const result = await window.scribeCat.ai.chat(prompt, [], {
+        includeTranscription: false,
+        includeNotes: false
+      });
+
+      if (result.success && result.data) {
+        // result.data is a string response from AI
+        let studyPlan: Array<{day: number; topics: string; tools: string[]; activities: Array<{activity: string; duration: string}>; goal: string}> = [];
+
+        try {
+          studyPlan = this.parseAIJsonResponse(
+            result.data,
+            'Study Plan',
+            (data): data is Array<{ day: number; topics: string; tools: string[]; activities: Array<{activity: string; duration: string}>; goal: string }> => {
+              return Array.isArray(data) && data.length > 0 &&
+                     typeof data[0] === 'object' && 'day' in data[0] &&
+                     'topics' in data[0] && 'tools' in data[0] &&
+                     'activities' in data[0] && 'goal' in data[0];
+            }
+          );
+        } catch (e) {
+          console.error('Failed to parse study plan:', e);
+          throw new Error('Failed to parse study plan from AI response. The AI may not have returned the expected format.');
+        }
+
+        if (studyPlan.length === 0) {
+          throw new Error('No study plan generated');
+        }
+
+        // Render study plan
+        this.renderStudyPlan(studyPlan, daysUntilExam, hoursPerDay, contentArea);
+      } else {
+        throw new Error(result.error || 'Failed to generate study plan');
+      }
+    } catch (error) {
+      console.error('Error generating study plan:', error);
+      contentArea.innerHTML = `
+        <div class="study-plan">
+          <div style="text-align: center; padding: 20px; color: var(--record-color);">
+            Failed to generate study plan: ${error instanceof Error ? error.message : 'Unknown error'}
+          </div>
+          <div style="text-align: center; padding: 10px; color: var(--text-tertiary);">
+            Make sure Claude AI is configured in Settings.
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Show study plan form
+   */
+  private showStudyPlanForm(session: Session, contentArea: HTMLElement): void {
+    contentArea.innerHTML = `
+      <div class="study-plan-form">
+        <div class="plan-form-header">
+          <h4>📅 Create Your Study Plan</h4>
+          <p>Tell us about your exam, and we'll create a personalized study schedule</p>
+        </div>
+
+        <div class="plan-form-inputs">
+          <div class="plan-form-group">
+            <label for="days-until-exam">Days until exam:</label>
+            <select id="days-until-exam" class="plan-form-select">
+              <option value="1">1 day (cram session)</option>
+              <option value="2">2 days</option>
+              <option value="3" selected>3 days</option>
+              <option value="5">5 days</option>
+              <option value="7">1 week</option>
+              <option value="14">2 weeks</option>
+            </select>
+          </div>
+
+          <div class="plan-form-group">
+            <label for="hours-per-day">Hours available per day:</label>
+            <select id="hours-per-day" class="plan-form-select">
+              <option value="1">1 hour</option>
+              <option value="2" selected>2 hours</option>
+              <option value="3">3 hours</option>
+              <option value="4">4 hours</option>
+              <option value="6">6 hours</option>
+              <option value="8">8 hours (full day)</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="plan-form-submit" id="generate-plan-btn">Generate Study Plan</button>
+      </div>
+    `;
+
+    // Attach event listener
+    const generateBtn = document.getElementById('generate-plan-btn');
+    generateBtn?.addEventListener('click', () => {
+      const daysSelect = document.getElementById('days-until-exam') as HTMLSelectElement;
+      const hoursSelect = document.getElementById('hours-per-day') as HTMLSelectElement;
+
+      const days = parseInt(daysSelect.value);
+      const hours = parseInt(hoursSelect.value);
+
+      this.generateStudyPlan(session, contentArea, days, hours);
+    });
+  }
+
+  /**
+   * Render study plan
+   */
+  private renderStudyPlan(plan: Array<{day: number; topics: string; tools: string[]; activities: Array<{activity: string; duration: string}>; goal: string}>, daysUntilExam: number, hoursPerDay: number, contentArea: HTMLElement): void {
+    const totalHours = daysUntilExam * hoursPerDay;
+
+    const daysHtml = plan.map(dayPlan => {
+      const activitiesHtml = dayPlan.activities.map(activity => `
+        <div class="plan-activity">
+          <span class="plan-activity-name">${this.escapeHtml(activity.activity)}</span>
+          <span class="plan-activity-duration">${this.escapeHtml(activity.duration)}</span>
+        </div>
+      `).join('');
+
+      const toolsHtml = dayPlan.tools.map(tool => `
+        <span class="plan-tool-badge">${this.escapeHtml(tool)}</span>
+      `).join('');
+
+      return `
+        <div class="plan-day-card">
+          <div class="plan-day-header">
+            <span class="plan-day-number">Day ${dayPlan.day}</span>
+            <span class="plan-day-topics">${this.escapeHtml(dayPlan.topics)}</span>
+          </div>
+          <div class="plan-day-goal">
+            <strong>Goal:</strong> ${this.escapeHtml(dayPlan.goal)}
+          </div>
+          <div class="plan-day-tools">
+            <strong>Use these tools:</strong>
+            <div class="plan-tools-list">${toolsHtml}</div>
+          </div>
+          <div class="plan-day-activities">
+            <strong>Schedule:</strong>
+            ${activitiesHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    contentArea.innerHTML = `
+      <div class="study-plan">
+        <div class="plan-header">
+          <h4>📅 Your ${daysUntilExam}-Day Study Plan</h4>
+          <p>Total study time: ${totalHours} hours (${hoursPerDay}h/day)</p>
+        </div>
+        <div class="plan-days-grid">
+          ${daysHtml}
+        </div>
+        <div class="plan-footer">
+          <p>💡 Tip: Check off each activity as you complete it to track your progress!</p>
+        </div>
+      </div>
+    `;
   }
 
   /**

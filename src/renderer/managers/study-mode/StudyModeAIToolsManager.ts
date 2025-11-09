@@ -38,6 +38,7 @@ export class StudyModeAIToolsManager {
   private attachStudyToolHandlers(session: Session): void {
     if (!this.studyContentArea) return;
 
+    // Row 1: Content Analysis Tools
     // Generate Summary button
     const summaryBtn = document.getElementById('generate-summary-btn');
     summaryBtn?.addEventListener('click', () => {
@@ -50,6 +51,13 @@ export class StudyModeAIToolsManager {
       this.extractKeyConcepts(session);
     });
 
+    // Weak Spots Detector button
+    const weakSpotsBtn = document.getElementById('weak-spots-btn');
+    weakSpotsBtn?.addEventListener('click', () => {
+      this.generateWeakSpots(session);
+    });
+
+    // Row 2: Active Learning Tools
     // Generate Flashcards button
     const flashcardsBtn = document.getElementById('generate-flashcards-btn');
     flashcardsBtn?.addEventListener('click', () => {
@@ -60,6 +68,31 @@ export class StudyModeAIToolsManager {
     const quizBtn = document.getElementById('generate-quiz-btn');
     quizBtn?.addEventListener('click', () => {
       this.generateQuiz(session);
+    });
+
+    // Learn Mode button
+    const learnModeBtn = document.getElementById('learn-mode-btn');
+    learnModeBtn?.addEventListener('click', () => {
+      this.generateLearnMode(session);
+    });
+
+    // Row 3: Advanced Tools
+    // Study Coach button
+    const studyCoachBtn = document.getElementById('study-coach-btn');
+    studyCoachBtn?.addEventListener('click', () => {
+      this.generateStudyCoach(session);
+    });
+
+    // Concept Map button
+    const conceptMapBtn = document.getElementById('concept-map-btn');
+    conceptMapBtn?.addEventListener('click', () => {
+      this.generateConceptMap(session);
+    });
+
+    // Study Plan button
+    const studyPlanBtn = document.getElementById('study-plan-btn');
+    studyPlanBtn?.addEventListener('click', () => {
+      this.generateStudyPlan(session);
     });
   }
 
@@ -97,5 +130,50 @@ export class StudyModeAIToolsManager {
     if (!this.studyContentArea) return;
     this.aiSummaryManager.generateQuiz(session, this.studyContentArea);
     logger.info('Generating quiz for session');
+  }
+
+  /**
+   * Generate weak spots analysis
+   */
+  private generateWeakSpots(session: Session): void {
+    if (!this.studyContentArea) return;
+    this.aiSummaryManager.generateWeakSpots(session, this.studyContentArea);
+    logger.info('Generating weak spots analysis for session');
+  }
+
+  /**
+   * Generate learn mode
+   */
+  private generateLearnMode(session: Session): void {
+    if (!this.studyContentArea) return;
+    this.aiSummaryManager.generateLearnMode(session, this.studyContentArea);
+    logger.info('Generating learn mode for session');
+  }
+
+  /**
+   * Generate study coach
+   */
+  private generateStudyCoach(session: Session): void {
+    if (!this.studyContentArea) return;
+    this.aiSummaryManager.generateStudyCoach(session, this.studyContentArea);
+    logger.info('Generating study coach for session');
+  }
+
+  /**
+   * Generate concept map
+   */
+  private generateConceptMap(session: Session): void {
+    if (!this.studyContentArea) return;
+    this.aiSummaryManager.generateConceptMap(session, this.studyContentArea);
+    logger.info('Generating concept map for session');
+  }
+
+  /**
+   * Generate study plan
+   */
+  private generateStudyPlan(session: Session): void {
+    if (!this.studyContentArea) return;
+    this.aiSummaryManager.generateStudyPlan(session, this.studyContentArea);
+    logger.info('Generating study plan for session');
   }
 }

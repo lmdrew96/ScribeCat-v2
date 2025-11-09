@@ -230,25 +230,50 @@ export class StudyModeDetailViewManager {
             <div class="ai-study-tools">
               <h3 class="study-tools-title">🤖 AI Study Tools</h3>
 
-              <!-- Quick Actions -->
+              <!-- AI Study Tools Grid (3x3) -->
               <div class="study-tool-section">
-                <h4>Quick Actions</h4>
+                <h4>AI Study Tools</h4>
                 <div class="study-tool-buttons">
+                  <!-- Row 1: Content Analysis -->
                   <button class="study-tool-btn" id="generate-summary-btn" data-session-id="${session.id}">
                     <span class="tool-icon">📝</span>
-                    <span class="tool-label">Generate Summary</span>
+                    <span class="tool-label">Summary</span>
                   </button>
                   <button class="study-tool-btn" id="extract-concepts-btn" data-session-id="${session.id}">
                     <span class="tool-icon">💡</span>
                     <span class="tool-label">Key Concepts</span>
                   </button>
+                  <button class="study-tool-btn" id="weak-spots-btn" data-session-id="${session.id}">
+                    <span class="tool-icon">🎯</span>
+                    <span class="tool-label">Weak Spots</span>
+                  </button>
+
+                  <!-- Row 2: Active Learning -->
                   <button class="study-tool-btn" id="generate-flashcards-btn" data-session-id="${session.id}">
                     <span class="tool-icon">🎴</span>
-                    <span class="tool-label">Create Flashcards</span>
+                    <span class="tool-label">Flashcards</span>
                   </button>
                   <button class="study-tool-btn" id="generate-quiz-btn" data-session-id="${session.id}">
                     <span class="tool-icon">❓</span>
-                    <span class="tool-label">Generate Quiz</span>
+                    <span class="tool-label">Quiz</span>
+                  </button>
+                  <button class="study-tool-btn" id="learn-mode-btn" data-session-id="${session.id}">
+                    <span class="tool-icon">📚</span>
+                    <span class="tool-label">Learn Mode</span>
+                  </button>
+
+                  <!-- Row 3: Advanced Tools -->
+                  <button class="study-tool-btn" id="study-coach-btn" data-session-id="${session.id}">
+                    <span class="tool-icon">🤖</span>
+                    <span class="tool-label">Study Coach</span>
+                  </button>
+                  <button class="study-tool-btn" id="concept-map-btn" data-session-id="${session.id}">
+                    <span class="tool-icon">🗺️</span>
+                    <span class="tool-label">Concept Map</span>
+                  </button>
+                  <button class="study-tool-btn" id="study-plan-btn" data-session-id="${session.id}">
+                    <span class="tool-icon">📅</span>
+                    <span class="tool-label">Study Plan</span>
                   </button>
                 </div>
               </div>
@@ -354,14 +379,51 @@ export class StudyModeDetailViewManager {
             <div class="ai-study-tools">
               <h3 class="study-tools-title">🤖 AI Study Tools</h3>
 
-              <!-- Quick Actions -->
+              <!-- AI Study Tools Grid (3x3) -->
               <div class="study-tool-section">
-                <h4>Quick Actions</h4>
+                <h4>AI Study Tools</h4>
                 <div class="study-tool-buttons">
-                  <button class="study-tool-btn" id="generate-summary-btn">📝 Summary</button>
-                  <button class="study-tool-btn" id="extract-concepts-btn">💡 Key Concepts</button>
-                  <button class="study-tool-btn" id="generate-flashcards-btn">🃏 Flashcards</button>
-                  <button class="study-tool-btn" id="generate-quiz-btn">📋 Quiz</button>
+                  <!-- Row 1: Content Analysis -->
+                  <button class="study-tool-btn" id="generate-summary-btn">
+                    <span class="tool-icon">📝</span>
+                    <span class="tool-label">Summary</span>
+                  </button>
+                  <button class="study-tool-btn" id="extract-concepts-btn">
+                    <span class="tool-icon">💡</span>
+                    <span class="tool-label">Key Concepts</span>
+                  </button>
+                  <button class="study-tool-btn" id="weak-spots-btn">
+                    <span class="tool-icon">🎯</span>
+                    <span class="tool-label">Weak Spots</span>
+                  </button>
+
+                  <!-- Row 2: Active Learning -->
+                  <button class="study-tool-btn" id="generate-flashcards-btn">
+                    <span class="tool-icon">🎴</span>
+                    <span class="tool-label">Flashcards</span>
+                  </button>
+                  <button class="study-tool-btn" id="generate-quiz-btn">
+                    <span class="tool-icon">❓</span>
+                    <span class="tool-label">Quiz</span>
+                  </button>
+                  <button class="study-tool-btn" id="learn-mode-btn">
+                    <span class="tool-icon">📚</span>
+                    <span class="tool-label">Learn Mode</span>
+                  </button>
+
+                  <!-- Row 3: Advanced Tools -->
+                  <button class="study-tool-btn" id="study-coach-btn">
+                    <span class="tool-icon">🤖</span>
+                    <span class="tool-label">Study Coach</span>
+                  </button>
+                  <button class="study-tool-btn" id="concept-map-btn">
+                    <span class="tool-icon">🗺️</span>
+                    <span class="tool-label">Concept Map</span>
+                  </button>
+                  <button class="study-tool-btn" id="study-plan-btn">
+                    <span class="tool-icon">📅</span>
+                    <span class="tool-label">Study Plan</span>
+                  </button>
                 </div>
               </div>
 
