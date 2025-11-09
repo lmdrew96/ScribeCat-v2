@@ -216,6 +216,11 @@ export class StudyModeManager {
   private async loadSessions(): Promise<void> {
     this.sessions = await this.sessionDataLoader.loadAllSessions();
     this.sessionListManager.setSessions(this.sessions);
+
+    // Notify Phase 3 integration about updated sessions
+    if (window.phase3Integration) {
+      window.phase3Integration.updateSessions(this.sessions);
+    }
   }
 
   /**

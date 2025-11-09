@@ -103,18 +103,21 @@
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
   flex-shrink: 0;
 }
 
 #advanced-search-container {
   flex: 1;
+  max-width: 600px;
 }
 
 .view-mode-switcher-wrapper {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 /* Study Mode Filters (hidden by default - legacy) */

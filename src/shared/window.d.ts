@@ -152,6 +152,7 @@ declare global {
     aiManager?: import('../renderer/managers/AIManager').AIManager;
     authManager?: import('../renderer/managers/AuthManager').AuthManager;
     studyModeManager?: import('../renderer/managers/StudyModeManager').StudyModeManager;
+    phase3Integration?: import('../renderer/managers/Phase3Integration').Phase3Integration;
   }
 }
 
