@@ -47,6 +47,29 @@ let trashModal: TrashModal;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
+  // 🎉 Easter Egg: Console Cat ASCII Art
+  console.log(
+    '%c     /\\_/\\  \n' +
+    '    ( o.o ) \n' +
+    '     > ^ <\n' +
+    '    /|   |\\\n' +
+    '   (_|   |_)\n',
+    'color: #00ffff; font-family: monospace; font-size: 16px;'
+  );
+  console.log(
+    '%c Curious cat found you! 👀',
+    'color: #ff69b4; font-weight: bold; font-size: 14px;'
+  );
+  console.log(
+    '%c ScribeCat v1.2.20 - Built with 🐱 and ☕',
+    'color: #ffd700; font-size: 12px;'
+  );
+  console.log(
+    '%c Found a bug? Meow at us on GitHub!\n https://github.com/lmdrew96/ScribeCat-v2',
+    'color: #c0c0c0; font-size: 11px;'
+  );
+  console.log(''); // Empty line for spacing
+
   // Initialize theme manager first
   themeManager = new ThemeManager();
   await themeManager.initialize();
