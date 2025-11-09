@@ -295,8 +295,14 @@ export class Phase3Integration {
   private handleSessionClick(session: Session): void {
     logger.info(`Session clicked: ${session.id}`);
 
-    // Delegate to study mode manager to show detail view
-    (window as any).studyModeManager?.showSessionDetail(session.id);
+    // Trigger openSessionDetail event on session list container
+    const sessionListContainer = document.getElementById('session-list');
+    if (sessionListContainer) {
+      const event = new CustomEvent('openSessionDetail', {
+        detail: { sessionId: session.id }
+      });
+      sessionListContainer.dispatchEvent(event);
+    }
   }
 
   /**
