@@ -2,9 +2,9 @@
 
 > ScribeCat scribes and is cat. 🐱✨
 
-**A powerful desktop application for recording lectures, meetings, and conversations with real-time transcription, intelligent note-taking, and AI-powered study tools.**
+**A powerful desktop application for recording lectures, meetings, and conversations with real-time transcription, intelligent note-taking, and 9 AI-powered study tools.**
 
-Built with Electron, TypeScript, and modern web technologies, ScribeCat combines high-quality audio recording with AssemblyAI's real-time transcription, a rich text editor powered by Tiptap, and Claude AI integration for intelligent study assistance.
+Built with Electron, TypeScript, and modern web technologies, ScribeCat combines high-quality audio recording with AssemblyAI's real-time transcription, a rich text editor powered by Tiptap, and Claude AI integration for comprehensive study assistance including flashcards, quizzes, summaries, concept maps, and personalized study plans.
 
 ---
 
@@ -35,22 +35,35 @@ Built with Electron, TypeScript, and modern web technologies, ScribeCat combines
 - **Export Options** - export to PDF, DOCX, TXT, HTML, or Markdown
 - **Google Drive Export** - directly save exports to your Google Drive
 
-### 🤖 AI Integration
-- **Claude AI Chat** - context-aware conversations about your content
-- **Contextual Assistance** - AI can reference transcriptions and notes
-- **Study Aid Generation** - get summaries, explanations, and study guides
-- **Streaming Responses** - see AI responses in real-time
+### 🤖 AI-Powered Study Tools
+ScribeCat includes **9 innovative AI study tools** powered by Claude AI, designed to help you master your content:
+
+**Content Analysis:**
+- **Summary Generator** - Comprehensive summaries with session attribution for multi-session study sets
+- **Key Concepts Extractor** - Extracts 5-7 most important concepts with clear definitions
+- **Weak Spots Detector** - Identifies difficult concepts with severity levels and mini-lessons
+
+**Active Learning:**
+- **Flashcard Generator** - Interactive flashcards (5-7 for single sessions, 8-12 for multi-session)
+- **Quiz Generator** - Multiple-choice quizzes with configurable question counts (5/10/15/20)
+- **Learn Mode** - Spaced repetition learning with progress tracking (Quizlet-style)
+
+**Advanced Tools:**
+- **ELI5 Explainer** - "Explain Like I'm 5" simple explanations using analogies
+- **Concept Map** - Visual hierarchical mind maps showing topic relationships
+- **Study Plan Generator** - Personalized day-by-day study schedules with time allocations
+
+All tools support both single-session and multi-session study sets, with AI-powered content generation and interactive UI.
 
 ### 🎨 Customization
-- **40+ Beautiful Themes** across 6 categories:
-  - **Academic** (8 themes) - Classical, Modern Library, Lecture Hall, Study Nook
-  - **Professional** (8 themes) - Corporate, Executive, Minimalist Pro, Tech Conference
-  - **Creative** (8 themes) - Sunset, Ocean Breeze, Forest, Lavender Dreams
-  - **Dark Mode** (8 themes) - Midnight, Charcoal, Deep Ocean, Twilight
-  - **High Contrast** (4 themes) - High Contrast Light/Dark, Monochrome
-  - **Accessibility** (4 themes) - Large Text variants with enhanced readability
-- **Custom Theme Creation** - define your own color schemes
-- **Theme Persistence** - your theme preference is saved
+- **40 Beautiful Themes** across 5 categories, each with light and dark variants:
+  - **Calm** (8 themes) - Peaceful, serene color palettes for distraction-free work
+  - **Energetic** (8 themes) - Vibrant, dynamic colors to keep you motivated
+  - **Focus** (8 themes) - Optimized for concentration and productivity
+  - **Creative** (8 themes) - Inspiring palettes for brainstorming and ideation
+  - **Balanced** (8 themes) - Versatile themes suitable for any task
+- **Light & Dark Variants** - Every theme has both light and dark mode versions
+- **Theme Persistence** - Your theme preference is automatically saved
 
 ### ☁️ Cloud & Sharing
 - **Cloud Sync** via Supabase - access your sessions across devices

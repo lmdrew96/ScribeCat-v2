@@ -74,6 +74,9 @@ interface SignUpWithEmailParams {
 
 // Expose the API to the renderer process
 const electronAPI = {
+  shell: {
+    openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url)
+  },
   dialog: {
     showSaveDialog: (options: SaveDialogOptions) => ipcRenderer.invoke('dialog:showSaveDialog', options),
     getTempPath: () => ipcRenderer.invoke('dialog:getTempPath'),
@@ -213,6 +216,8 @@ const electronAPI = {
     signInWithEmail: (params: SignInWithEmailParams) => ipcRenderer.invoke('auth:signInWithEmail', params),
     signUpWithEmail: (params: SignUpWithEmailParams) => ipcRenderer.invoke('auth:signUpWithEmail', params),
     signInWithGoogle: (codeChallenge: string) => ipcRenderer.invoke('auth:signInWithGoogle', codeChallenge),
+    // Open OAuth in Electron window with WebAuthn/passkey support
+    openOAuthWindow: (authUrl: string) => ipcRenderer.invoke('auth:openOAuthWindow', authUrl),
     // NOTE: OAuth callback is now handled in renderer process using RendererSupabaseClient
     // No IPC method needed - renderer exchanges code directly where localStorage works
     signOut: () => ipcRenderer.invoke('auth:signOut'),
@@ -223,7 +228,20 @@ const electronAPI = {
     deleteAccount: () => ipcRenderer.invoke('auth:deleteAccount'),
     // Send auth state changes to main process for cloud sync
     sessionChanged: (data: { userId: string | null; accessToken?: string; refreshToken?: string }) =>
-      ipcRenderer.invoke('auth:sessionChanged', data)
+      ipcRenderer.invoke('auth:sessionChanged', data),
+    // OAuth waiting window
+    showOAuthWaitingWindow: () => ipcRenderer.invoke('oauth:showWaitingWindow'),
+    closeOAuthWaitingWindow: () => ipcRenderer.invoke('oauth:closeWaitingWindow'),
+    onOAuthCodeReceived: (callback: (code: string) => void) => {
+      ipcRenderer.on('oauth:code-received', (_event: Electron.IpcRendererEvent, code: string) => callback(code));
+    },
+    onOAuthCancelled: (callback: () => void) => {
+      ipcRenderer.on('oauth:cancelled', () => callback());
+    },
+    removeOAuthListeners: () => {
+      ipcRenderer.removeAllListeners('oauth:code-received');
+      ipcRenderer.removeAllListeners('oauth:cancelled');
+    }
   },
   sync: {
     uploadSession: (sessionId: string) => ipcRenderer.invoke('sync:uploadSession', sessionId),

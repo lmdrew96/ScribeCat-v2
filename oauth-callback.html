@@ -146,16 +146,15 @@
   <div class="container">
     <div class="logo">🔐</div>
     <h1>Authorization Successful!</h1>
-    <p class="subtitle">Copy the code below and paste it into ScribeCat</p>
+    <p class="subtitle">Your code has been automatically copied to your clipboard!</p>
 
     <div id="content"></div>
 
     <div class="instructions">
       <strong>Next steps:</strong><br>
-      1. Click the button above to copy your authorization code<br>
-      2. Return to ScribeCat<br>
-      3. Paste the code into the authorization field<br>
-      4. Click "Complete Sign In"
+      1. Return to ScribeCat<br>
+      2. Paste the code (Cmd+V) into the authorization field<br>
+      3. Click "Complete Sign In"
     </div>
   </div>
 
@@ -209,15 +208,10 @@
         </button>
       `;
 
-      // Auto-select code on load
+      // Auto-copy code to clipboard on load
       setTimeout(() => {
-        const codeElement = document.getElementById('auth-code');
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(codeElement);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }, 100);
+        copyCode();
+      }, 500);
     } else {
       // Show debugging info
       const allParams = {};

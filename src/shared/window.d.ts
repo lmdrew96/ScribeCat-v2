@@ -26,6 +26,9 @@ import type {
 declare global {
   interface Window {
     scribeCat: {
+      shell: {
+        openExternal: (url: string) => Promise<void>;
+      };
       dialog: {
         showSaveDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
       };
@@ -106,10 +109,16 @@ declare global {
         signInWithEmail: (params: { email: string; password: string }) => Promise<IPCResponse<any>>;
         signUpWithEmail: (params: { email: string; password: string; fullName?: string }) => Promise<IPCResponse<any>>;
         signInWithGoogle: (codeChallenge: string) => Promise<IPCResponse<any>>;
+        openOAuthWindow: (authUrl: string) => Promise<IPCResponse<{ code: string }>>;
         signOut: () => Promise<IPCResponse<void>>;
         getCurrentUser: () => Promise<IPCResponse<any>>;
         isAuthenticated: () => Promise<IPCResponse<boolean>>;
         sessionChanged: (data: { userId: string | null; accessToken?: string; refreshToken?: string }) => Promise<IPCResponse<void>>;
+        showOAuthWaitingWindow: () => Promise<IPCResponse<void>>;
+        closeOAuthWaitingWindow: () => Promise<IPCResponse<void>>;
+        onOAuthCodeReceived: (callback: (code: string) => void) => void;
+        onOAuthCancelled: (callback: () => void) => void;
+        removeOAuthListeners: () => void;
       };
       sync: {
         uploadSession: (sessionId: string) => Promise<IPCResponse<void>>;

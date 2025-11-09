@@ -209,8 +209,6 @@ export class AuthScreen {
     // when flowType is 'pkce' in the RendererSupabaseClient configuration
     const result = await this.authManager.signInWithGoogle();
 
-    this.hideLoading();
-
     if (result.success && result.authUrl) {
       // Debug: Check localStorage for PKCE verifier
       const projectRef = 'djlvwxmakxaffdqbuwkv';
@@ -221,12 +219,54 @@ export class AuthScreen {
         console.log('🔍 Verifier length:', codeVerifier.length);
       }
 
-      // Open OAuth URL in default browser
-      window.open(result.authUrl, '_blank');
+      // Show floating OAuth window
+      await window.scribeCat.auth.showOAuthWaitingWindow();
 
-      // Show instructions for OAuth callback
-      this.showOAuthInstructions();
+      // Open OAuth in system browser where TouchID/passkeys work
+      await window.scribeCat.shell.openExternal(result.authUrl);
+
+      this.hideLoading();
+
+      // Hide the main auth modal while waiting for OAuth
+      this.hide();
+
+      // Set up listeners for OAuth code
+      window.scribeCat.auth.onOAuthCodeReceived(async (code: string) => {
+        console.log('✓ OAuth code received from floating window');
+
+        // Show the modal again with loading state
+        this.show();
+        this.showLoading('Completing sign in...');
+
+        // Exchange code for session
+        const sessionResult = await this.authManager.handleOAuthCallback(code);
+
+        this.hideLoading();
+
+        if (sessionResult.success) {
+          this.showSuccess('Signed in successfully!');
+          setTimeout(() => {
+            this.hide();
+            this.onAuthSuccess?.();
+          }, 1500);
+        } else {
+          this.showError(sessionResult.error || 'Failed to complete sign in');
+        }
+
+        // Clean up listeners
+        window.scribeCat.auth.removeOAuthListeners();
+      });
+
+      window.scribeCat.auth.onOAuthCancelled(() => {
+        console.log('OAuth flow cancelled');
+        // Show the modal again
+        this.show();
+        this.showError('Sign in was cancelled');
+        // Clean up listeners
+        window.scribeCat.auth.removeOAuthListeners();
+      });
     } else {
+      this.hideLoading();
       this.showError(result.error || 'Failed to initiate Google sign in');
     }
   }
@@ -241,15 +281,17 @@ export class AuthScreen {
     formSection.innerHTML = `
       <div class="oauth-instructions">
         <h3>Complete Sign In</h3>
-        <p>A browser window has opened for you to sign in with Google.</p>
-        <p>After authorizing, you'll be redirected to a page with a code.</p>
+        <p>Your browser has opened for Google sign-in. ✨ <strong>Passkeys work there!</strong></p>
+        <p>After signing in, your authorization code will be automatically copied.</p>
+        <p style="font-size: 14px; color: #718096; margin-top: 8px;">Just paste it below (Cmd+V) and click Complete Sign In.</p>
 
         <div class="form-group">
           <label for="oauth-code">Authorization Code</label>
           <input
             type="text"
             id="oauth-code"
-            placeholder="Paste your authorization code here"
+            placeholder="Paste your authorization code here (Cmd+V)"
+            autofocus
           />
         </div>
 
