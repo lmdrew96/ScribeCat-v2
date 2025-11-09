@@ -26,17 +26,24 @@ export class RestoreSessionUseCase {
       await this.sessionRepository.restore(sessionId);
 
       // If session was synced to cloud, also restore in remote repository
+      // CRITICAL: Don't catch errors - if cloud restore fails, we need to know about it
       if (this.remoteRepository) {
         try {
           await this.remoteRepository.restore(sessionId);
           console.log(`Restored session ${sessionId} in cloud`);
-        } catch (error) {
-          // Log but don't fail if cloud restoration fails (session is already restored locally)
-          console.warn(`Failed to restore session in cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } catch (cloudError) {
+          // Cloud restore failed - roll back local restore
+          console.error(`Cloud restore failed, rolling back local restore: ${cloudError instanceof Error ? cloudError.message : 'Unknown error'}`);
+          try {
+            await this.sessionRepository.delete(sessionId);
+          } catch (rollbackError) {
+            console.error(`Failed to roll back local restore: ${rollbackError instanceof Error ? rollbackError.message : 'Unknown error'}`);
+          }
+          throw cloudError; // Re-throw the original error
         }
       }
 
-      // Remove from deleted tracker since it's now restored
+      // Remove from deleted tracker only if both local and cloud restore succeeded
       if (this.deletedTracker) {
         try {
           await this.deletedTracker.remove(sessionId);

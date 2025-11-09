@@ -268,8 +268,9 @@ export class SupabaseSessionRepository implements ISessionRepository {
         throw new Error(`Failed to update session: ${error.message}`);
       }
 
+      // Validate that the session was actually updated
       if (!data || data.length === 0) {
-        console.warn('Update succeeded but no rows affected - possible RLS policy issue');
+        throw new Error(`Session ${session.id} not found in database - it may have been deleted or you don't have permission to update it`);
       }
     } catch (error) {
       console.error('Exception in update():', error);
@@ -411,16 +412,22 @@ export class SupabaseSessionRepository implements ISessionRepository {
       const client = SupabaseClient.getInstance().getClient();
 
       // Restore by setting deleted_at to NULL and updating updated_at
-      const { error } = await client
+      const { data, error } = await client
         .from(this.tableName)
         .update({
           deleted_at: null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', sessionId);
+        .eq('id', sessionId)
+        .select();
 
       if (error) {
         throw new Error(`Failed to restore session: ${error.message}`);
+      }
+
+      // Validate that the session was actually restored
+      if (!data || data.length === 0) {
+        throw new Error(`Session ${sessionId} not found in database - it may have been permanently deleted`);
       }
     } catch (error) {
       console.error('Error restoring session:', error);
@@ -482,13 +489,19 @@ export class SupabaseSessionRepository implements ISessionRepository {
       const client = SupabaseClient.getInstance().getClient();
 
       // Hard delete - physically remove from database
-      const { error } = await client
+      const { data, error } = await client
         .from(this.tableName)
         .delete()
-        .eq('id', sessionId);
+        .eq('id', sessionId)
+        .select();
 
       if (error) {
         throw new Error(`Failed to permanently delete session: ${error.message}`);
+      }
+
+      // Validate that the session was actually deleted
+      if (!data || data.length === 0) {
+        throw new Error(`Session ${sessionId} not found in database - it may have already been deleted`);
       }
     } catch (error) {
       console.error('Error permanently deleting session:', error);

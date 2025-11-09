@@ -47,19 +47,26 @@ export class PermanentlyDeleteSessionUseCase {
 
       // NOTE: We do NOT delete exported files - user wants to keep them
 
-      // Permanently delete the session metadata from local repository
-      await this.sessionRepository.permanentlyDelete(sessionId);
-
-      // If session was synced to cloud, also permanently delete from remote repository
+      // If session was synced to cloud, delete from remote repository first
+      // This ensures we fail before deleting locally if there's an issue
       if (session?.cloudId && this.remoteRepository) {
         try {
           await this.remoteRepository.permanentlyDelete(sessionId);
           console.log(`Permanently deleted session ${sessionId} from cloud`);
-        } catch (error) {
-          // Log but don't fail if cloud deletion fails (session is already deleted locally)
-          console.warn(`Failed to permanently delete session from cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } catch (cloudError) {
+          // Check if error is because session doesn't exist (already deleted)
+          const errorMessage = cloudError instanceof Error ? cloudError.message : 'Unknown error';
+          if (errorMessage.includes('not found') || errorMessage.includes('already been deleted')) {
+            console.warn(`Session ${sessionId} not found in cloud (may have been auto-deleted), continuing with local deletion`);
+          } else {
+            // Other errors should fail the operation
+            throw cloudError;
+          }
         }
       }
+
+      // Permanently delete the session metadata from local repository
+      await this.sessionRepository.permanentlyDelete(sessionId);
 
     } catch (error) {
       throw new Error(`Failed to permanently delete session: ${error instanceof Error ? error.message : 'Unknown error'}`);
