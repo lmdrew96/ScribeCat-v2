@@ -89,7 +89,7 @@ export class AudioAnalyzerService {
         sum += dataArray[i] * dataArray[i];
       }
       const rms = Math.sqrt(sum / dataArray.length);
-      
+
       // Normalize to 0-1 range
       this.currentLevel = rms / 255;
       return this.currentLevel;
