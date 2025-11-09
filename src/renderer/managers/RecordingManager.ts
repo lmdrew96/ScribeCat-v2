@@ -372,6 +372,9 @@ export class RecordingManager {
    * Start elapsed time timer
    */
   private startElapsedTimer(): void {
+    // Clear any existing interval first to prevent duplicates
+    this.stopElapsedTimer();
+
     this.updateElapsedTime();
     this.elapsedTimer = window.setInterval(() => this.updateElapsedTime(), 1000);
   }
@@ -401,6 +404,9 @@ export class RecordingManager {
    * Start VU meter updates
    */
   private startVUMeterUpdates(): void {
+    // Clear any existing interval first to prevent duplicates
+    this.stopVUMeterUpdates();
+
     this.vuMeterInterval = window.setInterval(() => {
       const level = this.audioManager.getAudioLevel();
       this.viewManager.updateVUMeter(level);
@@ -421,6 +427,9 @@ export class RecordingManager {
    * Start periodic suggestion checks
    */
   private startSuggestionChecks(): void {
+    // Clear any existing interval first to prevent duplicates
+    this.stopSuggestionChecks();
+
     // Check for suggestions every 30 seconds
     this.suggestionCheckInterval = window.setInterval(() => {
       this.checkAndShowSuggestions();
