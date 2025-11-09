@@ -18,6 +18,9 @@ export class StudyModeDetailViewManager {
   private currentSession: Session | null = null;
   private childSessions: Session[] = [];
   private activeTabIndex: number = 0;
+  private currentSearchQuery: string = '';
+  private currentMatchIndex: number = 0;
+  private totalMatches: number = 0;
 
   constructor(
     sessionDetailContainer: HTMLElement,
@@ -187,7 +190,7 @@ export class StudyModeDetailViewManager {
             <div class="session-content-panel active" data-panel="transcription">
               <div class="content-panel-inner">
                 ${session.transcription
-                  ? this.renderTranscriptionSegments(session.transcription)
+                  ? this.renderTranscriptionWithSearch(session.transcription)
                   : '<div class="empty-content">No transcription available for this session.</div>'
                 }
               </div>
@@ -849,6 +852,172 @@ export class StudyModeDetailViewManager {
     cancelEditNotesBtn?.addEventListener('click', () => {
       this.sessionDetailContainer.dispatchEvent(new CustomEvent('cancelNotesEdit'));
     });
+
+    // Search functionality handlers
+    this.attachSearchHandlers(session);
+  }
+
+  /**
+   * Attach search event handlers
+   */
+  private attachSearchHandlers(session: Session): void {
+    const searchInput = document.querySelector('.transcription-search-input') as HTMLInputElement;
+    const clearBtn = document.querySelector('.search-clear-btn');
+    const prevBtn = document.querySelector('.search-prev-btn');
+    const nextBtn = document.querySelector('.search-next-btn');
+
+    if (!searchInput) return;
+
+    // Search input handler (real-time search)
+    searchInput.addEventListener('input', () => {
+      this.currentSearchQuery = searchInput.value;
+      this.currentMatchIndex = 0; // Reset to first match
+      this.updateTranscriptionView(session);
+      this.scrollToCurrentMatch();
+    });
+
+    // Clear search button
+    clearBtn?.addEventListener('click', () => {
+      this.currentSearchQuery = '';
+      this.currentMatchIndex = 0;
+      this.totalMatches = 0;
+      searchInput.value = ''; // Reset input value
+      this.updateTranscriptionView(session);
+      searchInput.focus(); // Keep focus on search input
+    });
+
+    // Navigate to previous match
+    prevBtn?.addEventListener('click', () => {
+      if (this.totalMatches > 0) {
+        this.currentMatchIndex = (this.currentMatchIndex - 1 + this.totalMatches) % this.totalMatches;
+        this.updateTranscriptionView(session);
+        this.scrollToCurrentMatch();
+      }
+    });
+
+    // Navigate to next match
+    nextBtn?.addEventListener('click', () => {
+      if (this.totalMatches > 0) {
+        this.currentMatchIndex = (this.currentMatchIndex + 1) % this.totalMatches;
+        this.updateTranscriptionView(session);
+        this.scrollToCurrentMatch();
+      }
+    });
+
+    // Keyboard shortcuts for navigation
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          // Shift+Enter: Previous match
+          prevBtn?.click();
+        } else {
+          // Enter: Next match
+          nextBtn?.click();
+        }
+      } else if (e.key === 'Escape') {
+        // Escape: Clear search
+        clearBtn?.dispatchEvent(new Event('click'));
+        searchInput.blur();
+      }
+    });
+  }
+
+  /**
+   * Update transcription view after search changes
+   */
+  private updateTranscriptionView(session: Session): void {
+    if (!session.transcription) return;
+
+    // Update search UI elements (counter, buttons) without re-rendering input
+    const resultsInfo = document.querySelector('.search-results-info');
+    const clearBtn = document.querySelector('.search-clear-btn');
+    const matchCounter = document.querySelector('.search-match-counter');
+    const prevBtn = document.querySelector('.search-prev-btn') as HTMLButtonElement;
+    const nextBtn = document.querySelector('.search-next-btn') as HTMLButtonElement;
+
+    if (this.currentSearchQuery) {
+      resultsInfo?.classList.remove('hidden');
+      clearBtn?.classList.remove('hidden');
+
+      if (matchCounter) {
+        matchCounter.innerHTML = this.totalMatches > 0
+          ? `<span class="current-match">${this.currentMatchIndex + 1}</span> of <span class="total-matches">${this.totalMatches}</span>`
+          : 'No matches';
+      }
+
+      if (prevBtn) prevBtn.disabled = this.totalMatches <= 1;
+      if (nextBtn) nextBtn.disabled = this.totalMatches <= 1;
+    } else {
+      resultsInfo?.classList.add('hidden');
+      clearBtn?.classList.add('hidden');
+    }
+
+    // Only update the segments container, not the search bar
+    const segmentsContainer = document.querySelector('.transcription-segments');
+    if (segmentsContainer) {
+      segmentsContainer.outerHTML = this.renderTranscriptionSegments(session.transcription);
+
+      // Re-attach click handlers for the new segments
+      const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
+      const segments = document.querySelectorAll('.transcription-segment');
+      segments.forEach(segment => {
+        segment.addEventListener('click', () => {
+          const startTime = parseFloat((segment as HTMLElement).dataset.startTime || '0');
+          if (audioElement && !isNaN(startTime)) {
+            audioElement.currentTime = startTime;
+            if (audioElement.paused) {
+              audioElement.play().catch(err => logger.error('Playback failed:', err));
+            }
+          }
+        });
+      });
+    }
+  }
+
+  /**
+   * Scroll to the current match
+   */
+  private scrollToCurrentMatch(): void {
+    setTimeout(() => {
+      const currentMatch = document.querySelector('.transcription-segment.current-match');
+      if (currentMatch) {
+        currentMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }
+
+  /**
+   * Render transcription with search bar
+   */
+  private renderTranscriptionWithSearch(transcription: any): string {
+    const searchBarHtml = `
+      <div class="transcription-search-bar">
+        <div class="search-input-container">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            class="transcription-search-input"
+            placeholder="Search transcription..."
+            value="${escapeHtml(this.currentSearchQuery)}"
+          />
+          <button class="search-clear-btn ${this.currentSearchQuery ? '' : 'hidden'}" title="Clear search">✕</button>
+        </div>
+        <div class="search-results-info ${this.currentSearchQuery ? '' : 'hidden'}">
+          <span class="search-match-counter">
+            ${this.totalMatches > 0
+              ? `<span class="current-match">${this.currentMatchIndex + 1}</span> of <span class="total-matches">${this.totalMatches}</span>`
+              : 'No matches'}
+          </span>
+          <div class="search-navigation">
+            <button class="search-nav-btn search-prev-btn" title="Previous match" ${this.totalMatches <= 1 ? 'disabled' : ''}>↑</button>
+            <button class="search-nav-btn search-next-btn" title="Next match" ${this.totalMatches <= 1 ? 'disabled' : ''}>↓</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return searchBarHtml + this.renderTranscriptionSegments(transcription);
   }
 
   /**
@@ -870,13 +1039,53 @@ export class StudyModeDetailViewManager {
       }))
     });
 
+    // Filter segments based on search query
+    let filteredSegments = transcription.segments;
+    let matchIndexMap = new Map<number, number>(); // Maps segment index to match index
+
+    if (this.currentSearchQuery) {
+      const query = this.currentSearchQuery.toLowerCase();
+      let matchCounter = 0;
+
+      filteredSegments = transcription.segments.filter((segment: any, index: number) => {
+        const matches = segment.text.toLowerCase().includes(query);
+        if (matches) {
+          matchIndexMap.set(index, matchCounter);
+          matchCounter++;
+        }
+        return matches;
+      });
+
+      this.totalMatches = filteredSegments.length;
+
+      // Ensure currentMatchIndex is valid
+      if (this.currentMatchIndex >= this.totalMatches) {
+        this.currentMatchIndex = Math.max(0, this.totalMatches - 1);
+      }
+    } else {
+      this.totalMatches = 0;
+      this.currentMatchIndex = 0;
+    }
+
     // Render each segment with timestamp
-    const segmentsHtml = transcription.segments.map((segment: any, index: number) => {
+    const segmentsHtml = filteredSegments.map((segment: any, filteredIndex: number) => {
       const timestamp = formatTimestamp(segment.startTime);
+      const originalIndex = transcription.segments.indexOf(segment);
+      const matchIndex = matchIndexMap.get(originalIndex) ?? -1;
+      const isCurrentMatch = matchIndex === this.currentMatchIndex;
+
+      // Highlight search query in text
+      let segmentText = escapeHtml(segment.text);
+      if (this.currentSearchQuery) {
+        const query = this.currentSearchQuery;
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        segmentText = segmentText.replace(regex, '<mark class="search-highlight">$1</mark>');
+      }
+
       return `
-        <div class="transcription-segment" data-start-time="${segment.startTime}" data-end-time="${segment.endTime}" data-segment-index="${index}">
+        <div class="transcription-segment ${isCurrentMatch ? 'current-match' : ''}" data-start-time="${segment.startTime}" data-end-time="${segment.endTime}" data-segment-index="${originalIndex}" data-match-index="${matchIndex}">
           <span class="segment-timestamp">[${timestamp}]</span>
-          <span class="segment-text">${escapeHtml(segment.text)}</span>
+          <span class="segment-text">${segmentText}</span>
         </div>
       `;
     }).join('');

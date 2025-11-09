@@ -481,6 +481,149 @@
   color: var(--text-primary);
 }
 
+/* Transcription Search */
+.transcription-search-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--bg-primary);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+}
+
+.search-input-container:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+.search-icon {
+  font-size: 16px;
+  user-select: none;
+}
+
+.transcription-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 0;
+}
+
+.transcription-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.search-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.search-clear-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.search-clear-btn.hidden {
+  display: none;
+}
+
+.search-results-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.search-results-info.hidden {
+  display: none;
+}
+
+.search-match-counter {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.search-match-counter .current-match {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.search-navigation {
+  display: flex;
+  gap: 4px;
+}
+
+.search-nav-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  padding: 0;
+}
+
+.search-nav-btn:hover:not(:disabled) {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.search-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Search highlighting */
+.search-highlight {
+  background-color: rgba(255, 235, 59, 0.4);
+  color: inherit;
+  padding: 2px 0;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+.transcription-segment.current-match {
+  background-color: rgba(0, 122, 204, 0.15);
+  border-left-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 122, 204, 0.25);
+}
+
+.transcription-segment.current-match .search-highlight {
+  background-color: rgba(255, 235, 59, 0.6);
+}
+
 /* ===== AI Study Tools Styles ===== */
 
 .ai-study-tools {
