@@ -155,9 +155,7 @@ export class StudyModeManager {
 
       // Reload sessions if study mode is active
       if (this.isActive) {
-        this.loadSessions().then(() => {
-          this.sessionListManager.render();
-        });
+        this.loadSessions(); // Phase3Integration will handle rendering
       }
     });
   }
@@ -246,10 +244,10 @@ export class StudyModeManager {
       titleElement.textContent = filterSharedOnly ? '👥 Shared Sessions' : '📚 Study Mode';
     }
 
-    // Populate and render
+    // Populate course filter (still needed for legacy UI)
     this.sessionListManager.setSessions(sessionsToShow);
     this.sessionListManager.populateCourseFilter();
-    this.sessionListManager.render();
+    // Note: Rendering is now handled by Phase3Integration, not the old session list manager
 
     this.isActive = true;
     logger.info(filterSharedOnly ? 'Study mode activated with shared sessions filter' : 'Study mode activated');
@@ -302,7 +300,10 @@ export class StudyModeManager {
     if (!session) return;
 
     this.sessionEditingManager.startTitleEdit(session, 'list', () => {
-      this.sessionListManager.render();
+      // Trigger Phase3 re-render with updated sessions
+      if (window.phase3Integration) {
+        window.phase3Integration.updateSessions(this.sessions);
+      }
     });
   }
 
@@ -317,7 +318,11 @@ export class StudyModeManager {
       // Re-render both detail view and session list
       const isEditable = this.sessionNavigationManager.isSessionEditable(session);
       this.detailViewManager.render(session, isEditable);
-      this.sessionListManager.render();
+
+      // Trigger Phase3 re-render with updated sessions
+      if (window.phase3Integration) {
+        window.phase3Integration.updateSessions(this.sessions);
+      }
     });
   }
 
@@ -332,7 +337,11 @@ export class StudyModeManager {
       // Re-render both detail view and session list
       const isEditable = this.sessionNavigationManager.isSessionEditable(session);
       this.detailViewManager.render(session, isEditable);
-      this.sessionListManager.render();
+
+      // Trigger Phase3 re-render with updated sessions
+      if (window.phase3Integration) {
+        window.phase3Integration.updateSessions(this.sessions);
+      }
     });
   }
 
@@ -377,8 +386,7 @@ export class StudyModeManager {
 
     await this.sessionDeletionManager.deleteSession(session, async () => {
       // Refresh the session list after deletion
-      await this.loadSessions();
-      this.sessionListManager.render();
+      await this.loadSessions(); // Phase3Integration will handle rendering
     });
   }
 
@@ -397,8 +405,7 @@ export class StudyModeManager {
       this.sessionDataLoader.getSharedWithMeSessions(),
       async () => {
         // Refresh the session list after leaving
-        await this.loadSessions();
-        this.sessionListManager.render();
+        await this.loadSessions(); // Phase3Integration will handle rendering
       }
     );
   }
@@ -427,8 +434,7 @@ export class StudyModeManager {
     await this.sessionDeletionManager.handleBulkDelete(sessionIds, async () => {
       // Clear selection and refresh after bulk deletion
       this.sessionListManager.clearSelection();
-      await this.loadSessions();
-      this.sessionListManager.render();
+      await this.loadSessions(); // Phase3Integration will handle rendering
     });
   }
 
@@ -460,8 +466,7 @@ export class StudyModeManager {
   private async createMultiSessionStudySet(sessionIds: string[], title: string): Promise<void> {
     await this.multiSessionCoordinator.createMultiSessionStudySet(sessionIds, title, async (newSessionId) => {
       // Refresh the session list to show the new study set
-      await this.loadSessions();
-      this.sessionListManager.render();
+      await this.loadSessions(); // Phase3Integration will handle rendering
 
       // Optionally, open the newly created study set
       await this.openSessionDetail(newSessionId);
@@ -480,9 +485,7 @@ export class StudyModeManager {
    */
   public async refresh(): Promise<void> {
     await this.loadSessions();
-    if (this.isActive) {
-      this.sessionListManager.render();
-    }
+    // Note: Phase3Integration handles rendering via updateSessions() call in loadSessions()
   }
 
 }
