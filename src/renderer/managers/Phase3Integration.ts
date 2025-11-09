@@ -8,6 +8,7 @@
 import type { StudyModeManager } from './StudyModeManager.js';
 import { SearchManager } from './SearchManager.js';
 import { ViewModeManager, type ViewMode } from './ViewModeManager.js';
+import { BulkSelectionManager } from './study-mode/BulkSelectionManager.js';
 import { SearchBar } from '../components/SearchBar.js';
 import { TimelineView } from '../components/views/TimelineView.js';
 import { GridView } from '../components/views/GridView.js';
@@ -24,6 +25,7 @@ export class Phase3Integration {
   private studyModeManager: StudyModeManager;
   private searchManager: SearchManager;
   private viewModeManager: ViewModeManager;
+  private bulkSelectionManager: BulkSelectionManager;
   private searchBar: SearchBar | null = null;
 
   // Session storage
@@ -45,6 +47,7 @@ export class Phase3Integration {
     // Initialize managers
     this.searchManager = new SearchManager();
     this.viewModeManager = new ViewModeManager('session-list');
+    this.bulkSelectionManager = new BulkSelectionManager();
 
     // Initialize UI components
     this.keyboardShortcuts = new KeyboardShortcutsOverlay();
@@ -231,6 +234,26 @@ export class Phase3Integration {
     this.gridView?.onSessionSelect((session) => this.handleSessionClick(session));
     this.listView?.onSessionSelect((session) => this.handleSessionClick(session));
     this.boardView?.onSessionSelect((session) => this.handleSessionClick(session));
+
+    // Bulk selection callbacks
+    this.bulkSelectionManager.onBulkExport((sessionIds) => {
+      (window as any).studyModeManager?.handleBulkExport(sessionIds);
+    });
+
+    this.bulkSelectionManager.onBulkDelete((sessionIds) => {
+      (window as any).studyModeManager?.handleBulkDelete(sessionIds);
+    });
+
+    this.bulkSelectionManager.onCreateStudySet(() => {
+      const sessionIds = Array.from(this.bulkSelectionManager.getSelectedSessionIds());
+      if (sessionIds.length >= 2) {
+        // Prompt for study set title
+        const title = prompt('Enter a title for this study set:');
+        if (title) {
+          (window as any).studyModeManager?.createMultiSessionStudySet(sessionIds, title);
+        }
+      }
+    });
   }
 
   /**
@@ -287,6 +310,33 @@ export class Phase3Integration {
         this.boardView?.render(sessions);
         break;
     }
+
+    // Wire up checkbox handlers after rendering
+    this.wireUpCheckboxHandlers();
+  }
+
+  /**
+   * Wire up checkbox event handlers
+   */
+  private wireUpCheckboxHandlers(): void {
+    // Use event delegation on the session-list container
+    const sessionListContainer = document.getElementById('session-list');
+    if (!sessionListContainer) return;
+
+    // Remove old listeners by cloning the node
+    const newContainer = sessionListContainer.cloneNode(true) as HTMLElement;
+    sessionListContainer.parentNode?.replaceChild(newContainer, sessionListContainer);
+
+    // Add event listener for all checkboxes
+    newContainer.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.classList.contains('session-checkbox')) {
+        const sessionId = target.dataset.sessionId;
+        if (sessionId) {
+          this.bulkSelectionManager.handleSessionSelection(sessionId, target.checked);
+        }
+      }
+    });
   }
 
   /**

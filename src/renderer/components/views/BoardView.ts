@@ -63,7 +63,11 @@ export class BoardView {
 
     // Add click handlers
     this.container.querySelectorAll('.board-card').forEach(card => {
-      card.addEventListener('click', () => {
+      card.addEventListener('click', (e) => {
+        // Don't open session if checkbox was clicked
+        if ((e.target as HTMLElement).classList.contains('session-checkbox')) {
+          return;
+        }
         const sessionId = card.getAttribute('data-session-id');
         const session = sessions.find(s => s.id === sessionId);
         if (session && this.onSessionClick) {
@@ -173,8 +177,12 @@ export class BoardView {
       day: 'numeric'
     });
 
+    // Check if session can be selected (not a shared non-owner session)
+    const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
+
     return `
       <div class="board-card" data-session-id="${session.id}">
+        <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         <div class="board-card-title">${this.escapeHtml(session.title)}</div>
 
         ${session.courseTitle ? `

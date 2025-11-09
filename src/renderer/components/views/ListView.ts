@@ -33,6 +33,7 @@ export class ListView {
         <table class="list-table">
           <thead>
             <tr>
+              <th class="list-col-checkbox"></th>
               <th class="list-col-title">Title</th>
               <th class="list-col-course">Course</th>
               <th class="list-col-date">Date</th>
@@ -49,7 +50,11 @@ export class ListView {
 
     // Add click handlers
     this.container.querySelectorAll('.list-row').forEach((row, index) => {
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (e) => {
+        // Don't open session if checkbox was clicked
+        if ((e.target as HTMLElement).classList.contains('session-checkbox')) {
+          return;
+        }
         if (this.onSessionClick) {
           this.onSessionClick(sessions[index]);
         }
@@ -76,8 +81,14 @@ export class ListView {
     const hasNotes = session.notes && session.notes.trim().length > 0;
     const hasSummary = session.summary && session.summary.trim().length > 0;
 
+    // Check if session can be selected (not a shared non-owner session)
+    const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
+
     return `
       <tr class="list-row" data-session-id="${session.id}">
+        <td class="list-col-checkbox">
+          <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
+        </td>
         <td class="list-col-title">
           <div class="list-title">${this.escapeHtml(session.title)}</div>
           ${session.tags.length > 0 ? `

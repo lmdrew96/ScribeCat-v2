@@ -265,7 +265,11 @@ export class TimelineView {
 
     // Add click handlers for session items
     listContainer.querySelectorAll('.timeline-session-item').forEach((item, index) => {
-      item.addEventListener('click', () => {
+      item.addEventListener('click', (e) => {
+        // Don't open session if checkbox was clicked
+        if ((e.target as HTMLElement).classList.contains('session-checkbox')) {
+          return;
+        }
         if (this.onSessionClick) {
           this.onSessionClick(sessions[index]);
         }
@@ -286,8 +290,12 @@ export class TimelineView {
       minute: '2-digit'
     });
 
+    // Check if session can be selected (not a shared non-owner session)
+    const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
+
     return `
       <div class="timeline-session-item" data-session-id="${session.id}">
+        <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         <div class="timeline-session-time">${time}</div>
         <div class="timeline-session-details">
           <div class="timeline-session-title">${this.escapeHtml(session.title)}</div>

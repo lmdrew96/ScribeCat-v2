@@ -41,7 +41,11 @@ export class GridView {
 
     // Add click handlers
     this.container.querySelectorAll('.grid-card').forEach((card, index) => {
-      card.addEventListener('click', () => {
+      card.addEventListener('click', (e) => {
+        // Don't open session if checkbox was clicked
+        if ((e.target as HTMLElement).classList.contains('session-checkbox')) {
+          return;
+        }
         if (this.onSessionClick) {
           this.onSessionClick(sessions[index]);
         }
@@ -64,8 +68,12 @@ export class GridView {
     const hasNotes = session.notes && session.notes.trim().length > 0;
     const hasSummary = session.summary && session.summary.trim().length > 0;
 
+    // Check if session can be selected (not a shared non-owner session)
+    const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
+
     return `
       <div class="grid-card" data-session-id="${session.id}">
+        <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         <div class="grid-card-header">
           <h3 class="grid-card-title">${this.escapeHtml(session.title)}</h3>
           ${session.courseTitle ? `
