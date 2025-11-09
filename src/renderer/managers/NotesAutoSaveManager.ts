@@ -89,8 +89,27 @@ export class NotesAutoSaveManager {
 
       if (result.success) {
         logger.info('Notes saved successfully');
+
+        // Show success toast
+        const toastManager = (window as any).toastManager;
+        if (toastManager) {
+          toastManager.success('Saved', {
+            duration: 1500,
+            position: 'bottom-right',
+            icon: '✓'
+          });
+        }
       } else {
         logger.error('Failed to save notes', result.error);
+
+        // Show error toast
+        const toastManager = (window as any).toastManager;
+        if (toastManager) {
+          toastManager.error('Failed to save notes', {
+            duration: 3000,
+            position: 'bottom-right'
+          });
+        }
       }
     } catch (error) {
       logger.error('Error saving notes', error);

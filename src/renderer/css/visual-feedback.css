@@ -1,0 +1,533 @@
+/**
+ * Visual Feedback CSS
+ * Animations and visual effects for user feedback
+ */
+
+/* ===== Recording Pulse Animation ===== */
+
+.record-btn.recording {
+  position: relative;
+  animation: recordButtonPulse 2s ease-in-out infinite;
+}
+
+@keyframes recordButtonPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Recording glow effect */
+.record-btn.recording::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: var(--recording, #e74c3c);
+  border-radius: 50%;
+  opacity: 0;
+  z-index: -1;
+  animation: recordGlow 2s ease-in-out infinite;
+}
+
+@keyframes recordGlow {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.2);
+  }
+}
+
+/* Recording indicator dot */
+.recording-indicator {
+  position: relative;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: var(--recording, #e74c3c);
+  border-radius: 50%;
+  margin-left: 8px;
+  animation: recordingDotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes recordingDotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+/* ===== VU Meter Enhancements ===== */
+
+.vu-meter {
+  position: relative;
+  height: 6px;
+  background: var(--bg-tertiary, #3d3d3d);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.vu-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg,
+    #27ae60 0%,
+    #f39c12 60%,
+    #e74c3c 90%
+  );
+  transition: width 0.1s ease-out;
+  border-radius: 3px;
+}
+
+.vu-meter-fill.animated {
+  animation: vuMeterShimmer 2s ease-in-out infinite;
+}
+
+@keyframes vuMeterShimmer {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+/* Peak indicator */
+.vu-meter-peak {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent, #007acc);
+  box-shadow: 0 0 4px var(--accent, #007acc);
+  transition: left 0.05s ease-out;
+}
+
+/* ===== AI Thinking Indicator ===== */
+
+.ai-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border, #404040);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary, #aaaaaa);
+}
+
+.ai-thinking-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.ai-thinking-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent, #007acc);
+  border-radius: 50%;
+  animation: aiThinkingDot 1.4s ease-in-out infinite;
+}
+
+.ai-thinking-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.ai-thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ai-thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes aiThinkingDot {
+  0%, 60%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  30% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+
+/* AI streaming text effect */
+.ai-streaming {
+  position: relative;
+}
+
+.ai-streaming::after {
+  content: '▊';
+  animation: aiStreamingCursor 1s step-end infinite;
+}
+
+@keyframes aiStreamingCursor {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* ===== Save Indicator ===== */
+
+.save-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(39, 174, 96, 0.1);
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #27ae60;
+  animation: saveIndicatorFadeIn 0.3s ease;
+}
+
+@keyframes saveIndicatorFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.save-indicator-icon {
+  animation: saveCheckmark 0.5s ease;
+}
+
+@keyframes saveCheckmark {
+  0% {
+    transform: scale(0) rotate(-45deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(0deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Sync indicator */
+.sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 122, 204, 0.1);
+  border: 1px solid rgba(0, 122, 204, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--accent, #007acc);
+}
+
+.sync-indicator-icon {
+  animation: syncRotate 2s linear infinite;
+}
+
+@keyframes syncRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Confetti Celebration ===== */
+
+.confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Celebration banner */
+.celebration-banner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  z-index: 10000;
+  background: var(--bg-primary, #1e1e1e);
+  border: 2px solid var(--accent, #007acc);
+  border-radius: 16px;
+  padding: 32px 48px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: celebrationBannerIn 0.5s ease-out forwards;
+}
+
+@keyframes celebrationBannerIn {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.celebration-emoji {
+  font-size: 64px;
+  animation: celebrationEmojiBounce 0.6s ease-out;
+}
+
+@keyframes celebrationEmojiBounce {
+  0% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(10px);
+  }
+  80% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.celebration-text {
+  margin-top: 16px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.celebration-subtext {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-secondary, #aaaaaa);
+}
+
+/* ===== Progress Bar ===== */
+
+.progress-bar {
+  position: relative;
+  height: 4px;
+  background: var(--bg-tertiary, #3d3d3d);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent, #007acc), #4db8ff);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.progress-bar-fill.animated {
+  animation: progressShimmer 2s ease-in-out infinite;
+}
+
+@keyframes progressShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ===== Skeleton Loaders ===== */
+
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--bg-secondary, #2d2d2d) 0%,
+    var(--bg-tertiary, #3d3d3d) 50%,
+    var(--bg-secondary, #2d2d2d) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-text {
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton-text.large {
+  height: 24px;
+}
+
+.skeleton-text.small {
+  height: 12px;
+}
+
+.skeleton-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+/* ===== Button Loading State ===== */
+
+.btn-loading {
+  position: relative;
+  pointer-events: none;
+  color: transparent !important;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: buttonSpinner 0.8s linear infinite;
+  color: var(--text-primary, #ffffff);
+}
+
+@keyframes buttonSpinner {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* ===== Shake Animation (for errors) ===== */
+
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+/* ===== Fade Effects ===== */
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ===== Light Theme Adjustments ===== */
+
+[data-theme*="light"] .ai-thinking {
+  background: #ffffff;
+  color: #666666;
+}
+
+[data-theme*="light"] .save-indicator {
+  background: rgba(39, 174, 96, 0.15);
+}
+
+[data-theme*="light"] .sync-indicator {
+  background: rgba(0, 122, 204, 0.15);
+}
+
+[data-theme*="light"] .celebration-banner {
+  background: #ffffff;
+  color: #1e1e1e;
+}
+
+/* ===== Reduced Motion ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .record-btn.recording,
+  .recording-indicator,
+  .vu-meter-fill,
+  .ai-thinking-dot,
+  .save-indicator-icon,
+  .sync-indicator-icon,
+  .celebration-emoji,
+  .celebration-banner,
+  .progress-bar-fill,
+  .skeleton,
+  .btn-loading::after {
+    animation: none !important;
+  }
+
+  .ai-streaming::after {
+    display: none;
+  }
+}
+
+/* ===== Print Styles ===== */
+
+@media print {
+  .ai-thinking,
+  .save-indicator,
+  .sync-indicator,
+  .confetti-canvas,
+  .celebration-banner,
+  .progress-bar,
+  .skeleton {
+    display: none !important;
+  }
+}

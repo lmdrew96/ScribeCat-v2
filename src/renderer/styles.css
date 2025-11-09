@@ -14,6 +14,7 @@
 @import './css/command-palette.css'; /* Command palette (Cmd+K) */
 @import './css/floating-toolbar.css'; /* Floating formatting toolbar */
 @import './css/loading.css';       /* Skeleton loaders, loading states */
+@import './css/visual-feedback.css'; /* Visual feedback animations and effects */
 @import './css/themes.css';        /* Theme picker and theme styles */
 @import './css/pickers.css';       /* Folder picker */
 @import './css/export.css';        /* Export modal */

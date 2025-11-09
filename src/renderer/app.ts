@@ -28,6 +28,8 @@ import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
 import { FocusModeManager } from './managers/FocusModeManager.js';
 import { FocusModeIndicator } from './components/FocusModeIndicator.js';
+import { ToastManager } from './managers/ToastManager.js';
+import { ConfettiManager } from './utils/confetti.js';
 import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
 import { getRandomCatFact } from './utils/cat-facts.js';
 
@@ -55,6 +57,8 @@ let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
 let focusModeManager: FocusModeManager;
 let focusModeIndicator: FocusModeIndicator;
+let toastManager: ToastManager;
+let confettiManager: ConfettiManager;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -228,6 +232,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Register focus mode commands now that manager is initialized
   commandRegistry.registerFocusModeCommands();
+
+  // Initialize visual feedback managers
+  toastManager = new ToastManager();
+  confettiManager = new ConfettiManager();
+
+  // Expose globally for easy access
+  (window as any).toastManager = toastManager;
+  (window as any).confettiManager = confettiManager;
 
   // 🎉 Initialize Easter Eggs
   initializeEasterEggs();
