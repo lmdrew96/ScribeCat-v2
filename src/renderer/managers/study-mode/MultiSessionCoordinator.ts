@@ -24,7 +24,7 @@ export class MultiSessionCoordinator {
    * @param onComplete - Callback after study set creation
    */
   public handleOpenReorderModal(sessions: Session[], onComplete: (sessionIds: string[], title: string) => void): void {
-    this.reorderModal.open(sessions, onComplete);
+    this.reorderModal.show(sessions, onComplete);
   }
 
   /**
