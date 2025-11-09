@@ -59,6 +59,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  overflow: visible;
 }
 
 .timeline-header {
@@ -367,7 +368,7 @@
   background: var(--bg-secondary, #2d2d2d);
   border-radius: 16px;
   border: 1px solid var(--border-color, #444444);
-  overflow: hidden;
+  overflow: visible;
   margin: 20px;
 }
 
@@ -473,6 +474,7 @@
   gap: 20px;
   padding: 20px;
   align-items: start;
+  overflow: visible;
 }
 
 .board-column {
