@@ -129,7 +129,6 @@ export class StudyModeManager {
       this.shareModal.initialize();
 
       await this.loadSessions();
-      logger.info('StudyModeManager initialized');
     } catch (error) {
       logger.error('Failed to initialize StudyModeManager', error);
     }
@@ -140,8 +139,6 @@ export class StudyModeManager {
    */
   private setupAuthListener(): void {
     this.authManager.onAuthStateChange((user) => {
-      logger.info('Auth state changed in StudyModeManager', user ? `User ${user.id}` : 'No user');
-
       // Clear current sessions
       this.sessions = [];
 
@@ -219,7 +216,6 @@ export class StudyModeManager {
   private async loadSessions(): Promise<void> {
     this.sessions = await this.sessionDataLoader.loadAllSessions();
     this.sessionListManager.setSessions(this.sessions);
-    logger.info(`Loaded ${this.sessions.length} total sessions`);
   }
 
   /**

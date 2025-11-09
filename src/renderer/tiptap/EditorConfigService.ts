@@ -7,12 +7,10 @@
 
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
-import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
 import Typography from '@tiptap/extension-typography';
-import Underline from '@tiptap/extension-underline';
 import { Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
@@ -61,16 +59,16 @@ export class EditorConfigService {
         },
         // Disable History when collaborating (Yjs handles undo/redo)
         history: yjsDoc ? false : undefined,
+        link: {
+          openOnClick: false,
+          HTMLAttributes: {
+            class: 'editor-link',
+          },
+        },
+        underline: true,
       }),
-      Underline,
       Highlight.configure({
         multicolor: false,
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'editor-link',
-        },
       }),
       Placeholder.configure({
         placeholder,

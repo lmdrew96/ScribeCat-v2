@@ -259,8 +259,6 @@ export class TiptapToolbarManager {
     this.clearFormatBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().clearNodes().unsetAllMarks().run();
     });
-
-    logger.info('Toolbar listeners initialized');
   }
   /** Set up color palette swatches */
   private setupColorPalette(): void {

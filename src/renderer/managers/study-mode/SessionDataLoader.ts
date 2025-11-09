@@ -62,7 +62,6 @@ export class SessionDataLoader {
         // Convert JSON data to Session instances with methods
         const sessions = sessionsData.map((data: any) => Session.fromJSON(data));
 
-        logger.info(`Loaded ${sessions.length} owned sessions`);
         return sessions;
       } else {
         logger.error('Failed to load owned sessions', result.error);
@@ -80,16 +79,9 @@ export class SessionDataLoader {
   private async loadSharedSessions(): Promise<void> {
     try {
       const result = await this.sessionSharingManager.getSharedWithMe();
-      logger.info('getSharedWithMe result:', {
-        success: result.success,
-        hasData: !!result.sessions,
-        sessionCount: result.sessions?.length || 0,
-        firstShare: result.sessions?.[0]
-      });
 
       if (result.success && result.sessions) {
         this.sharedWithMeSessions = result.sessions;
-        logger.info(`Loaded ${this.sharedWithMeSessions.length} shared sessions`);
       } else {
         logger.warn('No shared sessions data or unsuccessful result:', {
           success: result.success,

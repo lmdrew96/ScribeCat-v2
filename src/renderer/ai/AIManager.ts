@@ -162,7 +162,6 @@ export class AIManager {
       const apiKey = config.claude.apiKey;
 
       if (!apiKey) {
-        console.log('🔑 No Claude API key found - AI features disabled');
         this.isConfigured = false;
         this.connectionTested = true;
         this.retryCount = 0;
@@ -171,7 +170,6 @@ export class AIManager {
         return;
       }
 
-      console.log('✅ Claude API key found in config, testing connection...');
       await this.attemptConnectionWithRetry();
     } catch (error) {
       console.error('❌ Fatal error during AI initialization:', error);
@@ -193,7 +191,6 @@ export class AIManager {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
         const attemptNum = attempt + 1;
-        console.log(`🔄 AI connection attempt ${attemptNum}/${this.maxRetries + 1}...`);
 
         if (attempt > 0) {
           this.updateConnectionStatus('testing', `Retrying... (${attemptNum}/${this.maxRetries + 1})`);
@@ -210,7 +207,6 @@ export class AIManager {
           this.isTestingConnection = false;
           this.updateUIState();
           this.updateConnectionStatus('connected', 'Connected');
-          console.log(`✅ AI connection established on attempt ${attemptNum}`);
           return;
         } else {
           console.warn(`⚠️ AI connection attempt ${attemptNum} failed:`, result.error);

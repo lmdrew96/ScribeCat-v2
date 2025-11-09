@@ -108,7 +108,6 @@ export class StudyModeSessionListManager {
   setSessions(sessions: Session[]): void {
     this.sessions = sessions;
     this.applyFilters();
-    logger.info(`Loaded ${sessions.length} sessions`);
   }
 
   /**

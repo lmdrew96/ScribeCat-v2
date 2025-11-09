@@ -16,8 +16,6 @@ export class StudyModeDataTransformer {
    * Transform shared session database rows to Session entities
    */
   public transformSharedSessions(sharedWithMeSessions: any[]): Session[] {
-    logger.info(`Transforming ${sharedWithMeSessions.length} shared sessions`);
-
     return sharedWithMeSessions
       .map((share: any) => {
         logger.info('Processing share:', {
@@ -128,9 +126,6 @@ export class StudyModeDataTransformer {
    */
   public mergeSessions(ownedSessions: Session[], sharedSessions: Session[]): Session[] {
     const allSessions = [...ownedSessions, ...sharedSessions];
-    logger.info(
-      `Merged sessions - Owned: ${ownedSessions.length}, Shared: ${sharedSessions.length}, Total: ${allSessions.length}`
-    );
     return allSessions;
   }
 

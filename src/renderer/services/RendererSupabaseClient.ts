@@ -36,8 +36,6 @@ export class RendererSupabaseClient {
       const accessToken = session?.access_token;
       const refreshToken = session?.refresh_token;
 
-      console.log('🔐 Auth state changed in renderer:', event, userId ? `User ID: ${userId}` : 'No user');
-
       // Notify main process so it can update SyncManager and SupabaseClient
       if (window.scribeCat?.auth?.sessionChanged) {
         window.scribeCat.auth.sessionChanged({
@@ -45,9 +43,6 @@ export class RendererSupabaseClient {
           accessToken,
           refreshToken
         })
-          .then(() => {
-            console.log('✅ Notified main process of auth state change');
-          })
           .catch((error: Error) => {
             console.error('❌ Failed to notify main process:', error);
           });
@@ -67,7 +62,6 @@ export class RendererSupabaseClient {
         const refreshToken = data.session?.refresh_token;
 
         if (userId) {
-          console.log('✅ Found existing session on startup, user ID:', userId);
           // Notify main process
           if (window.scribeCat?.auth?.sessionChanged) {
             window.scribeCat.auth.sessionChanged({
@@ -75,9 +69,6 @@ export class RendererSupabaseClient {
               accessToken,
               refreshToken
             })
-              .then(() => {
-                console.log('✅ Notified main process of existing session');
-              })
               .catch((error: Error) => {
                 console.error('❌ Failed to notify main process:', error);
               });

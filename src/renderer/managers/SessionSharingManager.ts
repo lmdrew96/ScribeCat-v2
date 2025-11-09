@@ -34,7 +34,7 @@ export interface ShareSessionParams {
 
 export class SessionSharingManager {
   constructor() {
-    logger.info('SessionSharingManager initialized');
+    // Session sharing manager ready
   }
 
   /**

@@ -29,8 +29,6 @@ export class TiptapEditorManager {
     // Initialize managers
     this.toolbarManager = new TiptapToolbarManager(this.editorCore);
     this.contentManager = new TiptapContentManager(this.editorCore, charCount, wordCount);
-
-    logger.info('TiptapEditorManager initialized');
   }
 
   /**
@@ -54,8 +52,6 @@ export class TiptapEditorManager {
 
     // Initial stats update
     this.contentManager.updateStats();
-
-    logger.info('Tiptap editor fully initialized');
   }
 
   /**

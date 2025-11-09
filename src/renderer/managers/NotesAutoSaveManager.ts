@@ -24,7 +24,7 @@ export class NotesAutoSaveManager {
    * Initialize auto-save manager
    */
   initialize(): void {
-    logger.info('NotesAutoSaveManager initialized');
+    // Auto-save manager ready
   }
 
   /**

@@ -15,8 +15,6 @@ export class DeviceManager {
    */
   async loadDevices(): Promise<void> {
     try {
-      console.log('Loading microphone devices...');
-
       // Request permission first
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(track => track.stop());
@@ -24,8 +22,6 @@ export class DeviceManager {
       // Enumerate devices
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices.filter(d => d.kind === 'audioinput');
-
-      console.log('Found devices:', audioInputs);
 
       // Clear loading option
       this.microphoneSelect.innerHTML = '';
@@ -46,8 +42,6 @@ export class DeviceManager {
         option.textContent = device.label || `Microphone ${i + 1}`;
         this.microphoneSelect.appendChild(option);
       });
-
-      console.log(`Loaded ${audioInputs.length} microphone device(s)`);
     } catch (error) {
       console.error('Failed to load microphone devices:', error);
       this.microphoneSelect.innerHTML = '<option value="">Error loading devices</option>';

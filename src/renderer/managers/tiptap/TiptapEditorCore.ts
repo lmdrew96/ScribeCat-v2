@@ -6,12 +6,10 @@
 
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
 import Typography from '@tiptap/extension-typography';
-import Underline from '@tiptap/extension-underline';
 import { TextStyle, Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
@@ -55,16 +53,13 @@ export class TiptapEditorCore {
               class: 'tiptap-list-item',
             },
           },
-        }),
-        Link.extend({
-          addKeyboardShortcuts() {
-            return {}; // Disable default Mod-k shortcut
-          }
-        }).configure({
-          openOnClick: false,
-          HTMLAttributes: {
-            class: 'editor-link',
+          link: {
+            openOnClick: false,
+            HTMLAttributes: {
+              class: 'editor-link',
+            },
           },
+          underline: true,
         }),
         Placeholder.configure({
           placeholder: 'Start taking notes here...',
@@ -72,7 +67,6 @@ export class TiptapEditorCore {
         Superscript,
         Subscript,
         Typography,
-        Underline,
         TextStyle,
         Color,
         BackgroundColor,
@@ -141,8 +135,6 @@ export class TiptapEditorCore {
         }
       },
     });
-
-    logger.info('Tiptap editor initialized');
   }
 
   /**

@@ -176,7 +176,6 @@ export class DriveSettingsManager {
    */
   private setupAutoReconnectListener(): void {
     window.scribeCat.drive.onAutoReconnected(async () => {
-      console.log('Google Drive auto-reconnected from cloud');
       await this.checkConnection();
       this.updateUI();
       NotificationToast.success('Google Drive auto-reconnected!');
