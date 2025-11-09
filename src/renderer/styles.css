@@ -16,6 +16,7 @@
 @import './css/loading.css';       /* Skeleton loaders, loading states */
 @import './css/visual-feedback.css'; /* Visual feedback animations and effects */
 @import './css/workspace-layouts.css'; /* Adaptive workspace layouts */
+@import './css/quick-actions.css'; /* Quick actions menu, keyboard shortcuts */
 @import './css/themes.css';        /* Theme picker and theme styles */
 @import './css/pickers.css';       /* Folder picker */
 @import './css/export.css';        /* Export modal */
@@ -24,6 +25,8 @@
 @import './css/trash.css';         /* Trash modal */
 
 /* Features */
+@import './css/search.css';        /* Advanced search, filters, results highlighting */
+@import './css/session-views.css'; /* Timeline, Grid, List, Board views */
 @import './css/ai-features.css';   /* AI chat drawer, chat messages, AI tools */
 @import './css/ai-suggestion-chip.css'; /* Proactive AI suggestions */
 @import './css/study-mode.css';    /* Study mode list view, sessions, filters */
