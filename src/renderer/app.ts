@@ -26,8 +26,6 @@ import { TrashModal } from './components/TrashModal.js';
 import { CommandPalette } from './components/CommandPalette.js';
 import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
-import { FocusModeManager } from './managers/FocusModeManager.js';
-import { FocusModeIndicator } from './components/FocusModeIndicator.js';
 import { LayoutManager } from './managers/LayoutManager.js';
 import { WorkspaceLayoutPicker } from './components/WorkspaceLayoutPicker.js';
 import { ToastManager } from './managers/ToastManager.js';
@@ -57,8 +55,6 @@ let trashModal: TrashModal;
 let commandPalette: CommandPalette;
 let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
-let focusModeManager: FocusModeManager;
-let focusModeIndicator: FocusModeIndicator;
 let layoutManager: LayoutManager;
 let layoutPicker: WorkspaceLayoutPicker;
 let toastManager: ToastManager;
@@ -222,20 +218,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Expose for RecordingManager
   (window as any).aiSuggestionChip = aiSuggestionChip;
-
-  // Initialize Focus Mode Manager
-  focusModeManager = new FocusModeManager();
-  focusModeManager.loadPreference(); // Load saved preference
-
-  // Initialize Focus Mode Indicator
-  focusModeIndicator = new FocusModeIndicator(focusModeManager);
-  focusModeIndicator.initialize();
-
-  // Expose for command palette
-  (window as any).focusModeManager = focusModeManager;
-
-  // Register focus mode commands now that manager is initialized
-  commandRegistry.registerFocusModeCommands();
 
   // Initialize visual feedback managers
   toastManager = new ToastManager();

@@ -26,7 +26,6 @@
 /* Features */
 @import './css/ai-features.css';   /* AI chat drawer, chat messages, AI tools */
 @import './css/ai-suggestion-chip.css'; /* Proactive AI suggestions */
-@import './css/focus-modes.css';   /* Focus mode system for reducing cognitive load */
 @import './css/study-mode.css';    /* Study mode list view, sessions, filters */
 @import './css/session-detail.css'; /* Session detail view, audio player, flashcards, quiz */
 
