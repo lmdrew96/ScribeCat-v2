@@ -418,6 +418,7 @@
     <!-- Floating AI Chat Button -->
     <button id="floating-chat-btn" class="floating-chat-btn" title="Open AI Chat" aria-label="Open AI Chat">
         <img src="assets/AskAI-cat.PNG" alt="AI Chat" class="chat-btn-icon">
+        <span class="chat-badge" id="chat-badge" hidden>0</span>
     </button>
     
     <!-- AI Chat Drawer -->
@@ -428,7 +429,10 @@
                 <h3>AI Assistant</h3>
                 <button id="close-drawer-btn" class="close-drawer-btn" title="Close chat" aria-label="Close chat">×</button>
             </div>
-            
+
+            <!-- Live AI Suggestions (only visible during recording) -->
+            <div id="live-suggestions-panel" class="live-suggestions-panel" hidden></div>
+
             <div id="chat-messages" class="chat-messages">
                 <div class="chat-welcome">
                     <p>👋 Hi! I'm your AI assistant. I can help you understand your transcription and notes better.</p>

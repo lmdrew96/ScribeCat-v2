@@ -12,7 +12,7 @@ import { CourseManager } from './CourseManager.js';
 import { TranscriptionModeService } from '../services/TranscriptionModeService.js';
 import { NotesAutoSaveManager } from './NotesAutoSaveManager.js';
 import { AISummaryManager } from '../services/AISummaryManager.js';
-import { FloatingAIChip } from '../components/FloatingAIChip.js';
+import { ChatUI } from '../ai/ChatUI.js';
 import { createLogger } from '../../shared/logger.js';
 import { config } from '../../config.js';
 
@@ -27,7 +27,7 @@ export class RecordingManager {
   private courseManager: CourseManager;
   private transcriptionService: TranscriptionModeService;
   private notesAutoSaveManager: NotesAutoSaveManager;
-  private floatingChip: FloatingAIChip | null = null;
+  private chatUI: ChatUI;
 
   private isRecording: boolean = false;
   private isPaused: boolean = false;
@@ -45,7 +45,8 @@ export class RecordingManager {
     editorManager: TiptapEditorManager,
     aiManager: AIManager,
     courseManager: CourseManager,
-    notesAutoSaveManager: NotesAutoSaveManager
+    notesAutoSaveManager: NotesAutoSaveManager,
+    chatUI: ChatUI
   ) {
     this.audioManager = audioManager;
     this.transcriptionManager = transcriptionManager;
@@ -54,16 +55,8 @@ export class RecordingManager {
     this.aiManager = aiManager;
     this.courseManager = courseManager;
     this.notesAutoSaveManager = notesAutoSaveManager;
+    this.chatUI = chatUI;
     this.transcriptionService = new TranscriptionModeService(audioManager, transcriptionManager);
-
-    // Initialize FloatingAIChip with ContentAnalyzer
-    this.floatingChip = new FloatingAIChip(this.aiManager.getContentAnalyzer(), {
-      onSuggestionClick: (suggestion) => {
-        logger.info('AI chip suggestion clicked:', suggestion);
-        // Handle suggestion actions (bookmark, note prompt, etc.)
-        this.handleChipSuggestion(suggestion);
-      }
-    });
   }
 
   /**
@@ -125,9 +118,8 @@ export class RecordingManager {
     this.aiManager.startContentAnalysis();
     this.startSuggestionChecks();
 
-    // Show floating AI chip
-    this.floatingChip?.show();
-    this.floatingChip?.reset(); // Reset for new session
+    // Start live AI suggestions
+    this.chatUI.startRecording();
 
     // Update UI
     this.viewManager.updateRecordingState(true, transcriptionMode);
@@ -258,8 +250,8 @@ export class RecordingManager {
     this.stopSuggestionChecks();
     this.aiManager.resetContentAnalysis();
 
-    // Hide floating AI chip
-    this.floatingChip?.hide();
+    // Stop live AI suggestions
+    this.chatUI.stopRecording();
 
     // Update UI
     this.viewManager.updateRecordingState(false);
@@ -473,8 +465,6 @@ export class RecordingManager {
    * Check for suggestions and show if available
    */
   private checkAndShowSuggestions(): void {
-    if (!this.floatingChip) return;
-
     // Calculate elapsed time in minutes
     const elapsed = Date.now() - this.startTime;
     const durationMinutes = elapsed / (1000 * 60);
@@ -483,17 +473,17 @@ export class RecordingManager {
     const transcription = this.transcriptionManager.getText();
     const notes = this.editorManager.getText();
 
-    // Update chip with latest content and duration
-    this.floatingChip.updateSuggestions(transcription, notes, durationMinutes);
+    // Update live suggestions with latest content and duration
+    this.chatUI.updateLiveSuggestions(transcription, notes, durationMinutes);
 
-    logger.debug('FloatingAIChip updated with latest content');
+    logger.debug('Live suggestions updated with latest content');
   }
 
   /**
-   * Handle suggestion actions from FloatingAIChip
+   * Handle suggestion actions from ChatUI (legacy - now handled by ChatUI)
    */
   private handleChipSuggestion(suggestion: any): void {
-    logger.info('Handling chip suggestion:', suggestion);
+    logger.info('Handling suggestion:', suggestion);
 
     // Handle different suggestion actions
     switch (suggestion.suggestedAction) {

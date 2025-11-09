@@ -1,97 +1,58 @@
 /**
- * FloatingAIChip
+ * LiveSuggestionsPanel
  *
  * Live AI assistance during recording sessions.
- * Pulses when suggestions are available, shows real-time insights.
+ * Integrated into chat drawer, shows real-time insights.
  */
 
 import { ContentAnalyzer, SuggestionTrigger } from '../ai/ContentAnalyzer.js';
 
-export interface FloatingChipOptions {
+export interface LiveSuggestionsOptions {
   onSuggestionClick?: (suggestion: SuggestionTrigger) => void;
-  onDismiss?: () => void;
+  onBadgeUpdate?: (count: number) => void;
 }
 
-export class FloatingAIChip {
-  private chip: HTMLElement | null = null;
-  private suggestionPanel: HTMLElement | null = null;
+export class LiveSuggestionsPanel {
   private currentSuggestions: SuggestionTrigger[] = [];
-  private isVisible: boolean = false;
-  private isPanelOpen: boolean = false;
+  private isRecording: boolean = false;
   private contentAnalyzer: ContentAnalyzer;
-  private options: FloatingChipOptions;
+  private options: LiveSuggestionsOptions;
 
   // Recording timing
   private recordingDuration: number = 0; // in minutes
   private lastBreakSuggestion: number = 0;
 
-  constructor(contentAnalyzer: ContentAnalyzer, options: FloatingChipOptions = {}) {
+  constructor(contentAnalyzer: ContentAnalyzer, options: LiveSuggestionsOptions = {}) {
     this.contentAnalyzer = contentAnalyzer;
     this.options = options;
-    this.setupUI();
   }
 
   /**
-   * Set up UI elements
+   * Start recording mode
    */
-  private setupUI(): void {
-    // Create floating chip button
-    this.chip = document.createElement('button');
-    this.chip.id = 'floating-ai-chip';
-    this.chip.className = 'floating-ai-chip hidden';
-    this.chip.innerHTML = `
-      <div class="chip-icon">✨</div>
-      <div class="chip-pulse"></div>
-    `;
-
-    // Create suggestion panel
-    this.suggestionPanel = document.createElement('div');
-    this.suggestionPanel.id = 'ai-chip-panel';
-    this.suggestionPanel.className = 'ai-chip-panel hidden';
-
-    // Add to DOM
-    document.body.appendChild(this.chip);
-    document.body.appendChild(this.suggestionPanel);
-
-    // Event listeners
-    this.chip.addEventListener('click', () => this.togglePanel());
-
-    // Close panel when clicking outside
-    document.addEventListener('click', (e) => {
-      if (this.isPanelOpen &&
-          !this.chip?.contains(e.target as Node) &&
-          !this.suggestionPanel?.contains(e.target as Node)) {
-        this.closePanel();
-      }
-    });
+  public startRecording(): void {
+    this.isRecording = true;
+    this.currentSuggestions = [];
+    this.recordingDuration = 0;
+    this.lastBreakSuggestion = 0;
+    this.updateBadge();
   }
 
   /**
-   * Show the chip during recording
+   * Stop recording mode
    */
-  public show(): void {
-    if (this.chip) {
-      this.chip.classList.remove('hidden');
-      this.isVisible = true;
-    }
-  }
-
-  /**
-   * Hide the chip when not recording
-   */
-  public hide(): void {
-    if (this.chip) {
-      this.chip.classList.add('hidden');
-      this.isVisible = false;
-      this.closePanel();
-    }
+  public stopRecording(): void {
+    this.isRecording = false;
+    this.currentSuggestions = [];
+    this.recordingDuration = 0;
+    this.updateBadge();
   }
 
   /**
    * Update with latest suggestions from ContentAnalyzer
    */
   public updateSuggestions(transcription: string, notes: string, durationMinutes: number): void {
-    if (!this.isVisible) return;
+    if (!this.isRecording) return;
 
     // Update duration
     this.recordingDuration = durationMinutes;
@@ -115,17 +76,8 @@ export class FloatingAIChip {
 
     this.currentSuggestions = triggers;
 
-    // Update chip appearance
-    if (triggers.length > 0) {
-      this.chip?.classList.add('has-suggestions');
-    } else {
-      this.chip?.classList.remove('has-suggestions');
-    }
-
-    // Update panel if open
-    if (this.isPanelOpen) {
-      this.renderPanel();
-    }
+    // Update badge count
+    this.updateBadge();
   }
 
   /**
@@ -144,57 +96,21 @@ export class FloatingAIChip {
   }
 
   /**
-   * Toggle suggestion panel
+   * Update badge count
    */
-  private togglePanel(): void {
-    if (this.isPanelOpen) {
-      this.closePanel();
-    } else {
-      this.openPanel();
+  private updateBadge(): void {
+    const count = this.currentSuggestions.length;
+    if (this.options.onBadgeUpdate) {
+      this.options.onBadgeUpdate(count);
     }
   }
 
   /**
-   * Open suggestion panel
+   * Render suggestions panel HTML for chat drawer
    */
-  private openPanel(): void {
-    if (!this.suggestionPanel) return;
-
-    this.isPanelOpen = true;
-    this.suggestionPanel.classList.remove('hidden');
-    this.renderPanel();
-
-    // Animate in
-    requestAnimationFrame(() => {
-      this.suggestionPanel?.classList.add('show');
-    });
-  }
-
-  /**
-   * Close suggestion panel
-   */
-  private closePanel(): void {
-    if (!this.suggestionPanel) return;
-
-    this.suggestionPanel.classList.remove('show');
-    this.isPanelOpen = false;
-
-    // Wait for animation before hiding
-    setTimeout(() => {
-      if (!this.isPanelOpen) {
-        this.suggestionPanel?.classList.add('hidden');
-      }
-    }, 200);
-  }
-
-  /**
-   * Render suggestion panel content
-   */
-  private renderPanel(): void {
-    if (!this.suggestionPanel) return;
-
+  public renderPanelHTML(): string {
     if (this.currentSuggestions.length === 0) {
-      this.suggestionPanel.innerHTML = `
+      return `
         <div class="chip-panel-header">
           <div class="chip-panel-title">✨ Live AI</div>
           <div class="chip-panel-duration">${this.formatDuration(this.recordingDuration)}</div>
@@ -206,7 +122,6 @@ export class FloatingAIChip {
           </div>
         </div>
       `;
-      return;
     }
 
     // Take top 3 suggestions
@@ -217,7 +132,7 @@ export class FloatingAIChip {
       const confidenceClass = trigger.confidence > 0.8 ? 'high' : trigger.confidence > 0.6 ? 'medium' : 'low';
 
       return `
-        <div class="chip-suggestion" data-index="${index}">
+        <div class="chip-suggestion" data-index="${index}" data-action="${trigger.suggestedAction}">
           <div class="chip-suggestion-icon">${icon}</div>
           <div class="chip-suggestion-content">
             <div class="chip-suggestion-action">${this.getActionLabel(trigger.suggestedAction)}</div>
@@ -228,7 +143,7 @@ export class FloatingAIChip {
       `;
     }).join('');
 
-    this.suggestionPanel.innerHTML = `
+    return `
       <div class="chip-panel-header">
         <div class="chip-panel-title">✨ Live AI</div>
         <div class="chip-panel-duration">${this.formatDuration(this.recordingDuration)}</div>
@@ -240,13 +155,21 @@ export class FloatingAIChip {
         </div>
       </div>
     `;
+  }
 
-    // Add click listeners to suggestions
-    topSuggestions.forEach((trigger, index) => {
-      const suggestionEl = this.suggestionPanel?.querySelector(`[data-index="${index}"]`);
-      suggestionEl?.addEventListener('click', () => {
-        this.handleSuggestionClick(trigger);
-      });
+  /**
+   * Attach event listeners to suggestion elements
+   * Call this after inserting HTML into the DOM
+   */
+  public attachSuggestionListeners(container: HTMLElement): void {
+    const suggestions = container.querySelectorAll('.chip-suggestion');
+    suggestions.forEach((el, index) => {
+      const trigger = this.currentSuggestions[index];
+      if (trigger) {
+        el.addEventListener('click', () => {
+          this.handleSuggestionClick(trigger);
+        });
+      }
     });
   }
 
@@ -258,9 +181,6 @@ export class FloatingAIChip {
     if (this.options.onSuggestionClick) {
       this.options.onSuggestionClick(suggestion);
     }
-
-    // Close panel after action
-    this.closePanel();
 
     // Show brief confirmation
     this.showConfirmation(suggestion);
@@ -362,10 +282,7 @@ export class FloatingAIChip {
    */
   public clearSuggestions(): void {
     this.currentSuggestions = [];
-    this.chip?.classList.remove('has-suggestions');
-    if (this.isPanelOpen) {
-      this.renderPanel();
-    }
+    this.updateBadge();
   }
 
   /**
@@ -375,14 +292,5 @@ export class FloatingAIChip {
     this.recordingDuration = 0;
     this.lastBreakSuggestion = 0;
     this.clearSuggestions();
-    this.closePanel();
-  }
-
-  /**
-   * Cleanup and remove from DOM
-   */
-  public destroy(): void {
-    this.chip?.remove();
-    this.suggestionPanel?.remove();
   }
 }

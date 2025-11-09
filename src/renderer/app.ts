@@ -8,6 +8,7 @@
 import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
 import { AIManager } from './ai/AIManager.js';
+import { ChatUI } from './ai/ChatUI.js';
 import { ViewManager } from './managers/ViewManager.js';
 import { TiptapEditorManager } from './managers/TiptapEditorManager.js';
 import { TranscriptionManager } from './managers/TranscriptionManager.js';
@@ -39,6 +40,7 @@ let audioManager: AudioManager;
 let settingsManager: SettingsManager;
 let themeManager: ThemeManager;
 let aiManager: AIManager;
+let chatUI: ChatUI;
 let viewManager: ViewManager;
 let editorManager: TiptapEditorManager;
 let transcriptionManager: TranscriptionManager;
@@ -113,6 +115,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
   await aiManager.initialize();
 
+  // Initialize ChatUI
+  chatUI = new ChatUI();
+
   // Initialize course manager
   courseManager = new CourseManager();
 
@@ -132,7 +137,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     editorManager,
     aiManager,
     courseManager,
-    notesAutoSaveManager
+    notesAutoSaveManager,
+    chatUI
   );
   recordingManager.initialize();
 

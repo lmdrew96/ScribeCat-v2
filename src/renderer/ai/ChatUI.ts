@@ -6,6 +6,8 @@
 import { ChatMessage } from '../../shared/types.js';
 import { renderMarkdown } from '../markdown-renderer.js';
 import { getRandomCatFact } from '../utils/cat-facts.js';
+import { LiveSuggestionsPanel } from '../components/FloatingAIChip.js';
+import { ContentAnalyzer } from './ContentAnalyzer.js';
 
 export class ChatUI {
   private chatDrawer: HTMLElement | null = null;
@@ -17,11 +19,15 @@ export class ChatUI {
   private closeDrawerBtn: HTMLButtonElement | null = null;
   private includeTranscriptionCheckbox: HTMLInputElement | null = null;
   private includeNotesCheckbox: HTMLInputElement | null = null;
-  
+  private chatBadge: HTMLElement | null = null;
+  private liveSuggestionsPanel: HTMLElement | null = null;
+
   private isChatOpen: boolean = false;
+  private liveSuggestions: LiveSuggestionsPanel | null = null;
 
   constructor() {
     this.setupUIElements();
+    this.initializeLiveSuggestions();
   }
 
   /**
@@ -37,6 +43,25 @@ export class ChatUI {
     this.closeDrawerBtn = document.getElementById('close-drawer-btn') as HTMLButtonElement;
     this.includeTranscriptionCheckbox = document.getElementById('include-transcription') as HTMLInputElement;
     this.includeNotesCheckbox = document.getElementById('include-notes') as HTMLInputElement;
+    this.chatBadge = document.getElementById('chat-badge');
+    this.liveSuggestionsPanel = document.getElementById('live-suggestions-panel');
+  }
+
+  /**
+   * Initialize live suggestions panel
+   */
+  private initializeLiveSuggestions(): void {
+    const contentAnalyzer = new ContentAnalyzer();
+
+    this.liveSuggestions = new LiveSuggestionsPanel(contentAnalyzer, {
+      onBadgeUpdate: (count: number) => {
+        this.updateBadge(count);
+      },
+      onSuggestionClick: (suggestion) => {
+        console.log('Suggestion clicked:', suggestion);
+        // TODO: Handle suggestion actions (bookmark, note_prompt, etc.)
+      }
+    });
   }
 
   /**
@@ -311,9 +336,71 @@ export class ChatUI {
     };
     
     document.removeEventListener('keydown', handleTabKey);
-    
+
     if (this.isChatOpen) {
       document.addEventListener('keydown', handleTabKey);
     }
+  }
+
+  // ===== Live Suggestions Methods =====
+
+  /**
+   * Update badge count and visibility
+   */
+  private updateBadge(count: number): void {
+    if (!this.chatBadge) return;
+
+    if (count > 0) {
+      this.chatBadge.textContent = count.toString();
+      this.chatBadge.hidden = false;
+      this.chatBadge.classList.add('pulse');
+    } else {
+      this.chatBadge.hidden = true;
+      this.chatBadge.classList.remove('pulse');
+    }
+  }
+
+  /**
+   * Start recording mode for live suggestions
+   */
+  public startRecording(): void {
+    this.liveSuggestions?.startRecording();
+  }
+
+  /**
+   * Stop recording mode for live suggestions
+   */
+  public stopRecording(): void {
+    this.liveSuggestions?.stopRecording();
+
+    // Hide live suggestions panel
+    if (this.liveSuggestionsPanel) {
+      this.liveSuggestionsPanel.hidden = true;
+    }
+  }
+
+  /**
+   * Update live suggestions with latest content
+   */
+  public updateLiveSuggestions(transcription: string, notes: string, durationMinutes: number): void {
+    if (!this.liveSuggestions || !this.liveSuggestionsPanel) return;
+
+    // Update suggestions
+    this.liveSuggestions.updateSuggestions(transcription, notes, durationMinutes);
+
+    // Render panel HTML
+    const html = this.liveSuggestions.renderPanelHTML();
+    this.liveSuggestionsPanel.innerHTML = html;
+    this.liveSuggestionsPanel.hidden = false;
+
+    // Attach event listeners
+    this.liveSuggestions.attachSuggestionListeners(this.liveSuggestionsPanel);
+  }
+
+  /**
+   * Get live suggestions panel instance
+   */
+  public getLiveSuggestionsPanel(): LiveSuggestionsPanel | null {
+    return this.liveSuggestions;
   }
 }
