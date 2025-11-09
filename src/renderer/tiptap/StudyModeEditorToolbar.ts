@@ -1,19 +1,9 @@
-/**
- * StudyModeEditorToolbar
- *
- * Manages the rich text editing toolbar for study mode notes editor.
- * Handles toolbar HTML generation, event listeners, and button state updates.
- */
-
+/** StudyModeEditorToolbar - Manages the rich text editing toolbar for study mode notes */
 import type { Editor } from '@tiptap/core';
-
 export class StudyModeEditorToolbar {
   private editor: Editor | null = null;
   private paletteClickHandler: ((e: MouseEvent) => void) | null = null;
-
-  /**
-   * Generate toolbar HTML with editor container
-   */
+  /** Generate toolbar HTML with editor container */
   public getHTML(): string {
     return `
       <div class="study-editor-container">
@@ -207,14 +197,10 @@ export class StudyModeEditorToolbar {
       </div>
     `;
   }
-
-  /**
-   * Setup toolbar event listeners
-   */
+  /** Setup toolbar event listeners */
   public setup(editor: Editor): void {
     this.editor = editor;
 
-    // Text formatting buttons
     document.querySelector('.study-bold-btn')?.addEventListener('click', () => {
       this.editor?.chain().focus().toggleBold().run();
     });
@@ -239,10 +225,8 @@ export class StudyModeEditorToolbar {
       this.editor?.chain().focus().toggleSubscript().run();
     });
 
-    // Color controls
     this.setupColorControls();
 
-    // Font size
     const fontSizeSelect = document.querySelector('.study-font-size-select') as HTMLSelectElement;
     fontSizeSelect?.addEventListener('change', (e) => {
       const size = (e.target as HTMLSelectElement).value;
@@ -253,7 +237,6 @@ export class StudyModeEditorToolbar {
       }
     });
 
-    // Text alignment
     document.querySelector('.study-align-left-btn')?.addEventListener('click', () => {
       this.editor?.chain().focus().setTextAlign('left').run();
     });
@@ -270,7 +253,6 @@ export class StudyModeEditorToolbar {
       this.editor?.chain().focus().setTextAlign('justify').run();
     });
 
-    // Headings
     document.querySelector('.study-heading1-btn')?.addEventListener('click', () => {
       this.editor?.chain().focus().toggleHeading({ level: 1 }).run();
     });
@@ -279,7 +261,6 @@ export class StudyModeEditorToolbar {
       this.editor?.chain().focus().toggleHeading({ level: 2 }).run();
     });
 
-    // Lists
     document.querySelector('.study-bullet-list-btn')?.addEventListener('click', () => {
       this.editor?.chain().focus().toggleBulletList().run();
     });
@@ -288,17 +269,14 @@ export class StudyModeEditorToolbar {
       this.editor?.chain().focus().toggleOrderedList().run();
     });
 
-    // Link
     document.querySelector('.study-link-btn')?.addEventListener('click', () => {
       this.toggleLink();
     });
 
-    // Highlight
     document.querySelector('.study-highlight-btn')?.addEventListener('click', () => {
       this.editor?.chain().focus().toggleHighlight().run();
     });
 
-    // Image upload
     const imageBtn = document.querySelector('.study-image-btn');
     const imageInput = document.getElementById('study-image-input') as HTMLInputElement;
     imageBtn?.addEventListener('click', () => {
@@ -309,12 +287,10 @@ export class StudyModeEditorToolbar {
       this.handleImageUpload(e);
     });
 
-    // Table insertion
     document.querySelector('.study-table-btn')?.addEventListener('click', () => {
       this.insertTable();
     });
 
-    // History
     document.querySelector('.study-undo-btn')?.addEventListener('click', () => {
       this.editor?.chain().focus().undo().run();
     });
@@ -323,12 +299,10 @@ export class StudyModeEditorToolbar {
       this.editor?.chain().focus().redo().run();
     });
 
-    // Clear formatting
     document.querySelector('.study-clear-format-btn')?.addEventListener('click', () => {
       this.editor?.chain().focus().clearNodes().unsetAllMarks().run();
     });
 
-    // Update button states on selection change
     this.editor.on('selectionUpdate', () => {
       this.updateButtonStates();
     });
@@ -337,13 +311,9 @@ export class StudyModeEditorToolbar {
       this.updateButtonStates();
     });
 
-    // Initial button state update
     this.updateButtonStates();
   }
-
-  /**
-   * Setup color picker controls
-   */
+  /** Setup color picker controls */
   private setupColorControls(): void {
     const colorBtn = document.querySelector('.study-color-btn');
     const colorPalette = document.querySelector('.study-color-palette');
@@ -386,7 +356,6 @@ export class StudyModeEditorToolbar {
       });
     });
 
-    // Close palettes when clicking outside
     if (this.paletteClickHandler) {
       document.removeEventListener('click', this.paletteClickHandler);
     }
@@ -403,37 +372,28 @@ export class StudyModeEditorToolbar {
     };
     document.addEventListener('click', this.paletteClickHandler);
   }
-
-  /**
-   * Toggle link insertion
-   */
+  /** Toggle link insertion */
   private toggleLink(): void {
     if (!this.editor) return;
 
     const previousUrl = this.editor.getAttributes('link').href;
 
     if (previousUrl) {
-      // Remove link
       this.editor.chain().focus().unsetLink().run();
     } else {
-      // Check if there's a selection
       const { from, to } = this.editor.state.selection;
       if (from === to) {
         window.alert('Please select some text first before adding a link.');
         return;
       }
 
-      // Add link
       const url = window.prompt('Enter URL:', 'https://');
       if (url && url !== 'https://') {
         this.editor.chain().focus().setLink({ href: url }).run();
       }
     }
   }
-
-  /**
-   * Handle image upload
-   */
+  /** Handle image upload */
   private async handleImageUpload(e: Event): Promise<void> {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -445,7 +405,6 @@ export class StudyModeEditorToolbar {
     reader.onload = () => {
       const base64 = reader.result as string;
 
-      // Load image to get dimensions
       const img = new window.Image();
       img.onload = () => {
         const maxHeight = 100;
@@ -457,7 +416,6 @@ export class StudyModeEditorToolbar {
           height = maxHeight;
         }
 
-        // Insert image with calculated width
         this.editor?.chain().focus().setImage({
           src: base64,
           width: Math.round(width)
@@ -468,13 +426,9 @@ export class StudyModeEditorToolbar {
 
     reader.readAsDataURL(file);
 
-    // Reset input
     input.value = '';
   }
-
-  /**
-   * Insert table
-   */
+  /** Insert table */
   private async insertTable(): Promise<void> {
     const rowsStr = window.prompt('Number of rows:', '3');
     if (!rowsStr) return;
@@ -491,14 +445,10 @@ export class StudyModeEditorToolbar {
         .run();
     }
   }
-
-  /**
-   * Update toolbar button states
-   */
+  /** Update toolbar button states */
   private updateButtonStates(): void {
     if (!this.editor) return;
 
-    // Text formatting
     this.updateBtnState('.study-bold-btn', this.editor.isActive('bold'));
     this.updateBtnState('.study-italic-btn', this.editor.isActive('italic'));
     this.updateBtnState('.study-underline-btn', this.editor.isActive('underline'));
@@ -506,39 +456,30 @@ export class StudyModeEditorToolbar {
     this.updateBtnState('.study-superscript-btn', this.editor.isActive('superscript'));
     this.updateBtnState('.study-subscript-btn', this.editor.isActive('subscript'));
 
-    // Text alignment
     this.updateBtnState('.study-align-left-btn', this.editor.isActive({ textAlign: 'left' }));
     this.updateBtnState('.study-align-center-btn', this.editor.isActive({ textAlign: 'center' }));
     this.updateBtnState('.study-align-right-btn', this.editor.isActive({ textAlign: 'right' }));
     this.updateBtnState('.study-align-justify-btn', this.editor.isActive({ textAlign: 'justify' }));
 
-    // Font size
     const currentFontSize = this.editor.getAttributes('textStyle').fontSize || '';
     const fontSizeSelect = document.querySelector('.study-font-size-select') as HTMLSelectElement;
     if (fontSizeSelect) fontSizeSelect.value = currentFontSize;
 
-    // Headings
     this.updateBtnState('.study-heading1-btn', this.editor.isActive('heading', { level: 1 }));
     this.updateBtnState('.study-heading2-btn', this.editor.isActive('heading', { level: 2 }));
 
-    // Lists
     this.updateBtnState('.study-bullet-list-btn', this.editor.isActive('bulletList'));
     this.updateBtnState('.study-numbered-list-btn', this.editor.isActive('orderedList'));
 
-    // Highlight and Link
     this.updateBtnState('.study-highlight-btn', this.editor.isActive('highlight'));
     this.updateBtnState('.study-link-btn', this.editor.isActive('link'));
 
-    // History buttons
     const undoBtn = document.querySelector('.study-undo-btn') as HTMLButtonElement;
     const redoBtn = document.querySelector('.study-redo-btn') as HTMLButtonElement;
     if (undoBtn) undoBtn.disabled = !this.editor.can().undo();
     if (redoBtn) redoBtn.disabled = !this.editor.can().redo();
   }
-
-  /**
-   * Update individual button state
-   */
+  /** Update individual button state */
   private updateBtnState(selector: string, isActive: boolean): void {
     const btn = document.querySelector(selector);
     if (btn) {
@@ -549,10 +490,7 @@ export class StudyModeEditorToolbar {
       }
     }
   }
-
-  /**
-   * Cleanup event listeners
-   */
+  /** Cleanup event listeners */
   public cleanup(): void {
     if (this.paletteClickHandler) {
       document.removeEventListener('click', this.paletteClickHandler);

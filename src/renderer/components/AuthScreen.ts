@@ -15,14 +15,10 @@ export class AuthScreen {
 
   constructor(authManager: AuthManager) {
     this.authManager = authManager;
-    // Store original form HTML for resetting
     this.originalFormSectionHTML = this.getOriginalFormHTML();
     this.createModal();
   }
-
-  /**
-   * Get the original form section HTML
-   */
+  /** Get the original form section HTML */
   private getOriginalFormHTML(): string {
     return `
       <!-- Google Sign In Button -->
@@ -87,12 +83,8 @@ export class AuthScreen {
       </div>
     `;
   }
-
-  /**
-   * Create the authentication modal
-   */
+  /** Create the authentication modal */
   private createModal(): void {
-    // Create modal overlay
     this.modal = document.createElement('div');
     this.modal.id = 'auth-modal';
     this.modal.className = 'auth-modal hidden';
@@ -129,44 +121,31 @@ export class AuthScreen {
     document.body.appendChild(this.modal);
     this.setupEventListeners();
   }
-
-  /**
-   * Reset the form section to its original state
-   */
+  /** Reset the form section to its original state */
   private resetFormSection(): void {
     const formSection = this.modal?.querySelector('#auth-form-section');
     if (!formSection) return;
 
-    // Restore original HTML
     formSection.innerHTML = this.originalFormSectionHTML;
 
-    // Re-attach event listeners for the form section
     this.attachFormEventListeners();
 
-    // Reset mode to sign in
     this.isSignUpMode = false;
   }
-
-  /**
-   * Attach event listeners specifically for the form section elements
-   */
+  /** Attach event listeners specifically for the form section elements */
   private attachFormEventListeners(): void {
-    // Google sign in button
     const googleBtn = this.modal?.querySelector('#google-signin-btn');
     googleBtn?.addEventListener('click', () => this.handleGoogleSignIn());
 
-    // Email/password form
     const form = this.modal?.querySelector('#auth-form') as HTMLFormElement;
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
       this.handleFormSubmit();
     });
 
-    // Toggle between sign in and sign up
     const toggleBtn = this.modal?.querySelector('#toggle-mode-btn');
     toggleBtn?.addEventListener('click', () => this.toggleMode());
 
-    // Show password hint on focus
     const passwordInput = this.modal?.querySelector('#auth-password');
     const passwordHint = this.modal?.querySelector('#password-hint');
     passwordInput?.addEventListener('focus', () => {
@@ -175,42 +154,30 @@ export class AuthScreen {
       }
     });
   }
-
-  /**
-   * Set up event listeners
-   */
+  /** Set up event listeners */
   private setupEventListeners(): void {
-    // Close button
     const closeBtn = this.modal?.querySelector('.auth-close-btn');
     closeBtn?.addEventListener('click', () => this.hide());
 
-    // Click outside modal to close
     this.modal?.addEventListener('click', (e) => {
       if (e.target === this.modal) {
         this.hide();
       }
     });
 
-    // Continue offline
     const offlineBtn = this.modal?.querySelector('#continue-offline-btn');
     offlineBtn?.addEventListener('click', () => this.hide());
 
-    // Attach form-specific event listeners
     this.attachFormEventListeners();
   }
-
-  /**
-   * Handle Google sign in
-   */
+  /** Handle Google sign in */
   private async handleGoogleSignIn(): Promise<void> {
     this.showLoading('Opening Google Sign In...');
 
-    // PKCE code verifier and challenge are generated and stored automatically by Supabase
     // when flowType is 'pkce' in the RendererSupabaseClient configuration
     const result = await this.authManager.signInWithGoogle();
 
     if (result.success && result.authUrl) {
-      // Debug: Check localStorage for PKCE verifier
       const projectRef = 'djlvwxmakxaffdqbuwkv';
       const storageKey = `sb-${projectRef}-auth-token-code-verifier`;
       const codeVerifier = localStorage.getItem(storageKey);
@@ -219,26 +186,20 @@ export class AuthScreen {
         console.log('🔍 Verifier length:', codeVerifier.length);
       }
 
-      // Show floating OAuth window
       await window.scribeCat.auth.showOAuthWaitingWindow();
 
-      // Open OAuth in system browser where TouchID/passkeys work
       await window.scribeCat.shell.openExternal(result.authUrl);
 
       this.hideLoading();
 
-      // Hide the main auth modal while waiting for OAuth
       this.hide();
 
-      // Set up listeners for OAuth code
       window.scribeCat.auth.onOAuthCodeReceived(async (code: string) => {
         console.log('✓ OAuth code received from floating window');
 
-        // Show the modal again with loading state
         this.show();
         this.showLoading('Completing sign in...');
 
-        // Exchange code for session
         const sessionResult = await this.authManager.handleOAuthCallback(code);
 
         this.hideLoading();
@@ -253,16 +214,13 @@ export class AuthScreen {
           this.showError(sessionResult.error || 'Failed to complete sign in');
         }
 
-        // Clean up listeners
         window.scribeCat.auth.removeOAuthListeners();
       });
 
       window.scribeCat.auth.onOAuthCancelled(() => {
         console.log('OAuth flow cancelled');
-        // Show the modal again
         this.show();
         this.showError('Sign in was cancelled');
-        // Clean up listeners
         window.scribeCat.auth.removeOAuthListeners();
       });
     } else {
@@ -270,10 +228,7 @@ export class AuthScreen {
       this.showError(result.error || 'Failed to initiate Google sign in');
     }
   }
-
-  /**
-   * Show OAuth instructions
-   */
+  /** Show OAuth instructions */
   private showOAuthInstructions(): void {
     const formSection = this.modal?.querySelector('#auth-form-section');
     if (!formSection) return;
@@ -305,7 +260,6 @@ export class AuthScreen {
       </div>
     `;
 
-    // Set up event listeners for OAuth flow
     const submitBtn = this.modal?.querySelector('#submit-oauth-code-btn');
     submitBtn?.addEventListener('click', () => this.handleOAuthCallback());
 
@@ -316,7 +270,6 @@ export class AuthScreen {
       this.hideSuccess();
     });
   }
-
   /**
    * Handle OAuth callback
    * Code verifier is retrieved from localStorage by RendererSupabaseClient
@@ -332,7 +285,6 @@ export class AuthScreen {
 
     this.showLoading('Completing sign in...');
 
-    // Auth exchange now happens in renderer where localStorage works
     const result = await this.authManager.handleOAuthCallback(code);
 
     this.hideLoading();
@@ -347,10 +299,7 @@ export class AuthScreen {
       this.showError(result.error || 'Failed to complete sign in');
     }
   }
-
-  /**
-   * Handle form submission
-   */
+  /** Handle form submission */
   private async handleFormSubmit(): Promise<void> {
     const emailInput = this.modal?.querySelector('#auth-email') as HTMLInputElement;
     const passwordInput = this.modal?.querySelector('#auth-password') as HTMLInputElement;
@@ -393,10 +342,7 @@ export class AuthScreen {
       this.showError(result.error || 'Authentication failed');
     }
   }
-
-  /**
-   * Toggle between sign in and sign up modes
-   */
+  /** Toggle between sign in and sign up modes */
   private toggleMode(): void {
     this.isSignUpMode = !this.isSignUpMode;
 
@@ -423,19 +369,14 @@ export class AuthScreen {
       if (toggleModeBtn) toggleModeBtn.textContent = 'Sign Up';
     }
 
-    // Clear form
     this.clearForm();
     this.hideError();
     this.hideSuccess();
   }
-
-  /**
-   * Show the authentication modal
-   */
+  /** Show the authentication modal */
   show(onSuccess?: () => void): void {
     this.onAuthSuccess = onSuccess;
 
-    // Reset form to original state (in case OAuth instructions were showing)
     this.resetFormSection();
 
     this.modal?.classList.remove('hidden');
@@ -443,20 +384,14 @@ export class AuthScreen {
     this.hideError();
     this.hideSuccess();
   }
-
-  /**
-   * Hide the authentication modal
-   */
+  /** Hide the authentication modal */
   hide(): void {
     this.modal?.classList.add('hidden');
     this.clearForm();
     this.hideError();
     this.hideSuccess();
   }
-
-  /**
-   * Clear the form
-   */
+  /** Clear the form */
   private clearForm(): void {
     const emailInput = this.modal?.querySelector('#auth-email') as HTMLInputElement;
     const passwordInput = this.modal?.querySelector('#auth-password') as HTMLInputElement;
@@ -466,10 +401,7 @@ export class AuthScreen {
     if (passwordInput) passwordInput.value = '';
     if (nameInput) nameInput.value = '';
   }
-
-  /**
-   * Show error message
-   */
+  /** Show error message */
   private showError(message: string): void {
     const errorDiv = this.modal?.querySelector('#auth-error');
     if (errorDiv) {
@@ -478,18 +410,12 @@ export class AuthScreen {
     }
     this.hideSuccess();
   }
-
-  /**
-   * Hide error message
-   */
+  /** Hide error message */
   private hideError(): void {
     const errorDiv = this.modal?.querySelector('#auth-error');
     errorDiv?.classList.add('hidden');
   }
-
-  /**
-   * Show success message
-   */
+  /** Show success message */
   private showSuccess(message: string): void {
     const successDiv = this.modal?.querySelector('#auth-success');
     if (successDiv) {
@@ -498,18 +424,12 @@ export class AuthScreen {
     }
     this.hideError();
   }
-
-  /**
-   * Hide success message
-   */
+  /** Hide success message */
   private hideSuccess(): void {
     const successDiv = this.modal?.querySelector('#auth-success');
     successDiv?.classList.add('hidden');
   }
-
-  /**
-   * Show loading state
-   */
+  /** Show loading state */
   private showLoading(message: string): void {
     const submitBtn = this.modal?.querySelector('#submit-btn') as HTMLButtonElement;
     const googleBtn = this.modal?.querySelector('#google-signin-btn') as HTMLButtonElement;
@@ -522,10 +442,7 @@ export class AuthScreen {
     if (googleBtn) googleBtn.disabled = true;
     if (configureBtn) configureBtn.disabled = true;
   }
-
-  /**
-   * Hide loading state
-   */
+  /** Hide loading state */
   private hideLoading(): void {
     const submitBtn = this.modal?.querySelector('#submit-btn') as HTMLButtonElement;
     const googleBtn = this.modal?.querySelector('#google-signin-btn') as HTMLButtonElement;

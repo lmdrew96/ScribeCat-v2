@@ -1,14 +1,7 @@
-/**
- * SharingHandlers
- *
- * IPC handlers for session sharing operations.
- * Handles sharing, permission checks, and access management.
- */
-
+/** SharingHandlers - IPC handlers for session sharing operations */
 import { ipcMain } from 'electron';
 import { SupabaseClient } from '../../../infrastructure/services/supabase/SupabaseClient.js';
 import { createLogger } from '../../../shared/logger.js';
-
 const logger = createLogger('SharingHandlers');
 
 export class SharingHandlers {
@@ -17,20 +10,13 @@ export class SharingHandlers {
   constructor() {
     this.setupHandlers();
   }
-
-  /**
-   * Set the current user ID
-   */
+  /** Set the current user ID */
   setCurrentUserId(userId: string | null): void {
     this.currentUserId = userId;
     logger.info('Current user ID set for sharing handlers:', userId);
   }
-
-  /**
-   * Setup IPC handlers
-   */
+  /** Setup IPC handlers */
   private setupHandlers(): void {
-    // Check access to a session
     ipcMain.handle('sharing:checkAccess', async (event, sessionId: string) => {
       try {
         if (!this.currentUserId) {
@@ -45,7 +31,6 @@ export class SharingHandlers {
 
         const client = SupabaseClient.getInstance().getClient();
 
-        // Check if user is owner
         const { data: session, error: sessionError } = await client
           .from('sessions')
           .select('user_id')
@@ -77,7 +62,6 @@ export class SharingHandlers {
           };
         }
 
-        // Check if session is shared with user
         const { data: share, error: shareError } = await client
           .from('session_shares')
           .select('*')
@@ -106,8 +90,6 @@ export class SharingHandlers {
             isOwner: false
           };
         }
-
-        // User has no access
         return {
           success: true,
           hasAccess: false,
@@ -128,7 +110,6 @@ export class SharingHandlers {
       }
     });
 
-    // Share a session with another user
     ipcMain.handle('sharing:shareSession', async (event, params: {
       sessionId: string;
       sharedWithEmail: string;
@@ -144,7 +125,6 @@ export class SharingHandlers {
 
         const client = SupabaseClient.getInstance().getClient();
 
-        // Verify user owns the session
         const { data: session, error: sessionError } = await client
           .from('sessions')
           .select('user_id')
@@ -165,7 +145,6 @@ export class SharingHandlers {
           };
         }
 
-        // Find user by email
         const { data: users, error: userError } = await client
           .from('user_profiles')
           .select('id')
@@ -181,7 +160,6 @@ export class SharingHandlers {
 
         const sharedWithUserId = users[0].id;
 
-        // Check if already shared
         const { data: existingShare, error: checkError } = await client
           .from('session_shares')
           .select('id')
@@ -196,7 +174,6 @@ export class SharingHandlers {
           };
         }
 
-        // Create share
         const { data: share, error: shareError } = await client
           .from('session_shares')
           .insert({
@@ -215,7 +192,6 @@ export class SharingHandlers {
             error: shareError.message
           };
         }
-
         return {
           success: true,
           share
@@ -229,7 +205,6 @@ export class SharingHandlers {
       }
     });
 
-    // Get all shares for a session
     ipcMain.handle('sharing:getSessionShares', async (event, sessionId: string) => {
       try {
         if (!this.currentUserId) {
@@ -241,7 +216,6 @@ export class SharingHandlers {
 
         const client = SupabaseClient.getInstance().getClient();
 
-        // Verify user owns the session
         const { data: session, error: sessionError } = await client
           .from('sessions')
           .select('user_id')
@@ -255,7 +229,6 @@ export class SharingHandlers {
           };
         }
 
-        // Get shares first
         const { data: shares, error: sharesError } = await client
           .from('session_shares')
           .select('*')
@@ -270,7 +243,6 @@ export class SharingHandlers {
           };
         }
 
-        // Fetch user profiles separately for each share
         const sharesWithProfiles = await Promise.all(
           (shares || []).map(async (share) => {
             const { data: profile, error: profileError } = await client
@@ -299,7 +271,6 @@ export class SharingHandlers {
       }
     });
 
-    // Get sessions shared with current user
     ipcMain.handle('sharing:getSharedWithMe', async () => {
       try {
         if (!this.currentUserId) {
@@ -311,7 +282,6 @@ export class SharingHandlers {
 
         const client = SupabaseClient.getInstance().getClient();
 
-        // Get shares for current user with full session details
         const { data: shares, error: sharesError } = await client
           .from('session_shares')
           .select(`
@@ -346,7 +316,6 @@ export class SharingHandlers {
           };
         }
 
-        // Fetch owner profiles for each share
         const sharesWithOwner = await Promise.all(
           (shares || []).map(async (share) => {
             const sessionData = share.sessions as any;
@@ -354,14 +323,12 @@ export class SharingHandlers {
               return share;
             }
 
-            // Fetch owner profile
             const { data: ownerProfile, error: profileError } = await client
               .from('user_profiles')
               .select('email, full_name')
               .eq('id', sessionData.user_id)
               .single();
 
-            // Add owner info to the share object
             return {
               ...share,
               sessions: {
@@ -386,7 +353,6 @@ export class SharingHandlers {
       }
     });
 
-    // Update share permission
     ipcMain.handle('sharing:updatePermission', async (event, params: {
       shareId: string;
       permissionLevel: 'viewer' | 'editor';
@@ -403,7 +369,6 @@ export class SharingHandlers {
 
         logger.info('Updating permission for share:', params.shareId);
 
-        // Get the share first
         const { data: share, error: shareError } = await client
           .from('session_shares')
           .select('id, session_id')
@@ -420,7 +385,6 @@ export class SharingHandlers {
           };
         }
 
-        // Verify user owns the session
         const { data: session, error: sessionError } = await client
           .from('sessions')
           .select('user_id')
@@ -442,7 +406,6 @@ export class SharingHandlers {
           };
         }
 
-        // Update permission
         const { error: updateError } = await client
           .from('session_shares')
           .update({ permission_level: params.permissionLevel })
@@ -455,7 +418,6 @@ export class SharingHandlers {
             error: updateError.message
           };
         }
-
         return { success: true };
       } catch (error) {
         logger.error('Error in sharing:updatePermission:', error);
@@ -466,7 +428,6 @@ export class SharingHandlers {
       }
     });
 
-    // Revoke access (delete share)
     ipcMain.handle('sharing:revokeAccess', async (event, shareId: string) => {
       try {
         if (!this.currentUserId) {
@@ -478,7 +439,6 @@ export class SharingHandlers {
 
         const client = SupabaseClient.getInstance().getClient();
 
-        // Get the share first
         const { data: share, error: shareError } = await client
           .from('session_shares')
           .select('id, session_id, shared_by_user_id, shared_with_user_id')
@@ -493,7 +453,6 @@ export class SharingHandlers {
           };
         }
 
-        // Verify user is either the session owner OR the recipient
         const { data: session, error: sessionError } = await client
           .from('sessions')
           .select('user_id')
@@ -517,10 +476,8 @@ export class SharingHandlers {
             error: 'You do not have permission to remove this share'
           };
         }
-
         logger.info(`${isOwner ? 'Owner' : 'Recipient'} removing share:`, shareId);
 
-        // Delete share
         const { error: deleteError } = await client
           .from('session_shares')
           .delete()
@@ -533,7 +490,6 @@ export class SharingHandlers {
             error: deleteError.message
           };
         }
-
         return { success: true };
       } catch (error) {
         logger.error('Error in sharing:revokeAccess:', error);
@@ -543,7 +499,6 @@ export class SharingHandlers {
         };
       }
     });
-
     logger.info('Sharing IPC handlers registered');
   }
 }

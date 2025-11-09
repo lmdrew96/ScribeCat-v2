@@ -13,7 +13,6 @@ export class TiptapToolbarManager {
   private editorCore: TiptapEditorCore;
   private paletteClickHandler: ((e: MouseEvent) => void) | null = null;
 
-  // Toolbar buttons
   private boldBtn: HTMLButtonElement;
   private italicBtn: HTMLButtonElement;
   private underlineBtn: HTMLButtonElement;
@@ -49,7 +48,6 @@ export class TiptapToolbarManager {
   private redoBtn: HTMLButtonElement;
   private clearFormatBtn: HTMLButtonElement;
 
-  // Input prompt modal elements
   private inputPromptModal: HTMLElement;
   private inputPromptTitle: HTMLElement;
   private inputPromptLabel: HTMLElement;
@@ -61,7 +59,6 @@ export class TiptapToolbarManager {
   constructor(editorCore: TiptapEditorCore) {
     this.editorCore = editorCore;
 
-    // Get toolbar buttons
     this.boldBtn = document.getElementById('bold-btn') as HTMLButtonElement;
     this.italicBtn = document.getElementById('italic-btn') as HTMLButtonElement;
     this.underlineBtn = document.getElementById('underline-btn') as HTMLButtonElement;
@@ -97,7 +94,6 @@ export class TiptapToolbarManager {
     this.redoBtn = document.getElementById('redo-btn') as HTMLButtonElement;
     this.clearFormatBtn = document.getElementById('clear-format-btn') as HTMLButtonElement;
 
-    // Get input prompt modal elements
     this.inputPromptModal = document.getElementById('input-prompt-modal') as HTMLElement;
     this.inputPromptTitle = document.getElementById('input-prompt-title') as HTMLElement;
     this.inputPromptLabel = document.getElementById('input-prompt-label') as HTMLElement;
@@ -106,15 +102,11 @@ export class TiptapToolbarManager {
     this.cancelInputPromptBtn = document.getElementById('cancel-input-prompt-btn') as HTMLButtonElement;
     this.closeInputPromptBtn = document.getElementById('close-input-prompt-btn') as HTMLButtonElement;
   }
-
-  /**
-   * Set up toolbar button event listeners
-   */
+  /** Set up toolbar button event listeners */
   setupToolbarListeners(): void {
     const editor = this.editorCore.getEditor();
     if (!editor) return;
 
-    // Text formatting
     this.boldBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().toggleBold().run();
     });
@@ -139,7 +131,6 @@ export class TiptapToolbarManager {
       this.editorCore.chain()?.focus().toggleStrike().run();
     });
 
-    // Color picker
     this.colorBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.colorPalette.classList.toggle('show');
@@ -148,7 +139,6 @@ export class TiptapToolbarManager {
 
     this.setupColorPalette();
 
-    // Background color picker
     this.bgColorBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.bgColorPalette.classList.toggle('show');
@@ -157,7 +147,6 @@ export class TiptapToolbarManager {
 
     this.setupBgColorPalette();
 
-    // Close palettes when clicking outside
     if (this.paletteClickHandler) {
       document.removeEventListener('click', this.paletteClickHandler);
     }
@@ -174,7 +163,6 @@ export class TiptapToolbarManager {
     };
     document.addEventListener('click', this.paletteClickHandler);
 
-    // Font size
     this.fontSizeSelect.addEventListener('change', (e) => {
       const size = (e.target as HTMLSelectElement).value;
       if (size) {
@@ -184,7 +172,6 @@ export class TiptapToolbarManager {
       }
     });
 
-    // Text align
     this.alignLeftBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().setTextAlign('left').run();
     });
@@ -201,7 +188,6 @@ export class TiptapToolbarManager {
       this.editorCore.chain()?.focus().setTextAlign('justify').run();
     });
 
-    // Headings
     this.heading1Btn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().toggleHeading({ level: 1 }).run();
     });
@@ -210,7 +196,6 @@ export class TiptapToolbarManager {
       this.editorCore.chain()?.focus().toggleHeading({ level: 2 }).run();
     });
 
-    // Lists
     this.bulletListBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().toggleBulletList().run();
     });
@@ -219,12 +204,10 @@ export class TiptapToolbarManager {
       this.editorCore.chain()?.focus().toggleOrderedList().run();
     });
 
-    // Link
     this.linkBtn.addEventListener('click', () => {
       this.toggleLink();
     });
 
-    // Image
     this.imageBtn.addEventListener('click', () => {
       this.imageInput.click();
     });
@@ -233,12 +216,10 @@ export class TiptapToolbarManager {
       this.handleImageUpload(e);
     });
 
-    // Table
     this.insertTableBtn.addEventListener('click', () => {
       this.insertTable();
     });
 
-    // Table toolbar
     this.addRowBeforeBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().addRowBefore().run();
     });
@@ -267,7 +248,6 @@ export class TiptapToolbarManager {
       this.editorCore.chain()?.focus().deleteTable().run();
     });
 
-    // History
     this.undoBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().undo().run();
     });
@@ -276,17 +256,13 @@ export class TiptapToolbarManager {
       this.editorCore.chain()?.focus().redo().run();
     });
 
-    // Clear formatting
     this.clearFormatBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().clearNodes().unsetAllMarks().run();
     });
 
     logger.info('Toolbar listeners initialized');
   }
-
-  /**
-   * Set up color palette swatches
-   */
+  /** Set up color palette swatches */
   private setupColorPalette(): void {
     const colors = [
       '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00',
@@ -304,10 +280,7 @@ export class TiptapToolbarManager {
       }
     });
   }
-
-  /**
-   * Set up background color palette swatches
-   */
+  /** Set up background color palette swatches */
   private setupBgColorPalette(): void {
     const colors = [
       '#FFFFFF', '#FFEB3B', '#FFCDD2', '#B3E5FC', '#C8E6C9',
@@ -325,10 +298,7 @@ export class TiptapToolbarManager {
       }
     });
   }
-
-  /**
-   * Show input prompt modal
-   */
+  /** Show input prompt modal */
   private showInputPrompt(title: string, label: string, defaultValue: string = ''): Promise<string | null> {
     return new Promise((resolve) => {
       this.inputPromptTitle.textContent = title;
@@ -374,10 +344,7 @@ export class TiptapToolbarManager {
       this.inputPromptField.addEventListener('keydown', handleKeydown);
     });
   }
-
-  /**
-   * Toggle link
-   */
+  /** Toggle link */
   private async toggleLink(): Promise<void> {
     const editor = this.editorCore.getEditor();
     if (!editor) return;
@@ -400,10 +367,7 @@ export class TiptapToolbarManager {
       }
     }
   }
-
-  /**
-   * Insert table
-   */
+  /** Insert table */
   private async insertTable(): Promise<void> {
     const rowsStr = await this.showInputPrompt('Insert Table', 'Number of rows:', '3');
     if (!rowsStr) return;
@@ -420,10 +384,7 @@ export class TiptapToolbarManager {
         .run();
     }
   }
-
-  /**
-   * Handle image upload
-   */
+  /** Handle image upload */
   private async handleImageUpload(e: Event): Promise<void> {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -457,12 +418,8 @@ export class TiptapToolbarManager {
     reader.readAsDataURL(file);
     input.value = '';
   }
-
-  /**
-   * Update button active states
-   */
+  /** Update button active states */
   updateButtonStates(): void {
-    // Text formatting
     this.updateButtonState(this.boldBtn, this.editorCore.isActive('bold'));
     this.updateButtonState(this.italicBtn, this.editorCore.isActive('italic'));
     this.updateButtonState(this.underlineBtn, this.editorCore.isActive('underline'));
@@ -470,39 +427,29 @@ export class TiptapToolbarManager {
     this.updateButtonState(this.superscriptBtn, this.editorCore.isActive('superscript'));
     this.updateButtonState(this.subscriptBtn, this.editorCore.isActive('subscript'));
 
-    // Text align
     this.updateButtonState(this.alignLeftBtn, this.editorCore.isActive({ textAlign: 'left' }));
     this.updateButtonState(this.alignCenterBtn, this.editorCore.isActive({ textAlign: 'center' }));
     this.updateButtonState(this.alignRightBtn, this.editorCore.isActive({ textAlign: 'right' }));
     this.updateButtonState(this.alignJustifyBtn, this.editorCore.isActive({ textAlign: 'justify' }));
 
-    // Font size
     const currentFontSize = this.editorCore.getAttributes('textStyle').fontSize || '';
     this.fontSizeSelect.value = currentFontSize;
 
-    // Headings
     this.updateButtonState(this.heading1Btn, this.editorCore.isActive('heading', { level: 1 }));
     this.updateButtonState(this.heading2Btn, this.editorCore.isActive('heading', { level: 2 }));
 
-    // Lists
     this.updateButtonState(this.bulletListBtn, this.editorCore.isActive('bulletList'));
     this.updateButtonState(this.numberedListBtn, this.editorCore.isActive('orderedList'));
 
-    // Link
     this.updateButtonState(this.linkBtn, this.editorCore.isActive('link'));
 
-    // Table toolbar visibility
     const isInTable = this.editorCore.isActive('table');
     this.tableToolbar.style.display = isInTable ? 'flex' : 'none';
 
-    // History buttons
     this.undoBtn.disabled = !this.editorCore.canUndo();
     this.redoBtn.disabled = !this.editorCore.canRedo();
   }
-
-  /**
-   * Update individual button state
-   */
+  /** Update individual button state */
   private updateButtonState(button: HTMLButtonElement, isActive: boolean): void {
     if (isActive) {
       button.classList.add('active');
@@ -510,10 +457,7 @@ export class TiptapToolbarManager {
       button.classList.remove('active');
     }
   }
-
-  /**
-   * Cleanup
-   */
+  /** Cleanup */
   destroy(): void {
     if (this.paletteClickHandler) {
       document.removeEventListener('click', this.paletteClickHandler);

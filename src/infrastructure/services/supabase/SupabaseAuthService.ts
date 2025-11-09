@@ -22,16 +22,12 @@ export class SupabaseAuthService implements ISupabaseAuthService {
   private authStateListeners: Set<(session: AuthSession | null) => void> = new Set();
 
   constructor() {
-    // Set up auth state listener using the singleton client
     const client = SupabaseClient.getInstance().getClient();
     client.auth.onAuthStateChange((event, session) => {
       const authSession = session ? this.convertToAuthSession(session) : null;
       this.notifyAuthStateListeners(authSession);
     });
 
-    // CRITICAL: Check for existing session immediately after registering listener
-    // Supabase silently restores session from localStorage BEFORE onAuthStateChange fires
-    // So we need to manually check and notify listeners if a session already exists
     console.log('🔍 Checking for existing Supabase session...');
     client.auth.getSession()
       .then(({ data, error }) => {
@@ -61,17 +57,11 @@ export class SupabaseAuthService implements ISupabaseAuthService {
         console.error('❌ Exception checking for existing session:', error);
       });
   }
-
-  /**
-   * Check if client is initialized (always true with singleton)
-   */
+  /** Check if client is initialized (always true with singleton) */
   isInitialized(): boolean {
     return true;
   }
-
-  /**
-   * Sign in with email and password
-   */
+  /** Sign in with email and password */
   async signInWithEmail(params: SignInWithEmailParams): Promise<AuthResult> {
     try {
       const client = SupabaseClient.getInstance().getClient();
@@ -107,10 +97,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
-  /**
-   * Sign up with email and password
-   */
+  /** Sign up with email and password */
   async signUpWithEmail(params: SignUpWithEmailParams): Promise<AuthResult> {
     try {
       const client = SupabaseClient.getInstance().getClient();
@@ -151,7 +138,6 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
   /**
    * Sign in with Google OAuth
    * Returns the OAuth URL to open in browser
@@ -167,7 +153,6 @@ export class SupabaseAuthService implements ISupabaseAuthService {
           redirectTo: 'http://localhost:3000/auth/callback',
           skipBrowserRedirect: true,
           queryParams: {
-            // Force authorization code flow instead of implicit flow
             access_type: 'offline',
             prompt: 'consent'
           }
@@ -181,21 +166,16 @@ export class SupabaseAuthService implements ISupabaseAuthService {
         };
       }
 
-      // Manually append PKCE parameters and force authorization code flow
       let oauthUrl = data.url;
       if (oauthUrl) {
         const url = new URL(oauthUrl);
-        // Add PKCE parameters (code challenge from renderer)
         url.searchParams.set('code_challenge', codeChallenge);
         url.searchParams.set('code_challenge_method', 'S256');
-        // Force authorization code flow (not implicit flow)
         url.searchParams.set('response_type', 'code');
-        // Remove implicit flow response types if present
         url.searchParams.delete('response_mode');
         oauthUrl = url.toString();
       }
 
-      // For Electron apps, we need to return the URL to open in external browser
       return {
         success: true,
         error: oauthUrl || undefined // Return the OAuth URL with PKCE challenge
@@ -207,13 +187,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
-  // NOTE: OAuth callback is now handled in renderer process using RendererSupabaseClient
-  // This method has been removed - renderer exchanges code directly where localStorage works
-
-  /**
-   * Sign out the current user
-   */
+  /** Sign out the current user */
   async signOut(): Promise<{ success: boolean; error?: string }> {
     try {
       const client = SupabaseClient.getInstance().getClient();
@@ -235,10 +209,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
-  /**
-   * Get current user
-   */
+  /** Get current user */
   async getCurrentUser(): Promise<UserProfile | null> {
     try {
       const client = SupabaseClient.getInstance().getClient();
@@ -255,10 +226,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       return null;
     }
   }
-
-  /**
-   * Get current session
-   */
+  /** Get current session */
   async getSession(): Promise<AuthSession | null> {
     try {
       const client = SupabaseClient.getInstance().getClient();
@@ -275,10 +243,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       return null;
     }
   }
-
-  /**
-   * Refresh the current session
-   */
+  /** Refresh the current session */
   async refreshSession(): Promise<AuthResult> {
     try {
       const client = SupabaseClient.getInstance().getClient();
@@ -311,23 +276,16 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
-  /**
-   * Check if user is authenticated
-   */
+  /** Check if user is authenticated */
   async isAuthenticated(): Promise<boolean> {
     const session = await this.getSession();
     return session !== null;
   }
-
-  /**
-   * Update user profile
-   */
+  /** Update user profile */
   async updateProfile(updates: Partial<UserProfile>): Promise<{ success: boolean; error?: string }> {
     try {
       const client = SupabaseClient.getInstance().getClient();
 
-      // Update auth user metadata
       const { error } = await client.auth.updateUser({
         data: {
           full_name: updates.fullName,
@@ -351,7 +309,6 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
   /**
    * Get user preferences from user_profiles table
    * This fetches preferences stored in the database (not just auth metadata)
@@ -384,7 +341,6 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
   /**
    * Update user preferences in user_profiles table
    * This updates preferences stored in the database (not just auth metadata)
@@ -413,13 +369,9 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
-  /**
-   * Set a specific preference key in user_profiles table
-   */
+  /** Set a specific preference key in user_profiles table */
   async setUserPreference(userId: string, key: string, value: any): Promise<{ success: boolean; error?: string }> {
     try {
-      // Get current preferences
       const prefsResult = await this.getUserPreferences(userId);
       if (!prefsResult.success) {
         return prefsResult;
@@ -428,7 +380,6 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       const preferences = prefsResult.data || {};
       preferences[key] = value;
 
-      // Update with new preferences
       return await this.updateUserPreferences(userId, preferences);
     } catch (error) {
       return {
@@ -437,10 +388,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
-  /**
-   * Get a specific preference key from user_profiles table
-   */
+  /** Get a specific preference key from user_profiles table */
   async getUserPreference(userId: string, key: string): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       const prefsResult = await this.getUserPreferences(userId);
@@ -460,22 +408,15 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       };
     }
   }
-
-  /**
-   * Listen for auth state changes
-   */
+  /** Listen for auth state changes */
   onAuthStateChange(callback: (session: AuthSession | null) => void): () => void {
     this.authStateListeners.add(callback);
 
-    // Return unsubscribe function
     return () => {
       this.authStateListeners.delete(callback);
     };
   }
-
-  /**
-   * Convert Supabase Session to AuthSession
-   */
+  /** Convert Supabase Session to AuthSession */
   private convertToAuthSession(session: Session): AuthSession {
     return {
       user: this.convertToUserProfile(session.user),
@@ -484,10 +425,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       expiresAt: new Date(session.expires_at! * 1000)
     };
   }
-
-  /**
-   * Convert Supabase User to UserProfile
-   */
+  /** Convert Supabase User to UserProfile */
   private convertToUserProfile(user: User): UserProfile {
     return {
       id: user.id,
@@ -500,10 +438,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       preferences: user.user_metadata?.preferences || {}
     };
   }
-
-  /**
-   * Notify all auth state listeners
-   */
+  /** Notify all auth state listeners */
   private notifyAuthStateListeners(session: AuthSession | null): void {
     this.authStateListeners.forEach(listener => {
       try {
@@ -513,10 +448,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
       }
     });
   }
-
-  /**
-   * Get the Supabase client (for advanced operations)
-   */
+  /** Get the Supabase client (for advanced operations) */
   getClient() {
     return SupabaseClient.getInstance().getClient();
   }
