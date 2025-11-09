@@ -146,9 +146,6 @@ declare global {
         onHotReloadNotification: (callback: (message: string) => void) => void;
         removeHotReloadListener: () => void;
       };
-      // TODO: Add type declarations when features are implemented
-      // files?: { ... };
-      // themes?: { ... };
     };
     // Global manager instances (set in app.ts)
     courseManager?: import('./types').CourseManager;

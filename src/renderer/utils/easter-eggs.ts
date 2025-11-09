@@ -60,7 +60,6 @@ export class TripleClickDetector {
 
     this.element.addEventListener('click', (e) => {
       this.clickCount++;
-      console.log(`👆 Click ${this.clickCount}/3 on logo`);
 
       if (this.clickTimer) {
         clearTimeout(this.clickTimer);
@@ -68,12 +67,10 @@ export class TripleClickDetector {
 
       if (this.clickCount === 3) {
         isActive = !isActive;
-        console.log(`🎯 Triple-click detected! isActive: ${isActive}`);
         this.callback(isActive);
         this.clickCount = 0;
       } else {
         this.clickTimer = setTimeout(() => {
-          console.log('⏱️ Click timeout - resetting counter');
           this.clickCount = 0;
         }, this.resetDelay);
       }
@@ -189,10 +186,8 @@ export class StudyBuddy {
 
   toggle(): void {
     if (this.isActive) {
-      console.log('🐱 Deactivating Study Buddy');
       this.deactivate();
     } else {
-      console.log('🐱 Activating Study Buddy');
       this.activate();
     }
   }
@@ -211,13 +206,7 @@ export class StudyBuddy {
     this.catSprite.className = 'study-buddy-sprite idle';
     this.cat.appendChild(this.catSprite);
 
-    console.log(`🐱 Study Buddy Meow Knight created at position (${this.catX}, ${this.catY})`);
     document.body.appendChild(this.cat);
-    console.log('🐱 Study Buddy cat added to DOM. Element:', this.cat);
-
-    // Verify cat is in DOM
-    const catInDom = document.querySelector('.study-buddy');
-    console.log('🐱 Cat found in DOM:', catInDom !== null);
 
     // Start following cursor
     document.addEventListener('mousemove', this.handleMouseMove);
@@ -228,7 +217,6 @@ export class StudyBuddy {
     this.isActive = false;
 
     if (this.cat) {
-      console.log('🐱 Study Buddy cat removed from DOM');
       this.cat.remove();
       this.cat = null;
     }
@@ -272,8 +260,6 @@ export class StudyBuddy {
   };
 
   private startAnimation(): void {
-    console.log('🎬 Starting Study Buddy Meow Knight animation loop');
-
     const animate = (): void => {
       if (!this.isActive || !this.cat) return;
 
