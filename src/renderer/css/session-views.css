@@ -58,6 +58,8 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
+  min-height: 100%;
 }
 
 .timeline-header {
@@ -270,7 +272,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
-  padding: 16px;
+  padding: 20px;
+  min-height: 100%;
+  align-content: start;
 }
 
 .grid-card {
@@ -366,7 +370,8 @@
   border-radius: 16px;
   border: 1px solid var(--border-color, #444444);
   overflow: hidden;
-  margin: 16px;
+  margin: 20px;
+  min-height: calc(100% - 40px);
 }
 
 .list-table {
@@ -469,8 +474,9 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  padding: 16px;
+  padding: 20px;
   align-items: start;
+  min-height: 100%;
 }
 
 .board-column {

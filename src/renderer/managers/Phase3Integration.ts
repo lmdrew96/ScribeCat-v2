@@ -26,6 +26,9 @@ export class Phase3Integration {
   private viewModeManager: ViewModeManager;
   private searchBar: SearchBar | null = null;
 
+  // Session storage
+  private sessions: Session[] = [];
+
   // View components
   private timelineView: TimelineView | null = null;
   private gridView: GridView | null = null;
@@ -236,6 +239,9 @@ export class Phase3Integration {
   updateSessions(sessions: Session[]): void {
     logger.info(`Updating Phase 3 with ${sessions.length} sessions`);
 
+    // Store sessions internally
+    this.sessions = sessions;
+
     // Update search manager
     this.searchManager.setSessions(sessions);
 
@@ -255,9 +261,8 @@ export class Phase3Integration {
       return this.searchManager.getResultSessions();
     }
 
-    // Get all sessions from study mode manager
-    // This is a temporary workaround - ideally we'd have a cleaner way to get this
-    return [];
+    // Return all sessions when no search is active
+    return this.sessions;
   }
 
   /**

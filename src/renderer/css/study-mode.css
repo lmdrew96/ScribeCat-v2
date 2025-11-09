@@ -238,15 +238,13 @@
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
 }
 
-/* Session List Container */
+/* Session List Container - Phase 3 compatible */
 .session-list {
   flex: 1;
-  padding: 20px;
+  padding: 0;
   overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-  align-content: start;
+  display: block;
+  min-height: 0; /* Important: allows flex child to shrink and scroll */
 }
 
 .session-list::-webkit-scrollbar {
