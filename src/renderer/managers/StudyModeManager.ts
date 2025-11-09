@@ -25,6 +25,9 @@ import { SessionEditingManager } from './study-mode/SessionEditingManager.js';
 import { SessionDeletionManager } from './study-mode/SessionDeletionManager.js';
 import { SessionNavigationManager } from './study-mode/SessionNavigationManager.js';
 import { CloudSyncManager } from './study-mode/CloudSyncManager.js';
+import { SessionDataLoader } from './study-mode/SessionDataLoader.js';
+import { MultiSessionCoordinator } from './study-mode/MultiSessionCoordinator.js';
+import { NotesEditCoordinator } from './study-mode/NotesEditCoordinator.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('StudyModeManager');
@@ -42,6 +45,9 @@ export class StudyModeManager {
   private sessionDeletionManager: SessionDeletionManager;
   private sessionNavigationManager: SessionNavigationManager;
   private cloudSyncManager: CloudSyncManager;
+  private sessionDataLoader: SessionDataLoader;
+  private multiSessionCoordinator: MultiSessionCoordinator;
+  private notesEditCoordinator: NotesEditCoordinator;
 
   // Services
   private authManager: AuthManager;
@@ -56,7 +62,6 @@ export class StudyModeManager {
   // State
   private isActive: boolean = false;
   private sessions: Session[] = [];
-  private sharedWithMeSessions: any[] = [];
 
   // UI Elements
   private studyModeView: HTMLElement;
@@ -107,6 +112,9 @@ export class StudyModeManager {
       this.sessionDetailContainer
     );
     this.cloudSyncManager = new CloudSyncManager(this.authManager, this.syncNowBtn);
+    this.sessionDataLoader = new SessionDataLoader(this.sessionSharingManager, this.dataTransformer);
+    this.multiSessionCoordinator = new MultiSessionCoordinator(this.reorderModal);
+    this.notesEditCoordinator = new NotesEditCoordinator(this.notesEditorManager);
 
     this.initializeEventListeners();
     this.setupAuthListener();
@@ -136,7 +144,6 @@ export class StudyModeManager {
 
       // Clear current sessions
       this.sessions = [];
-      this.sharedWithMeSessions = [];
 
       // Clear detail view
       if (this.sessionDetailContainer) {
@@ -167,12 +174,12 @@ export class StudyModeManager {
       buttons: [
         { element: this.studyModeBtn, handler: () => this.show() },
         { element: this.backToRecordBtn, handler: () => this.hide() },
-        { element: this.syncNowBtn, handler: () => this.handleSyncNow() }
+        { element: this.syncNowBtn, handler: () => this.cloudSyncManager.handleSyncNow(async () => await this.refresh()) }
       ],
 
       // Document-level custom events
       documentEvents: [
-        { eventName: 'openSharedSessions', handler: () => this.showSharedSessionsOnly() }
+        { eventName: 'openSharedSessions', handler: () => this.show(true) }
       ],
 
       // Session list custom events
@@ -210,61 +217,41 @@ export class StudyModeManager {
    * Load all sessions from storage
    */
   private async loadSessions(): Promise<void> {
-    try {
-      const result = await window.scribeCat.session.list();
-
-      if (result.success) {
-        // Handle both 'data' and 'sessions' response formats
-        const sessionsData = result.data || result.sessions || [];
-
-        // Convert JSON data to Session instances with methods
-        this.sessions = sessionsData.map((data: any) => Session.fromJSON(data));
-
-        this.sessionListManager.setSessions(this.sessions);
-        logger.info(`Loaded ${this.sessions.length} sessions`);
-      } else {
-        logger.error('Failed to load sessions', result.error);
-        this.sessions = [];
-        this.sessionListManager.setSessions([]);
-      }
-
-      // Load shared sessions
-      await this.loadSharedWithMeSessions();
-    } catch (error) {
-      logger.error('Error loading sessions', error);
-      this.sessions = [];
-      this.sessionListManager.setSessions([]);
-    }
+    this.sessions = await this.sessionDataLoader.loadAllSessions();
+    this.sessionListManager.setSessions(this.sessions);
+    logger.info(`Loaded ${this.sessions.length} total sessions`);
   }
 
   /**
    * Show study mode view
    */
-  public async show(): Promise<void> {
+  public async show(filterSharedOnly: boolean = false): Promise<void> {
     // Reload sessions to get latest data
     await this.loadSessions();
+
+    // Filter if needed
+    const sessionsToShow = filterSharedOnly
+      ? this.dataTransformer.filterSharedOnly(this.sessions)
+      : this.sessions;
 
     // Hide record mode, show study mode
     this.recordModeView.classList.add('hidden');
     this.studyModeView.classList.remove('hidden');
-
-    // Update button state
     this.studyModeBtn.classList.add('active');
 
-    // Reset title to "Study Mode"
+    // Update title
     const titleElement = this.studyModeView.querySelector('.study-mode-header h2');
     if (titleElement) {
-      titleElement.textContent = '📚 Study Mode';
+      titleElement.textContent = filterSharedOnly ? '👥 Shared Sessions' : '📚 Study Mode';
     }
 
-    // Populate course filter
+    // Populate and render
+    this.sessionListManager.setSessions(sessionsToShow);
     this.sessionListManager.populateCourseFilter();
-
-    // Render session list
     this.sessionListManager.render();
 
     this.isActive = true;
-    logger.info('Study mode activated');
+    logger.info(filterSharedOnly ? 'Study mode activated with shared sessions filter' : 'Study mode activated');
   }
 
   /**
@@ -300,13 +287,6 @@ export class StudyModeManager {
   }
 
   /**
-   * Check if a session is editable by the current user
-   */
-  private isSessionEditable(session: Session): boolean {
-    return this.sessionNavigationManager.isSessionEditable(session);
-  }
-
-  /**
    * Back to session list
    */
   private backToSessionList(): void {
@@ -334,7 +314,7 @@ export class StudyModeManager {
 
     this.sessionEditingManager.startTitleEdit(session, 'detail', () => {
       // Re-render both detail view and session list
-      const isEditable = this.isSessionEditable(session);
+      const isEditable = this.sessionNavigationManager.isSessionEditable(session);
       this.detailViewManager.render(session, isEditable);
       this.sessionListManager.render();
     });
@@ -349,7 +329,7 @@ export class StudyModeManager {
 
     await this.sessionEditingManager.startCourseEdit(session, () => {
       // Re-render both detail view and session list
-      const isEditable = this.isSessionEditable(session);
+      const isEditable = this.sessionNavigationManager.isSessionEditable(session);
       this.detailViewManager.render(session, isEditable);
       this.sessionListManager.render();
     });
@@ -359,57 +339,22 @@ export class StudyModeManager {
    * Start editing notes
    */
   private startNotesEdit(sessionId: string): void {
-    const session = this.sessions.find(s => s.id === sessionId);
-    if (session) {
-      this.notesEditorManager.startNotesEdit(sessionId, session.notes || '');
-    }
+    this.notesEditCoordinator.startNotesEdit(this.sessions.find(s => s.id === sessionId));
   }
 
   /**
    * Save edited notes
    */
   private async saveNotesEdit(sessionId: string): Promise<void> {
-    if (!this.notesEditorManager.isEditing()) {
-      return;
-    }
-
-    const updatedNotes = this.notesEditorManager.getNotesHTML();
-
-    try {
-      // Update session notes via IPC
-      const result = await window.scribeCat.session.update(sessionId, { notes: updatedNotes });
-
-      if (result.success) {
-        // Update local session
-        const session = this.sessions.find(s => s.id === sessionId);
-        if (session) {
-          session.notes = updatedNotes;
-        }
-
-        logger.info('Notes updated successfully');
-
-        // Exit edit mode and update view
-        this.notesEditorManager.updateNotesView(updatedNotes);
-      } else {
-        logger.error('Failed to update notes', result.error);
-        alert(`Failed to save notes: ${result.error}`);
-      }
-    } catch (error) {
-      logger.error('Error updating notes', error);
-      alert('An error occurred while saving notes.');
-    }
+    await this.notesEditCoordinator.saveNotesEdit(this.sessions.find(s => s.id === sessionId));
   }
 
   /**
    * Cancel notes editing
    */
   private cancelNotesEdit(): void {
-    if (confirm('Discard your changes?')) {
-      const session = this.sessions.find(s => s.id === this.notesEditorManager.getCurrentEditingSessionId()!);
-      if (session) {
-        this.notesEditorManager.updateNotesView(session.notes || '');
-      }
-    }
+    const sessionId = this.notesEditorManager.getCurrentEditingSessionId();
+    this.notesEditCoordinator.cancelNotesEdit(sessionId ? this.sessions.find(s => s.id === sessionId) : undefined);
   }
 
   /**
@@ -446,11 +391,15 @@ export class StudyModeManager {
       return;
     }
 
-    await this.sessionDeletionManager.leaveSession(session, this.sharedWithMeSessions, async () => {
-      // Refresh the session list after leaving
-      await this.loadSessions();
-      this.sessionListManager.render();
-    });
+    await this.sessionDeletionManager.leaveSession(
+      session,
+      this.sessionDataLoader.getSharedWithMeSessions(),
+      async () => {
+        // Refresh the session list after leaving
+        await this.loadSessions();
+        this.sessionListManager.render();
+      }
+    );
   }
 
   /**
@@ -482,43 +431,6 @@ export class StudyModeManager {
     });
   }
 
-  /**
-   * Load sessions shared with the current user
-   */
-  private async loadSharedWithMeSessions(): Promise<void> {
-    try {
-      const result = await this.sessionSharingManager.getSharedWithMe();
-      logger.info('getSharedWithMe result:', {
-        success: result.success,
-        hasData: !!result.sessions,
-        sessionCount: result.sessions?.length || 0,
-        firstShare: result.sessions?.[0]
-      });
-
-      if (result.success && result.sessions) {
-        this.sharedWithMeSessions = result.sessions;
-        logger.info(`Loaded ${this.sharedWithMeSessions.length} shared sessions`);
-
-        // Transform shared session data using DataTransformer
-        const sharedSessionsData = this.dataTransformer.transformSharedSessions(this.sharedWithMeSessions);
-
-        // Merge with owned sessions
-        const allSessions = this.dataTransformer.mergeSessions(this.sessions, sharedSessionsData);
-        this.sessions = allSessions;
-        this.sessionListManager.setSessions(allSessions);
-      } else {
-        logger.warn('No shared sessions data or unsuccessful result:', {
-          success: result.success,
-          error: result.error,
-          sessionsLength: result.sessions?.length
-        });
-        this.sharedWithMeSessions = [];
-      }
-    } catch (error) {
-      logger.error('Error loading shared sessions:', error);
-      this.sharedWithMeSessions = [];
-    }
-  }
 
   /**
    * Open share modal for a session
@@ -536,8 +448,8 @@ export class StudyModeManager {
    * Handle opening the reorder modal for creating a multi-session study set
    */
   private handleOpenReorderModal(sessions: Session[]): void {
-    this.reorderModal.show(sessions, (orderedSessionIds, title) => {
-      this.createMultiSessionStudySet(orderedSessionIds, title);
+    this.multiSessionCoordinator.handleOpenReorderModal(sessions, (sessionIds, title) => {
+      this.createMultiSessionStudySet(sessionIds, title);
     });
   }
 
@@ -545,35 +457,14 @@ export class StudyModeManager {
    * Create a multi-session study set
    */
   private async createMultiSessionStudySet(sessionIds: string[], title: string): Promise<void> {
-    try {
-      logger.info('Creating multi-session study set', { sessionIds, title });
+    await this.multiSessionCoordinator.createMultiSessionStudySet(sessionIds, title, async (newSessionId) => {
+      // Refresh the session list to show the new study set
+      await this.loadSessions();
+      this.sessionListManager.render();
 
-      // Call IPC to create the study set
-      const result = await (window as any).scribeCat.session.createMultiSessionStudySet(sessionIds, title);
-
-      if (result.success) {
-        logger.info('Multi-session study set created successfully', result.session);
-
-        // Refresh the session list to show the new study set
-        await this.loadSessions();
-        this.sessionListManager.render();
-
-        // Show success notification
-        alert(`Study set "${title}" created successfully! 📚`);
-
-        // Optionally, open the newly created study set
-        if (result.session?.id) {
-          await this.openSessionDetail(result.session.id);
-        }
-      } else {
-        const errorMsg = (result as any).error || 'Unknown error';
-        logger.error('Failed to create multi-session study set:', errorMsg);
-        alert(`Failed to create study set: ${errorMsg}`);
-      }
-    } catch (error) {
-      logger.error('Error creating multi-session study set', error);
-      alert('An error occurred while creating the study set.');
-    }
+      // Optionally, open the newly created study set
+      await this.openSessionDetail(newSessionId);
+    });
   }
 
   /**
@@ -593,42 +484,4 @@ export class StudyModeManager {
     }
   }
 
-  /**
-   * Handle sync now button click
-   */
-  private async handleSyncNow(): Promise<void> {
-    await this.cloudSyncManager.handleSyncNow(async () => {
-      await this.refresh();
-    });
-  }
-
-  /**
-   * Show only shared sessions
-   */
-  private async showSharedSessionsOnly(): Promise<void> {
-    // Load sessions first
-    await this.loadSessions();
-
-    // Filter to show only shared sessions using DataTransformer
-    const sharedOnly = this.dataTransformer.filterSharedOnly(this.sessions);
-
-    // Show study mode
-    this.recordModeView.classList.add('hidden');
-    this.studyModeView.classList.remove('hidden');
-    this.studyModeBtn.classList.add('active');
-
-    // Update title to "Shared Sessions"
-    const titleElement = this.studyModeView.querySelector('.study-mode-header h2');
-    if (titleElement) {
-      titleElement.textContent = '👥 Shared Sessions';
-    }
-
-    // Set filtered sessions
-    this.sessionListManager.setSessions(sharedOnly);
-    this.sessionListManager.populateCourseFilter();
-    this.sessionListManager.render();
-
-    this.isActive = true;
-    logger.info('Study mode activated with shared sessions filter');
-  }
 }

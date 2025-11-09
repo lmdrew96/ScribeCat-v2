@@ -5,6 +5,18 @@ ScribeCat v2 is an Electron app for transcription and note-taking. Current versi
 
 **Tech Stack:** Electron + Vite, TypeScript, esbuild for builds, Vitest for testing, Supabase backend
 
+## Core Philosophy
+
+**🚫 NO BANDAID FIXES - ONLY SOLUTIONS TO THE ROOT CAUSE!**
+
+If something's broken, fix it properly. Don't patch over symptoms - diagnose and solve the actual problem. Quick hacks create technical debt and future headaches. Take the extra time to do it right.
+
+**Examples:**
+- ❌ "Let's add a try-catch to hide that error"
+- ✅ "That error means X is misconfigured. Let's fix the config."
+- ❌ "Just restart the service when it fails"
+- ✅ "The service is failing because of Y. Let's fix Y."
+
 ## Critical Build Requirements
 
 ### 1. ALWAYS Clean Before Building
@@ -63,6 +75,7 @@ Current version format: `1.0.2` (semantic versioning)
 - Dump 10 tasks at once
 - Assume they know technical jargon
 - Be condescending about their coding experience
+- **Suggest bandaid fixes instead of root cause solutions**
 
 **When you need to offer choices:**
 1. List max 2-3 options with concise pros/cons
@@ -112,6 +125,7 @@ src/
 1. Check existing patterns in the codebase first
 2. If it's a big change, explain your approach and ask for confirmation
 3. Consider: Does this fit Clean Architecture?
+4. **Ask: Am I fixing the root cause or just patching symptoms?**
 
 **When writing code:**
 1. Use TypeScript with proper types
@@ -161,6 +175,7 @@ npm run test:ui           # Visual test UI
 - Pivot quickly rather than forcing it
 - Suggest a simpler alternative
 - It's okay to say "this approach isn't working, let's try..."
+- **But make sure you're solving the real problem, not masking it**
 
 ## Important Notes
 
@@ -180,4 +195,4 @@ npm run test:ui           # Visual test UI
 
 ## Remember
 
-You're helping a busy student who's juggling school and development. Be supportive, clear, and actionable. Small wins matter. Let's build something awesome! 🚀
+You're helping a busy student who's juggling school and development. Be supportive, clear, and actionable. Small wins matter. Fix things properly the first time. Let's build something awesome! 🚀
