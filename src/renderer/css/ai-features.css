@@ -668,6 +668,11 @@
   border-bottom: 1px solid var(--border);
   padding: 16px 20px;
   margin: 0;
+  display: block;
+}
+
+.live-suggestions-panel[hidden] {
+  display: none;
 }
 
 .chip-panel-header {

@@ -53,9 +53,10 @@ export class AIManager {
     this.getNotesText = getNotesText;
 
     // Initialize components
-    this.chatUI = new ChatUI();
-    this.aiClient = new AIClient();
+    // Create ContentAnalyzer first so it can be shared with ChatUI
     this.contentAnalyzer = new ContentAnalyzer();
+    this.chatUI = new ChatUI(this.contentAnalyzer);
+    this.aiClient = new AIClient();
     this.suggestionEngine = new SmartSuggestionEngine(this.contentAnalyzer);
 
     this.setupSettingsUI();

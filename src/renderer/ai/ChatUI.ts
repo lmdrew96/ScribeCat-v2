@@ -24,8 +24,10 @@ export class ChatUI {
 
   private isChatOpen: boolean = false;
   private liveSuggestions: LiveSuggestionsPanel | null = null;
+  private contentAnalyzer: ContentAnalyzer;
 
-  constructor() {
+  constructor(contentAnalyzer: ContentAnalyzer) {
+    this.contentAnalyzer = contentAnalyzer;
     this.setupUIElements();
     this.initializeLiveSuggestions();
   }
@@ -51,9 +53,9 @@ export class ChatUI {
    * Initialize live suggestions panel
    */
   private initializeLiveSuggestions(): void {
-    const contentAnalyzer = new ContentAnalyzer();
-
-    this.liveSuggestions = new LiveSuggestionsPanel(contentAnalyzer, {
+    // Use the shared ContentAnalyzer instance passed in constructor
+    // This ensures we analyze the same data that AIManager is tracking
+    this.liveSuggestions = new LiveSuggestionsPanel(this.contentAnalyzer, {
       onBadgeUpdate: (count: number) => {
         this.updateBadge(count);
       },
@@ -365,6 +367,13 @@ export class ChatUI {
    */
   public startRecording(): void {
     this.liveSuggestions?.startRecording();
+
+    // Show panel immediately with empty state
+    if (this.liveSuggestions && this.liveSuggestionsPanel) {
+      const html = this.liveSuggestions.renderPanelHTML();
+      this.liveSuggestionsPanel.innerHTML = html;
+      this.liveSuggestionsPanel.hidden = false;
+    }
   }
 
   /**
