@@ -1,0 +1,297 @@
+/**
+ * AI Suggestion Chip Styles
+ * Floating notification for proactive AI suggestions
+ */
+
+.ai-suggestion-chip {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  z-index: 9000;
+  display: none;
+  opacity: 0;
+  transform: translateY(20px) scale(0.9);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.ai-suggestion-chip.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+}
+
+.suggestion-chip-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--bg-secondary, #2d2d2d), var(--bg-tertiary, #3d3d3d));
+  border: 1px solid var(--accent, #007acc);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 122, 204, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  max-width: 400px;
+  min-width: 320px;
+  transition: all 0.2s ease;
+}
+
+.suggestion-chip-content:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 122, 204, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Pulse animation background */
+.suggestion-chip-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  background: var(--accent, #007acc);
+  opacity: 0;
+  z-index: -1;
+  animation: chipPulse 2s ease-in-out infinite;
+}
+
+@keyframes chipPulse {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.05);
+  }
+}
+
+/* Icon */
+.suggestion-chip-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border-radius: 50%;
+  background: rgba(0, 122, 204, 0.1);
+  animation: chipIconFloat 3s ease-in-out infinite;
+}
+
+@keyframes chipIconFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Text */
+.suggestion-chip-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestion-chip-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  margin-bottom: 4px;
+}
+
+.suggestion-chip-description {
+  font-size: 12px;
+  color: var(--text-secondary, #cccccc);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Expanded state */
+.ai-suggestion-chip.expanded .suggestion-chip-description {
+  white-space: normal;
+}
+
+/* Actions */
+.suggestion-chip-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.suggestion-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #ffffff);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.suggestion-btn:hover {
+  transform: scale(1.1);
+}
+
+.suggestion-btn:active {
+  transform: scale(0.95);
+}
+
+.suggestion-btn-accept {
+  background: var(--success, #27ae60);
+  color: #ffffff;
+}
+
+.suggestion-btn-accept:hover {
+  background: #2ecc71;
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
+}
+
+.suggestion-btn-dismiss {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.suggestion-btn-dismiss:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Priority variants */
+.ai-suggestion-chip.priority-high .suggestion-chip-content {
+  border-color: #e74c3c;
+  box-shadow: 0 8px 24px rgba(231, 76, 60, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.ai-suggestion-chip.priority-high .suggestion-chip-pulse {
+  background: #e74c3c;
+}
+
+.ai-suggestion-chip.priority-high .suggestion-chip-icon {
+  background: rgba(231, 76, 60, 0.1);
+  animation: chipIconBounce 1s ease-in-out infinite;
+}
+
+@keyframes chipIconBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.1);
+  }
+}
+
+.ai-suggestion-chip.priority-medium .suggestion-chip-content {
+  border-color: #f39c12;
+  box-shadow: 0 8px 24px rgba(243, 156, 18, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.ai-suggestion-chip.priority-medium .suggestion-chip-pulse {
+  background: #f39c12;
+}
+
+.ai-suggestion-chip.priority-low .suggestion-chip-content {
+  border-color: var(--border, #404040);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.ai-suggestion-chip.priority-low .suggestion-chip-pulse {
+  animation: none; /* No pulse for low priority */
+}
+
+/* Light theme */
+[data-theme*="light"] .suggestion-chip-content {
+  background: linear-gradient(135deg, #ffffff, #f5f5f5);
+  border-color: var(--accent, #007acc);
+  box-shadow: 0 8px 24px rgba(0, 122, 204, 0.2),
+              0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme*="light"] .suggestion-chip-title {
+  color: #1e1e1e;
+}
+
+[data-theme*="light"] .suggestion-chip-description {
+  color: #666666;
+}
+
+[data-theme*="light"] .suggestion-btn {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1e1e1e;
+}
+
+[data-theme*="light"] .suggestion-btn-dismiss:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ai-suggestion-chip {
+    right: 16px;
+    bottom: 80px;
+  }
+
+  .suggestion-chip-content {
+    min-width: 280px;
+    max-width: calc(100vw - 32px);
+  }
+
+  .suggestion-chip-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+
+  .suggestion-chip-title {
+    font-size: 13px;
+  }
+
+  .suggestion-chip-description {
+    font-size: 11px;
+  }
+}
+
+/* Accessibility */
+.suggestion-btn:focus-visible {
+  outline: 2px solid var(--accent, #007acc);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ai-suggestion-chip,
+  .suggestion-chip-content,
+  .suggestion-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .ai-suggestion-chip.visible {
+    transform: none;
+  }
+
+  .suggestion-chip-pulse {
+    display: none;
+  }
+}
+
+/* Hide when printing */
+@media print {
+  .ai-suggestion-chip {
+    display: none !important;
+  }
+}

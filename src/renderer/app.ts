@@ -23,6 +23,9 @@ import { UserProfileMenu } from './components/UserProfileMenu.js';
 import { ShareModal } from './components/ShareModal.js';
 import { AccountSettingsModal } from './components/AccountSettingsModal.js';
 import { TrashModal } from './components/TrashModal.js';
+import { CommandPalette } from './components/CommandPalette.js';
+import { CommandRegistry } from './managers/CommandRegistry.js';
+import { AISuggestionChip } from './components/AISuggestionChip.js';
 import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
 import { getRandomCatFact } from './utils/cat-facts.js';
 
@@ -45,6 +48,9 @@ let userProfileMenu: UserProfileMenu;
 let shareModal: ShareModal;
 let accountSettingsModal: AccountSettingsModal;
 let trashModal: TrashModal;
+let commandPalette: CommandPalette;
+let commandRegistry: CommandRegistry;
+let aiSuggestionChip: AISuggestionChip;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -167,6 +173,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Set up event listeners
   setupEventListeners();
+
+  // Set up toolbar toggle
+  setupToolbarToggle();
+
+  // Initialize command palette and registry
+  commandPalette = new CommandPalette();
+  commandPalette.initialize();
+
+  commandRegistry = new CommandRegistry(commandPalette);
+  commandRegistry.registerAllCommands({
+    recordingManager,
+    studyModeManager,
+    viewManager,
+    editorManager,
+    transcriptionManager,
+    settingsManager,
+    aiManager,
+    courseManager,
+    authManager
+  });
+
+  // Initialize AI suggestion chip
+  aiSuggestionChip = new AISuggestionChip();
+  aiSuggestionChip.initialize(
+    (suggestion) => {
+      console.log('✅ User accepted suggestion:', suggestion.title);
+      aiManager.markSuggestionAccepted(suggestion.id);
+      // TODO: Execute the corresponding AI tool action
+    },
+    (suggestion) => {
+      console.log('❌ User dismissed suggestion:', suggestion.title);
+      aiManager.markSuggestionDismissed(suggestion.id);
+    }
+  );
+
+  // Expose for RecordingManager
+  (window as any).aiSuggestionChip = aiSuggestionChip;
 
   // 🎉 Initialize Easter Eggs
   initializeEasterEggs();
@@ -481,6 +524,35 @@ function initializeEasterEggs(): void {
   } else {
     console.warn('❌ App title not found for Study Buddy easter egg');
   }
+}
+
+/**
+ * Set up toolbar toggle button
+ */
+function setupToolbarToggle(): void {
+  const toggleBtn = document.getElementById('toggle-toolbar-btn');
+  const toolbar = document.querySelector('.formatting-toolbar') as HTMLElement;
+
+  if (!toggleBtn || !toolbar) return;
+
+  let isToolbarVisible = false;
+
+  toggleBtn.addEventListener('click', () => {
+    isToolbarVisible = !isToolbarVisible;
+
+    if (isToolbarVisible) {
+      toolbar.classList.add('visible');
+      toggleBtn.title = 'Hide advanced formatting toolbar';
+      toggleBtn.style.opacity = '1';
+    } else {
+      toolbar.classList.remove('visible');
+      toggleBtn.title = 'Show advanced formatting toolbar';
+      toggleBtn.style.opacity = '0.6';
+    }
+  });
+
+  // Start with button slightly dimmed to indicate toolbar is hidden
+  toggleBtn.style.opacity = '0.6';
 }
 
 /**

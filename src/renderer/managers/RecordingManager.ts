@@ -34,6 +34,7 @@ export class RecordingManager {
   private totalPausedTime: number = 0;
   private elapsedTimer: number | null = null;
   private vuMeterInterval: number | null = null;
+  private suggestionCheckInterval: number | null = null;
 
   constructor(
     audioManager: AudioManager,
@@ -108,6 +109,10 @@ export class RecordingManager {
     } catch (error) {
       logger.warn('Failed to prevent sleep (recording will continue)', error);
     }
+
+    // Start AI content analysis
+    this.aiManager.startContentAnalysis();
+    this.startSuggestionChecks();
 
     // Update UI
     this.viewManager.updateRecordingState(true, transcriptionMode);
@@ -234,6 +239,10 @@ export class RecordingManager {
       logger.warn('Failed to allow sleep', error);
     }
 
+    // Stop suggestion checks and reset AI analysis
+    this.stopSuggestionChecks();
+    this.aiManager.resetContentAnalysis();
+
     // Update UI
     this.viewManager.updateRecordingState(false);
     this.stopElapsedTimer();
@@ -267,6 +276,7 @@ export class RecordingManager {
     // Pause timers
     this.stopElapsedTimer();
     this.stopVUMeterUpdates();
+    this.stopSuggestionChecks();
 
     // Track pause time
     this.pauseStartTime = Date.now();
@@ -303,6 +313,7 @@ export class RecordingManager {
     // Resume timers
     this.startElapsedTimer();
     this.startVUMeterUpdates();
+    this.startSuggestionChecks();
 
     // Update state
     this.isPaused = false;
@@ -334,6 +345,14 @@ export class RecordingManager {
     try {
       await this.transcriptionService.cleanup();
       await this.audioManager.stopRecording();
+
+      // Stop all timers and intervals
+      this.stopElapsedTimer();
+      this.stopVUMeterUpdates();
+      this.stopSuggestionChecks();
+
+      // Reset AI analysis
+      this.aiManager.resetContentAnalysis();
 
       // Ensure sleep prevention is disabled during cleanup
       try {
@@ -395,6 +414,53 @@ export class RecordingManager {
     if (this.vuMeterInterval !== null) {
       clearInterval(this.vuMeterInterval);
       this.vuMeterInterval = null;
+    }
+  }
+
+  /**
+   * Start periodic suggestion checks
+   */
+  private startSuggestionChecks(): void {
+    // Check for suggestions every 30 seconds
+    this.suggestionCheckInterval = window.setInterval(() => {
+      this.checkAndShowSuggestions();
+    }, 30000); // 30 seconds
+
+    // Do an initial check after 1 minute
+    setTimeout(() => {
+      this.checkAndShowSuggestions();
+    }, 60000);
+  }
+
+  /**
+   * Stop suggestion checks
+   */
+  private stopSuggestionChecks(): void {
+    if (this.suggestionCheckInterval !== null) {
+      clearInterval(this.suggestionCheckInterval);
+      this.suggestionCheckInterval = null;
+    }
+  }
+
+  /**
+   * Check for suggestions and show if available
+   */
+  private checkAndShowSuggestions(): void {
+    // Update content analysis
+    this.aiManager.updateContentAnalysis();
+
+    // Get top suggestion for RECORDING mode (passive suggestions only)
+    const suggestion = this.aiManager.getSmartSuggestion('recording');
+
+    if (suggestion) {
+      logger.info(`💡 Showing recording suggestion: ${suggestion.title} (confidence: ${suggestion.confidence})`);
+
+      // Show suggestion chip
+      const suggestionChip = (window as any).aiSuggestionChip;
+      if (suggestionChip && !suggestionChip.getIsVisible()) {
+        suggestionChip.show(suggestion);
+        this.aiManager.markSuggestionShown(suggestion.id);
+      }
     }
   }
 }

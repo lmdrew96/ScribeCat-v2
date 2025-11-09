@@ -63,13 +63,23 @@
 
 /* Formatting Toolbar */
 .formatting-toolbar {
-  display: flex;
+  display: none; /* Hidden by default - use floating toolbar instead */
   align-items: center;
   gap: 2px;
   padding: 6px 12px;
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.formatting-toolbar.visible {
+  display: flex;
+  max-height: 200px;
+  opacity: 1;
 }
 
 /* Toolbar Groups for visual organization */

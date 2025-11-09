@@ -11,6 +11,8 @@
 
 /* UI Elements */
 @import './css/modals.css';        /* Modal system, settings modal */
+@import './css/command-palette.css'; /* Command palette (Cmd+K) */
+@import './css/floating-toolbar.css'; /* Floating formatting toolbar */
 @import './css/loading.css';       /* Skeleton loaders, loading states */
 @import './css/themes.css';        /* Theme picker and theme styles */
 @import './css/pickers.css';       /* Folder picker */
@@ -21,6 +23,7 @@
 
 /* Features */
 @import './css/ai-features.css';   /* AI chat drawer, chat messages, AI tools */
+@import './css/ai-suggestion-chip.css'; /* Proactive AI suggestions */
 @import './css/study-mode.css';    /* Study mode list view, sessions, filters */
 @import './css/session-detail.css'; /* Session detail view, audio player, flashcards, quiz */
 

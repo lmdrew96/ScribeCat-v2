@@ -8,6 +8,7 @@
 import { TiptapEditorCore } from './tiptap/TiptapEditorCore.js';
 import { TiptapToolbarManager } from './tiptap/TiptapToolbarManager.js';
 import { TiptapContentManager } from './tiptap/TiptapContentManager.js';
+import { FloatingToolbar } from '../components/FloatingToolbar.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('TiptapEditorManager');
@@ -16,6 +17,7 @@ export class TiptapEditorManager {
   private editorCore: TiptapEditorCore;
   private toolbarManager: TiptapToolbarManager;
   private contentManager: TiptapContentManager;
+  private floatingToolbar: FloatingToolbar;
 
   constructor() {
     // Get UI elements
@@ -29,6 +31,7 @@ export class TiptapEditorManager {
     // Initialize managers
     this.toolbarManager = new TiptapToolbarManager(this.editorCore);
     this.contentManager = new TiptapContentManager(this.editorCore, charCount, wordCount);
+    this.floatingToolbar = new FloatingToolbar();
   }
 
   /**
@@ -50,8 +53,107 @@ export class TiptapEditorManager {
     // Set up toolbar
     this.toolbarManager.setupToolbarListeners();
 
+    // Initialize floating toolbar
+    const editor = this.editorCore.getEditor();
+    if (editor) {
+      this.floatingToolbar.initialize(editor);
+      this.setupFloatingToolbarActions();
+
+      // Set callback to check if floating toolbar should show
+      // Don't show if full toolbar is visible
+      this.floatingToolbar.setShouldShowCallback(() => {
+        const fullToolbar = document.querySelector('.formatting-toolbar');
+        return !fullToolbar?.classList.contains('visible');
+      });
+    }
+
     // Initial stats update
     this.contentManager.updateStats();
+  }
+
+  /**
+   * Setup floating toolbar actions
+   */
+  private setupFloatingToolbarActions(): void {
+    const editor = this.editorCore.getEditor();
+    if (!editor) return;
+
+    this.floatingToolbar.registerActions([
+      {
+        id: 'bold',
+        icon: 'B',
+        title: 'Bold',
+        shortcut: 'Cmd+B',
+        action: () => editor.chain().focus().toggleBold().run(),
+        isActive: () => editor.isActive('bold')
+      },
+      {
+        id: 'italic',
+        icon: 'I',
+        title: 'Italic',
+        shortcut: 'Cmd+I',
+        action: () => editor.chain().focus().toggleItalic().run(),
+        isActive: () => editor.isActive('italic')
+      },
+      {
+        id: 'underline',
+        icon: 'U',
+        title: 'Underline',
+        shortcut: 'Cmd+U',
+        action: () => editor.chain().focus().toggleUnderline().run(),
+        isActive: () => editor.isActive('underline')
+      },
+      {
+        id: 'strike',
+        icon: 'S',
+        title: 'Strikethrough',
+        action: () => editor.chain().focus().toggleStrike().run(),
+        isActive: () => editor.isActive('strike')
+      },
+      {
+        id: 'heading1',
+        icon: 'H1',
+        title: 'Heading 1',
+        shortcut: 'Cmd+Shift+H',
+        action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
+        isActive: () => editor.isActive('heading', { level: 1 })
+      },
+      {
+        id: 'heading2',
+        icon: 'H2',
+        title: 'Heading 2',
+        shortcut: 'Cmd+Alt+H',
+        action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
+        isActive: () => editor.isActive('heading', { level: 2 })
+      },
+      {
+        id: 'bulletList',
+        icon: '•',
+        title: 'Bullet List',
+        shortcut: 'Cmd+Shift+8',
+        action: () => editor.chain().focus().toggleBulletList().run(),
+        isActive: () => editor.isActive('bulletList')
+      },
+      {
+        id: 'numberedList',
+        icon: '1.',
+        title: 'Numbered List',
+        shortcut: 'Cmd+Shift+7',
+        action: () => editor.chain().focus().toggleOrderedList().run(),
+        isActive: () => editor.isActive('orderedList')
+      },
+      {
+        id: 'link',
+        icon: '🔗',
+        title: 'Add Link',
+        action: () => {
+          // Trigger the link button in the main toolbar
+          const linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
+          linkBtn?.click();
+        },
+        isActive: () => editor.isActive('link')
+      }
+    ]);
   }
 
   /**

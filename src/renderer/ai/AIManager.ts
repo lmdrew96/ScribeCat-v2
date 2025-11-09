@@ -6,11 +6,15 @@
 import type { ChatMessage } from '../../shared/types.js';
 import { ChatUI } from './ChatUI.js';
 import { AIClient } from './AIClient.js';
+import { ContentAnalyzer } from './ContentAnalyzer.js';
+import { SmartSuggestionEngine } from './SmartSuggestionEngine.js';
 import { config } from '../../config.js';
 
 export class AIManager {
   private chatUI: ChatUI;
   private aiClient: AIClient;
+  private contentAnalyzer: ContentAnalyzer;
+  private suggestionEngine: SmartSuggestionEngine;
 
   private chatHistory: ChatMessage[] = [];
   private isConfigured: boolean = false;
@@ -51,6 +55,8 @@ export class AIManager {
     // Initialize components
     this.chatUI = new ChatUI();
     this.aiClient = new AIClient();
+    this.contentAnalyzer = new ContentAnalyzer();
+    this.suggestionEngine = new SmartSuggestionEngine(this.contentAnalyzer);
 
     this.setupSettingsUI();
   }
@@ -418,5 +424,88 @@ export class AIManager {
         'Sorry, I encountered an error. Please try again.'
       );
     }
+  }
+
+  /**
+   * Start a new content analysis session
+   */
+  public startContentAnalysis(): void {
+    this.contentAnalyzer.startSession();
+    this.suggestionEngine.reset();
+    console.log('🧠 AI Content analysis started');
+  }
+
+  /**
+   * Update content and get analysis
+   */
+  public updateContentAnalysis(): void {
+    const transcription = this.getTranscriptionText();
+    const notes = this.getNotesText();
+
+    this.contentAnalyzer.updateContent(transcription, notes);
+  }
+
+  /**
+   * Get current smart suggestion
+   */
+  public getSmartSuggestion(mode: 'recording' | 'study' = 'study') {
+    return this.suggestionEngine.getTopSuggestion(mode);
+  }
+
+  /**
+   * Get all smart suggestions
+   */
+  public getAllSmartSuggestions(mode: 'recording' | 'study' = 'study') {
+    return this.suggestionEngine.getSuggestions(mode);
+  }
+
+  /**
+   * Mark suggestion as shown
+   */
+  public markSuggestionShown(suggestionId: string): void {
+    this.suggestionEngine.markShown(suggestionId);
+  }
+
+  /**
+   * Mark suggestion as dismissed
+   */
+  public markSuggestionDismissed(suggestionId: string): void {
+    this.suggestionEngine.markDismissed(suggestionId);
+  }
+
+  /**
+   * Mark suggestion as accepted
+   */
+  public markSuggestionAccepted(suggestionId: string): void {
+    this.suggestionEngine.markAccepted(suggestionId);
+  }
+
+  /**
+   * Parse natural language command
+   */
+  public parseNaturalLanguageCommand(command: string) {
+    return this.suggestionEngine.parseNaturalLanguageCommand(command);
+  }
+
+  /**
+   * Get content analysis insights
+   */
+  public getContentInsights() {
+    return this.contentAnalyzer.getLastAnalysis();
+  }
+
+  /**
+   * Get suggestion statistics
+   */
+  public getSuggestionStats() {
+    return this.suggestionEngine.getStats();
+  }
+
+  /**
+   * Reset content analysis
+   */
+  public resetContentAnalysis(): void {
+    this.contentAnalyzer.reset();
+    this.suggestionEngine.reset();
   }
 }
