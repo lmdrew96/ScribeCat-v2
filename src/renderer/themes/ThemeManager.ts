@@ -5,7 +5,7 @@
  */
 
 import { Theme, ThemeMetadata } from './types.js';
-import { themes, getThemeById, getThemesByCategory, getCategories, getDefaultTheme } from './presets.js';
+import { themes, getThemeById, getThemesByCategory, getCategories, getDefaultTheme } from './presets-index.js';
 
 export class ThemeManager {
   private currentTheme: Theme;
