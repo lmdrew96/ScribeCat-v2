@@ -45,7 +45,7 @@ export class NotificationToast {
       message,
       type = 'info',
       duration = this.DEFAULT_DURATION,
-      position = 'top-right'
+      position = 'bottom-left'
     } = config;
 
     const notification = this.createNotificationElement(message, type, position);
@@ -78,12 +78,12 @@ export class NotificationToast {
       ${this.POSITIONS[position]}
       background-color: ${this.COLORS[type]};
       color: white;
-      padding: 15px 20px;
-      border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      padding: 9px 12px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       z-index: 2000;
-      font-size: 14px;
-      max-width: 350px;
+      font-size: 9px;
+      max-width: 210px;
       word-wrap: break-word;
       opacity: 0;
       transform: translateX(${position.includes('right') ? '100%' : '-100%'});
