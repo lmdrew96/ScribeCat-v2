@@ -14,11 +14,20 @@ export class StudyPlanGenerator {
   /**
    * Generate study plan
    */
-  static async generate(session: Session, contentArea: HTMLElement, daysUntilExam?: number, hoursPerDay?: number): Promise<void> {
+  static async generate(session: Session, contentArea: HTMLElement, daysUntilExam?: number, hoursPerDay?: number, forceRegenerate: boolean = false): Promise<void> {
     // If no parameters provided, show the form
     if (daysUntilExam === undefined || hoursPerDay === undefined) {
       this.showStudyPlanForm(session, contentArea);
       return;
+    }
+
+    // Check if we have saved results with the same parameters
+    if (!forceRegenerate && session.hasAIToolResult('study_plan')) {
+      const savedResult = session.getAIToolResult('study_plan');
+      if (savedResult && savedResult.data && savedResult.data.length === daysUntilExam) {
+        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult, daysUntilExam, hoursPerDay);
+        return;
+      }
     }
 
     // Show loading state
@@ -142,8 +151,12 @@ ${transcriptionText.substring(0, 3000)}...`;
           throw new Error('No study plan generated');
         }
 
+        // Save the results to session
+        session.saveAIToolResult('study_plan', studyPlan);
+        await window.scribeCat.sessions.update(session.id, session.toJSON());
+
         // Render study plan
-        this.renderStudyPlan(studyPlan, daysUntilExam, hoursPerDay, contentArea);
+        this.renderStudyPlan(studyPlan, daysUntilExam, hoursPerDay, contentArea, session);
       } else {
         throw new Error(result.error || 'Failed to generate study plan');
       }
@@ -160,6 +173,43 @@ ${transcriptionText.substring(0, 3000)}...`;
         </div>
       `;
     }
+  }
+
+  /**
+   * Show prompt to load previous or regenerate
+   */
+  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any, daysUntilExam: number, hoursPerDay: number): void {
+    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
+    const regenerationCount = savedResult.regenerationCount || 0;
+    const totalHours = daysUntilExam * hoursPerDay;
+
+    contentArea.innerHTML = `
+      <div class="ai-result-prompt">
+        <div class="prompt-header">
+          <div class="prompt-icon">📅</div>
+          <h4>Study Plan Available</h4>
+        </div>
+        <div class="prompt-body">
+          <p>You have a ${daysUntilExam}-day study plan (${totalHours}h total) generated on <strong>${generatedDate}</strong>.</p>
+          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
+        </div>
+        <div class="prompt-actions">
+          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
+          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
+        </div>
+      </div>
+    `;
+
+    // Attach event listeners
+    const loadBtn = document.getElementById('load-previous-btn');
+    loadBtn?.addEventListener('click', () => {
+      this.renderStudyPlan(savedResult.data, daysUntilExam, hoursPerDay, contentArea, session);
+    });
+
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    regenerateBtn?.addEventListener('click', () => {
+      this.generate(session, contentArea, daysUntilExam, hoursPerDay, true); // Force regeneration
+    });
   }
 
   /**
@@ -219,7 +269,7 @@ ${transcriptionText.substring(0, 3000)}...`;
   /**
    * Render study plan
    */
-  private static renderStudyPlan(plan: Array<{day: number; topics: string; tools: string[]; activities: Array<{activity: string; duration: string}>; goal: string}>, daysUntilExam: number, hoursPerDay: number, contentArea: HTMLElement): void {
+  private static renderStudyPlan(plan: Array<{day: number; topics: string; tools: string[]; activities: Array<{activity: string; duration: string}>; goal: string}>, daysUntilExam: number, hoursPerDay: number, contentArea: HTMLElement, session?: Session): void {
     const totalHours = daysUntilExam * hoursPerDay;
 
     const daysHtml = plan.map(dayPlan => {

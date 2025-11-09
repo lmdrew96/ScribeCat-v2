@@ -14,7 +14,16 @@ export class FlashcardGenerator {
   /**
    * Generate flashcards from the session
    */
-  static async generate(session: Session, contentArea: HTMLElement): Promise<void> {
+  static async generate(session: Session, contentArea: HTMLElement, forceRegenerate: boolean = false): Promise<void> {
+    // Check if we have saved results
+    if (!forceRegenerate && session.hasAIToolResult('flashcards')) {
+      const savedResult = session.getAIToolResult('flashcards');
+      if (savedResult) {
+        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult);
+        return;
+      }
+    }
+
     // Show loading state
     contentArea.innerHTML = createLoadingHTML('Creating flashcards...');
 
@@ -113,8 +122,12 @@ ${transcriptionText}`;
           throw new Error('No flashcards generated');
         }
 
+        // Save the results to session
+        session.saveAIToolResult('flashcards', flashcards);
+        await window.scribeCat.sessions.update(session.id, session.toJSON());
+
         // Render flashcards with navigation
-        this.renderFlashcards(flashcards, contentArea);
+        this.renderFlashcards(flashcards, contentArea, session);
       } else {
         throw new Error(result.error || 'Failed to generate flashcards');
       }
@@ -134,9 +147,45 @@ ${transcriptionText}`;
   }
 
   /**
+   * Show prompt to load previous or regenerate
+   */
+  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any): void {
+    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
+    const regenerationCount = savedResult.regenerationCount || 0;
+
+    contentArea.innerHTML = `
+      <div class="ai-result-prompt">
+        <div class="prompt-header">
+          <div class="prompt-icon">🃏</div>
+          <h4>Flashcards Available</h4>
+        </div>
+        <div class="prompt-body">
+          <p>You have flashcards generated on <strong>${generatedDate}</strong>.</p>
+          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
+        </div>
+        <div class="prompt-actions">
+          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
+          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
+        </div>
+      </div>
+    `;
+
+    // Attach event listeners
+    const loadBtn = document.getElementById('load-previous-btn');
+    loadBtn?.addEventListener('click', () => {
+      this.renderFlashcards(savedResult.data, contentArea, session);
+    });
+
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    regenerateBtn?.addEventListener('click', () => {
+      this.generate(session, contentArea, true); // Force regeneration
+    });
+  }
+
+  /**
    * Render flashcards with navigation
    */
-  private static renderFlashcards(flashcards: Array<{term: string; definition: string; session?: string}>, contentArea: HTMLElement): void {
+  private static renderFlashcards(flashcards: Array<{term: string; definition: string; session?: string}>, contentArea: HTMLElement, session?: Session): void {
     let currentIndex = 0;
     let isFlipped = false;
 

@@ -85,7 +85,16 @@ ${session.transcription.fullText}`;
   /**
    * Generate AI summary of the session
    */
-  static async generate(session: Session, contentArea: HTMLElement): Promise<void> {
+  static async generate(session: Session, contentArea: HTMLElement, forceRegenerate: boolean = false): Promise<void> {
+    // Check if we have saved results
+    if (!forceRegenerate && session.hasAIToolResult('summary')) {
+      const savedResult = session.getAIToolResult('summary');
+      if (savedResult) {
+        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult);
+        return;
+      }
+    }
+
     // Show loading state
     contentArea.innerHTML = createLoadingHTML('Generating summary...');
 
@@ -179,14 +188,12 @@ Format your response as a clear, organized summary with session attribution.`;
           summary = JSON.stringify(result.data);
         }
 
-        contentArea.innerHTML = `
-          <div class="study-summary">
-            <div class="summary-section">
-              <h5>📋 Summary</h5>
-              <div>${renderMarkdown(summary)}</div>
-            </div>
-          </div>
-        `;
+        // Save the results to session
+        session.saveAIToolResult('summary', summary);
+        await window.scribeCat.sessions.update(session.id, session.toJSON());
+
+        // Render summary
+        this.renderSummary(summary, contentArea, session);
       } else {
         throw new Error(result.error || 'Failed to generate summary');
       }
@@ -205,5 +212,54 @@ Format your response as a clear, organized summary with session attribution.`;
         </div>
       `;
     }
+  }
+
+  /**
+   * Show prompt to load previous or regenerate
+   */
+  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any): void {
+    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
+    const regenerationCount = savedResult.regenerationCount || 0;
+
+    contentArea.innerHTML = `
+      <div class="ai-result-prompt">
+        <div class="prompt-header">
+          <div class="prompt-icon">📄</div>
+          <h4>Summary Available</h4>
+        </div>
+        <div class="prompt-body">
+          <p>You have a summary generated on <strong>${generatedDate}</strong>.</p>
+          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
+        </div>
+        <div class="prompt-actions">
+          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
+          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
+        </div>
+      </div>
+    `;
+
+    const loadBtn = document.getElementById('load-previous-btn');
+    loadBtn?.addEventListener('click', () => {
+      this.renderSummary(savedResult.data, contentArea, session);
+    });
+
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    regenerateBtn?.addEventListener('click', () => {
+      this.generate(session, contentArea, true);
+    });
+  }
+
+  /**
+   * Render summary
+   */
+  private static renderSummary(summary: string, contentArea: HTMLElement, session?: Session): void {
+    contentArea.innerHTML = `
+      <div class="study-summary">
+        <div class="summary-section">
+          <h5>📋 Summary</h5>
+          <div>${renderMarkdown(summary)}</div>
+        </div>
+      </div>
+    `;
   }
 }

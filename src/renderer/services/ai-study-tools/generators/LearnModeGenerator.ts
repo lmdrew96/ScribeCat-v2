@@ -14,7 +14,16 @@ export class LearnModeGenerator {
   /**
    * Generate learn mode with spaced repetition
    */
-  static async generate(session: Session, contentArea: HTMLElement): Promise<void> {
+  static async generate(session: Session, contentArea: HTMLElement, forceRegenerate: boolean = false): Promise<void> {
+    // Check if we have saved results
+    if (!forceRegenerate && session.hasAIToolResult('learn_mode')) {
+      const savedResult = session.getAIToolResult('learn_mode');
+      if (savedResult) {
+        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult);
+        return;
+      }
+    }
+
     // Show loading state
     contentArea.innerHTML = createLoadingHTML('Preparing learn mode...');
 
@@ -76,8 +85,12 @@ ${transcriptionText}`;
           throw new Error('No concepts generated');
         }
 
+        // Save the results to session
+        session.saveAIToolResult('learn_mode', concepts);
+        await window.scribeCat.sessions.update(session.id, session.toJSON());
+
         // Start learn mode session
-        this.startLearnModeSession(concepts, contentArea);
+        this.startLearnModeSession(concepts, contentArea, session);
       } else {
         throw new Error(result.error || 'Failed to generate learn mode concepts');
       }
@@ -92,9 +105,44 @@ ${transcriptionText}`;
   }
 
   /**
+   * Show prompt to load previous or regenerate
+   */
+  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any): void {
+    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
+    const regenerationCount = savedResult.regenerationCount || 0;
+
+    contentArea.innerHTML = `
+      <div class="ai-result-prompt">
+        <div class="prompt-header">
+          <div class="prompt-icon">📚</div>
+          <h4>Learn Mode Available</h4>
+        </div>
+        <div class="prompt-body">
+          <p>You have learn mode concepts generated on <strong>${generatedDate}</strong>.</p>
+          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
+        </div>
+        <div class="prompt-actions">
+          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
+          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
+        </div>
+      </div>
+    `;
+
+    const loadBtn = document.getElementById('load-previous-btn');
+    loadBtn?.addEventListener('click', () => {
+      this.startLearnModeSession(savedResult.data, contentArea, session);
+    });
+
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    regenerateBtn?.addEventListener('click', () => {
+      this.generate(session, contentArea, true);
+    });
+  }
+
+  /**
    * Start learn mode session
    */
-  private static startLearnModeSession(concepts: Array<{term: string; definition: string}>, contentArea: HTMLElement): void {
+  private static startLearnModeSession(concepts: Array<{term: string; definition: string}>, contentArea: HTMLElement, session?: Session): void {
     let currentIndex = 0;
     let masteredConcepts: Set<number> = new Set();
     let reviewQueue: number[] = Array.from({ length: concepts.length }, (_, i) => i);

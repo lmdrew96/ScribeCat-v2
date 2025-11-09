@@ -14,11 +14,20 @@ export class QuizGenerator {
   /**
    * Generate a quiz from the session
    */
-  static async generate(session: Session, contentArea: HTMLElement, questionCount?: number): Promise<void> {
+  static async generate(session: Session, contentArea: HTMLElement, questionCount?: number, forceRegenerate: boolean = false): Promise<void> {
     // If no question count provided, show selector first
     if (!questionCount) {
       this.showQuizSettings(session, contentArea);
       return;
+    }
+
+    // Check if we have saved results with the same question count
+    if (!forceRegenerate && session.hasAIToolResult('quiz')) {
+      const savedResult = session.getAIToolResult('quiz');
+      if (savedResult && savedResult.data && savedResult.data.length === questionCount) {
+        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult, questionCount);
+        return;
+      }
     }
 
     // Show loading state
@@ -123,8 +132,12 @@ ${transcriptionText}`;
           throw new Error('No quiz questions generated');
         }
 
+        // Save the results to session
+        session.saveAIToolResult('quiz', questions);
+        await window.scribeCat.sessions.update(session.id, session.toJSON());
+
         // Render quiz with interactivity
-        this.renderQuiz(questions, contentArea);
+        this.renderQuiz(questions, contentArea, session);
       } else {
         throw new Error(result.error || 'Failed to generate quiz');
       }
@@ -141,6 +154,42 @@ ${transcriptionText}`;
         </div>
       `;
     }
+  }
+
+  /**
+   * Show prompt to load previous or regenerate
+   */
+  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any, questionCount: number): void {
+    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
+    const regenerationCount = savedResult.regenerationCount || 0;
+
+    contentArea.innerHTML = `
+      <div class="ai-result-prompt">
+        <div class="prompt-header">
+          <div class="prompt-icon">📝</div>
+          <h4>Quiz Available</h4>
+        </div>
+        <div class="prompt-body">
+          <p>You have a ${questionCount}-question quiz generated on <strong>${generatedDate}</strong>.</p>
+          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
+        </div>
+        <div class="prompt-actions">
+          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
+          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
+        </div>
+      </div>
+    `;
+
+    // Attach event listeners
+    const loadBtn = document.getElementById('load-previous-btn');
+    loadBtn?.addEventListener('click', () => {
+      this.renderQuiz(savedResult.data, contentArea, session);
+    });
+
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    regenerateBtn?.addEventListener('click', () => {
+      this.generate(session, contentArea, questionCount, true); // Force regeneration
+    });
   }
 
   /**
@@ -192,7 +241,7 @@ ${transcriptionText}`;
   /**
    * Render interactive quiz
    */
-  private static renderQuiz(questions: Array<{question: string; options: string[]; correctAnswer: number; explanation: string; session?: string}>, contentArea: HTMLElement): void {
+  private static renderQuiz(questions: Array<{question: string; options: string[]; correctAnswer: number; explanation: string; session?: string}>, contentArea: HTMLElement, session?: Session): void {
     let currentIndex = 0;
     let score = 0;
     let answered = false;

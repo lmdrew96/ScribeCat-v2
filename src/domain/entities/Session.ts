@@ -21,6 +21,16 @@ export enum SyncStatus {
 }
 
 /**
+ * AI tool result record for persistent storage
+ */
+export interface AIToolResult {
+  toolType: 'summary' | 'flashcards' | 'quiz' | 'concept' | 'weak_spots' | 'learn_mode' | 'eli5' | 'study_plan' | 'concept_map';
+  data: any; // Flexible structure for each tool's data
+  generatedAt: Date;
+  regenerationCount: number; // Track how many times this was regenerated
+}
+
+/**
  * Session type for distinguishing single sessions from multi-session study sets
  */
 export enum SessionType {
@@ -64,7 +74,9 @@ export class Session {
     public childSessionIds?: string[],
     public sessionOrder?: number,
     // AI-generated summary
-    public summary?: string
+    public summary?: string,
+    // AI tool results storage
+    public aiToolResults: Record<string, AIToolResult> = {}
   ) {}
 
   /**
@@ -142,6 +154,51 @@ export class Session {
   updateSummary(summary: string): void {
     this.summary = summary;
     this.updatedAt = new Date();
+  }
+
+  /**
+   * Save AI tool result
+   */
+  saveAIToolResult(toolType: AIToolResult['toolType'], data: any): void {
+    const existingResult = this.aiToolResults[toolType];
+
+    this.aiToolResults[toolType] = {
+      toolType,
+      data,
+      generatedAt: new Date(),
+      regenerationCount: existingResult ? existingResult.regenerationCount + 1 : 0
+    };
+
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Get AI tool result
+   */
+  getAIToolResult(toolType: AIToolResult['toolType']): AIToolResult | null {
+    return this.aiToolResults[toolType] || null;
+  }
+
+  /**
+   * Check if AI tool result exists
+   */
+  hasAIToolResult(toolType: AIToolResult['toolType']): boolean {
+    return !!this.aiToolResults[toolType];
+  }
+
+  /**
+   * Clear AI tool result
+   */
+  clearAIToolResult(toolType: AIToolResult['toolType']): void {
+    delete this.aiToolResults[toolType];
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Get all AI tool results
+   */
+  getAllAIToolResults(): Record<string, AIToolResult> {
+    return { ...this.aiToolResults };
   }
 
   /**
@@ -258,7 +315,8 @@ export class Session {
       type: this.type,
       childSessionIds: this.childSessionIds,
       sessionOrder: this.sessionOrder,
-      summary: this.summary
+      summary: this.summary,
+      aiToolResults: this.aiToolResults
     };
   }
 
@@ -289,7 +347,8 @@ export class Session {
       data.type || SessionType.SINGLE,
       data.childSessionIds,
       data.sessionOrder,
-      data.summary
+      data.summary,
+      data.aiToolResults || {}
     );
   }
 }
@@ -326,4 +385,6 @@ export interface SessionData {
   sessionOrder?: number;
   // AI-generated summary
   summary?: string;
+  // AI tool results
+  aiToolResults?: Record<string, AIToolResult>;
 }

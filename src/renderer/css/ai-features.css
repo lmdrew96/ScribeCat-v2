@@ -813,6 +813,106 @@
   50% { opacity: 0.5; }
 }
 
+/* ===== AI Result Prompt (Load Previous / Regenerate) ===== */
+.ai-result-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 40px;
+  margin: 20px auto;
+  max-width: 500px;
+  background: var(--background-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.ai-result-prompt .prompt-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.ai-result-prompt .prompt-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.ai-result-prompt .prompt-header h4 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-result-prompt .prompt-body {
+  text-align: center;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.ai-result-prompt .prompt-body p {
+  margin: 0 0 8px 0;
+}
+
+.ai-result-prompt .prompt-body p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-result-prompt .regeneration-count {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.ai-result-prompt .prompt-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.ai-result-prompt .btn-primary,
+.ai-result-prompt .btn-secondary {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-result-prompt .btn-primary {
+  background: var(--primary-color, #4a90e2);
+  color: white;
+}
+
+.ai-result-prompt .btn-primary:hover {
+  background: var(--primary-color-hover, #357abd);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+}
+
+.ai-result-prompt .btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.ai-result-prompt .btn-secondary:hover {
+  background: var(--background-secondary);
+  transform: translateY(-1px);
+}
+
+.ai-result-prompt .btn-primary:active,
+.ai-result-prompt .btn-secondary:active {
+  transform: translateY(0);
+}
+
 /* Responsive adjustments for AI features */
 @media (max-width: 768px) {
   .panel-actions {

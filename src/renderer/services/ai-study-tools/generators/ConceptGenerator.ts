@@ -15,7 +15,16 @@ export class ConceptGenerator {
   /**
    * Extract key concepts from the session
    */
-  static async extractKeyConcepts(session: Session, contentArea: HTMLElement): Promise<void> {
+  static async extractKeyConcepts(session: Session, contentArea: HTMLElement, forceRegenerate: boolean = false): Promise<void> {
+    // Check if we have saved results
+    if (!forceRegenerate && session.hasAIToolResult('concept')) {
+      const savedResult = session.getAIToolResult('concept');
+      if (savedResult) {
+        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult);
+        return;
+      }
+    }
+
     // Show loading state
     contentArea.innerHTML = createLoadingHTML('Extracting key concepts...');
 
@@ -103,21 +112,12 @@ ${transcriptionText}`;
           }];
         }
 
-        const conceptsHtml = concepts.map(concept => `
-          <div class="concept-item">
-            <div class="concept-term">
-              ${HtmlHelper.escapeHtml(concept.term)}
-              ${concept.sessions ? `<span class="concept-sessions"> (${HtmlHelper.escapeHtml(concept.sessions)})</span>` : ''}
-            </div>
-            <div class="concept-definition">${renderMarkdown(concept.definition)}</div>
-          </div>
-        `).join('');
+        // Save the results to session
+        session.saveAIToolResult('concept', concepts);
+        await window.scribeCat.sessions.update(session.id, session.toJSON());
 
-        contentArea.innerHTML = `
-          <div class="study-concepts">
-            ${conceptsHtml}
-          </div>
-        `;
+        // Render concepts
+        this.renderConcepts(concepts, contentArea, session);
       } else {
         throw new Error(result.error || 'Failed to extract concepts');
       }
@@ -240,6 +240,62 @@ ${transcriptionText}`;
           <div class="map-main-topic">${HtmlHelper.escapeHtml(conceptMap.mainTopic)}</div>
           <div class="map-subtopics">${subtopicsHtml}</div>
         </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Show prompt to load previous or regenerate
+   */
+  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any): void {
+    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
+    const regenerationCount = savedResult.regenerationCount || 0;
+
+    contentArea.innerHTML = `
+      <div class="ai-result-prompt">
+        <div class="prompt-header">
+          <div class="prompt-icon">💡</div>
+          <h4>Key Concepts Available</h4>
+        </div>
+        <div class="prompt-body">
+          <p>You have key concepts generated on <strong>${generatedDate}</strong>.</p>
+          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
+        </div>
+        <div class="prompt-actions">
+          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
+          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
+        </div>
+      </div>
+    `;
+
+    const loadBtn = document.getElementById('load-previous-btn');
+    loadBtn?.addEventListener('click', () => {
+      this.renderConcepts(savedResult.data, contentArea, session);
+    });
+
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    regenerateBtn?.addEventListener('click', () => {
+      this.extractKeyConcepts(session, contentArea, true);
+    });
+  }
+
+  /**
+   * Render concepts
+   */
+  private static renderConcepts(concepts: Array<{term: string; definition: string; sessions?: string}>, contentArea: HTMLElement, session?: Session): void {
+    const conceptsHtml = concepts.map(concept => `
+      <div class="concept-item">
+        <div class="concept-term">
+          ${HtmlHelper.escapeHtml(concept.term)}
+          ${concept.sessions ? `<span class="concept-sessions"> (${HtmlHelper.escapeHtml(concept.sessions)})</span>` : ''}
+        </div>
+        <div class="concept-definition">${renderMarkdown(concept.definition)}</div>
+      </div>
+    `).join('');
+
+    contentArea.innerHTML = `
+      <div class="study-concepts">
+        ${conceptsHtml}
       </div>
     `;
   }
