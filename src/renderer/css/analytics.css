@@ -304,6 +304,175 @@
   transition: width 0.6s ease;
 }
 
+/* Activity Heatmap */
+.activity-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: var(--bg-tertiary, #3a3a3a);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.heatmap-months {
+  position: relative;
+  height: 16px;
+  margin-bottom: 4px;
+}
+
+.heatmap-month-label {
+  position: absolute;
+  font-size: 11px;
+  color: var(--text-secondary, #aaa);
+}
+
+.heatmap-grid {
+  display: flex;
+  gap: 3px;
+}
+
+.heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heatmap-day {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.heatmap-day.level-0 {
+  background: var(--bg-primary, #1d1d1d);
+  border: 1px solid var(--border-color, #444);
+}
+
+.heatmap-day.level-1 {
+  background: rgba(0, 188, 212, 0.2);
+}
+
+.heatmap-day.level-2 {
+  background: rgba(0, 188, 212, 0.4);
+}
+
+.heatmap-day.level-3 {
+  background: rgba(0, 188, 212, 0.6);
+}
+
+.heatmap-day.level-4 {
+  background: rgba(0, 188, 212, 0.8);
+}
+
+.heatmap-day.today {
+  border: 2px solid var(--accent, #00bcd4);
+}
+
+.heatmap-day.future {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.heatmap-day:hover:not(.future) {
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.heatmap-legend-label {
+  font-size: 11px;
+  color: var(--text-secondary, #aaa);
+}
+
+/* Study Time Chart */
+.study-time-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  height: 200px;
+  padding: 20px;
+  background: var(--bg-tertiary, #3a3a3a);
+  border-radius: 10px;
+}
+
+.chart-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+}
+
+.chart-bar {
+  width: 100%;
+  min-height: 4px;
+  background: linear-gradient(180deg, var(--accent, #00bcd4), var(--accent-light, #26c6da));
+  border-radius: 4px 4px 0 0;
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.chart-bar:hover {
+  opacity: 0.8;
+  box-shadow: 0 0 12px rgba(0, 188, 212, 0.4);
+}
+
+.chart-bar-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+}
+
+.chart-bar-label {
+  font-size: 12px;
+  color: var(--text-secondary, #aaa);
+  text-align: center;
+}
+
+/* Export Button */
+.export-analytics-btn {
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--accent, #00bcd4);
+  color: var(--bg-primary, #1d1d1d);
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.export-analytics-btn:hover {
+  background: var(--accent-light, #26c6da);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
+}
+
+.export-analytics-btn:active {
+  transform: translateY(0);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .analytics-modal-content {
@@ -333,5 +502,29 @@
 
   .streak-value {
     font-size: 28px;
+  }
+
+  .activity-heatmap {
+    padding: 12px;
+  }
+
+  .heatmap-day {
+    width: 9px;
+    height: 9px;
+  }
+
+  .study-time-chart {
+    height: 160px;
+    padding: 12px;
+    gap: 6px;
+  }
+
+  .chart-bar-label {
+    font-size: 10px;
+  }
+
+  .export-analytics-btn {
+    padding: 12px 20px;
+    font-size: 14px;
   }
 }

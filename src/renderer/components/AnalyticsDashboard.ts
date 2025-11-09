@@ -273,8 +273,231 @@ export class AnalyticsDashboard {
             </div>
           </div>
         ` : ''}
+
+        <!-- Activity Heatmap -->
+        ${this.renderActivityHeatmap()}
+
+        <!-- Study Time Trends -->
+        ${this.renderStudyTimeTrends()}
+
+        <!-- Export Section -->
+        <div class="analytics-section">
+          <button class="export-analytics-btn" onclick="window.analyticsDashboard?.exportToCSV()">
+            📊 Export Analytics to CSV
+          </button>
+        </div>
       </div>
     `;
+  }
+
+  /**
+   * Render activity heatmap (GitHub-style)
+   */
+  private renderActivityHeatmap(): string {
+    if (!this.stats || this.stats.studyDates.length === 0) {
+      return '';
+    }
+
+    // Get last 12 weeks of data
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - (12 * 7)); // 12 weeks back
+
+    // Create map of study dates
+    const studyDateMap = new Map<string, number>();
+    this.sessions.forEach(session => {
+      const dateKey = this.normalizeDate(session.createdAt).toISOString().split('T')[0];
+      const existing = studyDateMap.get(dateKey) || 0;
+      studyDateMap.set(dateKey, existing + Math.floor(session.duration / 60)); // minutes
+    });
+
+    // Generate weeks array
+    const weeks: Date[][] = [];
+    let currentWeek: Date[] = [];
+
+    // Start from Sunday of the start week
+    const current = new Date(startDate);
+    current.setDate(current.getDate() - current.getDay()); // Go to Sunday
+
+    for (let i = 0; i < 12 * 7; i++) {
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+      currentWeek.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    if (currentWeek.length > 0) {
+      weeks.push(currentWeek);
+    }
+
+    // Month labels
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthLabels: { month: string; offset: number }[] = [];
+    let lastMonth = -1;
+    weeks.forEach((week, weekIndex) => {
+      const month = week[0].getMonth();
+      if (month !== lastMonth) {
+        monthLabels.push({ month: months[month], offset: weekIndex * 14 });
+        lastMonth = month;
+      }
+    });
+
+    return `
+      <div class="analytics-section">
+        <h3 class="analytics-section-title">Activity</h3>
+        <div class="activity-heatmap">
+          <div class="heatmap-months">
+            ${monthLabels.map(({ month, offset }) => `
+              <span class="heatmap-month-label" style="left: ${offset}px">${month}</span>
+            `).join('')}
+          </div>
+          <div class="heatmap-grid">
+            ${weeks.map(week => `
+              <div class="heatmap-week">
+                ${week.map(date => {
+                  const dateKey = date.toISOString().split('T')[0];
+                  const minutes = studyDateMap.get(dateKey) || 0;
+                  const level = minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 60 ? 2 : minutes < 120 ? 3 : 4;
+                  const isToday = dateKey === today.toISOString().split('T')[0];
+                  const isFuture = date > today;
+
+                  return `
+                    <div
+                      class="heatmap-day level-${level} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}"
+                      title="${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}${minutes > 0 ? `: ${this.formatTime(minutes)}` : ': No activity'}"
+                      data-date="${dateKey}"
+                    ></div>
+                  `;
+                }).join('')}
+              </div>
+            `).join('')}
+          </div>
+          <div class="heatmap-legend">
+            <span class="heatmap-legend-label">Less</span>
+            <div class="heatmap-day level-0"></div>
+            <div class="heatmap-day level-1"></div>
+            <div class="heatmap-day level-2"></div>
+            <div class="heatmap-day level-3"></div>
+            <div class="heatmap-day level-4"></div>
+            <span class="heatmap-legend-label">More</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render study time trends (last 7 days)
+   */
+  private renderStudyTimeTrends(): string {
+    if (!this.stats || this.sessions.length === 0) {
+      return '';
+    }
+
+    // Get last 7 days of data
+    const days: { date: Date; minutes: number; label: string }[] = [];
+    const today = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const normalized = this.normalizeDate(date);
+      const dateKey = normalized.toISOString().split('T')[0];
+
+      const minutes = this.sessions
+        .filter(s => {
+          const sessionDate = this.normalizeDate(s.createdAt).toISOString().split('T')[0];
+          return sessionDate === dateKey;
+        })
+        .reduce((sum, s) => sum + Math.floor(s.duration / 60), 0);
+
+      const label = i === 0 ? 'Today' :
+                    i === 1 ? 'Yesterday' :
+                    date.toLocaleDateString('en-US', { weekday: 'short' });
+
+      days.push({ date: normalized, minutes, label });
+    }
+
+    const maxMinutes = Math.max(...days.map(d => d.minutes), 1);
+
+    return `
+      <div class="analytics-section">
+        <h3 class="analytics-section-title">Last 7 Days</h3>
+        <div class="study-time-chart">
+          ${days.map((day, index) => {
+            const heightPercent = (day.minutes / maxMinutes) * 100;
+            return `
+              <div class="chart-bar-container">
+                <div
+                  class="chart-bar"
+                  style="height: ${heightPercent}%"
+                  title="${day.label}: ${this.formatTime(day.minutes)}"
+                >
+                  <span class="chart-bar-value">${day.minutes > 0 ? this.formatTime(day.minutes) : ''}</span>
+                </div>
+                <span class="chart-bar-label">${day.label}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Export analytics to CSV
+   */
+  exportToCSV(): void {
+    if (!this.stats) return;
+
+    const { totalStudyTime, totalSessions, averageDuration, coursesBreakdown, currentStreak, longestStreak } = this.stats;
+
+    // Build CSV content
+    let csv = 'ScribeCat Analytics Export\n\n';
+    csv += 'Overview\n';
+    csv += 'Metric,Value\n';
+    csv += `Total Recording Time,${this.formatTime(totalStudyTime)}\n`;
+    csv += `Total Sessions,${totalSessions}\n`;
+    csv += `Average Duration,${this.formatTime(averageDuration)}\n`;
+    csv += `Current Streak,${currentStreak} days\n`;
+    csv += `Longest Streak,${longestStreak} days\n\n`;
+
+    csv += 'Course Breakdown\n';
+    csv += 'Course,Sessions,Time (minutes)\n';
+    Array.from(coursesBreakdown.entries())
+      .sort((a, b) => b[1].totalTime - a[1].totalTime)
+      .forEach(([course, data]) => {
+        csv += `"${course}",${data.count},${data.totalTime}\n`;
+      });
+
+    csv += '\nSession History\n';
+    csv += 'Date,Title,Course,Duration (minutes)\n';
+    this.sessions
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .forEach(session => {
+        const date = session.createdAt.toLocaleDateString('en-US');
+        const title = session.title.replace(/"/g, '""');
+        const course = (session.courseTitle || 'Uncategorized').replace(/"/g, '""');
+        const duration = Math.floor(session.duration / 60);
+        csv += `${date},"${title}","${course}",${duration}\n`;
+      });
+
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scribecat-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const toastManager = (window as any).toastManager;
+    if (toastManager) {
+      toastManager.success('Analytics exported to CSV!', { duration: 3000 });
+    }
   }
 
   /**

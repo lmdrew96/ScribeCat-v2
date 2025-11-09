@@ -187,6 +187,9 @@ export class StudyModeManager {
       // Render dashboard
       dashboardContainer.innerHTML = this.analyticsDashboard.render();
 
+      // Expose dashboard globally for CSV export
+      (window as any).analyticsDashboard = this.analyticsDashboard;
+
       // Show modal
       analyticsModal.classList.remove('hidden');
 
