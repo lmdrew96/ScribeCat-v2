@@ -10,6 +10,8 @@
 
 import type { Session } from '../../domain/entities/Session.js';
 import { createLogger } from '../../shared/logger.js';
+import { GoalsManager, type GoalProgress } from '../managers/GoalsManager.js';
+import { AchievementsManager, type Achievement } from '../managers/AchievementsManager.js';
 
 const logger = createLogger('AnalyticsDashboard');
 
@@ -26,6 +28,13 @@ export interface StudyStats {
 export class AnalyticsDashboard {
   private sessions: Session[] = [];
   private stats: StudyStats | null = null;
+  private goalsManager: GoalsManager;
+  private achievementsManager: AchievementsManager;
+
+  constructor() {
+    this.goalsManager = new GoalsManager();
+    this.achievementsManager = new AchievementsManager();
+  }
 
   /**
    * Update sessions and recalculate stats
@@ -33,6 +42,26 @@ export class AnalyticsDashboard {
   updateSessions(sessions: Session[]): void {
     this.sessions = sessions;
     this.stats = this.calculateStats(sessions);
+
+    // Update achievements progress
+    if (this.stats) {
+      const newlyUnlocked = this.achievementsManager.updateProgress(
+        sessions,
+        this.stats.currentStreak,
+        this.stats.longestStreak
+      );
+
+      // Show toast for newly unlocked achievements
+      if (newlyUnlocked.length > 0) {
+        const toastManager = (window as any).toastManager;
+        if (toastManager) {
+          newlyUnlocked.forEach(achievement => {
+            toastManager.success(`🏆 Achievement Unlocked: ${achievement.title}`, { duration: 5000 });
+          });
+        }
+      }
+    }
+
     logger.info('Analytics updated', { sessionCount: sessions.length });
   }
 
@@ -162,6 +191,397 @@ export class AnalyticsDashboard {
   }
 
   /**
+   * Render goals widget
+   */
+  private renderGoalsWidget(): string {
+    const activeGoals = this.goalsManager.getActiveGoals();
+    const dailyGoal = this.goalsManager.getActiveGoal('daily');
+    const weeklyGoal = this.goalsManager.getActiveGoal('weekly');
+
+    const dailyProgress = dailyGoal ? this.goalsManager.calculateProgress(dailyGoal, this.sessions) : null;
+    const weeklyProgress = weeklyGoal ? this.goalsManager.calculateProgress(weeklyGoal, this.sessions) : null;
+
+    // If no goals set, show setup prompt
+    if (activeGoals.length === 0) {
+      return `
+        <div class="analytics-section">
+          <h3 class="analytics-section-title">Study Goals</h3>
+          <div class="goals-empty">
+            <div class="goals-empty-icon">🎯</div>
+            <div class="goals-empty-text">Set a recording time goal to track your progress!</div>
+            <div class="goals-actions">
+              <button class="goal-setup-btn" onclick="window.analyticsDashboard?.showGoalModal('daily')">
+                Set Daily Goal
+              </button>
+              <button class="goal-setup-btn" onclick="window.analyticsDashboard?.showGoalModal('weekly')">
+                Set Weekly Goal
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Show active goals with progress
+    return `
+      <div class="analytics-section">
+        <h3 class="analytics-section-title">Study Goals</h3>
+        <div class="goals-container">
+          ${dailyProgress ? this.renderGoalCard(dailyProgress, 'daily') : `
+            <div class="goal-card goal-placeholder">
+              <div class="goal-placeholder-content">
+                <span class="goal-placeholder-icon">📅</span>
+                <span class="goal-placeholder-text">No daily goal set</span>
+              </div>
+              <button class="goal-setup-btn-small" onclick="window.analyticsDashboard?.showGoalModal('daily')">
+                Set Goal
+              </button>
+            </div>
+          `}
+
+          ${weeklyProgress ? this.renderGoalCard(weeklyProgress, 'weekly') : `
+            <div class="goal-card goal-placeholder">
+              <div class="goal-placeholder-content">
+                <span class="goal-placeholder-icon">📊</span>
+                <span class="goal-placeholder-text">No weekly goal set</span>
+              </div>
+              <button class="goal-setup-btn-small" onclick="window.analyticsDashboard?.showGoalModal('weekly')">
+                Set Goal
+              </button>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render individual goal card
+   */
+  private renderGoalCard(progress: GoalProgress, type: 'daily' | 'weekly'): string {
+    const icon = type === 'daily' ? '📅' : '📊';
+    const title = type === 'daily' ? 'Daily Goal' : 'Weekly Goal';
+    const motivationalMsg = this.goalsManager.getMotivationalMessage(progress);
+    const timeRemaining = this.goalsManager.getTimeRemaining(progress);
+    const onTrack = type === 'weekly' ? this.goalsManager.isOnTrackForWeeklyGoal(progress) : true;
+
+    return `
+      <div class="goal-card ${progress.isComplete ? 'goal-complete' : ''}">
+        <div class="goal-header">
+          <div class="goal-title">
+            <span class="goal-icon">${icon}</span>
+            <span>${title}</span>
+          </div>
+          <button class="goal-edit-btn" onclick="window.analyticsDashboard?.showGoalModal('${type}')" title="Edit goal">
+            ✏️
+          </button>
+        </div>
+
+        <div class="goal-progress">
+          <div class="goal-progress-text">
+            <span class="goal-current">${this.goalsManager.formatMinutes(progress.currentMinutes)}</span>
+            <span class="goal-separator">/</span>
+            <span class="goal-target">${this.goalsManager.formatMinutes(progress.targetMinutes)}</span>
+          </div>
+          <div class="goal-progress-bar">
+            <div class="goal-progress-fill" style="width: ${progress.percentComplete}%"></div>
+          </div>
+          <div class="goal-progress-percent">${Math.round(progress.percentComplete)}%</div>
+        </div>
+
+        <div class="goal-status">
+          ${progress.isComplete
+            ? `<span class="goal-status-complete">✓ Complete</span>`
+            : `<span class="goal-status-remaining">${timeRemaining}</span>`
+          }
+          ${type === 'weekly' && !progress.isComplete && progress.daysRemaining
+            ? `<span class="goal-days-remaining">${progress.daysRemaining} day${progress.daysRemaining !== 1 ? 's' : ''} left</span>`
+            : ''
+          }
+        </div>
+
+        <div class="goal-motivation ${progress.isComplete ? 'goal-motivation-complete' : ''}">
+          ${motivationalMsg}
+        </div>
+
+        ${type === 'weekly' && !progress.isComplete
+          ? `<div class="goal-on-track ${onTrack ? 'on-track' : 'behind-track'}">
+              ${onTrack ? '✓ On track for weekly goal' : '⚠️ Behind schedule for weekly goal'}
+            </div>`
+          : ''
+        }
+      </div>
+    `;
+  }
+
+  /**
+   * Show goal setting modal
+   */
+  showGoalModal(type: 'daily' | 'weekly'): void {
+    const existingGoal = this.goalsManager.getActiveGoal(type);
+    const title = type === 'daily' ? 'Daily Goal' : 'Weekly Goal';
+    const subtitle = type === 'daily'
+      ? 'How many minutes do you want to record each day?'
+      : 'How many minutes do you want to record each week?';
+
+    const presets = type === 'daily'
+      ? [15, 30, 45, 60, 90, 120]
+      : [120, 180, 300, 420, 600, 900];
+
+    const currentValue = existingGoal?.targetMinutes || presets[2];
+
+    // Create modal overlay
+    const modalHtml = `
+      <div class="goal-modal" id="goal-modal">
+        <div class="goal-modal-overlay" onclick="document.getElementById('goal-modal').remove()"></div>
+        <div class="goal-modal-content">
+          <div class="goal-modal-header">
+            <h3>Set ${title}</h3>
+            <button class="close-modal-btn" onclick="document.getElementById('goal-modal').remove()">×</button>
+          </div>
+          <div class="goal-modal-body">
+            <p class="goal-modal-subtitle">${subtitle}</p>
+
+            <div class="goal-presets">
+              ${presets.map(minutes => `
+                <button
+                  class="goal-preset-btn ${currentValue === minutes ? 'active' : ''}"
+                  onclick="window.analyticsDashboard?.selectGoalPreset('${type}', ${minutes})"
+                  data-minutes="${minutes}"
+                >
+                  ${this.goalsManager.formatMinutes(minutes)}
+                </button>
+              `).join('')}
+            </div>
+
+            <div class="goal-custom-input">
+              <label for="goal-custom-minutes">Or enter custom minutes:</label>
+              <input
+                type="number"
+                id="goal-custom-minutes"
+                min="1"
+                max="${type === 'daily' ? '1440' : '10080'}"
+                value="${currentValue}"
+                placeholder="Enter minutes"
+              />
+            </div>
+
+            <div class="goal-modal-actions">
+              <button class="goal-modal-btn goal-modal-cancel" onclick="document.getElementById('goal-modal').remove()">
+                Cancel
+              </button>
+              ${existingGoal ? `
+                <button class="goal-modal-btn goal-modal-delete" onclick="window.analyticsDashboard?.deleteGoal('${type}')">
+                  Delete Goal
+                </button>
+              ` : ''}
+              <button class="goal-modal-btn goal-modal-save" onclick="window.analyticsDashboard?.saveGoal('${type}')">
+                ${existingGoal ? 'Update Goal' : 'Set Goal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add modal to page
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer.firstElementChild!);
+  }
+
+  /**
+   * Select a goal preset
+   */
+  selectGoalPreset(type: 'daily' | 'weekly', minutes: number): void {
+    // Update active state on buttons
+    document.querySelectorAll('.goal-preset-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector(`.goal-preset-btn[data-minutes="${minutes}"]`)?.classList.add('active');
+
+    // Update custom input
+    const input = document.getElementById('goal-custom-minutes') as HTMLInputElement;
+    if (input) {
+      input.value = minutes.toString();
+    }
+  }
+
+  /**
+   * Save goal
+   */
+  saveGoal(type: 'daily' | 'weekly'): void {
+    const input = document.getElementById('goal-custom-minutes') as HTMLInputElement;
+    if (!input) return;
+
+    const minutes = parseInt(input.value);
+    if (isNaN(minutes) || minutes < 1) {
+      const toastManager = (window as any).toastManager;
+      if (toastManager) {
+        toastManager.error('Please enter a valid number of minutes');
+      }
+      return;
+    }
+
+    const existingGoal = this.goalsManager.getActiveGoal(type);
+    if (existingGoal) {
+      this.goalsManager.updateGoal(existingGoal.id, minutes);
+    } else {
+      this.goalsManager.createGoal(type, minutes);
+    }
+
+    // Close modal
+    document.getElementById('goal-modal')?.remove();
+
+    // Re-render dashboard
+    const dashboardContainer = document.querySelector('.analytics-dashboard');
+    if (dashboardContainer) {
+      dashboardContainer.innerHTML = this.render();
+    }
+
+    const toastManager = (window as any).toastManager;
+    if (toastManager) {
+      const goalType = type === 'daily' ? 'Daily' : 'Weekly';
+      toastManager.success(`${goalType} goal ${existingGoal ? 'updated' : 'set'}! Target: ${this.goalsManager.formatMinutes(minutes)}`, { duration: 3000 });
+    }
+
+    logger.info(`Goal ${existingGoal ? 'updated' : 'created'}: ${type} - ${minutes} minutes`);
+  }
+
+  /**
+   * Delete goal
+   */
+  deleteGoal(type: 'daily' | 'weekly'): void {
+    const goal = this.goalsManager.getActiveGoal(type);
+    if (!goal) return;
+
+    this.goalsManager.deleteGoal(goal.id);
+
+    // Close modal
+    document.getElementById('goal-modal')?.remove();
+
+    // Re-render dashboard
+    const dashboardContainer = document.querySelector('.analytics-dashboard');
+    if (dashboardContainer) {
+      dashboardContainer.innerHTML = this.render();
+    }
+
+    const toastManager = (window as any).toastManager;
+    if (toastManager) {
+      const goalType = type === 'daily' ? 'Daily' : 'Weekly';
+      toastManager.success(`${goalType} goal deleted`, { duration: 3000 });
+    }
+
+    logger.info(`Goal deleted: ${type}`);
+  }
+
+  /**
+   * Render achievements section
+   */
+  private renderAchievements(): string {
+    const allAchievements = this.achievementsManager.getAllAchievements();
+    const unlocked = this.achievementsManager.getUnlockedAchievements();
+    const nextToUnlock = this.achievementsManager.getNextAchievements(3);
+    const completionPercent = this.achievementsManager.getCompletionPercentage();
+
+    // Group achievements by category
+    const categories: { name: string; achievements: Achievement[] }[] = [
+      { name: 'Recording Time', achievements: this.achievementsManager.getAchievementsByCategory('time') },
+      { name: 'Session Count', achievements: this.achievementsManager.getAchievementsByCategory('sessions') },
+      { name: 'Consistency', achievements: this.achievementsManager.getAchievementsByCategory('streaks') },
+      { name: 'Marathon Sessions', achievements: this.achievementsManager.getAchievementsByCategory('marathon') },
+      { name: 'Special', achievements: this.achievementsManager.getAchievementsByCategory('special') },
+    ];
+
+    return `
+      <div class="analytics-section">
+        <h3 class="analytics-section-title">Achievements</h3>
+
+        <!-- Completion Overview -->
+        <div class="achievements-overview">
+          <div class="achievements-stats">
+            <div class="achievements-stat">
+              <span class="achievements-stat-value">${unlocked.length}</span>
+              <span class="achievements-stat-label">/ ${allAchievements.length} Unlocked</span>
+            </div>
+            <div class="achievements-progress-bar">
+              <div class="achievements-progress-fill" style="width: ${completionPercent}%"></div>
+            </div>
+            <div class="achievements-percent">${completionPercent}% Complete</div>
+          </div>
+        </div>
+
+        <!-- Next To Unlock -->
+        ${nextToUnlock.length > 0 ? `
+          <div class="achievements-next">
+            <h4 class="achievements-subsection-title">🎯 Almost There</h4>
+            <div class="achievements-grid">
+              ${nextToUnlock.map(achievement => this.renderAchievementBadge(achievement, false)).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Categories -->
+        ${categories.map(category => {
+          const categoryUnlocked = category.achievements.filter(a => a.unlocked).length;
+          if (category.achievements.length === 0) return '';
+
+          return `
+            <div class="achievements-category">
+              <div class="achievements-category-header">
+                <h4 class="achievements-subsection-title">${category.name}</h4>
+                <span class="achievements-category-count">${categoryUnlocked}/${category.achievements.length}</span>
+              </div>
+              <div class="achievements-grid">
+                ${category.achievements.map(achievement =>
+                  this.renderAchievementBadge(achievement, false)
+                ).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  /**
+   * Render individual achievement badge
+   */
+  private renderAchievementBadge(achievement: Achievement, showProgress: boolean = true): string {
+    const tierColor = this.achievementsManager.getTierColor(achievement.tier);
+    const isLocked = !achievement.unlocked;
+    const progressPercent = achievement.requirement > 0
+      ? Math.min((achievement.progress / achievement.requirement) * 100, 100)
+      : 0;
+
+    return `
+      <div class="achievement-badge ${isLocked ? 'achievement-locked' : 'achievement-unlocked'}"
+           title="${achievement.description}${isLocked ? ' - ' + this.achievementsManager.formatProgress(achievement) : ''}">
+        <div class="achievement-icon" style="border-color: ${tierColor}${isLocked ? '44' : ''}">
+          ${isLocked ? '🔒' : achievement.icon}
+        </div>
+        <div class="achievement-content">
+          <div class="achievement-tier" style="color: ${tierColor}">${this.achievementsManager.getTierName(achievement.tier)}</div>
+          <div class="achievement-title">${achievement.title}</div>
+          ${showProgress && isLocked ? `
+            <div class="achievement-progress">
+              <div class="achievement-progress-bar-small">
+                <div class="achievement-progress-fill-small" style="width: ${progressPercent}%; background: ${tierColor}"></div>
+              </div>
+              <div class="achievement-progress-text">${this.achievementsManager.formatProgress(achievement)}</div>
+            </div>
+          ` : ''}
+          ${!isLocked && achievement.unlockedAt ? `
+            <div class="achievement-unlocked-date">
+              Unlocked ${new Date(achievement.unlockedAt).toLocaleDateString()}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Render the analytics dashboard
    */
   render(): string {
@@ -222,6 +642,9 @@ export class AnalyticsDashboard {
           </div>
         </div>
 
+        <!-- Study Goals -->
+        ${this.renderGoalsWidget()}
+
         <!-- Streaks -->
         ${currentStreak > 0 || longestStreak > 0 ? `
           <div class="analytics-section">
@@ -279,6 +702,9 @@ export class AnalyticsDashboard {
 
         <!-- Study Time Trends -->
         ${this.renderStudyTimeTrends()}
+
+        <!-- Achievements -->
+        ${this.renderAchievements()}
 
         <!-- Export Section -->
         <div class="analytics-section">
