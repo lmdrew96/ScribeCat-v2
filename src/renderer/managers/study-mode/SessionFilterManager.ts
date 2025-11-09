@@ -14,10 +14,12 @@ export class SessionFilterManager {
   private searchQuery: string = '';
   private selectedTags: string[] = [];
   private sortOrder: 'newest' | 'oldest' | 'longest' | 'shortest' = 'newest';
+  private sharingFilter: 'all' | 'my-sessions' | 'shared-with-me' | 'shared-by-me' = 'all';
 
   private searchInput: HTMLInputElement | null = null;
   private courseFilter: HTMLSelectElement | null = null;
   private sortSelect: HTMLSelectElement | null = null;
+  private sharingFilterSelect: HTMLSelectElement | null = null;
 
   private onFilterChange: (() => void) | null = null;
 
@@ -32,6 +34,7 @@ export class SessionFilterManager {
     this.searchInput = document.getElementById('study-search-input') as HTMLInputElement;
     this.courseFilter = document.getElementById('study-course-filter') as HTMLSelectElement;
     this.sortSelect = document.getElementById('study-sort-select') as HTMLSelectElement;
+    this.sharingFilterSelect = document.getElementById('study-sharing-filter') as HTMLSelectElement;
 
     if (this.searchInput) {
       this.searchInput.addEventListener('input', (e) => {
@@ -54,6 +57,17 @@ export class SessionFilterManager {
         const value = (e.target as HTMLSelectElement).value;
         if (value === 'newest' || value === 'oldest' || value === 'longest' || value === 'shortest') {
           this.sortOrder = value;
+        }
+        this.applyFilters();
+        if (this.onFilterChange) this.onFilterChange();
+      });
+    }
+
+    if (this.sharingFilterSelect) {
+      this.sharingFilterSelect.addEventListener('change', (e) => {
+        const value = (e.target as HTMLSelectElement).value;
+        if (value === 'all' || value === 'my-sessions' || value === 'shared-with-me' || value === 'shared-by-me') {
+          this.sharingFilter = value;
         }
         this.applyFilters();
         if (this.onFilterChange) this.onFilterChange();
@@ -88,6 +102,26 @@ export class SessionFilterManager {
    */
   private applyFilters(): void {
     let filtered = [...this.sessions];
+
+    // Sharing filter
+    if (this.sharingFilter !== 'all') {
+      filtered = filtered.filter(s => {
+        const isShared = s.permissionLevel !== undefined;
+        const isOwner = s.permissionLevel === 'owner';
+        const isSharedWithMe = isShared && !isOwner;
+
+        switch (this.sharingFilter) {
+          case 'my-sessions':
+            return !isShared;
+          case 'shared-with-me':
+            return isSharedWithMe;
+          case 'shared-by-me':
+            return isOwner;
+          default:
+            return true;
+        }
+      });
+    }
 
     // Course filter
     if (this.selectedCourse) {

@@ -211,7 +211,7 @@ export class DetailViewEventHandler {
    * Attach action button handlers
    */
   private static attachActionButtons(session: Session, sessionDetailContainer: HTMLElement): void {
-    const shareBtn = document.querySelector('.share-session-detail-btn');
+    const shareBtn = document.querySelector('.share-session-btn');
     shareBtn?.addEventListener('click', () => {
       sessionDetailContainer.dispatchEvent(new CustomEvent('shareSession', { detail: { sessionId: session.id } }));
     });

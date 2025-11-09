@@ -42,6 +42,13 @@ export class MultiSessionRenderer {
             <span>📅 Created ${formattedDate}</span>
             <span>📑 ${childSessions.length} Sessions</span>
           </div>
+          <div class="session-detail-actions">
+            <button class="session-action-btn share-session-btn" data-session-id="${session.id}" title="Share this study set">
+              <span class="action-icon">👥</span>
+              <span class="action-label">Share</span>
+            </button>
+            <div id="collaborators-panel-container"></div>
+          </div>
         </div>
 
         <!-- Two-column layout -->

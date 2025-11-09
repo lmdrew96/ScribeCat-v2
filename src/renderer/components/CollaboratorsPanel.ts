@@ -132,6 +132,7 @@ export class CollaboratorsPanel {
 
     const isActive = this.isRecentlyActive(user.lastActive);
     const activeClass = isActive ? 'user-active' : 'user-inactive';
+    const typingIndicator = user.isTyping ? `<span class="typing-indicator">typing...</span>` : '';
 
     return `
       <div class="collaborator-item ${activeClass}">
@@ -140,7 +141,7 @@ export class CollaboratorsPanel {
           <div class="user-status-indicator" style="background-color: ${isActive ? '#4CAF50' : '#999'}"></div>
         </div>
         <div class="user-info">
-          <div class="user-name">${this.escapeHtml(user.userName)}</div>
+          <div class="user-name">${this.escapeHtml(user.userName)} ${typingIndicator}</div>
           <div class="user-email">${this.escapeHtml(user.userEmail)}</div>
         </div>
       </div>

@@ -111,7 +111,9 @@ export class StudyModeManager {
       this.detailViewManager,
       this.aiToolsManager,
       this.sessionListContainer,
-      this.sessionDetailContainer
+      this.sessionDetailContainer,
+      this.sessionSharingManager,
+      this.notesEditorManager
     );
     this.cloudSyncManager = new CloudSyncManager(this.authManager, this.syncNowBtn);
     this.sessionDataLoader = new SessionDataLoader(this.sessionSharingManager, this.dataTransformer);

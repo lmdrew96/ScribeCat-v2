@@ -14,6 +14,8 @@ import { Session } from '../../../domain/entities/Session.js';
 import { AuthManager } from '../AuthManager.js';
 import { StudyModeDetailViewManager } from './StudyModeDetailViewManager.js';
 import { StudyModeAIToolsManager } from './StudyModeAIToolsManager.js';
+import { SessionSharingManager } from '../SessionSharingManager.js';
+import { StudyModeNotesEditorManager } from './StudyModeNotesEditorManager.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('SessionNavigationManager');
@@ -24,7 +26,9 @@ export class SessionNavigationManager {
     private detailViewManager: StudyModeDetailViewManager,
     private aiToolsManager: StudyModeAIToolsManager,
     private sessionListContainer: HTMLElement,
-    private sessionDetailContainer: HTMLElement
+    private sessionDetailContainer: HTMLElement,
+    private sessionSharingManager: SessionSharingManager,
+    private notesEditorManager: StudyModeNotesEditorManager
   ) {}
 
   /**
@@ -64,6 +68,9 @@ export class SessionNavigationManager {
 
     // Initialize AI tools (after render completes so DOM is ready)
     this.aiToolsManager.initialize(session);
+
+    // Auto-enable collaboration for editors
+    await this.autoEnableCollaborationIfNeeded(session);
 
     logger.info(`Opened session detail: ${session.id}`);
   }
@@ -176,5 +183,50 @@ export class SessionNavigationManager {
     // Hide detail view, show list view
     this.sessionDetailContainer.classList.add('hidden');
     this.sessionListContainer.classList.remove('hidden');
+  }
+
+  /**
+   * Auto-enable collaboration if the user has editor permission
+   */
+  private async autoEnableCollaborationIfNeeded(session: Session): Promise<void> {
+    try {
+      const currentUser = this.authManager.getCurrentUser();
+
+      // Only enable collaboration if user is logged in
+      if (!currentUser) {
+        logger.info('Skipping collaboration: no user logged in');
+        return;
+      }
+
+      // Check session access permissions
+      const accessInfo = this.sessionSharingManager.checkSessionAccess(session.id);
+
+      logger.info('Session access check:', {
+        sessionId: session.id,
+        hasAccess: accessInfo.hasAccess,
+        permission: accessInfo.permission,
+        isShared: accessInfo.isShared
+      });
+
+      // Enable collaboration if user is owner or has editor permission
+      if (accessInfo.permission === 'owner' || accessInfo.permission === 'editor') {
+        logger.info('Auto-enabling collaboration for session:', session.id);
+
+        await this.notesEditorManager.enableCollaboration({
+          sessionId: session.id,
+          userId: currentUser.id,
+          userName: currentUser.fullName || currentUser.email,
+          userEmail: currentUser.email,
+          avatarUrl: currentUser.avatarUrl
+        });
+
+        logger.info('Collaboration enabled successfully');
+      } else {
+        logger.info('Skipping collaboration: user does not have edit permission');
+      }
+    } catch (error) {
+      logger.error('Failed to auto-enable collaboration:', error);
+      // Don't throw - collaboration failure shouldn't prevent viewing the session
+    }
   }
 }

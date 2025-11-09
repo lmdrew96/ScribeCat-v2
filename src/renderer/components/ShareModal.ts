@@ -6,6 +6,7 @@
  */
 
 import { SessionSharingManager } from '../managers/SessionSharingManager.js';
+import { toast } from '../utils/toast.js';
 
 export class ShareModal {
   private modal: HTMLElement | null = null;
@@ -398,16 +399,11 @@ export class ShareModal {
    * Show a message to the user
    */
   private showMessage(text: string, type: 'success' | 'error'): void {
-    const messageDiv = document.getElementById('share-message');
-    if (messageDiv) {
-      messageDiv.textContent = text;
-      messageDiv.className = `message ${type}`;
-      messageDiv.style.display = 'block';
-
-      // Auto-hide after 3 seconds
-      setTimeout(() => {
-        messageDiv.style.display = 'none';
-      }, 3000);
+    // Use toast notifications for better UX
+    if (type === 'success') {
+      toast.success(text);
+    } else {
+      toast.error(text);
     }
   }
 

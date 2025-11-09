@@ -9,6 +9,7 @@ import { Editor } from '@tiptap/core';
 import { EditorConfigService } from '../../tiptap/EditorConfigService.js';
 import { CollaborationAdapter } from '../../tiptap/CollaborationAdapter.js';
 import { StudyModeEditorToolbar } from '../../tiptap/StudyModeEditorToolbar.js';
+import { CollaboratorsPanel } from '../../components/CollaboratorsPanel.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('StudyModeNotesEditorManager');
@@ -19,6 +20,8 @@ export class StudyModeNotesEditorManager {
   private currentEditingSessionId: string | null = null;
   private collaborationAdapter: CollaborationAdapter;
   private toolbar: StudyModeEditorToolbar;
+  private collaboratorsPanel: CollaboratorsPanel | null = null;
+  private collaborationStateUnsubscribe: (() => void) | null = null;
 
   constructor() {
     this.collaborationAdapter = new CollaborationAdapter();
@@ -154,6 +157,9 @@ export class StudyModeNotesEditorManager {
         }
       );
 
+      // Initialize CollaboratorsPanel
+      this.setupCollaboratorsPanel();
+
       logger.info('Collaboration enabled successfully');
     } catch (error) {
       logger.error('Failed to enable collaboration:', error);
@@ -182,6 +188,9 @@ export class StudyModeNotesEditorManager {
           this.toolbar.setup(newEditor);
         }
       );
+
+      // Cleanup CollaboratorsPanel
+      this.cleanupCollaboratorsPanel();
 
       logger.info('Collaboration disabled successfully');
     } catch (error) {
@@ -219,9 +228,67 @@ export class StudyModeNotesEditorManager {
   }
 
   /**
+   * Setup CollaboratorsPanel and wire to CollaborationManager
+   */
+  private setupCollaboratorsPanel(): void {
+    try {
+      const container = document.getElementById('collaborators-panel-container');
+      if (!container) {
+        logger.warn('Collaborators panel container not found');
+        return;
+      }
+
+      // Create CollaboratorsPanel
+      this.collaboratorsPanel = new CollaboratorsPanel('collaborators-panel-container');
+
+      // Get CollaborationManager and subscribe to state changes
+      const collaborationManager = this.collaborationAdapter.getManager();
+      if (collaborationManager) {
+        this.collaborationStateUnsubscribe = collaborationManager.onStateChange((state) => {
+          if (this.collaboratorsPanel) {
+            // Update collaborators list
+            this.collaboratorsPanel.updateCollaborators(state.activeUsers);
+            // Update connection state
+            this.collaboratorsPanel.updateConnectionState(state.connectionState);
+          }
+        });
+
+        // Show the panel
+        this.collaboratorsPanel.show();
+        logger.info('CollaboratorsPanel initialized and shown');
+      } else {
+        logger.warn('CollaborationManager not available');
+      }
+    } catch (error) {
+      logger.error('Failed to setup CollaboratorsPanel:', error);
+    }
+  }
+
+  /**
+   * Cleanup CollaboratorsPanel
+   */
+  private cleanupCollaboratorsPanel(): void {
+    // Unsubscribe from state changes
+    if (this.collaborationStateUnsubscribe) {
+      this.collaborationStateUnsubscribe();
+      this.collaborationStateUnsubscribe = null;
+    }
+
+    // Hide and cleanup panel
+    if (this.collaboratorsPanel) {
+      this.collaboratorsPanel.hide();
+      this.collaboratorsPanel = null;
+    }
+
+    logger.info('CollaboratorsPanel cleaned up');
+  }
+
+  /**
    * Destroy editor and cleanup
    */
   destroy(): void {
+    this.cleanupCollaboratorsPanel();
+
     if (this.notesEditor) {
       this.notesEditor.destroy();
       this.notesEditor = null;

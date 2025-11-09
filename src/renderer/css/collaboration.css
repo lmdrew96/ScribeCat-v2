@@ -329,3 +329,35 @@
 .collaborator-item {
   animation: fadeInSlide 0.3s ease;
 }
+
+/* Typing Indicator */
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--accent, #6366f1);
+  font-style: italic;
+  margin-left: 6px;
+  animation: typingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes typingPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.typing-indicator::after {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: typingDot 1.5s ease-in-out infinite;
+}

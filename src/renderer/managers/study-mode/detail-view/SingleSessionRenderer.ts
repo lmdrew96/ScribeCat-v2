@@ -92,6 +92,15 @@ export class SingleSessionRenderer {
             <span>📅 ${formattedDate} at ${formattedTime}</span>
             <span>⏱️ ${duration}</span>
           </div>
+          ${isEditable ? `
+          <div class="session-detail-actions">
+            <button class="session-action-btn share-session-btn" data-session-id="${session.id}" title="Share this session">
+              <span class="action-icon">👥</span>
+              <span class="action-label">Share</span>
+            </button>
+            <div id="collaborators-panel-container"></div>
+          </div>
+          ` : ''}
         </div>
 
         <!-- Two Column Layout -->

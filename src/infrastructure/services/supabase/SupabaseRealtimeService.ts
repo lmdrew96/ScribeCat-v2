@@ -30,6 +30,7 @@ export interface UserPresence {
   avatarUrl?: string;
   color: string;
   lastActive: Date;
+  isTyping?: boolean;
 }
 
 export interface RealtimeMessage {
