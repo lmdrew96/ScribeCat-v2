@@ -23,19 +23,16 @@ export class PermanentlyDeleteSessionUseCase {
    */
   async execute(sessionId: string): Promise<void> {
     try {
-      // First, try to load the session to get file paths
-      // Note: We need to read the file directly since findById excludes deleted sessions
-      // For now, we'll try to delete what we can
+      // Try to load the session to get file paths for cleanup
+      // Note: findById excludes deleted sessions, so this may return null for trashed sessions
       let session;
       try {
-        // Try to find in deleted sessions (we'll need to access the repository method)
-        // For now, just proceed with deletion even if we can't load it
         session = await this.sessionRepository.findById(sessionId);
       } catch (error) {
-        console.warn('Could not load session for permanent deletion, will try to delete anyway');
+        console.warn('Could not load session metadata, will proceed with deletion');
       }
 
-      // Delete the audio file if we have the session
+      // Delete the audio file if we have the session metadata
       if (session) {
         try {
           await this.audioRepository.deleteAudio(session.recordingPath);
@@ -47,9 +44,10 @@ export class PermanentlyDeleteSessionUseCase {
 
       // NOTE: We do NOT delete exported files - user wants to keep them
 
-      // If session was synced to cloud, delete from remote repository first
-      // This ensures we fail before deleting locally if there's an issue
-      if (session?.cloudId && this.remoteRepository) {
+      // Delete from remote repository FIRST (if available)
+      // CRITICAL: Always try to delete from cloud, even if findById returned null
+      // Trashed sessions won't be found by findById but still exist in cloud
+      if (this.remoteRepository) {
         try {
           await this.remoteRepository.permanentlyDelete(sessionId);
           console.log(`Permanently deleted session ${sessionId} from cloud`);
@@ -60,12 +58,14 @@ export class PermanentlyDeleteSessionUseCase {
             console.warn(`Session ${sessionId} not found in cloud (may have been auto-deleted), continuing with local deletion`);
           } else {
             // Other errors should fail the operation
+            console.error(`Failed to delete session from cloud: ${errorMessage}`);
             throw cloudError;
           }
         }
       }
 
       // Permanently delete the session metadata from local repository
+      // This will remove the JSON file even if it has deletedAt set
       await this.sessionRepository.permanentlyDelete(sessionId);
 
     } catch (error) {
