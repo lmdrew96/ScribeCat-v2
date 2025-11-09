@@ -510,7 +510,7 @@ export class StudyModeDetailViewManager {
 
         <!-- Notes Tab Content -->
         <div class="content-tab-panel" data-panel="notes">
-          <div class="notes-content" id="notes-content">
+          <div class="notes-view-content" id="notes-content">
             ${session.notes || '<p class="no-notes">No notes for this session.</p>'}
           </div>
         </div>
