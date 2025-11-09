@@ -15,6 +15,7 @@
 @import './css/floating-toolbar.css'; /* Floating formatting toolbar */
 @import './css/loading.css';       /* Skeleton loaders, loading states */
 @import './css/visual-feedback.css'; /* Visual feedback animations and effects */
+@import './css/workspace-layouts.css'; /* Adaptive workspace layouts */
 @import './css/themes.css';        /* Theme picker and theme styles */
 @import './css/pickers.css';       /* Folder picker */
 @import './css/export.css';        /* Export modal */

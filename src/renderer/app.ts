@@ -28,6 +28,8 @@ import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
 import { FocusModeManager } from './managers/FocusModeManager.js';
 import { FocusModeIndicator } from './components/FocusModeIndicator.js';
+import { LayoutManager } from './managers/LayoutManager.js';
+import { WorkspaceLayoutPicker } from './components/WorkspaceLayoutPicker.js';
 import { ToastManager } from './managers/ToastManager.js';
 import { ConfettiManager } from './utils/confetti.js';
 import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
@@ -57,6 +59,8 @@ let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
 let focusModeManager: FocusModeManager;
 let focusModeIndicator: FocusModeIndicator;
+let layoutManager: LayoutManager;
+let layoutPicker: WorkspaceLayoutPicker;
 let toastManager: ToastManager;
 let confettiManager: ConfettiManager;
 
@@ -240,6 +244,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Expose globally for easy access
   (window as any).toastManager = toastManager;
   (window as any).confettiManager = confettiManager;
+
+  // Initialize workspace layout manager
+  layoutManager = new LayoutManager();
+  layoutManager.initialize();
+
+  // Initialize workspace layout picker
+  layoutPicker = new WorkspaceLayoutPicker(layoutManager);
+  layoutPicker.initialize();
+
+  // Expose globally for command palette
+  (window as any).layoutManager = layoutManager;
 
   // 🎉 Initialize Easter Eggs
   initializeEasterEggs();
