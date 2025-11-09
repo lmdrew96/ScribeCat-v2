@@ -321,6 +321,9 @@
                     <button id="trash-btn" class="secondary-btn" title="View trash">
                         🗑️ Trash
                     </button>
+                    <button id="analytics-btn" class="secondary-btn" title="View study analytics">
+                        📊 Analytics
+                    </button>
                     <button id="sync-now-btn" class="secondary-btn" title="Sync with cloud">
                         <span class="sync-icon">☁️</span> Sync Now
                     </button>
@@ -376,6 +379,20 @@
             
             <div id="session-detail" class="session-detail hidden">
                 <!-- Session detail view will be populated by JavaScript -->
+            </div>
+
+            <!-- Analytics Modal -->
+            <div id="analytics-modal" class="analytics-modal hidden">
+                <div class="analytics-modal-overlay"></div>
+                <div class="analytics-modal-content">
+                    <div class="analytics-modal-header">
+                        <h2>📊 Study Analytics</h2>
+                        <button id="close-analytics-btn" class="close-modal-btn" title="Close">×</button>
+                    </div>
+                    <div id="analytics-dashboard-container" class="analytics-modal-body">
+                        <!-- Dashboard content will be populated by JavaScript -->
+                    </div>
+                </div>
             </div>
         </div>
         

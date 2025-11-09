@@ -28,6 +28,7 @@ import { CloudSyncManager } from './study-mode/CloudSyncManager.js';
 import { SessionDataLoader } from './study-mode/SessionDataLoader.js';
 import { MultiSessionCoordinator } from './study-mode/MultiSessionCoordinator.js';
 import { NotesEditCoordinator } from './study-mode/NotesEditCoordinator.js';
+import { AnalyticsDashboard } from '../components/AnalyticsDashboard.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('StudyModeManager');
@@ -48,6 +49,7 @@ export class StudyModeManager {
   private sessionDataLoader: SessionDataLoader;
   private multiSessionCoordinator: MultiSessionCoordinator;
   private notesEditCoordinator: NotesEditCoordinator;
+  private analyticsDashboard: AnalyticsDashboard;
 
   // Services
   private authManager: AuthManager;
@@ -115,8 +117,10 @@ export class StudyModeManager {
     this.sessionDataLoader = new SessionDataLoader(this.sessionSharingManager, this.dataTransformer);
     this.multiSessionCoordinator = new MultiSessionCoordinator(this.reorderModal);
     this.notesEditCoordinator = new NotesEditCoordinator(this.notesEditorManager);
+    this.analyticsDashboard = new AnalyticsDashboard();
 
     this.initializeEventListeners();
+    this.initializeAnalyticsModal();
     this.setupAuthListener();
   }
 
@@ -156,6 +160,52 @@ export class StudyModeManager {
       // Reload sessions if study mode is active
       if (this.isActive) {
         this.loadSessions(); // Phase3Integration will handle rendering
+      }
+    });
+  }
+
+  /**
+   * Initialize analytics modal event listeners
+   */
+  private initializeAnalyticsModal(): void {
+    const analyticsBtn = document.getElementById('analytics-btn') as HTMLButtonElement;
+    const analyticsModal = document.getElementById('analytics-modal') as HTMLElement;
+    const closeAnalyticsBtn = document.getElementById('close-analytics-btn') as HTMLButtonElement;
+    const analyticsOverlay = analyticsModal?.querySelector('.analytics-modal-overlay') as HTMLElement;
+    const dashboardContainer = document.getElementById('analytics-dashboard-container') as HTMLElement;
+
+    if (!analyticsBtn || !analyticsModal || !closeAnalyticsBtn || !dashboardContainer) {
+      logger.error('Analytics modal elements not found');
+      return;
+    }
+
+    // Open analytics modal
+    analyticsBtn.addEventListener('click', () => {
+      // Update dashboard with current sessions
+      this.analyticsDashboard.updateSessions(this.sessions);
+
+      // Render dashboard
+      dashboardContainer.innerHTML = this.analyticsDashboard.render();
+
+      // Show modal
+      analyticsModal.classList.remove('hidden');
+
+      logger.info('Analytics modal opened');
+    });
+
+    // Close analytics modal
+    const closeModal = () => {
+      analyticsModal.classList.add('hidden');
+      logger.info('Analytics modal closed');
+    };
+
+    closeAnalyticsBtn.addEventListener('click', closeModal);
+    analyticsOverlay.addEventListener('click', closeModal);
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !analyticsModal.classList.contains('hidden')) {
+        closeModal();
       }
     });
   }

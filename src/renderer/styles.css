@@ -31,6 +31,7 @@
 @import './css/ai-suggestion-chip.css'; /* Proactive AI suggestions */
 @import './css/study-mode.css';    /* Study mode list view, sessions, filters */
 @import './css/session-detail.css'; /* Session detail view, audio player, flashcards, quiz */
+@import './css/analytics.css';     /* Study analytics dashboard and visualizations */
 
 /* Easter Eggs */
 @import './css/easter-eggs.css';   /* Fun interactive features and animations */

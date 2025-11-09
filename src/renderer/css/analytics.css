@@ -1,0 +1,337 @@
+/**
+ * Analytics Dashboard Styles
+ *
+ * Styles for the study analytics modal and dashboard components.
+ */
+
+/* Analytics Modal */
+.analytics-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.analytics-modal.hidden {
+  display: none;
+}
+
+.analytics-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.analytics-modal-content {
+  position: relative;
+  background: var(--bg-secondary, #2c2c2c);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.analytics-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border-color, #444);
+}
+
+.analytics-modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.close-modal-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: var(--bg-tertiary, #3a3a3a);
+  color: var(--text-primary, #fff);
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-modal-btn:hover {
+  background: var(--bg-hover, #4a4a4a);
+  transform: scale(1.05);
+}
+
+.analytics-modal-body {
+  padding: 32px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Custom Scrollbar for Modal */
+.analytics-modal-body::-webkit-scrollbar {
+  width: 10px;
+}
+
+.analytics-modal-body::-webkit-scrollbar-track {
+  background: var(--bg-tertiary, #2a2a2a);
+  border-radius: 10px;
+}
+
+.analytics-modal-body::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #555);
+  border-radius: 10px;
+}
+
+.analytics-modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #666);
+}
+
+/* Analytics Dashboard */
+.analytics-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.analytics-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary, #aaa);
+  font-size: 16px;
+}
+
+/* Section */
+.analytics-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analytics-section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Stats Grid */
+.analytics-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.analytics-stat-card {
+  background: var(--bg-tertiary, #3a3a3a);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.analytics-stat-card:hover {
+  border-color: var(--accent, #00bcd4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.2);
+}
+
+.stat-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary, #1d1d1d);
+  border-radius: 10px;
+}
+
+.stat-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary, #aaa);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Streaks */
+.analytics-streaks {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.streak-card {
+  flex: 1;
+  min-width: 200px;
+  background: var(--bg-tertiary, #3a3a3a);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.streak-label {
+  font-size: 13px;
+  color: var(--text-secondary, #aaa);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.streak-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent, #00bcd4);
+}
+
+.streak-encouragement {
+  margin-top: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(0, 188, 212, 0.1), rgba(0, 188, 212, 0.05));
+  border-radius: 10px;
+  border-left: 4px solid var(--accent, #00bcd4);
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Course Breakdown */
+.analytics-courses {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.course-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--bg-tertiary, #3a3a3a);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.course-item:hover {
+  background: var(--bg-hover, #4a4a4a);
+}
+
+.course-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.course-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  flex: 1;
+}
+
+.course-stats {
+  font-size: 13px;
+  color: var(--text-secondary, #aaa);
+  white-space: nowrap;
+}
+
+.course-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-primary, #1d1d1d);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.course-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent, #00bcd4), var(--accent-light, #26c6da));
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .analytics-modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .analytics-modal-header {
+    padding: 20px;
+  }
+
+  .analytics-modal-body {
+    padding: 20px;
+  }
+
+  .analytics-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-streaks {
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .streak-value {
+    font-size: 28px;
+  }
+}
