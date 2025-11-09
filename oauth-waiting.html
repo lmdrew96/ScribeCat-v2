@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in with Google</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      -webkit-app-region: no-drag; /* Prevent dragging by default */
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 420px;
+      overflow: hidden;
+      -webkit-app-region: no-drag; /* Allow interaction with content */
+    }
+
+    .title-bar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 12px 16px;
+      -webkit-app-region: drag; /* Make title bar draggable */
+      cursor: move;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .title-bar-text {
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-bar-icon {
+      font-size: 18px;
+    }
+
+    .content {
+      padding: 32px;
+      text-align: center;
+    }
+
+    .header {
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 22px;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #718096;
+      line-height: 1.5;
+    }
+
+    .status {
+      background: #f7fafc;
+      border: 2px dashed #667eea;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .status strong {
+      color: #667eea;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .form-group {
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: monospace;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #4a5568;
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e0;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #a0aec0;
+      margin-top: 12px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .container {
+      animation: fadeIn 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title-bar">
+      <div class="title-bar-text">
+        <span class="title-bar-icon">🔐</span>
+        Sign in with Google
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="status">
+        <strong>✨ Your browser has opened</strong>
+        Use your passkey or password to sign in with Google
+      </div>
+
+      <div class="form-group">
+        <label for="auth-code">Authorization Code</label>
+        <input
+          type="text"
+          id="auth-code"
+          placeholder="Paste code here (Cmd+V)"
+          autofocus
+        />
+      </div>
+
+      <div class="button-group">
+        <button id="cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="submit-btn" class="btn-primary">Complete Sign In</button>
+      </div>
+
+      <p class="hint">
+        The code will be automatically copied after you sign in
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const codeInput = document.getElementById('auth-code');
+    const submitBtn = document.getElementById('submit-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+
+    // Auto-focus the input
+    setTimeout(() => codeInput.focus(), 100);
+
+    // Handle submit
+    submitBtn.addEventListener('click', async () => {
+      const code = codeInput.value.trim();
+
+      if (!code) {
+        codeInput.style.borderColor = '#fc8181';
+        codeInput.focus();
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in...';
+
+      // Send code to main process
+      ipcRenderer.send('oauth:submit-code', code);
+    });
+
+    // Handle cancel
+    cancelBtn.addEventListener('click', () => {
+      ipcRenderer.send('oauth:cancel');
+    });
+
+    // Handle Enter key
+    codeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitBtn.click();
+      }
+    });
+
+    // Handle paste event
+    codeInput.addEventListener('paste', () => {
+      setTimeout(() => {
+        if (codeInput.value.trim()) {
+          codeInput.style.borderColor = '#48bb78';
+        }
+      }, 100);
+    });
+
+    // Listen for close command from main process
+    ipcRenderer.on('oauth:close', () => {
+      window.close();
+    });
+  </script>
+</body>
+</html>

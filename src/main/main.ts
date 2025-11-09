@@ -116,6 +116,12 @@ class ScribeCatApp {
   // OAuth callback server
   private oauthCallbackServer: http.Server | null = null;
 
+  // OAuth window for WebAuthn/passkey support
+  private oauthWindow: BrowserWindow | null = null;
+
+  // Floating OAuth waiting window (always-on-top helper)
+  private oauthWaitingWindow: BrowserWindow | null = null;
+
   // Real-time sharing handlers (permission-based access control)
   private sharingHandlers: SharingHandlers | null = null;
 
@@ -266,7 +272,248 @@ class ScribeCatApp {
     }
   }
 
+  /**
+   * Open OAuth URL in a dedicated BrowserWindow with WebAuthn support
+   * This enables passkey authentication to work properly
+   */
+  private openOAuthWindow(authUrl: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      // Close existing OAuth window if it exists
+      if (this.oauthWindow && !this.oauthWindow.isDestroyed()) {
+        this.oauthWindow.close();
+      }
+
+      // Create new OAuth window with WebAuthn support
+      this.oauthWindow = new BrowserWindow({
+        width: 600,
+        height: 800,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          webSecurity: true,
+          allowRunningInsecureContent: false,
+          partition: undefined,
+          // Enable experimental WebAuthn support
+          enableWebSQL: false,
+          v8CacheOptions: 'code',
+        },
+        title: 'Sign in with Google',
+        modal: false,
+        parent: this.mainWindow || undefined,
+        show: true,
+        alwaysOnTop: false
+      });
+
+      // Enable ALL permissions for this window (needed for WebAuthn to work)
+      this.oauthWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+        console.log(`[OAuth] Permission requested: ${permission}`);
+
+        // Allow all permissions for OAuth window (WebAuthn needs this)
+        callback(true);
+      });
+
+      // Handle select-client-certificate for WebAuthn
+      app.on('select-client-certificate', (event, webContents, url, list, callback) => {
+        if (this.oauthWindow && webContents === this.oauthWindow.webContents) {
+          console.log('[OAuth] Client certificate requested for:', url);
+          event.preventDefault();
+          if (list.length > 0) {
+            callback(list[0]);
+          }
+        }
+      });
+
+      // Add debug logging
+      this.oauthWindow.webContents.on('console-message', (_event, level, message) => {
+        console.log(`[OAuth Window] ${message}`);
+      });
+
+      // Inject WebAuthn debugging script
+      this.oauthWindow.webContents.on('did-finish-load', () => {
+        this.oauthWindow?.webContents.executeJavaScript(`
+          // Log WebAuthn API availability
+          console.log('WebAuthn API available:', typeof navigator.credentials !== 'undefined');
+          console.log('PublicKeyCredential available:', typeof PublicKeyCredential !== 'undefined');
+
+          if (typeof PublicKeyCredential !== 'undefined') {
+            console.log('Platform authenticator available check...');
+            PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+              .then(available => {
+                console.log('Platform authenticator (TouchID) available:', available);
+              })
+              .catch(err => {
+                console.error('Error checking platform authenticator:', err);
+              });
+          }
+
+          // Intercept navigator.credentials.get to see if it's called
+          if (navigator.credentials && navigator.credentials.get) {
+            const originalGet = navigator.credentials.get.bind(navigator.credentials);
+            navigator.credentials.get = function(...args) {
+              console.log('navigator.credentials.get() called with:', args);
+              return originalGet(...args)
+                .then(result => {
+                  console.log('navigator.credentials.get() succeeded:', result);
+                  return result;
+                })
+                .catch(err => {
+                  console.error('navigator.credentials.get() failed:', err);
+                  throw err;
+                });
+            };
+          }
+        `).catch(err => {
+          console.error('Failed to inject WebAuthn debug script:', err);
+        });
+      });
+
+      // Open DevTools in development for debugging
+      if (!app.isPackaged) {
+        this.oauthWindow.webContents.openDevTools({ mode: 'detach' });
+      }
+
+      // Track if we've already resolved/rejected
+      let finished = false;
+
+      // Listen for navigation to extract auth code
+      this.oauthWindow.webContents.on('will-redirect', (event, url) => {
+        const parsedUrl = new URL(url);
+
+        // Check if this is the callback URL
+        if (parsedUrl.origin === 'http://localhost:3000' && parsedUrl.pathname === '/auth/callback') {
+          // Extract the authorization code
+          const code = parsedUrl.searchParams.get('code');
+
+          if (code && !finished) {
+            finished = true;
+            console.log('✓ OAuth authorization code received');
+
+            // Close the OAuth window
+            if (this.oauthWindow && !this.oauthWindow.isDestroyed()) {
+              this.oauthWindow.close();
+              this.oauthWindow = null;
+            }
+
+            // Return the code
+            resolve(code);
+          }
+        }
+      });
+
+      // Also listen for did-navigate in case will-redirect doesn't fire
+      this.oauthWindow.webContents.on('did-navigate', (event, url) => {
+        const parsedUrl = new URL(url);
+
+        if (parsedUrl.origin === 'http://localhost:3000' && parsedUrl.pathname === '/auth/callback') {
+          const code = parsedUrl.searchParams.get('code');
+
+          if (code && !finished) {
+            finished = true;
+            console.log('✓ OAuth authorization code received');
+
+            if (this.oauthWindow && !this.oauthWindow.isDestroyed()) {
+              this.oauthWindow.close();
+              this.oauthWindow = null;
+            }
+
+            resolve(code);
+          }
+        }
+      });
+
+      // Handle window close
+      this.oauthWindow.on('closed', () => {
+        if (!finished) {
+          finished = true;
+          this.oauthWindow = null;
+          reject(new Error('OAuth window was closed by user'));
+        }
+      });
+
+      // Handle navigation errors
+      this.oauthWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+        console.error('OAuth window failed to load:', errorDescription);
+        if (!finished) {
+          finished = true;
+          if (this.oauthWindow && !this.oauthWindow.isDestroyed()) {
+            this.oauthWindow.close();
+            this.oauthWindow = null;
+          }
+          reject(new Error(`Failed to load OAuth page: ${errorDescription}`));
+        }
+      });
+
+      // Load the OAuth URL
+      this.oauthWindow.loadURL(authUrl);
+    });
+  }
+
+  /**
+   * Create and show floating OAuth waiting window
+   * This window stays on top while user signs in via browser
+   */
+  private showOAuthWaitingWindow(): void {
+    // Close existing window if it exists
+    if (this.oauthWaitingWindow && !this.oauthWaitingWindow.isDestroyed()) {
+      this.oauthWaitingWindow.close();
+    }
+
+    // Create floating window
+    this.oauthWaitingWindow = new BrowserWindow({
+      width: 450,
+      height: 400,
+      resizable: false,
+      frame: false,
+      alwaysOnTop: true,
+      skipTaskbar: false,
+      webPreferences: {
+        nodeIntegration: true, // Needed for IPC in oauth-waiting.html
+        contextIsolation: false,
+      },
+      transparent: false,
+      backgroundColor: '#667eea',
+      show: false, // Don't show until ready
+    });
+
+    // Load the OAuth waiting HTML
+    const waitingHtmlPath = path.join(__dirname, '..', '..', 'oauth-waiting.html');
+    this.oauthWaitingWindow.loadFile(waitingHtmlPath);
+
+    // Show when ready
+    this.oauthWaitingWindow.once('ready-to-show', () => {
+      this.oauthWaitingWindow?.show();
+      // Center the window
+      this.oauthWaitingWindow?.center();
+    });
+
+    // Clean up on close
+    this.oauthWaitingWindow.on('closed', () => {
+      this.oauthWaitingWindow = null;
+    });
+  }
+
+  /**
+   * Close the OAuth waiting window
+   */
+  private closeOAuthWaitingWindow(): void {
+    if (this.oauthWaitingWindow && !this.oauthWaitingWindow.isDestroyed()) {
+      this.oauthWaitingWindow.webContents.send('oauth:close');
+      setTimeout(() => {
+        if (this.oauthWaitingWindow && !this.oauthWaitingWindow.isDestroyed()) {
+          this.oauthWaitingWindow.close();
+          this.oauthWaitingWindow = null;
+        }
+      }, 100);
+    }
+  }
+
   private initializeApp(): void {
+    // Enable WebAuthn/FIDO support before app is ready
+    app.commandLine.appendSwitch('enable-features', 'WebAuthenticationGetAssertionFeature,WebAuthenticationTouchId');
+
+    // Enable experimental web platform features
+    app.commandLine.appendSwitch('enable-experimental-web-platform-features');
+
     app.whenReady().then(async () => {
       // Initialize components that need app to be ready
       this.directoryManager = new DirectoryManager();
@@ -808,6 +1055,82 @@ class ScribeCatApp {
           error: error instanceof Error ? error.message : 'Unknown error'
         };
       }
+    });
+
+    // OAuth window handler - opens Google OAuth in Electron window with WebAuthn support
+    ipcMain.handle('auth:openOAuthWindow', async (_event, authUrl: string) => {
+      try {
+        console.log('Opening OAuth window with WebAuthn support...');
+        const code = await this.openOAuthWindow(authUrl);
+        console.log('✓ OAuth completed successfully');
+        return { success: true, code };
+      } catch (error) {
+        console.error('OAuth window error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    // Shell handler - open external URLs in system browser
+    ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+      try {
+        const { shell } = await import('electron');
+        await shell.openExternal(url);
+      } catch (error) {
+        console.error('Failed to open external URL:', error);
+        throw error;
+      }
+    });
+
+    // OAuth waiting window handlers
+    ipcMain.handle('oauth:showWaitingWindow', async (_event) => {
+      try {
+        this.showOAuthWaitingWindow();
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to show OAuth waiting window:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    ipcMain.handle('oauth:closeWaitingWindow', async (_event) => {
+      try {
+        this.closeOAuthWaitingWindow();
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to close OAuth waiting window:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    // Listen for code submission from OAuth waiting window
+    ipcMain.on('oauth:submit-code', (_event, code: string) => {
+      console.log('Received OAuth code from waiting window');
+      // Send the code to the main window's renderer
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send('oauth:code-received', code);
+      }
+      // Close the waiting window
+      this.closeOAuthWaitingWindow();
+    });
+
+    // Listen for OAuth cancellation
+    ipcMain.on('oauth:cancel', (_event) => {
+      console.log('OAuth flow cancelled by user');
+      // Notify main window
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send('oauth:cancelled');
+      }
+      // Close the waiting window
+      this.closeOAuthWaitingWindow();
     });
 
     // Sync handlers
