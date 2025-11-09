@@ -1,0 +1,176 @@
+/**
+ * Easter Eggs Styles
+ * Animations and styles for fun interactive features
+ */
+
+/* ====================================
+   Falling Cat Animation (Konami Code)
+   ==================================== */
+
+.falling-cat {
+  position: fixed;
+  top: -50px;
+  font-size: 3rem;
+  pointer-events: none;
+  z-index: 99999;
+  animation: fall linear forwards;
+  opacity: 1;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(var(--rotation, 360deg));
+    opacity: 0;
+  }
+}
+
+/* ====================================
+   Study Buddy (Cursor Following Cat)
+   Meow Knight Animated Sprite
+   ==================================== */
+
+.study-buddy {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  opacity: 1;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  animation: study-buddy-appear 0.5s ease-out;
+}
+
+.study-buddy-sprite {
+  width: 44px;
+  height: 44px;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  overflow: hidden;
+  transform-origin: center center;
+}
+
+/* Idle animation - just first frame (static standing pose)
+   Sprite sheet scaled to 44px: 352x440px */
+.study-buddy-sprite.idle {
+  background-image: url('../assets/meow-knight/Cat Sprite Sheet.png');
+  background-size: 352px 440px;
+  background-position: 0 0;
+  /* No animation - static pose */
+}
+
+/* Running animation - 8 frames from row 6
+   Row 6 starts at y=220px (5 rows × 44px) */
+.study-buddy-sprite.running {
+  background-image: url('../assets/meow-knight/Cat Sprite Sheet.png');
+  background-size: 352px 440px;
+  animation: sprite-run 0.4s steps(8) infinite;
+}
+
+@keyframes sprite-run {
+  from {
+    background-position: 0 -220px;
+  }
+  to {
+    background-position: -352px -220px; /* 8 frames × 44px */
+  }
+}
+
+@keyframes study-buddy-appear {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ====================================
+   Nyan Cat Theme - Rainbow Background
+   ==================================== */
+
+.nyan-cat-theme {
+  background: linear-gradient(
+    90deg,
+    #ff0000,
+    #ff7f00,
+    #ffff00,
+    #00ff00,
+    #0000ff,
+    #4b0082,
+    #9400d3
+  );
+  background-size: 400% 400%;
+  animation: rainbow-gradient 10s ease infinite;
+}
+
+@keyframes rainbow-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ====================================
+   Logo Animation (for triple-click feedback)
+   ==================================== */
+
+.app-logo.easter-egg-active {
+  animation: logo-wiggle 0.5s ease;
+}
+
+@keyframes logo-wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-10deg) scale(1.1);
+  }
+  75% {
+    transform: rotate(10deg) scale(1.1);
+  }
+}
+
+/* ====================================
+   Theme Unlock Toast Enhancement
+   ==================================== */
+
+.theme-unlock-toast {
+  background: linear-gradient(
+    135deg,
+    #ff69b4,
+    #00ffff,
+    #ffd700
+  );
+  background-size: 200% 200%;
+  animation: rainbow-pulse 2s ease infinite;
+  color: white;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes rainbow-pulse {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}

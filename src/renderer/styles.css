@@ -23,3 +23,6 @@
 @import './css/ai-features.css';   /* AI chat drawer, chat messages, AI tools */
 @import './css/study-mode.css';    /* Study mode list view, sessions, filters */
 @import './css/session-detail.css'; /* Session detail view, audio player, flashcards, quiz */
+
+/* Easter Eggs */
+@import './css/easter-eggs.css';   /* Fun interactive features and animations */

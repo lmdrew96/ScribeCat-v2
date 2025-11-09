@@ -12,6 +12,7 @@ import { CanvasSettingsManager } from './settings/CanvasSettingsManager.js';
 import { SettingsUIManager } from './settings/SettingsUIManager.js';
 import { NotificationToast } from './components/shared/NotificationToast.js';
 import { AuthManager } from './managers/AuthManager.js';
+import { unlockTheme, isThemeUnlocked } from './themes/easter-egg-themes.js';
 
 export interface TranscriptionAccuracySettings {
   speechModel: 'best' | 'nano';
@@ -118,6 +119,78 @@ export class SettingsManager {
       this.currentVariantFilter = target.value;
       this.filterThemes();
     });
+
+    // 🎉 Easter Egg: Secret theme unlock with "meow meow meow"
+    this.initializeThemeEasterEgg();
+  }
+
+  /**
+   * Initialize easter egg theme unlock
+   */
+  private initializeThemeEasterEgg(): void {
+    let typedSequence = '';
+    let sequenceTimer: NodeJS.Timeout | null = null;
+    const secretPhrase = 'meow meow meow';
+
+    document.addEventListener('keypress', (e: KeyboardEvent) => {
+      // Only listen when settings modal is open
+      if (this.settingsModal.classList.contains('hidden')) {
+        return;
+      }
+
+      // Ignore if typing in input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Add character to sequence
+      typedSequence += e.key.toLowerCase();
+
+      // Reset timer
+      if (sequenceTimer) {
+        clearTimeout(sequenceTimer);
+      }
+
+      // Check if we've typed the secret phrase
+      if (typedSequence.includes(secretPhrase)) {
+        this.unlockNyanCatTheme();
+        typedSequence = '';
+      } else {
+        // Reset after 2 seconds of inactivity
+        sequenceTimer = setTimeout(() => {
+          typedSequence = '';
+        }, 2000);
+      }
+    });
+  }
+
+  /**
+   * Unlock the Nyan Cat themes (both dark and light)
+   */
+  private unlockNyanCatTheme(): void {
+    const darkThemeId = 'nyan-cat';
+    const lightThemeId = 'nyan-cat-light';
+
+    // Check if already unlocked
+    if (isThemeUnlocked(darkThemeId) && isThemeUnlocked(lightThemeId)) {
+      NotificationToast.show('🌈 Nyan Cat themes are already unlocked!', 'info');
+      return;
+    }
+
+    // Unlock both themes
+    unlockTheme(darkThemeId);
+    unlockTheme(lightThemeId);
+
+    // Show success notification with rainbow styling
+    const toast = NotificationToast.show('🌈 Secret themes unlocked: Nyan Cat (Dark & Light)!', 'success', 4000);
+    if (toast) {
+      toast.classList.add('theme-unlock-toast');
+    }
+
+    // Refresh the theme grid to show the newly unlocked themes
+    this.populateThemes();
+    this.filterThemes();
   }
 
   /**

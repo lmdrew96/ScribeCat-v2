@@ -5,6 +5,7 @@
 
 import { ChatMessage } from '../../shared/types.js';
 import { renderMarkdown } from '../markdown-renderer.js';
+import { getRandomCatFact } from '../utils/cat-facts.js';
 
 export class ChatUI {
   private chatDrawer: HTMLElement | null = null;
@@ -192,7 +193,7 @@ export class ChatUI {
       this.chatInput.disabled = !isConfigured;
 
       if (isTesting) {
-        this.chatInput.placeholder = 'Connecting to AI...';
+        this.chatInput.placeholder = getRandomCatFact();
       } else if (isConfigured) {
         this.chatInput.placeholder = 'Type your message here...';
       } else {

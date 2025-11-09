@@ -5,7 +5,7 @@
  */
 
 import { Theme, ThemeMetadata } from './types.js';
-import { themes, getThemeById, getThemesByCategory, getCategories, getDefaultTheme } from './presets-index.js';
+import { themes, getThemeById, getThemesByCategory, getCategories, getDefaultTheme, getVisibleThemes } from './presets-index.js';
 
 export class ThemeManager {
   private currentTheme: Theme;
@@ -97,10 +97,10 @@ export class ThemeManager {
   }
 
   /**
-   * Get all available themes
+   * Get all available themes (including unlocked easter eggs)
    */
   public getThemes(): Theme[] {
-    return themes;
+    return getVisibleThemes();
   }
 
   /**

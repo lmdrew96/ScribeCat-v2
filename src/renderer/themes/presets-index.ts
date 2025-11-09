@@ -8,12 +8,27 @@
 import { Theme } from './types.js';
 import { darkThemes } from './presets-dark.js';
 import { lightThemes } from './presets-light.js';
+import { getAllEasterEggThemes, getUnlockedEasterEggThemes } from './easter-egg-themes.js';
 
 /**
  * All available themes (dark + light)
  * 40 total themes: 20 dark mode + 20 light mode
  */
-export const themes: Theme[] = [...darkThemes, ...lightThemes];
+const baseThemes: Theme[] = [...darkThemes, ...lightThemes];
+
+/**
+ * All themes including easter eggs
+ * This is used internally to allow loading of locked themes
+ */
+export const themes: Theme[] = [...baseThemes, ...getAllEasterEggThemes()];
+
+/**
+ * Get themes that should be visible in the theme picker
+ * (base themes + unlocked easter egg themes)
+ */
+export function getVisibleThemes(): Theme[] {
+  return [...baseThemes, ...getUnlockedEasterEggThemes()];
+}
 
 /**
  * Re-export theme arrays for direct access
