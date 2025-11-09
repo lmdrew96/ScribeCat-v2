@@ -9,6 +9,7 @@ import type { StudyModeManager } from './StudyModeManager.js';
 import { SearchManager } from './SearchManager.js';
 import { ViewModeManager, type ViewMode } from './ViewModeManager.js';
 import { BulkSelectionManager } from './study-mode/BulkSelectionManager.js';
+import { KeyboardShortcutHandler } from './KeyboardShortcutHandler.js';
 import { SearchBar } from '../components/SearchBar.js';
 import { TimelineView } from '../components/views/TimelineView.js';
 import { GridView } from '../components/views/GridView.js';
@@ -26,6 +27,7 @@ export class Phase3Integration {
   private searchManager: SearchManager;
   private viewModeManager: ViewModeManager;
   private bulkSelectionManager: BulkSelectionManager;
+  private keyboardShortcutHandler: KeyboardShortcutHandler;
   private searchBar: SearchBar | null = null;
 
   // Session storage
@@ -48,10 +50,66 @@ export class Phase3Integration {
     this.searchManager = new SearchManager();
     this.viewModeManager = new ViewModeManager('session-list');
     this.bulkSelectionManager = new BulkSelectionManager();
+    this.keyboardShortcutHandler = this.createKeyboardShortcutHandler();
 
     // Initialize UI components
     this.keyboardShortcuts = new KeyboardShortcutsOverlay();
     this.quickActions = new QuickActionsMenu();
+  }
+
+  /**
+   * Create keyboard shortcut handler with callbacks
+   */
+  private createKeyboardShortcutHandler(): KeyboardShortcutHandler {
+    return new KeyboardShortcutHandler({
+      onViewModeChange: (mode) => {
+        this.viewModeManager.setMode(mode);
+      },
+      onFocusSearch: () => {
+        const searchInput = document.querySelector('.search-input') as HTMLInputElement;
+        searchInput?.focus();
+      },
+      onNewRecording: () => {
+        // Return to recording view
+        (window as any).viewManager?.show('recording');
+      },
+      onExportSession: () => {
+        // Export selected sessions if any, otherwise do nothing
+        const selectedIds = this.bulkSelectionManager.getSelectedSessionIds();
+        if (selectedIds.size > 0) {
+          (window as any).studyModeManager?.handleBulkExport(selectedIds);
+        }
+      },
+      onDeleteSelected: () => {
+        // Delete selected sessions if any
+        const selectedIds = this.bulkSelectionManager.getSelectedSessionIds();
+        if (selectedIds.size > 0) {
+          (window as any).studyModeManager?.handleBulkDelete(selectedIds);
+        }
+      },
+      onToggleRecording: () => {
+        // Toggle recording
+        const recordingManager = (window as any).recordingManager;
+        if (recordingManager) {
+          if (recordingManager.isRecording) {
+            recordingManager.stopRecording();
+          } else {
+            recordingManager.startRecording();
+          }
+        }
+      },
+      onTogglePause: () => {
+        // Toggle pause
+        const recordingManager = (window as any).recordingManager;
+        if (recordingManager && recordingManager.isRecording) {
+          if (recordingManager.isPaused) {
+            recordingManager.resumeRecording();
+          } else {
+            recordingManager.pauseRecording();
+          }
+        }
+      }
+    });
   }
 
   /**
