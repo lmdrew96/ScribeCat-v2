@@ -29,6 +29,7 @@ export class Phase3Integration {
   private bulkSelectionManager: BulkSelectionManager;
   private keyboardShortcutHandler: KeyboardShortcutHandler;
   private searchBar: SearchBar | null = null;
+  private checkboxListenerAdded: boolean = false;
 
   // Session storage
   private sessions: Session[] = [];
@@ -374,19 +375,23 @@ export class Phase3Integration {
   }
 
   /**
-   * Wire up checkbox event handlers
+   * Wire up checkbox event handlers (called once during initialization)
    */
   private wireUpCheckboxHandlers(): void {
+    // Only add the listener once
+    if (this.checkboxListenerAdded) {
+      return;
+    }
+
     // Use event delegation on the session-list container
     const sessionListContainer = document.getElementById('session-list');
-    if (!sessionListContainer) return;
+    if (!sessionListContainer) {
+      logger.warn('Session list container not found for checkbox handlers');
+      return;
+    }
 
-    // Remove old listeners by cloning the node
-    const newContainer = sessionListContainer.cloneNode(true) as HTMLElement;
-    sessionListContainer.parentNode?.replaceChild(newContainer, sessionListContainer);
-
-    // Add event listener for all checkboxes
-    newContainer.addEventListener('change', (e) => {
+    // Add event listener for all checkboxes using event delegation
+    sessionListContainer.addEventListener('change', (e) => {
       const target = e.target as HTMLInputElement;
       if (target.classList.contains('session-checkbox')) {
         const sessionId = target.dataset.sessionId;
@@ -395,6 +400,9 @@ export class Phase3Integration {
         }
       }
     });
+
+    this.checkboxListenerAdded = true;
+    logger.info('Checkbox event handlers wired up');
   }
 
   /**
