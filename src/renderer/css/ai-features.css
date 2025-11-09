@@ -365,7 +365,7 @@
 /* Bold text */
 .chat-message.assistant .message-content strong {
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 /* Italic text */
@@ -447,7 +447,7 @@
 .chat-message.assistant .message-content h5,
 .chat-message.assistant .message-content h6 {
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 16px 0 8px 0;
   line-height: 1.3;
 }
@@ -526,7 +526,7 @@
 .chat-message.assistant .message-content th {
   background-color: rgba(0, 0, 0, 0.3);
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .chat-message.assistant .message-content tr:nth-child(even) {

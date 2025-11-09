@@ -29,6 +29,7 @@
 @import './css/session-views.css'; /* Timeline, Grid, List, Board views */
 @import './css/ai-features.css';   /* AI chat drawer, chat messages, AI tools */
 @import './css/ai-suggestion-chip.css'; /* Proactive AI suggestions */
+@import './css/ai-chat-drawer.css'; /* AI Chat Drawer for study mode */
 @import './css/study-mode.css';    /* Study mode list view, sessions, filters */
 @import './css/session-detail.css'; /* Session detail view, audio player, flashcards, quiz */
 @import './css/analytics.css';     /* Study analytics dashboard and visualizations */
