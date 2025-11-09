@@ -82,8 +82,8 @@ export class ViewModeManager {
     this.currentMode = mode;
     this.saveMode();
 
-    // Update container class for CSS styling
-    this.container.className = `session-view session-view-${mode}`;
+    // Update container class for CSS styling (preserve session-list for scrolling!)
+    this.container.className = `session-list session-view-${mode}`;
 
     // Notify listeners
     if (this.onModeChange) {
@@ -195,7 +195,7 @@ export class ViewModeManager {
       const saved = localStorage.getItem('scribecat-view-mode');
       if (saved && (saved in VIEW_MODES)) {
         this.currentMode = saved as ViewMode;
-        this.container.className = `session-view session-view-${this.currentMode}`;
+        this.container.className = `session-list session-view-${this.currentMode}`;
       }
     } catch (error) {
       logger.error('Failed to load view mode', error);
