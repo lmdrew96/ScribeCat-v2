@@ -2,14 +2,13 @@
  * WorkspaceLayoutPicker
  *
  * UI component for selecting workspace layout presets and managing custom layouts.
- * Shows a floating button that opens a modal with layout options.
+ * Accessible from the settings modal.
  */
 
 import type { LayoutManager, WorkspacePreset } from '../managers/LayoutManager.js';
 
 export class WorkspaceLayoutPicker {
   private layoutManager: LayoutManager;
-  private pickerBtn: HTMLElement | null = null;
   private modal: HTMLElement | null = null;
   private overlay: HTMLElement | null = null;
   private content: HTMLElement | null = null;
@@ -23,23 +22,8 @@ export class WorkspaceLayoutPicker {
    * Initialize the layout picker
    */
   public initialize(): void {
-    this.createPickerButton();
     this.createModal();
     this.setupEventListeners();
-  }
-
-  /**
-   * Create floating picker button
-   */
-  private createPickerButton(): void {
-    const btn = document.createElement('button');
-    btn.id = 'layout-picker-btn';
-    btn.className = 'layout-picker-btn';
-    btn.title = 'Workspace Layouts';
-    btn.innerHTML = '⊞';
-
-    document.body.appendChild(btn);
-    this.pickerBtn = btn;
   }
 
   /**
@@ -139,11 +123,6 @@ export class WorkspaceLayoutPicker {
    * Set up event listeners
    */
   private setupEventListeners(): void {
-    // Open modal
-    this.pickerBtn?.addEventListener('click', () => {
-      this.open();
-    });
-
     // Close modal
     this.overlay?.addEventListener('click', () => {
       this.close();
@@ -198,13 +177,6 @@ export class WorkspaceLayoutPicker {
       }
     });
 
-    // Keyboard shortcut: Ctrl/Cmd + L to open layout picker
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
-        e.preventDefault();
-        this.open();
-      }
-    });
   }
 
   /**
@@ -339,24 +311,6 @@ export class WorkspaceLayoutPicker {
       toastManager.info('Custom layout deleted', {
         duration: 2000
       });
-    }
-  }
-
-  /**
-   * Show the picker button
-   */
-  public show(): void {
-    if (this.pickerBtn) {
-      this.pickerBtn.style.display = 'flex';
-    }
-  }
-
-  /**
-   * Hide the picker button
-   */
-  public hide(): void {
-    if (this.pickerBtn) {
-      this.pickerBtn.style.display = 'none';
     }
   }
 }

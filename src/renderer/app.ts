@@ -256,6 +256,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Expose globally for command palette
   (window as any).layoutManager = layoutManager;
 
+  // Add event listener for opening layout picker from settings
+  const openLayoutPickerBtn = document.getElementById('open-layout-picker-btn');
+  if (openLayoutPickerBtn) {
+    openLayoutPickerBtn.addEventListener('click', () => {
+      layoutPicker.open();
+    });
+  }
+
   // 🎉 Initialize Easter Eggs
   initializeEasterEggs();
 

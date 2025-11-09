@@ -123,46 +123,39 @@ export class FocusModeManager {
    * Apply focus mode configuration to UI
    */
   private applyModeConfig(config: FocusModeConfig): void {
-    const mainView = document.getElementById('main-view');
-    if (!mainView) return;
+    // Apply layout through LayoutManager if available
+    const layoutManager = (window as any).layoutManager;
 
-    // Get panels
-    const transcriptionPanel = document.querySelector('.transcription-panel') as HTMLElement;
-    const notesPanel = document.querySelector('.notes-panel') as HTMLElement;
-    const aiDrawer = document.getElementById('ai-chat-drawer') as HTMLElement;
-    const audioControls = document.querySelector('.audio-controls') as HTMLElement;
-
-    // Apply visibility
-    if (transcriptionPanel) {
-      transcriptionPanel.style.display = config.panelVisibility.transcription ? '' : 'none';
-    }
-
-    if (notesPanel) {
-      notesPanel.style.display = config.panelVisibility.notes ? '' : 'none';
-    }
-
-    if (aiDrawer) {
-      // Don't force hide if already open, just don't show by default
-      if (!config.panelVisibility.aiTools && !aiDrawer.classList.contains('open')) {
-        aiDrawer.style.display = 'none';
-      } else if (config.panelVisibility.aiTools) {
-        aiDrawer.style.display = '';
+    if (layoutManager && config.layout) {
+      switch (config.layout) {
+        case 'single-notes':
+          // Focus: Notes layout
+          layoutManager.applyPreset('focus-notes');
+          break;
+        case 'single-transcription':
+          // Focus: Transcription layout
+          layoutManager.applyPreset('focus-transcription');
+          break;
+        case 'split':
+          // Balanced layout
+          layoutManager.applyPreset('balanced');
+          break;
+        case 'ai-prominent':
+          // Recording setup (gives more space to transcription + AI)
+          layoutManager.applyPreset('recording');
+          break;
       }
     }
 
-    if (audioControls) {
-      audioControls.style.display = config.panelVisibility.audio ? '' : 'none';
+    // Handle AI drawer visibility
+    const aiDrawer = document.getElementById('ai-chat-drawer') as HTMLElement;
+    if (aiDrawer && !config.panelVisibility.aiTools && !aiDrawer.classList.contains('hidden')) {
+      // Just close it if it's open
+      const closeBtn = document.getElementById('close-drawer-btn');
+      if (closeBtn) {
+        closeBtn.click();
+      }
     }
-
-    // Apply layout classes
-    mainView.classList.remove('layout-split', 'layout-single-notes', 'layout-single-transcription', 'layout-ai-prominent');
-    if (config.layout) {
-      mainView.classList.add(`layout-${config.layout}`);
-    }
-
-    // Add mode class to body for CSS customization
-    document.body.classList.remove('focus-normal', 'focus-recording', 'focus-review', 'focus-study');
-    document.body.classList.add(`focus-${config.mode}`);
   }
 
   /**

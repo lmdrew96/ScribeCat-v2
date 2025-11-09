@@ -17,6 +17,10 @@
             </div>
             
             <div class="header-actions">
+                <button id="focus-mode-btn" class="icon-btn" title="Focus Mode">
+                    <span class="focus-mode-icon">📋</span>
+                </button>
+
                 <button id="signin-btn" class="icon-btn signin-btn" title="Sign In">
                     <span class="signin-icon">👤</span>
                 </button>
@@ -686,6 +690,19 @@
                         </svg>
                     </div>
                     <div class="settings-group-content">
+                        <!-- Workspace Layout Section -->
+                        <section class="settings-section">
+                            <h3>Workspace Layout</h3>
+                            <p class="help-text">
+                                Customize your workspace layout with presets or create your own. Drag the divider between panels to resize.
+                            </p>
+                            <div class="button-row">
+                                <button id="open-layout-picker-btn" class="button button-primary" type="button">
+                                    ⊞ Manage Workspace Layouts
+                                </button>
+                            </div>
+                        </section>
+
                         <!-- Theme Settings Section -->
                         <section class="settings-section">
                             <h3>Theme</h3>

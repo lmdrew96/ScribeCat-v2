@@ -22,7 +22,7 @@ export class FocusModeIndicator {
    * Initialize the focus mode indicator
    */
   public initialize(): void {
-    this.createIndicator();
+    this.indicator = document.getElementById('focus-mode-btn');
     this.createSelector();
     this.setupEventListeners();
 
@@ -34,28 +34,8 @@ export class FocusModeIndicator {
     // Initial update
     const currentMode = this.focusModeManager.getCurrentMode();
     this.updateIndicator(currentMode);
-
-    // Show indicator after a short delay
-    setTimeout(() => this.show(), 500);
   }
 
-  /**
-   * Create the indicator element
-   */
-  private createIndicator(): void {
-    const indicatorHTML = `
-      <div id="focus-mode-indicator" class="focus-mode-indicator">
-        <div class="focus-mode-icon" id="focus-mode-icon">📋</div>
-        <div class="focus-mode-text">
-          <div class="focus-mode-name" id="focus-mode-name">Normal</div>
-          <div class="focus-mode-hint">Click to change</div>
-        </div>
-      </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', indicatorHTML);
-    this.indicator = document.getElementById('focus-mode-indicator');
-  }
 
   /**
    * Create the mode selector modal
@@ -162,11 +142,12 @@ export class FocusModeIndicator {
     const config = this.focusModeManager.getModeConfig(mode);
     if (!config) return;
 
-    const icon = document.getElementById('focus-mode-icon');
-    const name = document.getElementById('focus-mode-name');
+    const icon = this.indicator?.querySelector('.focus-mode-icon');
 
-    if (icon) icon.textContent = config.icon;
-    if (name) name.textContent = config.name;
+    if (icon) {
+      icon.textContent = config.icon;
+      this.indicator!.title = `Focus Mode: ${config.name}`;
+    }
 
     // Update active state in selector
     const modeOptions = document.querySelectorAll('.focus-mode-option');
@@ -180,30 +161,8 @@ export class FocusModeIndicator {
         option.setAttribute('aria-pressed', 'false');
       }
     });
-
-    // Add pulse animation if not normal mode
-    if (mode !== 'normal') {
-      this.indicator?.classList.add('active');
-    } else {
-      this.indicator?.classList.remove('active');
-    }
   }
 
-  /**
-   * Show the indicator
-   */
-  public show(): void {
-    this.isVisible = true;
-    this.indicator?.classList.add('visible');
-  }
-
-  /**
-   * Hide the indicator
-   */
-  public hide(): void {
-    this.isVisible = false;
-    this.indicator?.classList.remove('visible');
-  }
 
   /**
    * Open the mode selector

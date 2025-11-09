@@ -3,7 +3,6 @@
  *
  * Manages adaptive workspace layouts with:
  * - Drag-to-resize panel dividers
- * - Collapse/expand panels with animations
  * - Custom layout saving/loading
  * - Workspace presets for different activities
  * - Persistent layout preferences
@@ -135,7 +134,6 @@ export class LayoutManager {
     }
 
     this.createDivider();
-    this.createCollapseButtons();
     this.applyLayout(this.currentLayout);
     this.setupEventListeners();
   }
@@ -153,31 +151,6 @@ export class LayoutManager {
   }
 
   /**
-   * Create collapse/expand buttons for panels
-   */
-  private createCollapseButtons(): void {
-    // Left panel collapse button
-    const leftCollapseBtn = document.createElement('button');
-    leftCollapseBtn.className = 'panel-collapse-btn left';
-    leftCollapseBtn.title = 'Collapse notes panel';
-    leftCollapseBtn.innerHTML = '◀';
-    leftCollapseBtn.dataset.panel = 'left';
-
-    const leftHeader = this.leftPanel?.querySelector('.panel-header');
-    leftHeader?.appendChild(leftCollapseBtn);
-
-    // Right panel collapse button
-    const rightCollapseBtn = document.createElement('button');
-    rightCollapseBtn.className = 'panel-collapse-btn right';
-    rightCollapseBtn.title = 'Collapse transcription panel';
-    rightCollapseBtn.innerHTML = '▶';
-    rightCollapseBtn.dataset.panel = 'right';
-
-    const rightHeader = this.rightPanel?.querySelector('.panel-header');
-    rightHeader?.appendChild(rightCollapseBtn);
-  }
-
-  /**
    * Set up event listeners
    */
   private setupEventListeners(): void {
@@ -185,17 +158,6 @@ export class LayoutManager {
     this.divider?.addEventListener('mousedown', this.handleDividerMouseDown.bind(this));
     document.addEventListener('mousemove', this.handleDividerMouseMove.bind(this));
     document.addEventListener('mouseup', this.handleDividerMouseUp.bind(this));
-
-    // Collapse button clicks
-    document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      const collapseBtn = target.closest('.panel-collapse-btn') as HTMLElement;
-
-      if (collapseBtn) {
-        const panel = collapseBtn.dataset.panel as PanelName;
-        this.togglePanelCollapse(panel);
-      }
-    });
 
     // Window resize - maintain layout proportions
     window.addEventListener('resize', () => {
@@ -207,10 +169,6 @@ export class LayoutManager {
    * Handle divider mouse down
    */
   private handleDividerMouseDown(e: MouseEvent): void {
-    if (this.currentLayout.leftPanelCollapsed || this.currentLayout.rightPanelCollapsed) {
-      return; // Don't allow resize when panels are collapsed
-    }
-
     this.isDragging = true;
     this.startX = e.clientX;
     this.startLeftWidth = this.currentLayout.leftPanelWidth;
@@ -259,85 +217,30 @@ export class LayoutManager {
   }
 
   /**
-   * Toggle panel collapse/expand
-   */
-  public togglePanelCollapse(panel: PanelName): void {
-    if (panel === 'left') {
-      this.currentLayout.leftPanelCollapsed = !this.currentLayout.leftPanelCollapsed;
-
-      // If collapsing left, expand right to fill space
-      if (this.currentLayout.leftPanelCollapsed) {
-        this.currentLayout.rightPanelCollapsed = false;
-      }
-    } else if (panel === 'right') {
-      this.currentLayout.rightPanelCollapsed = !this.currentLayout.rightPanelCollapsed;
-
-      // If collapsing right, expand left to fill space
-      if (this.currentLayout.rightPanelCollapsed) {
-        this.currentLayout.leftPanelCollapsed = false;
-      }
-    }
-
-    this.applyLayout(this.currentLayout);
-    this.saveLayoutToStorage();
-  }
-
-  /**
    * Apply layout to panels
    */
   private applyLayout(layout: LayoutState): void {
-    if (!this.leftPanel || !this.rightPanel) return;
+    if (!this.leftPanel || !this.rightPanel || !this.divider) return;
 
-    // Update collapse button icons and titles
-    this.updateCollapseButtons();
-
+    // Handle collapsed states (from presets like Focus modes)
     if (layout.leftPanelCollapsed) {
-      this.leftPanel.classList.add('collapsed');
-      this.rightPanel.classList.remove('collapsed');
-      this.leftPanel.style.flex = '0 0 48px'; // Just enough for collapsed header
+      this.leftPanel.style.display = 'none';
       this.rightPanel.style.flex = '1';
+      this.divider.style.display = 'none';
     } else if (layout.rightPanelCollapsed) {
-      this.leftPanel.classList.remove('collapsed');
-      this.rightPanel.classList.add('collapsed');
       this.leftPanel.style.flex = '1';
-      this.rightPanel.style.flex = '0 0 48px'; // Just enough for collapsed header
+      this.rightPanel.style.display = 'none';
+      this.divider.style.display = 'none';
     } else {
       // Both panels visible - use width percentages
-      this.leftPanel.classList.remove('collapsed');
-      this.rightPanel.classList.remove('collapsed');
+      this.leftPanel.style.display = '';
+      this.rightPanel.style.display = '';
+      this.divider.style.display = '';
       this.leftPanel.style.flex = `0 0 ${layout.leftPanelWidth}%`;
       this.rightPanel.style.flex = `0 0 ${layout.rightPanelWidth}%`;
     }
 
     this.currentLayout = { ...layout };
-  }
-
-  /**
-   * Update collapse button icons and titles based on state
-   */
-  private updateCollapseButtons(): void {
-    const leftBtn = this.leftPanel?.querySelector('.panel-collapse-btn') as HTMLElement;
-    const rightBtn = this.rightPanel?.querySelector('.panel-collapse-btn') as HTMLElement;
-
-    if (leftBtn) {
-      if (this.currentLayout.leftPanelCollapsed) {
-        leftBtn.innerHTML = '▶';
-        leftBtn.title = 'Expand notes panel';
-      } else {
-        leftBtn.innerHTML = '◀';
-        leftBtn.title = 'Collapse notes panel';
-      }
-    }
-
-    if (rightBtn) {
-      if (this.currentLayout.rightPanelCollapsed) {
-        rightBtn.innerHTML = '◀';
-        rightBtn.title = 'Expand transcription panel';
-      } else {
-        rightBtn.innerHTML = '▶';
-        rightBtn.title = 'Collapse transcription panel';
-      }
-    }
   }
 
   /**
