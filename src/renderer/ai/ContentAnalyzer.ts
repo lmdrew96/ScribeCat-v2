@@ -155,22 +155,24 @@ export class ContentAnalyzer {
     // ===== RECORDING MODE: Passive, non-intrusive suggestions =====
     if (mode === 'recording') {
       // Trigger 1: Topic emphasis (bookmark this moment)
-      if (insights.dominantTopics.length >= 2 && insights.wordCount > 300) {
-        const topTopic = insights.dominantTopics[0];
-        const topicMentions = insights.topics.get(topTopic) || 0;
-
-        // Only trigger if topic is mentioned 3+ times (emphasis)
-        if (topicMentions >= 3) {
-          triggers.push({
-            type: 'topic_emphasis',
-            confidence: Math.min(0.85, topicMentions / 5),
-            reason: `"${topTopic}" has been mentioned ${topicMentions} times`,
-            suggestedAction: 'bookmark',
-            mode: 'recording',
-            context: { topic: topTopic, mentions: topicMentions }
-          });
-        }
-      }
+      // DISABLED: Bookmark functionality not yet implemented (RecordingManager.ts:493)
+      // Re-enable when bookmark feature is implemented
+      // if (insights.dominantTopics.length >= 2 && insights.wordCount > 300) {
+      //   const topTopic = insights.dominantTopics[0];
+      //   const topicMentions = insights.topics.get(topTopic) || 0;
+      //
+      //   // Only trigger if topic is mentioned 3+ times (emphasis)
+      //   if (topicMentions >= 3) {
+      //     triggers.push({
+      //       type: 'topic_emphasis',
+      //       confidence: Math.min(0.85, topicMentions / 5),
+      //       reason: `"${topTopic}" has been mentioned ${topicMentions} times`,
+      //       suggestedAction: 'bookmark',
+      //       mode: 'recording',
+      //       context: { topic: topTopic, mentions: topicMentions }
+      //     });
+      //   }
+      // }
 
       // Trigger 2: Confusion detected (prompt to add notes)
       if (insights.confusionIndicators >= 2) {
@@ -185,16 +187,18 @@ export class ContentAnalyzer {
       }
 
       // Trigger 3: Important moment (questions being discussed)
-      if (insights.hasQuestions && insights.questionCount >= 2) {
-        triggers.push({
-          type: 'important_moment',
-          confidence: 0.75,
-          reason: `${insights.questionCount} questions discussed - this might be important`,
-          suggestedAction: 'highlight',
-          mode: 'recording',
-          context: { questionCount: insights.questionCount }
-        });
-      }
+      // DISABLED: Highlight functionality not yet implemented (RecordingManager.ts:504)
+      // Re-enable when highlight feature is implemented
+      // if (insights.hasQuestions && insights.questionCount >= 2) {
+      //   triggers.push({
+      //     type: 'important_moment',
+      //     confidence: 0.75,
+      //     reason: `${insights.questionCount} questions discussed - this might be important`,
+      //     suggestedAction: 'highlight',
+      //     mode: 'recording',
+      //     context: { questionCount: insights.questionCount }
+      //   });
+      // }
 
       // Trigger 4: Note gap (gentle reminder to take notes)
       if (insights.wordCount > 500 && insights.notesWordCount < insights.wordCount * 0.1) {
