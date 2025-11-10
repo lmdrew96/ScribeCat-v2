@@ -6,10 +6,9 @@
 
 import type { Session } from '../../../../domain/entities/Session.js';
 import { renderMarkdown } from '../../../markdown-renderer.js';
-import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
-import { createLoadingHTML } from '../../../utils/loading-helpers.js';
+import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 
-export class SummaryGenerator {
+export class SummaryGenerator extends BaseAIToolGenerator {
   /**
    * Generate and save a short summary (150 chars) for card display
    * This is automatically called after transcription completes
@@ -90,59 +89,35 @@ ${session.transcription.fullText}`;
     if (!forceRegenerate && session.hasAIToolResult('summary')) {
       const savedResult = session.getAIToolResult('summary');
       if (savedResult) {
-        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult);
+        this.showLoadOrRegeneratePrompt(
+          session,
+          contentArea,
+          savedResult,
+          '📄',
+          'Summary Available',
+          'You have a summary generated on {date}.',
+          () => this.renderSummary(savedResult.data, contentArea, session),
+          () => this.generate(session, contentArea, true)
+        );
         return;
       }
     }
 
     // Show loading state
-    contentArea.innerHTML = createLoadingHTML('Generating summary...');
+    this.showLoading(contentArea, 'Generating summary...');
 
     try {
-      // Check if this is a multi-session study set
-      const isMultiSession = session.type === 'multi-session-study-set';
-      console.log(`🎯 SummaryGenerator.generate - Session type: ${session.type}, isMultiSession: ${isMultiSession}, childSessionIds:`, session.childSessionIds);
-
-      let transcriptionText: string;
-      let notesText: string = session.notes || '';
-
-      if (isMultiSession) {
-        // Load child sessions dynamically
-        const childSessions = await MultiSessionHelper.loadChildSessions(session);
-        console.log(`📚 Loaded ${childSessions.length} child sessions for multi-session study set`);
-
-        if (childSessions.length === 0) {
-          contentArea.innerHTML = `
-            <div class="study-summary">
-              <div class="summary-section">
-                <p style="text-align: center; color: var(--text-tertiary);">
-                  No child sessions found in this study set.
-                </p>
-              </div>
-            </div>
-          `;
-          return;
-        }
-
-        // Merge transcriptions from all child sessions
-        transcriptionText = MultiSessionHelper.mergeTranscriptions(childSessions);
-      } else {
-        // Single session
-        if (!session.transcription || !session.transcription.fullText) {
-          contentArea.innerHTML = `
-            <div class="study-summary">
-              <div class="summary-section">
-                <p style="text-align: center; color: var(--text-tertiary);">
-                  No transcription available for this session. Please record and transcribe a session first.
-                </p>
-              </div>
-            </div>
-          `;
-          return;
-        }
-
-        transcriptionText = session.transcription.fullText;
+      // Load transcription
+      const transcription = await this.loadTranscription(session);
+      if (!transcription) {
+        this.showNoTranscriptionError(contentArea, 'summary');
+        return;
       }
+
+      const { text: transcriptionText, isMultiSession } = transcription;
+      const notesText: string = session.notes || '';
+
+      console.log(`🎯 SummaryGenerator.generate - Session type: ${session.type}, isMultiSession: ${isMultiSession}, childSessionIds:`, session.childSessionIds);
 
       // Generate summary using AI
       let summaryResult;
@@ -189,8 +164,7 @@ Format your response as a clear, organized summary with session attribution.`;
         }
 
         // Save the results to session
-        session.saveAIToolResult('summary', summary);
-        await window.scribeCat.sessions.update(session.id, session.toJSON());
+        await this.saveResults(session, 'summary', summary);
 
         // Render summary
         this.renderSummary(summary, contentArea, session);
@@ -199,54 +173,8 @@ Format your response as a clear, organized summary with session attribution.`;
       }
     } catch (error) {
       console.error('Error generating summary:', error);
-      contentArea.innerHTML = `
-        <div class="study-summary">
-          <div class="summary-section">
-            <p style="text-align: center; color: var(--record-color);">
-              Failed to generate summary: ${error instanceof Error ? error.message : 'Unknown error'}
-            </p>
-            <p style="text-align: center; color: var(--text-tertiary); margin-top: 12px;">
-              Make sure Claude AI is configured in Settings.
-            </p>
-          </div>
-        </div>
-      `;
+      this.showError(contentArea, 'summary', error);
     }
-  }
-
-  /**
-   * Show prompt to load previous or regenerate
-   */
-  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any): void {
-    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
-    const regenerationCount = savedResult.regenerationCount || 0;
-
-    contentArea.innerHTML = `
-      <div class="ai-result-prompt">
-        <div class="prompt-header">
-          <div class="prompt-icon">📄</div>
-          <h4>Summary Available</h4>
-        </div>
-        <div class="prompt-body">
-          <p>You have a summary generated on <strong>${generatedDate}</strong>.</p>
-          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
-        </div>
-        <div class="prompt-actions">
-          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
-          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
-        </div>
-      </div>
-    `;
-
-    const loadBtn = document.getElementById('load-previous-btn');
-    loadBtn?.addEventListener('click', () => {
-      this.renderSummary(savedResult.data, contentArea, session);
-    });
-
-    const regenerateBtn = document.getElementById('regenerate-btn');
-    regenerateBtn?.addEventListener('click', () => {
-      this.generate(session, contentArea, true);
-    });
   }
 
   /**

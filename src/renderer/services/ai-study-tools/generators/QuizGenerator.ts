@@ -5,12 +5,11 @@
  */
 
 import type { Session } from '../../../../domain/entities/Session.js';
-import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
+import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
-import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
-export class QuizGenerator {
+export class QuizGenerator extends BaseAIToolGenerator {
   /**
    * Generate a quiz from the session
    */
@@ -25,63 +24,32 @@ export class QuizGenerator {
     if (!forceRegenerate && session.hasAIToolResult('quiz')) {
       const savedResult = session.getAIToolResult('quiz');
       if (savedResult && savedResult.data && savedResult.data.length === questionCount) {
-        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult, questionCount);
+        this.showLoadOrRegeneratePrompt(
+          session,
+          contentArea,
+          savedResult,
+          '📝',
+          'Quiz Available',
+          `You have a ${questionCount}-question quiz generated on {date}.`,
+          () => this.renderQuiz(savedResult.data, contentArea, session),
+          () => this.generate(session, contentArea, questionCount, true)
+        );
         return;
       }
     }
 
     // Show loading state
-    contentArea.innerHTML = createLoadingHTML(`Generating ${questionCount} quiz questions...`);
+    this.showLoading(contentArea, `Generating ${questionCount} quiz questions...`);
 
     try {
-      // Check if this is a multi-session study set
-      const isMultiSession = session.type === 'multi-session-study-set';
-
-      let transcriptionText: string;
-
-      if (isMultiSession) {
-        // Load child sessions dynamically
-        const childSessions = await MultiSessionHelper.loadChildSessions(session);
-
-        if (childSessions.length === 0) {
-          contentArea.innerHTML = `
-            <div class="study-quiz">
-              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-                No child sessions found for this multi-session study set.
-              </div>
-            </div>
-          `;
-          return;
-        }
-
-        // Merge transcriptions from all child sessions
-        transcriptionText = MultiSessionHelper.mergeTranscriptions(childSessions);
-
-        if (!transcriptionText || transcriptionText.trim().length === 0) {
-          contentArea.innerHTML = `
-            <div class="study-quiz">
-              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-                No transcription available in child sessions.
-              </div>
-            </div>
-          `;
-          return;
-        }
-      } else {
-        // Single session - check if transcription exists
-        if (!session.transcription || !session.transcription.fullText) {
-          contentArea.innerHTML = `
-            <div class="study-quiz">
-              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-                No transcription available for this session.
-              </div>
-            </div>
-          `;
-          return;
-        }
-
-        transcriptionText = session.transcription.fullText;
+      // Load transcription
+      const transcription = await this.loadTranscription(session);
+      if (!transcription) {
+        this.showNoTranscriptionError(contentArea, 'quiz');
+        return;
       }
+
+      const { text: transcriptionText, isMultiSession } = transcription;
 
       // Use AI to generate quiz questions
       const prompt = isMultiSession
@@ -102,10 +70,7 @@ ${transcriptionText}`
 Transcription:
 ${transcriptionText}`;
 
-      const result = await window.scribeCat.ai.chat(prompt, [], {
-        includeTranscription: false,
-        includeNotes: false
-      });
+      const result = await this.callAI(prompt);
 
       if (result.success && result.data) {
         // result.data is a string response from AI
@@ -133,8 +98,7 @@ ${transcriptionText}`;
         }
 
         // Save the results to session
-        session.saveAIToolResult('quiz', questions);
-        await window.scribeCat.sessions.update(session.id, session.toJSON());
+        await this.saveResults(session, 'quiz', questions);
 
         // Render quiz with interactivity
         this.renderQuiz(questions, contentArea, session);
@@ -143,53 +107,8 @@ ${transcriptionText}`;
       }
     } catch (error) {
       console.error('Error generating quiz:', error);
-      contentArea.innerHTML = `
-        <div class="study-quiz">
-          <div style="text-align: center; padding: 20px; color: var(--record-color);">
-            Failed to generate quiz: ${error instanceof Error ? error.message : 'Unknown error'}
-          </div>
-          <div style="text-align: center; padding: 10px; color: var(--text-tertiary);">
-            Make sure Claude AI is configured in Settings.
-          </div>
-        </div>
-      `;
+      this.showError(contentArea, 'quiz', error);
     }
-  }
-
-  /**
-   * Show prompt to load previous or regenerate
-   */
-  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any, questionCount: number): void {
-    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
-    const regenerationCount = savedResult.regenerationCount || 0;
-
-    contentArea.innerHTML = `
-      <div class="ai-result-prompt">
-        <div class="prompt-header">
-          <div class="prompt-icon">📝</div>
-          <h4>Quiz Available</h4>
-        </div>
-        <div class="prompt-body">
-          <p>You have a ${questionCount}-question quiz generated on <strong>${generatedDate}</strong>.</p>
-          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
-        </div>
-        <div class="prompt-actions">
-          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
-          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
-        </div>
-      </div>
-    `;
-
-    // Attach event listeners
-    const loadBtn = document.getElementById('load-previous-btn');
-    loadBtn?.addEventListener('click', () => {
-      this.renderQuiz(savedResult.data, contentArea, session);
-    });
-
-    const regenerateBtn = document.getElementById('regenerate-btn');
-    regenerateBtn?.addEventListener('click', () => {
-      this.generate(session, contentArea, questionCount, true); // Force regeneration
-    });
   }
 
   /**

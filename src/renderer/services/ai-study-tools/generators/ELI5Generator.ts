@@ -5,12 +5,11 @@
  */
 
 import type { Session } from '../../../../domain/entities/Session.js';
-import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
+import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
-import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
-export class ELI5Generator {
+export class ELI5Generator extends BaseAIToolGenerator {
   /**
    * Generate ELI5 (Explain Like I'm 5) explanations for complex concepts
    */
@@ -19,31 +18,32 @@ export class ELI5Generator {
     if (!forceRegenerate && session.hasAIToolResult('eli5')) {
       const savedResult = session.getAIToolResult('eli5');
       if (savedResult) {
-        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult);
+        this.showLoadOrRegeneratePrompt(
+          session,
+          contentArea,
+          savedResult,
+          '🤔',
+          'ELI5 Explanation Available',
+          'You have ELI5 explanations generated on {date}.',
+          () => this.renderExplanations(savedResult.data, contentArea, session),
+          () => this.generate(session, contentArea, true)
+        );
         return;
       }
     }
 
     // Show loading state
-    contentArea.innerHTML = createLoadingHTML('Finding complex concepts to simplify...');
+    this.showLoading(contentArea, 'Finding complex concepts to simplify...');
 
     try {
-      const isMultiSession = session.type === 'multi-session-study-set';
-      let transcriptionText: string;
-
-      if (isMultiSession) {
-        const childSessions = await MultiSessionHelper.loadChildSessions(session);
-        if (childSessions.length === 0 || !(transcriptionText = MultiSessionHelper.mergeTranscriptions(childSessions))) {
-          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No content available.</div>`;
-          return;
-        }
-      } else {
-        if (!session.transcription?.fullText) {
-          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No transcription available.</div>`;
-          return;
-        }
-        transcriptionText = session.transcription.fullText;
+      // Load transcription
+      const transcription = await this.loadTranscription(session);
+      if (!transcription) {
+        this.showNoTranscriptionError(contentArea, 'eli5');
+        return;
       }
+
+      const { text: transcriptionText, isMultiSession } = transcription;
 
       // Use AI to identify complex concepts and create simple explanations
       const prompt = isMultiSession
@@ -69,10 +69,7 @@ Format as JSON array with "concept" and "simpleExplanation" fields.
 Transcription:
 ${transcriptionText}`;
 
-      const result = await window.scribeCat.ai.chat(prompt, [], {
-        includeTranscription: false,
-        includeNotes: false
-      });
+      const result = await this.callAI(prompt);
 
       if (result.success && result.data) {
         let explanations: Array<{concept: string; simpleExplanation: string; session?: string}> = [];
@@ -92,8 +89,7 @@ ${transcriptionText}`;
         }
 
         // Save the results to session
-        session.saveAIToolResult('eli5', explanations);
-        await window.scribeCat.sessions.update(session.id, session.toJSON());
+        await this.saveResults(session, 'eli5', explanations);
 
         // Render explanations
         this.renderExplanations(explanations, contentArea, session);
@@ -102,47 +98,8 @@ ${transcriptionText}`;
       }
     } catch (error) {
       console.error('Error generating ELI5:', error);
-      contentArea.innerHTML = `
-        <div style="text-align: center; padding: 20px; color: var(--record-color);">
-          Failed to generate explanations: ${error instanceof Error ? error.message : 'Unknown error'}
-        </div>
-      `;
+      this.showError(contentArea, 'eli5', error);
     }
-  }
-
-  /**
-   * Show prompt to load previous or regenerate
-   */
-  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any): void {
-    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
-    const regenerationCount = savedResult.regenerationCount || 0;
-
-    contentArea.innerHTML = `
-      <div class="ai-result-prompt">
-        <div class="prompt-header">
-          <div class="prompt-icon">🤔</div>
-          <h4>ELI5 Explanation Available</h4>
-        </div>
-        <div class="prompt-body">
-          <p>You have ELI5 explanations generated on <strong>${generatedDate}</strong>.</p>
-          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
-        </div>
-        <div class="prompt-actions">
-          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
-          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
-        </div>
-      </div>
-    `;
-
-    const loadBtn = document.getElementById('load-previous-btn');
-    loadBtn?.addEventListener('click', () => {
-      this.renderExplanations(savedResult.data, contentArea, session);
-    });
-
-    const regenerateBtn = document.getElementById('regenerate-btn');
-    regenerateBtn?.addEventListener('click', () => {
-      this.generate(session, contentArea, true);
-    });
   }
 
   /**

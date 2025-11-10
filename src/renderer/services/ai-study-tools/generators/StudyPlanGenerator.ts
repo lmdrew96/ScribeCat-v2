@@ -5,12 +5,11 @@
  */
 
 import type { Session } from '../../../../domain/entities/Session.js';
-import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
+import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
-import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
-export class StudyPlanGenerator {
+export class StudyPlanGenerator extends BaseAIToolGenerator {
   /**
    * Generate study plan
    */
@@ -25,66 +24,34 @@ export class StudyPlanGenerator {
     if (!forceRegenerate && session.hasAIToolResult('study_plan')) {
       const savedResult = session.getAIToolResult('study_plan');
       if (savedResult && savedResult.data && savedResult.data.length === daysUntilExam) {
-        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult, daysUntilExam, hoursPerDay);
+        const totalHours = daysUntilExam * hoursPerDay;
+        this.showLoadOrRegeneratePrompt(
+          session,
+          contentArea,
+          savedResult,
+          '📅',
+          'Study Plan Available',
+          `You have a ${daysUntilExam}-day study plan (${totalHours}h total) generated on {date}.`,
+          () => this.renderStudyPlan(savedResult.data, daysUntilExam, hoursPerDay, contentArea, session),
+          () => this.generate(session, contentArea, daysUntilExam, hoursPerDay, true)
+        );
         return;
       }
     }
 
     // Show loading state
-    contentArea.innerHTML = createLoadingHTML('Creating your study plan...');
+    this.showLoading(contentArea, 'Creating your study plan...');
 
     try {
-      // Check if this is a multi-session study set
-      const isMultiSession = session.type === 'multi-session-study-set';
-
-      let transcriptionText: string;
-      let sessionTitles: string[] = [];
-
-      if (isMultiSession) {
-        // Load child sessions dynamically
-        const childSessions = await MultiSessionHelper.loadChildSessions(session);
-
-        if (childSessions.length === 0) {
-          contentArea.innerHTML = `
-            <div class="study-plan">
-              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-                No child sessions found for this multi-session study set.
-              </div>
-            </div>
-          `;
-          return;
-        }
-
-        // Merge transcriptions from all child sessions
-        transcriptionText = MultiSessionHelper.mergeTranscriptions(childSessions);
-        sessionTitles = childSessions.map(s => s.title);
-
-        if (!transcriptionText || transcriptionText.trim().length === 0) {
-          contentArea.innerHTML = `
-            <div class="study-plan">
-              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-                No transcription available in child sessions.
-              </div>
-            </div>
-          `;
-          return;
-        }
-      } else {
-        // Single session - check if transcription exists
-        if (!session.transcription || !session.transcription.fullText) {
-          contentArea.innerHTML = `
-            <div class="study-plan">
-              <div style="text-align: center; padding: 20px; color: var(--text-tertiary);">
-                No transcription available for this session.
-              </div>
-            </div>
-          `;
-          return;
-        }
-
-        transcriptionText = session.transcription.fullText;
-        sessionTitles = [session.title];
+      // Load transcription
+      const transcription = await this.loadTranscription(session);
+      if (!transcription) {
+        this.showNoTranscriptionError(contentArea, 'study_plan');
+        return;
       }
+
+      const { text: transcriptionText, isMultiSession, childSessionTitles } = transcription;
+      const sessionTitles = childSessionTitles || [session.title];
 
       const totalHours = daysUntilExam * hoursPerDay;
 
@@ -122,10 +89,7 @@ Format as a JSON array with objects containing "day", "topics", "tools" (array o
 Transcription summary (analyze to understand content):
 ${transcriptionText.substring(0, 3000)}...`;
 
-      const result = await window.scribeCat.ai.chat(prompt, [], {
-        includeTranscription: false,
-        includeNotes: false
-      });
+      const result = await this.callAI(prompt);
 
       if (result.success && result.data) {
         // result.data is a string response from AI
@@ -152,8 +116,7 @@ ${transcriptionText.substring(0, 3000)}...`;
         }
 
         // Save the results to session
-        session.saveAIToolResult('study_plan', studyPlan);
-        await window.scribeCat.sessions.update(session.id, session.toJSON());
+        await this.saveResults(session, 'study_plan', studyPlan);
 
         // Render study plan
         this.renderStudyPlan(studyPlan, daysUntilExam, hoursPerDay, contentArea, session);
@@ -162,54 +125,8 @@ ${transcriptionText.substring(0, 3000)}...`;
       }
     } catch (error) {
       console.error('Error generating study plan:', error);
-      contentArea.innerHTML = `
-        <div class="study-plan">
-          <div style="text-align: center; padding: 20px; color: var(--record-color);">
-            Failed to generate study plan: ${error instanceof Error ? error.message : 'Unknown error'}
-          </div>
-          <div style="text-align: center; padding: 10px; color: var(--text-tertiary);">
-            Make sure Claude AI is configured in Settings.
-          </div>
-        </div>
-      `;
+      this.showError(contentArea, 'study_plan', error);
     }
-  }
-
-  /**
-   * Show prompt to load previous or regenerate
-   */
-  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any, daysUntilExam: number, hoursPerDay: number): void {
-    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
-    const regenerationCount = savedResult.regenerationCount || 0;
-    const totalHours = daysUntilExam * hoursPerDay;
-
-    contentArea.innerHTML = `
-      <div class="ai-result-prompt">
-        <div class="prompt-header">
-          <div class="prompt-icon">📅</div>
-          <h4>Study Plan Available</h4>
-        </div>
-        <div class="prompt-body">
-          <p>You have a ${daysUntilExam}-day study plan (${totalHours}h total) generated on <strong>${generatedDate}</strong>.</p>
-          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
-        </div>
-        <div class="prompt-actions">
-          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
-          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
-        </div>
-      </div>
-    `;
-
-    // Attach event listeners
-    const loadBtn = document.getElementById('load-previous-btn');
-    loadBtn?.addEventListener('click', () => {
-      this.renderStudyPlan(savedResult.data, daysUntilExam, hoursPerDay, contentArea, session);
-    });
-
-    const regenerateBtn = document.getElementById('regenerate-btn');
-    regenerateBtn?.addEventListener('click', () => {
-      this.generate(session, contentArea, daysUntilExam, hoursPerDay, true); // Force regeneration
-    });
   }
 
   /**

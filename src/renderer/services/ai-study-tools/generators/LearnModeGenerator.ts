@@ -5,12 +5,11 @@
  */
 
 import type { Session } from '../../../../domain/entities/Session.js';
-import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
+import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
-import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
-export class LearnModeGenerator {
+export class LearnModeGenerator extends BaseAIToolGenerator {
   /**
    * Generate learn mode with spaced repetition
    */
@@ -19,37 +18,32 @@ export class LearnModeGenerator {
     if (!forceRegenerate && session.hasAIToolResult('learn_mode')) {
       const savedResult = session.getAIToolResult('learn_mode');
       if (savedResult) {
-        this.showLoadOrRegeneratePrompt(session, contentArea, savedResult);
+        this.showLoadOrRegeneratePrompt(
+          session,
+          contentArea,
+          savedResult,
+          '📚',
+          'Learn Mode Available',
+          'You have learn mode concepts generated on {date}.',
+          () => this.startLearnModeSession(savedResult.data, contentArea, session),
+          () => this.generate(session, contentArea, true)
+        );
         return;
       }
     }
 
     // Show loading state
-    contentArea.innerHTML = createLoadingHTML('Preparing learn mode...');
+    this.showLoading(contentArea, 'Preparing learn mode...');
 
     try {
-      // Check if this is a multi-session study set
-      const isMultiSession = session.type === 'multi-session-study-set';
-      let transcriptionText: string;
-
-      if (isMultiSession) {
-        const childSessions = await MultiSessionHelper.loadChildSessions(session);
-        if (childSessions.length === 0) {
-          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No child sessions found.</div>`;
-          return;
-        }
-        transcriptionText = MultiSessionHelper.mergeTranscriptions(childSessions);
-        if (!transcriptionText || transcriptionText.trim().length === 0) {
-          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No transcription available.</div>`;
-          return;
-        }
-      } else {
-        if (!session.transcription || !session.transcription.fullText) {
-          contentArea.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-tertiary);">No transcription available.</div>`;
-          return;
-        }
-        transcriptionText = session.transcription.fullText;
+      // Load transcription
+      const transcription = await this.loadTranscription(session);
+      if (!transcription) {
+        this.showNoTranscriptionError(contentArea, 'learn_mode');
+        return;
       }
+
+      const { text: transcriptionText } = transcription;
 
       // Generate concepts for learning
       const prompt = `Create 10-12 key concept pairs for spaced repetition learning from this transcription. Each pair should have a term/concept and its definition.
@@ -59,10 +53,7 @@ Format as a JSON array with objects containing "term" and "definition" fields. F
 Transcription:
 ${transcriptionText}`;
 
-      const result = await window.scribeCat.ai.chat(prompt, [], {
-        includeTranscription: false,
-        includeNotes: false
-      });
+      const result = await this.callAI(prompt);
 
       if (result.success && result.data) {
         let concepts: Array<{term: string; definition: string}> = [];
@@ -86,8 +77,7 @@ ${transcriptionText}`;
         }
 
         // Save the results to session
-        session.saveAIToolResult('learn_mode', concepts);
-        await window.scribeCat.sessions.update(session.id, session.toJSON());
+        await this.saveResults(session, 'learn_mode', concepts);
 
         // Start learn mode session
         this.startLearnModeSession(concepts, contentArea, session);
@@ -96,47 +86,8 @@ ${transcriptionText}`;
       }
     } catch (error) {
       console.error('Error generating learn mode:', error);
-      contentArea.innerHTML = `
-        <div style="text-align: center; padding: 20px; color: var(--record-color);">
-          Failed to start learn mode: ${error instanceof Error ? error.message : 'Unknown error'}
-        </div>
-      `;
+      this.showError(contentArea, 'learn_mode', error);
     }
-  }
-
-  /**
-   * Show prompt to load previous or regenerate
-   */
-  private static showLoadOrRegeneratePrompt(session: Session, contentArea: HTMLElement, savedResult: any): void {
-    const generatedDate = new Date(savedResult.generatedAt).toLocaleDateString();
-    const regenerationCount = savedResult.regenerationCount || 0;
-
-    contentArea.innerHTML = `
-      <div class="ai-result-prompt">
-        <div class="prompt-header">
-          <div class="prompt-icon">📚</div>
-          <h4>Learn Mode Available</h4>
-        </div>
-        <div class="prompt-body">
-          <p>You have learn mode concepts generated on <strong>${generatedDate}</strong>.</p>
-          ${regenerationCount > 0 ? `<p class="regeneration-count">Regenerated ${regenerationCount} time${regenerationCount > 1 ? 's' : ''}</p>` : ''}
-        </div>
-        <div class="prompt-actions">
-          <button class="btn-primary" id="load-previous-btn">Load Previous</button>
-          <button class="btn-secondary" id="regenerate-btn">Regenerate</button>
-        </div>
-      </div>
-    `;
-
-    const loadBtn = document.getElementById('load-previous-btn');
-    loadBtn?.addEventListener('click', () => {
-      this.startLearnModeSession(savedResult.data, contentArea, session);
-    });
-
-    const regenerateBtn = document.getElementById('regenerate-btn');
-    regenerateBtn?.addEventListener('click', () => {
-      this.generate(session, contentArea, true);
-    });
   }
 
   /**
