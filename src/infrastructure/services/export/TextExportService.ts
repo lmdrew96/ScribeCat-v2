@@ -1,12 +1,13 @@
 /**
  * TextExportService
- * 
+ *
  * Service for exporting sessions to plain text format.
  * Infrastructure layer - implements IExportService.
  */
 
 import { IExportService, ExportOptions, ExportResult } from '../../../domain/services/IExportService.js';
 import { Session } from '../../../domain/entities/Session.js';
+import { formatTimestampWithHours } from '../../../renderer/utils/formatting.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -81,8 +82,8 @@ export class TextExportService implements IExportService {
       if (includeTimestamps && session.transcription.segments.length > 0) {
         // Include timestamped segments
         for (const segment of session.transcription.segments) {
-          const timestamp = this.formatTimestamp(segment.startTime);
-          const confidence = segment.confidence 
+          const timestamp = formatTimestampWithHours(segment.startTime);
+          const confidence = segment.confidence
             ? ` (${(segment.confidence * 100).toFixed(1)}%)`
             : '';
           lines.push(`[${timestamp}]${confidence} ${segment.text}`);
@@ -150,6 +151,7 @@ export class TextExportService implements IExportService {
 
   /**
    * Format duration in seconds to readable format
+   * Note: Only used for export history, not session duration (which is fetched from Session.duration getter)
    */
   private formatDuration(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
@@ -162,21 +164,6 @@ export class TextExportService implements IExportService {
       return `${minutes}m ${secs}s`;
     } else {
       return `${secs}s`;
-    }
-  }
-
-  /**
-   * Format timestamp in seconds to MM:SS or HH:MM:SS
-   */
-  private formatTimestamp(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
   }
 

@@ -6,6 +6,8 @@
  * and transcription segment synchronization.
  */
 
+import { formatDuration } from '../utils/formatting.js';
+
 export class SessionPlaybackManager {
   private isDragging: boolean = false;
   private cleanupFunctions: (() => void)[] = [];
@@ -40,8 +42,8 @@ export class SessionPlaybackManager {
 
     // Set the duration display immediately
     if (totalDurationDisplay && actualDuration) {
-      totalDurationDisplay.textContent = this.formatTime(actualDuration);
-      console.log('✅ Set duration display:', this.formatTime(actualDuration));
+      totalDurationDisplay.textContent = formatDuration(actualDuration);
+      console.log('✅ Set duration display:', formatDuration(actualDuration));
     }
 
     // Play/Pause button
@@ -90,7 +92,7 @@ export class SessionPlaybackManager {
       console.log('✅ Audio metadata loaded');
       console.log('Duration from audio element:', audioElement.duration);
       if (totalDurationDisplay && !actualDuration && audioElement.duration && isFinite(audioElement.duration)) {
-        totalDurationDisplay.textContent = this.formatTime(audioElement.duration);
+        totalDurationDisplay.textContent = formatDuration(audioElement.duration);
       }
     };
     audioElement.addEventListener('loadedmetadata', metadataHandler);
@@ -136,7 +138,7 @@ export class SessionPlaybackManager {
       }
 
       if (currentTimeDisplay) {
-        currentTimeDisplay.textContent = this.formatTime(audioElement.currentTime);
+        currentTimeDisplay.textContent = formatDuration(audioElement.currentTime);
       }
     };
     audioElement.addEventListener('timeupdate', timeupdateHandler);
@@ -146,7 +148,7 @@ export class SessionPlaybackManager {
     if (audioElement.readyState >= 1) {
       console.log('Audio already has metadata, updating duration');
       if (totalDurationDisplay && audioElement.duration) {
-        totalDurationDisplay.textContent = this.formatTime(audioElement.duration);
+        totalDurationDisplay.textContent = formatDuration(audioElement.duration);
       }
     }
 
@@ -235,19 +237,6 @@ export class SessionPlaybackManager {
 
     document.addEventListener('keydown', keydownHandler);
     this.cleanupFunctions.push(() => document.removeEventListener('keydown', keydownHandler));
-  }
-
-  /**
-   * Format time in MM:SS format
-   */
-  formatTime(seconds: number): string {
-    if (isNaN(seconds) || !isFinite(seconds)) {
-      return '0:00';
-    }
-
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
   /**

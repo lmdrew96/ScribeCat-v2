@@ -4,6 +4,8 @@
  * Utility functions for formatting dates, durations, colors, etc. for DOCX export.
  */
 
+import { formatDurationWithHours, formatTimestampWithHours } from '../../../../renderer/utils/formatting.js';
+
 export class DocxFormatters {
   /**
    * Format a date for display
@@ -21,34 +23,18 @@ export class DocxFormatters {
 
   /**
    * Format duration in seconds to readable format
+   * @deprecated Use formatDurationWithHours from formatting.ts instead
    */
   static formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
-    }
+    return formatDurationWithHours(seconds);
   }
 
   /**
    * Format timestamp in seconds to MM:SS or HH:MM:SS
+   * @deprecated Use formatTimestampWithHours from formatting.ts instead
    */
   static formatTimestamp(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
+    return formatTimestampWithHours(seconds);
   }
 
   /**

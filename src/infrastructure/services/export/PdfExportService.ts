@@ -1,12 +1,13 @@
 /**
  * PdfExportService
- * 
+ *
  * Service for exporting sessions to PDF format.
  * Infrastructure layer - implements IExportService.
  */
 
 import { IExportService, ExportOptions, ExportResult } from '../../../domain/services/IExportService.js';
 import { Session } from '../../../domain/entities/Session.js';
+import { formatDurationWithHours, formatTimestampWithHours } from '../../../renderer/utils/formatting.js';
 import PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
@@ -91,7 +92,7 @@ export class PdfExportService implements IExportService {
            .font('Helvetica').text(this.formatDate(session.updatedAt));
 
         doc.font('Helvetica-Bold').text('Duration: ', { continued: true })
-           .font('Helvetica').text(this.formatDuration(session.duration));
+           .font('Helvetica').text(formatDurationWithHours(session.duration));
 
         if (session.tags.length > 0) {
           doc.font('Helvetica-Bold').text('Tags: ', { continued: true })
@@ -114,8 +115,8 @@ export class PdfExportService implements IExportService {
         if (includeTimestamps && session.transcription.segments.length > 0) {
           // Include timestamped segments
           for (const segment of session.transcription.segments) {
-            const timestamp = this.formatTimestamp(segment.startTime);
-            const confidence = segment.confidence 
+            const timestamp = formatTimestampWithHours(segment.startTime);
+            const confidence = segment.confidence
               ? ` (${(segment.confidence * 100).toFixed(1)}%)`
               : '';
 
@@ -206,38 +207,6 @@ export class PdfExportService implements IExportService {
       minute: '2-digit',
       second: '2-digit'
     });
-  }
-
-  /**
-   * Format duration in seconds to readable format
-   */
-  private formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
-    }
-  }
-
-  /**
-   * Format timestamp in seconds to MM:SS or HH:MM:SS
-   */
-  private formatTimestamp(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
   }
 
   /**

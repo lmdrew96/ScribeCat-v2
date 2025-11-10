@@ -1,12 +1,13 @@
 /**
  * HtmlExportService
- * 
+ *
  * Service for exporting sessions to HTML format.
  * Infrastructure layer - implements IExportService.
  */
 
 import { IExportService, ExportOptions, ExportResult } from '../../../domain/services/IExportService.js';
 import { Session } from '../../../domain/entities/Session.js';
+import { formatDurationWithHours, formatTimestampWithHours } from '../../../renderer/utils/formatting.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -75,7 +76,7 @@ export class HtmlExportService implements IExportService {
       sections.push(`        <div class="metadata-item"><strong>Session ID:</strong> ${this.escapeHtml(session.id)}</div>`);
       sections.push(`        <div class="metadata-item"><strong>Created:</strong> ${this.escapeHtml(this.formatDate(session.createdAt))}</div>`);
       sections.push(`        <div class="metadata-item"><strong>Updated:</strong> ${this.escapeHtml(this.formatDate(session.updatedAt))}</div>`);
-      sections.push(`        <div class="metadata-item"><strong>Duration:</strong> ${this.escapeHtml(this.formatDuration(session.duration))}</div>`);
+      sections.push(`        <div class="metadata-item"><strong>Duration:</strong> ${this.escapeHtml(formatDurationWithHours(session.duration))}</div>`);
       
       if (session.tags.length > 0) {
         const tagsHtml = session.tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join(' ');
@@ -95,11 +96,11 @@ export class HtmlExportService implements IExportService {
         // Include timestamped segments
         sections.push('      <div class="segments">');
         for (const segment of session.transcription.segments) {
-          const timestamp = this.formatTimestamp(segment.startTime);
-          const confidence = segment.confidence 
+          const timestamp = formatTimestampWithHours(segment.startTime);
+          const confidence = segment.confidence
             ? ` <span class="confidence">(${(segment.confidence * 100).toFixed(1)}%)</span>`
             : '';
-          
+
           sections.push(`        <div class="segment">`);
           sections.push(`          <span class="timestamp">[${timestamp}]</span>${confidence}`);
           sections.push(`          <span class="text">${this.escapeHtml(segment.text)}</span>`);
@@ -347,38 +348,6 @@ export class HtmlExportService implements IExportService {
       minute: '2-digit',
       second: '2-digit'
     });
-  }
-
-  /**
-   * Format duration in seconds to readable format
-   */
-  private formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
-    }
-  }
-
-  /**
-   * Format timestamp in seconds to MM:SS or HH:MM:SS
-   */
-  private formatTimestamp(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
   }
 
   /**
