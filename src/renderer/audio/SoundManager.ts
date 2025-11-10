@@ -58,53 +58,13 @@ export class SoundManager {
   private static readonly SOUND_LIBRARY: Sound[] = [
     {
       name: 'purr',
-      type: 'generated',
-      generator: (context, volume) => {
-        // Soft purring sound - low frequency rumble
-        const oscillator = context.createOscillator();
-        const gainNode = context.createGain();
-        const filterNode = context.createBiquadFilter();
-
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(50, context.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(30, context.currentTime + 0.5);
-
-        filterNode.type = 'lowpass';
-        filterNode.frequency.value = 200;
-
-        gainNode.gain.setValueAtTime(volume * 0.3, context.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.5);
-
-        oscillator.connect(filterNode);
-        filterNode.connect(gainNode);
-        gainNode.connect(context.destination);
-
-        oscillator.start(context.currentTime);
-        oscillator.stop(context.currentTime + 0.5);
-      }
+      type: 'file',
+      src: 'assets/Cat Sounds/cat-purr-76226.mp3'
     },
     {
       name: 'meow',
-      type: 'generated',
-      generator: (context, volume) => {
-        // Quick meow - rising pitch
-        const oscillator = context.createOscillator();
-        const gainNode = context.createGain();
-
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.setValueAtTime(300, context.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(600, context.currentTime + 0.1);
-        oscillator.frequency.exponentialRampToValueAtTime(400, context.currentTime + 0.3);
-
-        gainNode.gain.setValueAtTime(volume * 0.2, context.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.3);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(context.destination);
-
-        oscillator.start(context.currentTime);
-        oscillator.stop(context.currentTime + 0.3);
-      }
+      type: 'file',
+      src: 'assets/Cat Sounds/cat-meow-81626.mp3'
     },
     {
       name: 'bell',
@@ -231,25 +191,8 @@ export class SoundManager {
     },
     {
       name: 'error',
-      type: 'generated',
-      generator: (context, volume) => {
-        // Error buzz - descending dissonant notes
-        const oscillator = context.createOscillator();
-        const gainNode = context.createGain();
-
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.setValueAtTime(200, context.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(100, context.currentTime + 0.2);
-
-        gainNode.gain.setValueAtTime(volume * 0.2, context.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.2);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(context.destination);
-
-        oscillator.start(context.currentTime);
-        oscillator.stop(context.currentTime + 0.2);
-      }
+      type: 'file',
+      src: 'assets/Cat Sounds/cat-meowing-401730.mp3'
     },
     {
       name: 'typing',

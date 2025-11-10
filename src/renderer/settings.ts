@@ -13,6 +13,7 @@ import { SettingsUIManager } from './settings/SettingsUIManager.js';
 import { NotificationToast } from './components/shared/NotificationToast.js';
 import { AuthManager } from './managers/AuthManager.js';
 import { unlockTheme, isThemeUnlocked } from './themes/easter-egg-themes.js';
+import { SoundManager } from './audio/SoundManager.js';
 
 export interface TranscriptionAccuracySettings {
   speechModel: 'best' | 'nano';
@@ -264,6 +265,12 @@ export class SettingsManager {
     if (formatTextCheckbox) {
       formatTextCheckbox.checked = this.transcriptionSettings.formatText;
     }
+
+    // Set sound effects checkbox
+    const soundEffectsCheckbox = document.getElementById('sound-effects-checkbox') as HTMLInputElement;
+    if (soundEffectsCheckbox) {
+      soundEffectsCheckbox.checked = SoundManager.isEnabled();
+    }
   }
 
   /**
@@ -316,6 +323,16 @@ export class SettingsManager {
       };
 
       await window.scribeCat.store.set('transcription-accuracy-settings', this.transcriptionSettings);
+
+      // Save sound effects setting
+      const soundEffectsCheckbox = document.getElementById('sound-effects-checkbox') as HTMLInputElement;
+      if (soundEffectsCheckbox) {
+        if (soundEffectsCheckbox.checked) {
+          SoundManager.enable();
+        } else {
+          SoundManager.disable();
+        }
+      }
 
       NotificationToast.success('Settings saved successfully!');
       this.closeSettings();
