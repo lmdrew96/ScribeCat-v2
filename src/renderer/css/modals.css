@@ -36,7 +36,6 @@
   background-color: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(2px);
   z-index: 0;
-  pointer-events: none;
 }
 
 .modal-content {
@@ -53,7 +52,6 @@
   border: 1px solid var(--border);
   z-index: 1;
   will-change: transform, opacity;
-  pointer-events: auto;
 }
 
 .modal-content.modal-small {
