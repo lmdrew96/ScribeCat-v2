@@ -7,7 +7,7 @@
 import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
-import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { escapeHtml } from '../../../utils/formatting.js';
 import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class StudyPlanGenerator {
@@ -275,23 +275,23 @@ ${transcriptionText.substring(0, 3000)}...`;
     const daysHtml = plan.map(dayPlan => {
       const activitiesHtml = dayPlan.activities.map(activity => `
         <div class="plan-activity">
-          <span class="plan-activity-name">${HtmlHelper.escapeHtml(activity.activity)}</span>
-          <span class="plan-activity-duration">${HtmlHelper.escapeHtml(activity.duration)}</span>
+          <span class="plan-activity-name">${escapeHtml(activity.activity)}</span>
+          <span class="plan-activity-duration">${escapeHtml(activity.duration)}</span>
         </div>
       `).join('');
 
       const toolsHtml = dayPlan.tools.map(tool => `
-        <span class="plan-tool-badge">${HtmlHelper.escapeHtml(tool)}</span>
+        <span class="plan-tool-badge">${escapeHtml(tool)}</span>
       `).join('');
 
       return `
         <div class="plan-day-card">
           <div class="plan-day-header">
             <span class="plan-day-number">Day ${dayPlan.day}</span>
-            <span class="plan-day-topics">${HtmlHelper.escapeHtml(dayPlan.topics)}</span>
+            <span class="plan-day-topics">${escapeHtml(dayPlan.topics)}</span>
           </div>
           <div class="plan-day-goal">
-            <strong>Goal:</strong> ${HtmlHelper.escapeHtml(dayPlan.goal)}
+            <strong>Goal:</strong> ${escapeHtml(dayPlan.goal)}
           </div>
           <div class="plan-day-tools">
             <strong>Use these tools:</strong>

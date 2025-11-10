@@ -7,7 +7,7 @@
 import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
-import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { escapeHtml } from '../../../utils/formatting.js';
 import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class QuizGenerator {
@@ -294,7 +294,7 @@ ${transcriptionText}`;
 
         return `
           <div class="quiz-option" data-index="${index}">
-            ${optionLabels[index]}: ${HtmlHelper.escapeHtml(option)}
+            ${optionLabels[index]}: ${escapeHtml(option)}
           </div>
         `;
       }).join('');
@@ -304,13 +304,13 @@ ${transcriptionText}`;
           <div class="quiz-progress">
             <div class="quiz-question-number">
               Question ${currentIndex + 1} of ${questions.length}
-              ${question.session ? `<span class="quiz-session-badge">${HtmlHelper.escapeHtml(question.session)}</span>` : ''}
+              ${question.session ? `<span class="quiz-session-badge">${escapeHtml(question.session)}</span>` : ''}
             </div>
             <div class="quiz-score">Score: ${score}/${currentIndex}</div>
           </div>
 
           <div class="quiz-question">
-            <div class="quiz-question-text">${HtmlHelper.escapeHtml(question.question)}</div>
+            <div class="quiz-question-text">${escapeHtml(question.question)}</div>
             <div class="quiz-options" id="quiz-options">
               ${optionsHtml}
             </div>
@@ -322,7 +322,7 @@ ${transcriptionText}`;
                     `❌ Incorrect. The correct answer is ${optionLabels[question.correctAnswer]}.`}
                 </div>
                 <div class="quiz-feedback-explanation">
-                  <strong>Explanation:</strong> ${HtmlHelper.escapeHtml(question.explanation)}
+                  <strong>Explanation:</strong> ${escapeHtml(question.explanation)}
                 </div>
               </div>
               <button class="quiz-next-btn" id="next-question-btn">

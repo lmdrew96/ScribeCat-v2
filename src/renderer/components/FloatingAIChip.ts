@@ -6,6 +6,7 @@
  */
 
 import { ContentAnalyzer, SuggestionTrigger } from '../ai/ContentAnalyzer.js';
+import { escapeHtml } from '../utils/formatting.js';
 
 export interface LiveSuggestionsOptions {
   onSuggestionClick?: (suggestion: SuggestionTrigger) => void;
@@ -136,7 +137,7 @@ export class LiveSuggestionsPanel {
           <div class="chip-suggestion-icon">${icon}</div>
           <div class="chip-suggestion-content">
             <div class="chip-suggestion-action">${this.getActionLabel(trigger.suggestedAction)}</div>
-            <div class="chip-suggestion-reason">${this.escapeHtml(trigger.reason)}</div>
+            <div class="chip-suggestion-reason">${escapeHtml(trigger.reason)}</div>
           </div>
           <div class="chip-suggestion-confidence ${confidenceClass}"></div>
         </div>
@@ -261,14 +262,6 @@ export class LiveSuggestionsPanel {
     return `${mins} min`;
   }
 
-  /**
-   * Escape HTML for safe rendering
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
   /**
    * Get current suggestions count

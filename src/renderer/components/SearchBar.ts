@@ -11,6 +11,7 @@
 
 import type { SearchManager } from '../managers/SearchManager.js';
 import type { SearchFilter } from '../../domain/search/SearchFilter.js';
+import { escapeHtml } from '../utils/formatting.js';
 
 export class SearchBar {
   private searchManager: SearchManager;
@@ -168,11 +169,11 @@ export class SearchBar {
         <button id="clear-recent-searches" class="clear-recent-btn">Clear</button>
       </div>
       ${recentSearches.map((search, index) => `
-        <div class="search-suggestion-item" data-index="${index}" data-query="${this.escapeHtml(search)}">
+        <div class="search-suggestion-item" data-index="${index}" data-query="${escapeHtml(search)}">
           <svg class="suggestion-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M11 2a1 1 0 011 1v1h.5A1.5 1.5 0 0114 5.5v8a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 13.5v-8A1.5 1.5 0 013.5 4H4V3a1 1 0 012 0v1h4V3a1 1 0 011-1z"/>
           </svg>
-          <span class="suggestion-text">${this.escapeHtml(search)}</span>
+          <span class="suggestion-text">${escapeHtml(search)}</span>
         </div>
       `).join('')}
     `;
@@ -312,12 +313,4 @@ export class SearchBar {
     this.input?.focus();
   }
 
-  /**
-   * Escape HTML for safe rendering
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

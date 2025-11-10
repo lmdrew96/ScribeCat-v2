@@ -159,14 +159,6 @@ export class TranscriptionManager {
     this.transcriptionContainer.appendChild(flowingText);
   }
 
-  /**
-   * Escape HTML to prevent XSS
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
   /**
    * Get timestamped entries collected during recording

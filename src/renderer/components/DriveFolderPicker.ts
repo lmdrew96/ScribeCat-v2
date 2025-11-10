@@ -5,6 +5,7 @@
  */
 
 import { getRandomCatFact } from '../utils/cat-facts.js';
+import { escapeHtml } from '../utils/formatting.js';
 
 interface DriveFolder {
   id: string;
@@ -170,7 +171,7 @@ export class DriveFolderPicker {
       folderList.innerHTML = folders.map((folder: any) => `
         <div class="folder-item" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
           <span class="folder-icon">📁</span>
-          <span class="folder-name">${this.escapeHtml(folder.name)}</span>
+          <span class="folder-name">${escapeHtml(folder.name)}</span>
           <button class="folder-select-btn" data-folder-id="${folder.id}">Select</button>
         </div>
       `).join('');
@@ -251,7 +252,7 @@ export class DriveFolderPicker {
           class="breadcrumb-item ${isLast ? 'active' : ''}" 
           data-depth="${index}"
         >
-          ${index === 0 ? '📁' : ''} ${this.escapeHtml(name)}
+          ${index === 0 ? '📁' : ''} ${escapeHtml(name)}
         </button>
         ${!isLast ? '<span class="breadcrumb-separator">›</span>' : ''}
       `;
@@ -436,12 +437,4 @@ export class DriveFolderPicker {
     this.hide();
   }
 
-  /**
-   * Escape HTML to prevent XSS
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

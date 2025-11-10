@@ -6,6 +6,7 @@
  */
 
 import type { Session } from '../../../domain/entities/Session.js';
+import { escapeHtml } from '../../utils/formatting.js';
 
 export class ListView {
   private container: HTMLElement;
@@ -90,18 +91,18 @@ export class ListView {
           <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         </td>
         <td class="list-col-title">
-          <div class="list-title">${this.escapeHtml(session.title)}</div>
+          <div class="list-title">${escapeHtml(session.title)}</div>
           ${session.tags.length > 0 ? `
             <div class="list-tags">
               ${session.tags.slice(0, 2).map(tag => `
-                <span class="list-tag">${this.escapeHtml(tag)}</span>
+                <span class="list-tag">${escapeHtml(tag)}</span>
               `).join('')}
               ${session.tags.length > 2 ? `<span class="list-tag-more">+${session.tags.length - 2}</span>` : ''}
             </div>
           ` : ''}
         </td>
         <td class="list-col-course">
-          ${session.courseTitle ? this.escapeHtml(session.courseTitle) : '—'}
+          ${session.courseTitle ? escapeHtml(session.courseTitle) : '—'}
         </td>
         <td class="list-col-date">
           <div class="list-date">${date}</div>
@@ -142,12 +143,4 @@ export class ListView {
     this.onSessionClick = callback;
   }
 
-  /**
-   * Escape HTML
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

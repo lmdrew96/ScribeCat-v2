@@ -8,6 +8,7 @@
 
 import { SessionData } from '../../domain/entities/Session.js';
 import { createLogger } from '../../shared/logger.js';
+import { escapeHtml } from '../utils/formatting.js';
 
 const logger = createLogger('TrashModal');
 
@@ -170,7 +171,7 @@ export class TrashModal {
       return `
         <div class="trash-session-card ${expiryClass}" data-session-id="${session.id}">
           <div class="trash-session-header">
-            <h4 class="trash-session-title">${this.escapeHtml(session.title)}</h4>
+            <h4 class="trash-session-title">${escapeHtml(session.title)}</h4>
             <div class="trash-session-expiry">
               ${isExpiringSoon ? '⚠️ ' : ''}Deletes in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}
             </div>
@@ -421,12 +422,4 @@ export class TrashModal {
     }
   }
 
-  /**
-   * Escape HTML to prevent XSS
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

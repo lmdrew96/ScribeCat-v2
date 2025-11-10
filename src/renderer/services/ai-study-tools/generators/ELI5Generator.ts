@@ -7,7 +7,7 @@
 import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
-import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { escapeHtml } from '../../../utils/formatting.js';
 import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class ELI5Generator {
@@ -160,11 +160,11 @@ ${transcriptionText}`;
             <div class="eli5-item">
               <div class="eli5-concept">
                 <span class="eli5-icon">🔍</span>
-                <span class="eli5-concept-name">${HtmlHelper.escapeHtml(item.concept)}</span>
-                ${item.session ? `<span class="eli5-session-badge">${HtmlHelper.escapeHtml(item.session)}</span>` : ''}
+                <span class="eli5-concept-name">${escapeHtml(item.concept)}</span>
+                ${item.session ? `<span class="eli5-session-badge">${escapeHtml(item.session)}</span>` : ''}
               </div>
               <div class="eli5-explanation">
-                ${HtmlHelper.escapeHtml(item.simpleExplanation)}
+                ${escapeHtml(item.simpleExplanation)}
               </div>
             </div>
           `).join('')}

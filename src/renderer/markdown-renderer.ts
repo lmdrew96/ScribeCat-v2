@@ -5,6 +5,7 @@
 
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { escapeHtml } from './utils/formatting.js';
 
 /**
  * Configure marked options for better rendering
@@ -70,16 +71,6 @@ export function renderMarkdown(markdown: string): string {
   }
 }
 
-/**
- * Escapes HTML special characters
- * @param text - Text to escape
- * @returns Escaped text
- */
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
 
 /**
  * Checks if text contains markdown syntax

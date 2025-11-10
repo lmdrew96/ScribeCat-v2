@@ -7,7 +7,7 @@
 import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
-import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { escapeHtml } from '../../../utils/formatting.js';
 import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class FlashcardGenerator {
@@ -200,7 +200,7 @@ ${transcriptionText}`;
           <div class="flashcard-controls">
             <div class="flashcard-counter">
               Card ${currentIndex + 1} of ${flashcards.length}
-              ${card.session ? `<span class="flashcard-session-badge">${HtmlHelper.escapeHtml(card.session)}</span>` : ''}
+              ${card.session ? `<span class="flashcard-session-badge">${escapeHtml(card.session)}</span>` : ''}
             </div>
             <div class="flashcard-nav">
               <button class="flashcard-nav-btn" id="prev-card-btn" ${currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
@@ -211,7 +211,7 @@ ${transcriptionText}`;
           <div class="flashcard ${isFlipped ? 'flipped' : ''}" id="flashcard">
             <div class="flashcard-side">
               <div class="flashcard-label">${label}</div>
-              <div class="flashcard-content">${HtmlHelper.escapeHtml(content)}</div>
+              <div class="flashcard-content">${escapeHtml(content)}</div>
             </div>
             <div class="flashcard-hint">Click to flip</div>
           </div>

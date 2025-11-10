@@ -11,6 +11,7 @@
  */
 
 import type { Session } from '../../../domain/entities/Session.js';
+import { escapeHtml } from '../../utils/formatting.js';
 
 interface TimelineDay {
   date: Date;
@@ -298,9 +299,9 @@ export class TimelineView {
         <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         <div class="timeline-session-time">${time}</div>
         <div class="timeline-session-details">
-          <div class="timeline-session-title">${this.escapeHtml(session.title)}</div>
+          <div class="timeline-session-title">${escapeHtml(session.title)}</div>
           ${session.courseTitle ? `
-            <div class="timeline-session-course">${this.escapeHtml(session.courseTitle)}</div>
+            <div class="timeline-session-course">${escapeHtml(session.courseTitle)}</div>
           ` : ''}
           <div class="timeline-session-meta">
             ${duration} min
@@ -319,12 +320,4 @@ export class TimelineView {
     this.onSessionClick = callback;
   }
 
-  /**
-   * Escape HTML for safe rendering
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

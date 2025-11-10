@@ -9,6 +9,7 @@
  */
 
 import type { Session } from '../../../domain/entities/Session.js';
+import { escapeHtml } from '../../utils/formatting.js';
 
 type BoardColumn = 'to-review' | 'studying' | 'mastered';
 
@@ -183,10 +184,10 @@ export class BoardView {
     return `
       <div class="board-card" data-session-id="${session.id}">
         <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
-        <div class="board-card-title">${this.escapeHtml(session.title)}</div>
+        <div class="board-card-title">${escapeHtml(session.title)}</div>
 
         ${session.courseTitle ? `
-          <div class="board-card-course">${this.escapeHtml(session.courseTitle)}</div>
+          <div class="board-card-course">${escapeHtml(session.courseTitle)}</div>
         ` : ''}
 
         <div class="board-card-meta">
@@ -203,7 +204,7 @@ export class BoardView {
         ${session.tags.length > 0 ? `
           <div class="board-card-tags">
             ${session.tags.slice(0, 2).map(tag => `
-              <span class="board-card-tag">${this.escapeHtml(tag)}</span>
+              <span class="board-card-tag">${escapeHtml(tag)}</span>
             `).join('')}
           </div>
         ` : ''}
@@ -218,12 +219,4 @@ export class BoardView {
     this.onSessionClick = callback;
   }
 
-  /**
-   * Escape HTML
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }

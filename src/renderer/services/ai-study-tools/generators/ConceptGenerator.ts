@@ -8,7 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { renderMarkdown } from '../../../markdown-renderer.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
-import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { escapeHtml } from '../../../utils/formatting.js';
 import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class ConceptGenerator {
@@ -219,12 +219,12 @@ ${transcriptionText}`;
   private static renderConceptMap(conceptMap: {mainTopic: string; subtopics: Array<{name: string; supporting: string[]}>}, contentArea: HTMLElement): void {
     const subtopicsHtml = conceptMap.subtopics.map(subtopic => {
       const supportingHtml = subtopic.supporting.map(concept => `
-        <div class="map-supporting-concept">${HtmlHelper.escapeHtml(concept)}</div>
+        <div class="map-supporting-concept">${escapeHtml(concept)}</div>
       `).join('');
 
       return `
         <div class="map-subtopic-branch">
-          <div class="map-subtopic">${HtmlHelper.escapeHtml(subtopic.name)}</div>
+          <div class="map-subtopic">${escapeHtml(subtopic.name)}</div>
           <div class="map-supporting-concepts">${supportingHtml}</div>
         </div>
       `;
@@ -237,7 +237,7 @@ ${transcriptionText}`;
           <p>Visual representation of how concepts relate</p>
         </div>
         <div class="map-diagram">
-          <div class="map-main-topic">${HtmlHelper.escapeHtml(conceptMap.mainTopic)}</div>
+          <div class="map-main-topic">${escapeHtml(conceptMap.mainTopic)}</div>
           <div class="map-subtopics">${subtopicsHtml}</div>
         </div>
       </div>
@@ -286,8 +286,8 @@ ${transcriptionText}`;
     const conceptsHtml = concepts.map(concept => `
       <div class="concept-item">
         <div class="concept-term">
-          ${HtmlHelper.escapeHtml(concept.term)}
-          ${concept.sessions ? `<span class="concept-sessions"> (${HtmlHelper.escapeHtml(concept.sessions)})</span>` : ''}
+          ${escapeHtml(concept.term)}
+          ${concept.sessions ? `<span class="concept-sessions"> (${escapeHtml(concept.sessions)})</span>` : ''}
         </div>
         <div class="concept-definition">${renderMarkdown(concept.definition)}</div>
       </div>

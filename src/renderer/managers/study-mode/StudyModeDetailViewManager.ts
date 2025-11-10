@@ -8,7 +8,7 @@
 import { Session } from '../../../domain/entities/Session.js';
 import { SessionPlaybackManager } from '../../services/SessionPlaybackManager.js';
 import { createLogger } from '../../../shared/logger.js';
-import { SessionDataLoader } from './detail-view/SessionDataLoader.js';
+import { ChildSessionLoader } from './detail-view/ChildSessionLoader.js';
 import { SingleSessionRenderer } from './detail-view/SingleSessionRenderer.js';
 import { MultiSessionRenderer } from './detail-view/MultiSessionRenderer.js';
 import { TranscriptionRenderer } from './detail-view/TranscriptionRenderer.js';
@@ -107,7 +107,7 @@ export class StudyModeDetailViewManager {
     logger.info(`Rendering multi-session study set: ${session.id}`);
 
     // Load child sessions
-    this.childSessions = await SessionDataLoader.loadChildSessions(session);
+    this.childSessions = await ChildSessionLoader.loadChildSessions(session);
 
     if (this.childSessions.length === 0) {
       logger.warn('No child sessions found for multi-session study set');

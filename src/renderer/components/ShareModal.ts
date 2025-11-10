@@ -6,7 +6,8 @@
  */
 
 import { SessionSharingManager } from '../managers/SessionSharingManager.js';
-import { toast } from '../utils/toast.js';
+import { ToastManager } from '../managers/ToastManager.js';
+import { escapeHtml } from '../utils/formatting.js';
 
 export class ShareModal {
   private modal: HTMLElement | null = null;
@@ -14,10 +15,12 @@ export class ShareModal {
   private shares: any[] = [];
   private invitations: any[] = [];
   private sessionSharingManager: SessionSharingManager;
+  private toastManager: ToastManager;
 
   constructor() {
     // Modal will be created in initialize()
     this.sessionSharingManager = new SessionSharingManager();
+    this.toastManager = new ToastManager();
   }
 
   /**
@@ -199,8 +202,8 @@ export class ShareModal {
         <div class="share-user">
           <div class="share-avatar-placeholder">${email.charAt(0).toUpperCase()}</div>
           <div class="share-info">
-            <div class="share-name">${this.escapeHtml(userName)}</div>
-            <div class="share-email">${this.escapeHtml(email)} • ${permissionLabel}</div>
+            <div class="share-name">${escapeHtml(userName)}</div>
+            <div class="share-email">${escapeHtml(email)} • ${permissionLabel}</div>
           </div>
         </div>
         <div class="share-actions">
@@ -214,14 +217,6 @@ export class ShareModal {
     `;
   }
 
-  /**
-   * Escape HTML to prevent XSS
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
   /**
    * Render an invitation item
@@ -401,9 +396,9 @@ export class ShareModal {
   private showMessage(text: string, type: 'success' | 'error'): void {
     // Use toast notifications for better UX
     if (type === 'success') {
-      toast.success(text);
+      this.toastManager.success(text);
     } else {
-      toast.error(text);
+      this.toastManager.error(text);
     }
   }
 

@@ -7,7 +7,7 @@
 import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
-import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { escapeHtml } from '../../../utils/formatting.js';
 import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class WeakSpotsGenerator {
@@ -226,16 +226,16 @@ ${transcriptionText}`;
             <div class="weak-spot-header">
               <div class="weak-spot-title">
                 <span class="weak-spot-icon">${icon}</span>
-                <span class="weak-spot-concept">${HtmlHelper.escapeHtml(spot.concept)}</span>
+                <span class="weak-spot-concept">${escapeHtml(spot.concept)}</span>
                 <span class="weak-spot-severity-badge">${label}</span>
               </div>
-              ${spot.session ? `<span class="weak-spot-session-badge">${HtmlHelper.escapeHtml(spot.session)}</span>` : ''}
+              ${spot.session ? `<span class="weak-spot-session-badge">${escapeHtml(spot.session)}</span>` : ''}
             </div>
             <div class="weak-spot-reason">
-              <strong>Why it's tricky:</strong> ${HtmlHelper.escapeHtml(spot.reason)}
+              <strong>Why it's tricky:</strong> ${escapeHtml(spot.reason)}
             </div>
             <div class="weak-spot-mini-lesson">
-              <strong>💡 Quick tip:</strong> ${HtmlHelper.escapeHtml(spot.miniLesson)}
+              <strong>💡 Quick tip:</strong> ${escapeHtml(spot.miniLesson)}
             </div>
           </div>
         `;

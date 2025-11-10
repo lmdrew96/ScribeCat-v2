@@ -7,7 +7,7 @@
 import type { Session } from '../../../../domain/entities/Session.js';
 import { MultiSessionHelper } from '../utils/MultiSessionHelper.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
-import { HtmlHelper } from '../utils/HtmlHelper.js';
+import { escapeHtml } from '../../../utils/formatting.js';
 import { createLoadingHTML } from '../../../utils/loading-helpers.js';
 
 export class LearnModeGenerator {
@@ -195,8 +195,8 @@ ${transcriptionText}`;
           <div class="learn-progress-text">${currentIndex + 1} of ${reviewQueue.length} concepts</div>
 
           <div class="learn-card">
-            <div class="learn-card-term">${HtmlHelper.escapeHtml(concept.term)}</div>
-            <div class="learn-card-definition">${HtmlHelper.escapeHtml(concept.definition)}</div>
+            <div class="learn-card-term">${escapeHtml(concept.term)}</div>
+            <div class="learn-card-definition">${escapeHtml(concept.definition)}</div>
           </div>
 
           <div class="learn-actions">

@@ -12,6 +12,7 @@ import type { Session } from '../../domain/entities/Session.js';
 import { createLogger } from '../../shared/logger.js';
 import { GoalsManager, type GoalProgress } from '../managers/GoalsManager.js';
 import { AchievementsManager, type Achievement } from '../managers/AchievementsManager.js';
+import { escapeHtml } from '../utils/formatting.js';
 
 const logger = createLogger('AnalyticsDashboard');
 
@@ -684,7 +685,7 @@ export class AnalyticsDashboard {
                 return `
                   <div class="course-item">
                     <div class="course-header">
-                      <span class="course-name">${this.escapeHtml(course)}</span>
+                      <span class="course-name">${escapeHtml(course)}</span>
                       <span class="course-stats">${data.count} session${data.count !== 1 ? 's' : ''} • ${this.formatTime(data.totalTime)}</span>
                     </div>
                     <div class="course-progress-bar">
@@ -926,14 +927,6 @@ export class AnalyticsDashboard {
     }
   }
 
-  /**
-   * Escape HTML
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
   /**
    * Get current stats (for external access)

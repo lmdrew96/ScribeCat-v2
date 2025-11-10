@@ -1,15 +1,15 @@
 /**
- * SessionDataLoader
+ * ChildSessionLoader
  *
- * Handles loading and transforming session data for detail view
+ * Handles loading and transforming child session data for multi-session study sets
  */
 
 import { Session } from '../../../../domain/entities/Session.js';
 import { createLogger } from '../../../../shared/logger.js';
 
-const logger = createLogger('SessionDataLoader');
+const logger = createLogger('ChildSessionLoader');
 
-export class SessionDataLoader {
+export class ChildSessionLoader {
   /**
    * Load child sessions for a multi-session study set
    */

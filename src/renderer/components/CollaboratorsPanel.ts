@@ -7,6 +7,7 @@
 
 import { UserPresence, ConnectionState } from '../../infrastructure/services/supabase/SupabaseRealtimeService.js';
 import { createLogger } from '../../shared/logger.js';
+import { escapeHtml } from '../utils/formatting.js';
 
 const logger = createLogger('CollaboratorsPanel');
 
@@ -141,8 +142,8 @@ export class CollaboratorsPanel {
           <div class="user-status-indicator" style="background-color: ${isActive ? '#4CAF50' : '#999'}"></div>
         </div>
         <div class="user-info">
-          <div class="user-name">${this.escapeHtml(user.userName)} ${typingIndicator}</div>
-          <div class="user-email">${this.escapeHtml(user.userEmail)}</div>
+          <div class="user-name">${escapeHtml(user.userName)} ${typingIndicator}</div>
+          <div class="user-email">${escapeHtml(user.userEmail)}</div>
         </div>
       </div>
     `;
@@ -167,14 +168,6 @@ export class CollaboratorsPanel {
     return diffMs < 30000; // 30 seconds
   }
 
-  /**
-   * Escape HTML to prevent XSS
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
   /**
    * Clean up
