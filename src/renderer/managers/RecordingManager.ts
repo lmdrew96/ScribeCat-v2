@@ -187,11 +187,12 @@ export class RecordingManager {
           lastTimestamp: timestampedEntries[timestampedEntries.length - 1]?.timestamp
         });
 
-        const transcriptionResult = await window.scribeCat.session.updateTranscription(
+        // Retry logic for saving transcription (handles race condition where session isn't fully saved yet)
+        const transcriptionResult = await this.saveTranscriptionWithRetry(
           saveResult.sessionId,
           transcriptionText,
-          this.transcriptionService.getCurrentMode(),
-          timestampedEntries.length > 0 ? timestampedEntries : undefined
+          timestampedEntries,
+          3 // Max 3 attempts
         );
 
         if (transcriptionResult.success) {
@@ -208,7 +209,7 @@ export class RecordingManager {
               logger.warn('Failed to generate short summary (non-critical):', error);
             });
         } else {
-          logger.error('Failed to save transcription', transcriptionResult.error);
+          logger.error('Failed to save transcription after retries', transcriptionResult.error);
         }
       }
 
@@ -512,5 +513,60 @@ export class RecordingManager {
       default:
         logger.warn('Unknown suggestion action:', suggestion.suggestedAction);
     }
+  }
+
+  /**
+   * Save transcription with retry logic to handle race conditions
+   * Retries with exponential backoff if session isn't ready yet
+   */
+  private async saveTranscriptionWithRetry(
+    sessionId: string,
+    transcriptionText: string,
+    timestampedEntries: Array<{ timestamp: number; text: string }>,
+    maxAttempts: number = 3
+  ): Promise<{ success: boolean; error?: string }> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        logger.debug(`Transcription save attempt ${attempt}/${maxAttempts}`);
+
+        const result = await window.scribeCat.session.updateTranscription(
+          sessionId,
+          transcriptionText,
+          this.transcriptionService.getCurrentMode(),
+          timestampedEntries.length > 0 ? timestampedEntries : undefined
+        );
+
+        if (result.success) {
+          if (attempt > 1) {
+            logger.info(`Transcription saved successfully on attempt ${attempt}`);
+          }
+          return { success: true };
+        }
+
+        // If not the last attempt, wait before retrying
+        if (attempt < maxAttempts) {
+          const delayMs = Math.pow(2, attempt - 1) * 500; // 500ms, 1s, 2s
+          logger.warn(`Transcription save failed, retrying in ${delayMs}ms... (attempt ${attempt}/${maxAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        } else {
+          return { success: false, error: result.error };
+        }
+      } catch (error) {
+        logger.error(`Error saving transcription (attempt ${attempt}/${maxAttempts}):`, error);
+
+        if (attempt === maxAttempts) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+
+        // Wait before retrying
+        const delayMs = Math.pow(2, attempt - 1) * 500;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+
+    return { success: false, error: 'Max retry attempts reached' };
   }
 }

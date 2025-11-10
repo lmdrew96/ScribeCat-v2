@@ -27,6 +27,14 @@ export class AssemblyAITranscriptionService {
   private stopPromiseResolve: (() => void) | null = null;
   private settings: TranscriptionSettings = {};
 
+  // Audio buffering for token refresh transitions
+  private audioBuffer: ArrayBuffer[] = [];
+  private maxBufferSize: number = 100; // Max audio chunks to buffer (prevent memory issues)
+  private lastTranscriptionTime: number = 0;
+  private stalledCheckInterval: NodeJS.Timeout | null = null;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 3;
+
   async initialize(apiKey: string, settings?: TranscriptionSettings): Promise<void> {
     this.apiKey = apiKey;
     if (settings) {
@@ -47,6 +55,7 @@ export class AssemblyAITranscriptionService {
 
     this.sessionId = `assemblyai-${Date.now()}`;
     this.startTime = Date.now();
+    this.lastTranscriptionTime = Date.now();
 
     // Get temporary token from main process (which can use Authorization headers)
     const tempToken = await this.getTemporaryToken();
@@ -57,6 +66,9 @@ export class AssemblyAITranscriptionService {
 
     // Set up token refresh timer (refresh after 8 minutes, token expires after 10 minutes)
     this.scheduleTokenRefresh();
+
+    // Start monitoring for stalled transcription
+    this.startStalledCheck();
 
     return this.sessionId;
   }
@@ -78,6 +90,43 @@ export class AssemblyAITranscriptionService {
     console.log('Token refresh scheduled for 8 minutes from now');
   }
 
+  /**
+   * Start periodic check for stalled transcription
+   * If no transcription received for 30 seconds, attempt recovery
+   */
+  private startStalledCheck(): void {
+    // Clear any existing interval
+    if (this.stalledCheckInterval) {
+      clearInterval(this.stalledCheckInterval);
+    }
+
+    // Check every 15 seconds
+    this.stalledCheckInterval = setInterval(() => {
+      const timeSinceLastTranscription = Date.now() - this.lastTranscriptionTime;
+      const thirtySeconds = 30 * 1000;
+
+      // Only consider it stalled if we're not already refreshing and session is active
+      if (timeSinceLastTranscription > thirtySeconds && !this.isRefreshing && this.sessionId) {
+        console.warn(`⚠️ No transcription received for ${Math.floor(timeSinceLastTranscription / 1000)}s, checking connection...`);
+
+        // Check if WebSocket is still connected
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+          console.error('❌ WebSocket disconnected, attempting recovery...');
+          this.handleUnexpectedDisconnection();
+        } else {
+          console.log('✅ WebSocket connected, may be silence or processing delay');
+        }
+      }
+    }, 15000); // Check every 15 seconds
+  }
+
+  private stopStalledCheck(): void {
+    if (this.stalledCheckInterval) {
+      clearInterval(this.stalledCheckInterval);
+      this.stalledCheckInterval = null;
+    }
+  }
+
   private async refreshToken(): Promise<void> {
     if (this.isRefreshing || !this.sessionId) {
       return;
@@ -91,24 +140,43 @@ export class AssemblyAITranscriptionService {
       const newToken = await this.getTemporaryToken();
       this.tokenCreatedAt = Date.now();
 
-      // Close old WebSocket gracefully
+      // Keep old WebSocket reference
       const oldWs = this.ws;
-      this.ws = null; // Prevent sending audio during transition
 
-      if (oldWs) {
+      // Connect new WebSocket BEFORE closing old one (seamless handoff)
+      console.log('🔗 Establishing new WebSocket connection...');
+      await this.connectWebSocket(newToken);
+      console.log('✅ New WebSocket connected, closing old connection...');
+
+      // Now that new connection is established, close old one
+      if (oldWs && oldWs !== this.ws) {
         oldWs.close();
       }
 
-      // Connect with new token
-      await this.connectWebSocket(newToken);
+      // Flush any buffered audio packets
+      this.flushAudioBuffer();
+
       console.log('✅ Token refreshed and reconnected successfully');
+
+      // Reset reconnect attempts on successful refresh
+      this.reconnectAttempts = 0;
 
       // Schedule next refresh
       this.scheduleTokenRefresh();
     } catch (error) {
       console.error('❌ Failed to refresh token:', error);
-      // If refresh fails, try again in 5 minutes
-      setTimeout(() => this.refreshToken(), 5 * 60 * 1000);
+      this.reconnectAttempts++;
+
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        // Exponential backoff: 5s, 10s, 20s
+        const retryDelay = 5000 * Math.pow(2, this.reconnectAttempts - 1);
+        console.log(`⏳ Retry attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${retryDelay / 1000}s...`);
+        setTimeout(() => this.refreshToken(), retryDelay);
+      } else {
+        console.error('❌ Max reconnect attempts reached. Transcription may be lost.');
+        // Clear buffer to prevent memory issues
+        this.audioBuffer = [];
+      }
     } finally {
       this.isRefreshing = false;
     }
@@ -223,6 +291,9 @@ export class AssemblyAITranscriptionService {
       }
 
       if (message.type === 'Turn') {
+        // Update last transcription time for stalled detection
+        this.lastTranscriptionTime = Date.now();
+
         const text = message.transcript;
         const isFinal = message.end_of_turn && message.turn_is_formatted;
 
@@ -288,6 +359,41 @@ export class AssemblyAITranscriptionService {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       // Universal Streaming expects raw PCM audio data (not base64)
       this.ws.send(audioData);
+    } else if (this.isRefreshing && this.audioBuffer.length < this.maxBufferSize) {
+      // Buffer audio during token refresh to prevent data loss
+      this.audioBuffer.push(audioData);
+      if (this.audioBuffer.length === 1) {
+        console.log('🔄 WebSocket not ready, buffering audio packets during token refresh...');
+      }
+    } else if (this.audioBuffer.length >= this.maxBufferSize) {
+      console.warn('⚠️ Audio buffer full, dropping packets. This may indicate a connection issue.');
+    }
+  }
+
+  /**
+   * Flush buffered audio packets to the WebSocket
+   * Called after successful reconnection during token refresh
+   */
+  private flushAudioBuffer(): void {
+    if (this.audioBuffer.length === 0) {
+      return;
+    }
+
+    console.log(`📤 Flushing ${this.audioBuffer.length} buffered audio packets...`);
+
+    let successfulSends = 0;
+    while (this.audioBuffer.length > 0 && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      const audioData = this.audioBuffer.shift()!;
+      this.ws.send(audioData);
+      successfulSends++;
+    }
+
+    console.log(`✅ Flushed ${successfulSends} audio packets successfully`);
+
+    // Clear any remaining buffer if WebSocket closed during flush
+    if (this.audioBuffer.length > 0) {
+      console.warn(`⚠️ ${this.audioBuffer.length} packets remain in buffer (WebSocket closed during flush)`);
+      this.audioBuffer = [];
     }
   }
 
@@ -301,6 +407,9 @@ export class AssemblyAITranscriptionService {
       clearTimeout(this.tokenRefreshTimer);
       this.tokenRefreshTimer = null;
     }
+
+    // Stop stalled transcription check
+    this.stopStalledCheck();
 
     if (this.ws) {
       // Create a promise that resolves when termination is received
@@ -346,15 +455,22 @@ export class AssemblyAITranscriptionService {
       this.tokenRefreshTimer = null;
     }
 
+    // Stop stalled check
+    this.stopStalledCheck();
+
     // Close the WebSocket connection
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
 
+    // Clear audio buffer
+    this.audioBuffer = [];
+
     this.sessionId = null;
     this.terminationReceived = false;
     this.isRefreshing = false;
+    this.reconnectAttempts = 0;
   }
 
   isActive(): boolean {
