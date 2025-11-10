@@ -22,7 +22,6 @@ import { SettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
 import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
 import { ShareHandlers } from './ipc/handlers/ShareHandlers.js';
-import { SharingHandlers } from './ipc/handlers/SharingHandlers.js';
 import { PowerHandlers } from './ipc/handlers/PowerHandlers.js';
 import { GoogleDriveService } from '../infrastructure/services/drive/GoogleDriveService.js';
 import type { GoogleDriveConfig } from '../shared/types.js';
@@ -48,7 +47,7 @@ export class IPCCoordinator {
   // Handler references for setting user ID
   private sessionHandlers: SessionHandlers | null = null;
   private driveHandlers: DriveHandlers | null = null;
-  private sharingHandlers: SharingHandlers | null = null;
+  private shareHandlers: ShareHandlers | null = null;
 
   constructor(deps: IPCCoordinatorDependencies) {
     this.services = deps.services;
@@ -59,8 +58,7 @@ export class IPCCoordinator {
   /**
    * Set up all IPC handlers
    */
-  setupHandlers(sharingHandlers: SharingHandlers | null): void {
-    this.sharingHandlers = sharingHandlers;
+  setupHandlers(): void {
     this.registerModularHandlers();
     this.registerSpecialHandlers();
   }
@@ -109,14 +107,15 @@ export class IPCCoordinator {
 
     // Add sharing handlers if Supabase is configured
     if (this.services.shareSessionUseCase) {
-      registry.add(new ShareHandlers(
+      this.shareHandlers = new ShareHandlers(
         this.services.shareSessionUseCase,
         this.services.removeShareUseCase,
         this.services.updateSharePermissionUseCase,
         this.services.getSessionSharesUseCase,
         this.services.getSharedSessionsUseCase,
         this.services.acceptShareInvitationUseCase
-      ));
+      );
+      registry.add(this.shareHandlers);
     }
 
     // Register all handlers with ipcMain
@@ -193,10 +192,10 @@ export class IPCCoordinator {
           console.log('Updated SyncManager with user ID');
         }
 
-        // Update SharingHandlers with user ID
-        if (this.sharingHandlers) {
-          this.sharingHandlers.setCurrentUserId(data.userId);
-          console.log('Updated SharingHandlers with user ID');
+        // Update ShareHandlers with user ID
+        if (this.shareHandlers) {
+          this.shareHandlers.setCurrentUserId(data.userId);
+          console.log('Updated ShareHandlers with user ID');
         }
 
         // Update DriveHandlers with user ID

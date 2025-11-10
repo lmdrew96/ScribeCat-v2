@@ -15,8 +15,11 @@ import {
   AcceptShareInvitationUseCase
 } from '../../../application/use-cases/sharing/index.js';
 import { PermissionLevel } from '../../../domain/entities/Share.js';
+import { SupabaseClient } from '../../../infrastructure/services/supabase/SupabaseClient.js';
 
 export class ShareHandlers extends BaseHandler {
+  private currentUserId: string | null = null;
+
   constructor(
     private shareSessionUseCase: ShareSessionUseCase,
     private removeShareUseCase: RemoveShareUseCase,
@@ -28,7 +31,106 @@ export class ShareHandlers extends BaseHandler {
     super();
   }
 
+  /** Set the current user ID for access checks */
+  setCurrentUserId(userId: string | null): void {
+    this.currentUserId = userId;
+  }
+
   register(ipcMain: IpcMain): void {
+    /**
+     * Check if current user has access to a session
+     */
+    this.handle(ipcMain, 'share:checkAccess', async (_event, sessionId: string) => {
+      try {
+        if (!this.currentUserId) {
+          return {
+            success: false,
+            hasAccess: false,
+            permission: null,
+            isShared: false,
+            isOwner: false
+          };
+        }
+
+        const client = SupabaseClient.getInstance().getClient();
+
+        const { data: session, error: sessionError } = await client
+          .from('sessions')
+          .select('user_id')
+          .eq('id', sessionId)
+          .is('deleted_at', null)
+          .single();
+
+        if (sessionError) {
+          return {
+            success: false,
+            hasAccess: false,
+            permission: null,
+            isShared: false,
+            isOwner: false,
+            error: sessionError.message
+          };
+        }
+
+        const isOwner = session?.user_id === this.currentUserId;
+
+        if (isOwner) {
+          return {
+            success: true,
+            hasAccess: true,
+            permission: 'owner',
+            isShared: false,
+            isOwner: true
+          };
+        }
+
+        const { data: share, error: shareError } = await client
+          .from('session_shares')
+          .select('*')
+          .eq('session_id', sessionId)
+          .eq('shared_with_user_id', this.currentUserId)
+          .single();
+
+        if (shareError && shareError.code !== 'PGRST116') {
+          return {
+            success: false,
+            hasAccess: false,
+            permission: null,
+            isShared: false,
+            isOwner: false,
+            error: shareError.message
+          };
+        }
+
+        if (share) {
+          return {
+            success: true,
+            hasAccess: true,
+            permission: share.permission_level,
+            isShared: true,
+            isOwner: false
+          };
+        }
+
+        return {
+          success: true,
+          hasAccess: false,
+          permission: null,
+          isShared: false,
+          isOwner: false
+        };
+      } catch (error) {
+        return {
+          success: false,
+          hasAccess: false,
+          permission: null,
+          isShared: false,
+          isOwner: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
     /**
      * Share a session with another user by email
      */

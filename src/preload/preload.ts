@@ -250,6 +250,8 @@ const electronAPI = {
     syncAllFromCloud: () => ipcRenderer.invoke('sync:syncAllFromCloud')
   },
   share: {
+    checkAccess: (sessionId: string) =>
+      ipcRenderer.invoke('share:checkAccess', sessionId),
     create: (params: { sessionId: string; email: string; permissionLevel: 'viewer' | 'editor' }) =>
       ipcRenderer.invoke('share:create', params),
     remove: (params: { shareId?: string; invitationId?: string }) =>
@@ -262,16 +264,6 @@ const electronAPI = {
       ipcRenderer.invoke('share:getSharedWithMe'),
     acceptInvitation: (token: string) =>
       ipcRenderer.invoke('share:acceptInvitation', token)
-  },
-  sharing: {
-    checkAccess: (sessionId: string) => ipcRenderer.invoke('sharing:checkAccess', sessionId),
-    shareSession: (params: { sessionId: string; sharedWithEmail: string; permissionLevel: 'viewer' | 'editor' }) =>
-      ipcRenderer.invoke('sharing:shareSession', params),
-    getSessionShares: (sessionId: string) => ipcRenderer.invoke('sharing:getSessionShares', sessionId),
-    getSharedWithMe: () => ipcRenderer.invoke('sharing:getSharedWithMe'),
-    updatePermission: (params: { shareId: string; permissionLevel: 'viewer' | 'editor' }) =>
-      ipcRenderer.invoke('sharing:updatePermission', params),
-    revokeAccess: (shareId: string) => ipcRenderer.invoke('sharing:revokeAccess', shareId)
   },
   power: {
     preventSleep: () => ipcRenderer.invoke('power:preventSleep'),

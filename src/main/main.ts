@@ -5,7 +5,6 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import Store from 'electron-store';
-import { SharingHandlers } from './ipc/handlers/SharingHandlers.js';
 import { OAuthWindowManager } from './OAuthWindowManager.js';
 import { ServiceBootstrapper, type Services } from './ServiceBootstrapper.js';
 import { MainWindowManager } from './MainWindowManager.js';
@@ -31,9 +30,6 @@ class ScribeCatApp {
   // OAuth window manager
   private oauthManager: OAuthWindowManager | null = null;
 
-  // Real-time sharing handlers (permission-based access control)
-  private sharingHandlers: SharingHandlers | null = null;
-
   constructor() {
     // Initialize electron-store for settings (doesn't need app to be ready)
     this.store = new Store<StoreSchema>({
@@ -47,9 +43,6 @@ class ScribeCatApp {
 
     // Initialize window manager
     this.windowManager = new MainWindowManager();
-
-    // Initialize real-time sharing handlers
-    this.sharingHandlers = new SharingHandlers();
 
     // Initialize OAuth window manager
     this.oauthManager = new OAuthWindowManager();
@@ -85,7 +78,7 @@ class ScribeCatApp {
         store: this.store,
         getMainWindow: () => this.mainWindow
       });
-      this.ipcCoordinator.setupHandlers(this.sharingHandlers);
+      this.ipcCoordinator.setupHandlers();
 
       this.setupSecurity();
     });
