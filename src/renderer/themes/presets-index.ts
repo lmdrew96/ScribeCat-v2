@@ -8,13 +8,14 @@
 import { Theme } from './types.js';
 import { darkThemes } from './presets-dark.js';
 import { lightThemes } from './presets-light.js';
+import { highContrastThemes } from './presets-high-contrast.js';
 import { getAllEasterEggThemes, getUnlockedEasterEggThemes } from './easter-egg-themes.js';
 
 /**
- * All available themes (dark + light)
- * 40 total themes: 20 dark mode + 20 light mode
+ * All available themes (dark + light + high contrast)
+ * 48 total themes: 20 dark mode + 20 light mode + 8 high contrast
  */
-const baseThemes: Theme[] = [...darkThemes, ...lightThemes];
+const baseThemes: Theme[] = [...darkThemes, ...lightThemes, ...highContrastThemes];
 
 /**
  * All themes including easter eggs
@@ -33,7 +34,7 @@ export function getVisibleThemes(): Theme[] {
 /**
  * Re-export theme arrays for direct access
  */
-export { darkThemes, lightThemes };
+export { darkThemes, lightThemes, highContrastThemes };
 
 /**
  * Get theme by ID

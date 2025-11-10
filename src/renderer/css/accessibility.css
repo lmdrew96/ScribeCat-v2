@@ -1,0 +1,553 @@
+/* ===== Accessibility Enhancements - Phase 6.2 ===== */
+/* ARIA landmarks, focus management, screen reader optimizations, high contrast support */
+
+/* ========== Screen Reader Only Content ========== */
+
+/* Visually hidden but accessible to screen readers */
+.sr-only,
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focusable when navigated to with keyboard */
+.sr-only-focusable:focus,
+.visually-hidden-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ========== Enhanced Focus Indicators ========== */
+
+/* Remove default outline */
+*:focus {
+  outline: none;
+}
+
+/* Enhanced focus ring for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+  position: relative;
+  z-index: 1;
+}
+
+/* Focus ring animation */
+@keyframes focus-ring-appear {
+  0% {
+    outline-offset: 0;
+    outline-width: 0;
+  }
+  100% {
+    outline-offset: 2px;
+    outline-width: 2px;
+  }
+}
+
+*:focus-visible {
+  animation: focus-ring-appear 0.2s ease-out;
+}
+
+/* Special focus styles for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+/* Focus within container highlighting */
+.focus-within-highlight:focus-within {
+  box-shadow: 0 0 0 2px var(--accent);
+  border-radius: var(--radius-md);
+}
+
+/* ========== Skip to Content Link ========== */
+
+.skip-to-content {
+  position: fixed;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  font-weight: 600;
+  font-size: 14px;
+  transition: top var(--transition-base);
+  box-shadow: var(--shadow-lg);
+}
+
+.skip-to-content:focus {
+  top: 0;
+  outline: 2px solid white;
+  outline-offset: -4px;
+}
+
+/* ========== ARIA Live Regions ========== */
+
+/* Hidden live region for screen reader announcements */
+#aria-live-region,
+[aria-live] {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Status messages visible to all */
+.status-message {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin: var(--space-sm) 0;
+  font-size: 14px;
+}
+
+.status-message[role="status"],
+.status-message[role="alert"] {
+  border-left: 4px solid var(--accent);
+}
+
+.status-message.success {
+  background: rgba(39, 174, 96, 0.1);
+  border-left-color: var(--success);
+  color: var(--success);
+}
+
+.status-message.error {
+  background: rgba(231, 76, 60, 0.1);
+  border-left-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.status-message.warning {
+  background: rgba(243, 156, 18, 0.1);
+  border-left-color: #f39c12;
+  color: #f39c12;
+}
+
+.status-message.info {
+  background: rgba(0, 122, 204, 0.1);
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ========== ARIA Landmarks ========== */
+
+/* Ensure landmarks are properly styled */
+[role="main"],
+main {
+  min-height: 200px;
+}
+
+[role="navigation"],
+nav {
+  position: relative;
+}
+
+[role="complementary"],
+aside {
+  position: relative;
+}
+
+/* Add visual indicator for landmark regions (dev mode only) */
+body[data-a11y-debug="true"] [role="main"]::before,
+body[data-a11y-debug="true"] [role="navigation"]::before,
+body[data-a11y-debug="true"] [role="complementary"]::before {
+  content: attr(role);
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--accent);
+  color: white;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  z-index: 10000;
+  opacity: 0.7;
+}
+
+/* ========== Focus Trap Styling ========== */
+
+/* Element with active focus trap */
+[data-focus-trap="true"] {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Dim background when focus is trapped */
+body:has([data-focus-trap="true"])::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  pointer-events: none;
+}
+
+/* ========== Reduced Motion ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep essential transitions but make them instant */
+  .modal-dialog,
+  .toast,
+  .dropdown {
+    transition: opacity 0.01ms;
+  }
+}
+
+/* ========== High Contrast Mode Support ========== */
+
+/* Detect and adapt to OS high contrast mode */
+@media (prefers-contrast: high) {
+  /* Increase border visibility */
+  button,
+  input,
+  select,
+  textarea,
+  .card,
+  .modal {
+    border: 2px solid currentColor !important;
+  }
+
+  /* Ensure text has strong contrast */
+  body {
+    background: black;
+    color: white;
+  }
+
+  /* Remove background images that may interfere */
+  * {
+    background-image: none !important;
+  }
+
+  /* Ensure focus indicators are very visible */
+  *:focus-visible {
+    outline: 3px solid yellow !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Ensure links are clearly visible */
+  a {
+    text-decoration: underline !important;
+    color: #00ffff !important;
+  }
+
+  a:visited {
+    color: #ff00ff !important;
+  }
+}
+
+/* ========== Keyboard Navigation Helpers ========== */
+
+/* Indicate keyboard navigation mode */
+body.keyboard-nav *:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Hide focus outline for mouse users */
+body:not(.keyboard-nav) *:focus {
+  outline: none;
+}
+
+/* ========== Text Sizing & Spacing ========== */
+
+/* Ensure text can be resized up to 200% */
+html {
+  font-size: 16px;
+}
+
+/* Maintain proper line height for readability */
+body,
+p,
+li,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1.5;
+}
+
+/* Sufficient spacing between interactive elements */
+button + button,
+a + a,
+input + input {
+  margin-left: var(--space-sm);
+}
+
+/* ========== Touch Target Sizing ========== */
+
+/* Ensure touch targets are at least 44x44px (WCAG 2.1 Level AAA) */
+button,
+a,
+input[type="checkbox"],
+input[type="radio"],
+.clickable {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Exception for inline text links */
+a.inline-link {
+  min-width: auto;
+  min-height: auto;
+}
+
+/* ========== Form Accessibility ========== */
+
+/* Label association */
+label {
+  cursor: pointer;
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+}
+
+/* Required field indicator */
+.required::after {
+  content: ' *';
+  color: #e74c3c;
+}
+
+/* Form error state */
+input:invalid,
+textarea:invalid,
+select:invalid {
+  border-color: #e74c3c;
+}
+
+/* Error message styling */
+.error-message {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: var(--space-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.error-message::before {
+  content: '⚠';
+  font-size: 14px;
+}
+
+/* Helper text */
+.helper-text {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: var(--space-xs);
+}
+
+/* ========== List Navigation ========== */
+
+/* Current item in navigable list */
+[role="listbox"] [aria-selected="true"],
+[role="menu"] [aria-selected="true"],
+.list-item.selected {
+  background: var(--accent);
+  color: white;
+  outline: 2px solid var(--accent);
+}
+
+/* Hover state for list items */
+[role="option"]:hover,
+[role="menuitem"]:hover,
+.list-item:hover {
+  background: var(--bg-tertiary);
+  cursor: pointer;
+}
+
+/* ========== Modal Dialog Accessibility ========== */
+
+/* Modal should trap focus */
+.modal-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  box-shadow: var(--shadow-xl);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+}
+
+/* ========== Tooltips Accessibility ========== */
+
+/* Ensure tooltips are keyboard accessible */
+[data-tooltip] {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  box-shadow: var(--shadow-md);
+  z-index: 10000;
+  max-width: 200px;
+  word-wrap: break-word;
+}
+
+/* ========== Loading States ========== */
+
+/* Accessible loading indicator */
+[aria-busy="true"] {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+[aria-busy="true"]::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 3px solid var(--accent);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== Color Blindness Support ========== */
+
+/* Use icons and patterns in addition to color */
+.success-indicator::before {
+  content: '✓';
+  margin-right: var(--space-xs);
+}
+
+.error-indicator::before {
+  content: '✗';
+  margin-right: var(--space-xs);
+}
+
+.warning-indicator::before {
+  content: '⚠';
+  margin-right: var(--space-xs);
+}
+
+/* ========== Print Accessibility ========== */
+
+@media print {
+  /* Ensure focus indicators and hidden content don't show */
+  *:focus-visible {
+    outline: none;
+  }
+
+  .sr-only,
+  .visually-hidden,
+  #aria-live-region {
+    display: none;
+  }
+
+  /* Ensure links show their URLs */
+  a[href]::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.8em;
+    color: #666;
+  }
+}
+
+/* ========== Additional ARIA States ========== */
+
+/* Disabled state */
+[aria-disabled="true"],
+:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Expanded/collapsed state */
+[aria-expanded="false"] .collapse-icon {
+  transform: rotate(0deg);
+}
+
+[aria-expanded="true"] .collapse-icon {
+  transform: rotate(180deg);
+}
+
+/* Hidden content */
+[aria-hidden="true"] {
+  display: none !important;
+}
+
+/* ========== Dark Mode Contrast ========== */
+
+/* Ensure sufficient contrast in dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-tertiary: #999999;
+  }
+
+  /* Ensure focus rings are visible */
+  *:focus-visible {
+    outline-color: #60a5fa;
+  }
+}

@@ -1,0 +1,564 @@
+/* ===== Micro-Interactions - Phase 6.1 ===== */
+/* Enhanced button, input, and UI element interactions for polish and delight */
+
+/* ========== Button State Machine Enhancements ========== */
+
+/* Enhanced press animation - scale down on active */
+.primary-btn:active,
+.secondary-btn:active {
+  transform: translateY(0) scale(0.95);
+  transition: all 0.1s ease-out;
+}
+
+/* Loading state for buttons */
+.primary-btn.loading,
+.secondary-btn.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+  cursor: wait;
+}
+
+.primary-btn.loading::after,
+.secondary-btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--radius-full);
+  animation: button-spin 0.6s linear infinite;
+  color: white;
+}
+
+@keyframes button-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Success state - green checkmark */
+.primary-btn.success,
+.secondary-btn.success {
+  background-color: var(--success);
+  border-color: var(--success);
+  color: white;
+  animation: success-pulse 0.5s ease-out;
+}
+
+@keyframes success-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.primary-btn.success::after,
+.secondary-btn.success::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: bold;
+  animation: checkmark-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes checkmark-pop {
+  0% { transform: translate(-50%, -50%) scale(0); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Error state - red shake */
+.primary-btn.error,
+.secondary-btn.error {
+  background-color: #e74c3c;
+  border-color: #e74c3c;
+  color: white;
+  animation: error-shake 0.5s ease-in-out;
+}
+
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Disabled state enhancement */
+.primary-btn:disabled,
+.secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+
+/* ========== Icon Button Enhancements ========== */
+
+.icon-btn {
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.icon-btn:hover {
+  transform: scale(1.1);
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* Icon button ripple effect */
+.icon-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: currentColor;
+  border-radius: var(--radius-full);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+  transition: all 0.3s ease-out;
+}
+
+.icon-btn:active::after {
+  opacity: 0.2;
+  transform: translate(-50%, -50%) scale(1.2);
+  transition: 0s;
+}
+
+/* ========== Input & Form Interactions ========== */
+
+/* Enhanced input focus with scale and glow */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+textarea,
+select {
+  transition: all var(--transition-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+  transform: scale(1.01);
+}
+
+/* Floating label animation */
+.input-group {
+  position: relative;
+  margin-bottom: var(--space-lg);
+}
+
+.input-group label {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  color: var(--text-tertiary);
+  pointer-events: none;
+  transition: all var(--transition-base);
+  transform-origin: left center;
+}
+
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label,
+.input-group textarea:focus + label,
+.input-group textarea:not(:placeholder-shown) + label {
+  top: -8px;
+  left: var(--space-sm);
+  font-size: 12px;
+  color: var(--accent);
+  background-color: var(--bg-primary);
+  padding: 0 4px;
+  transform: translateY(0);
+}
+
+/* Input validation states */
+input.valid,
+textarea.valid {
+  border-color: var(--success);
+}
+
+input.valid:focus,
+textarea.valid:focus {
+  box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+}
+
+input.invalid,
+textarea.invalid {
+  border-color: #e74c3c;
+  animation: input-shake 0.3s ease-in-out;
+}
+
+input.invalid:focus,
+textarea.invalid:focus {
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* ========== Checkbox & Toggle Interactions ========== */
+
+/* Custom checkbox with smooth transition */
+input[type="checkbox"] {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  appearance: none;
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-base);
+}
+
+input[type="checkbox"]:hover {
+  border-color: var(--accent);
+  transform: scale(1.1);
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  animation: checkbox-bounce 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes checkbox-bounce {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  animation: checkmark-draw 0.2s ease-out 0.1s both;
+}
+
+@keyframes checkmark-draw {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: 8px;
+    opacity: 1;
+  }
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  border-radius: 24px;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text-secondary);
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  border-radius: var(--radius-full);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(24px);
+  background-color: white;
+}
+
+.toggle-switch:hover .toggle-slider {
+  box-shadow: 0 0 8px rgba(0, 122, 204, 0.3);
+}
+
+/* ========== Drag & Drop Visual Polish ========== */
+
+/* Draggable item */
+.draggable {
+  cursor: grab;
+  transition: all var(--transition-base);
+}
+
+.draggable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.draggable.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+  transform: rotate(3deg) scale(1.05);
+  box-shadow: var(--shadow-xl);
+  z-index: 1000;
+}
+
+/* Ghost preview during drag */
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  opacity: 0.8;
+  transform: rotate(5deg);
+  box-shadow: var(--shadow-xl);
+  z-index: 9999;
+  transition: transform 0.1s ease-out;
+}
+
+/* Drop zone highlighting */
+.drop-zone {
+  position: relative;
+  transition: all var(--transition-base);
+}
+
+.drop-zone.drag-over {
+  background-color: rgba(0, 122, 204, 0.05);
+  border: 2px dashed var(--accent);
+  transform: scale(1.02);
+}
+
+.drop-zone.drag-over::after {
+  content: '↓ Drop here';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+  pointer-events: none;
+  animation: drop-zone-pulse 1s ease-in-out infinite;
+}
+
+@keyframes drop-zone-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ========== Page Transition Animations ========== */
+
+/* Fade in with slight slide */
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+}
+
+/* Slide from right (for navigation forward) */
+.slide-right-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.slide-right-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Slide from left (for navigation back) */
+.slide-left-enter {
+  opacity: 0;
+  transform: translateX(-100%);
+}
+
+.slide-left-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ========== Hover Effects & Micro-Animations ========== */
+
+/* Gentle lift on interactive cards */
+.interactive-card {
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.interactive-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.interactive-card:active {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Color shift on hover for links */
+a,
+.link {
+  color: var(--accent);
+  text-decoration: none;
+  position: relative;
+  transition: color var(--transition-base);
+}
+
+a:hover,
+.link:hover {
+  color: var(--accent-hover);
+}
+
+/* Underline draw animation */
+a.underline-draw::after,
+.link.underline-draw::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: currentColor;
+  transition: width 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+a.underline-draw:hover::after,
+.link.underline-draw:hover::after {
+  width: 100%;
+}
+
+/* ========== Focus Ring Enhancement ========== */
+
+/* Enhanced focus ring for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+  animation: focus-ring-pulse 0.3s ease-out;
+}
+
+@keyframes focus-ring-pulse {
+  0% {
+    outline-offset: 0px;
+    outline-width: 0px;
+  }
+  100% {
+    outline-offset: 2px;
+    outline-width: 2px;
+  }
+}
+
+/* Remove default focus for mouse users, keep for keyboard */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ========== Tooltip Animations ========== */
+
+.tooltip {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.95);
+  transition: all var(--transition-base);
+  pointer-events: none;
+}
+
+.tooltip.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+/* ========== Number Counter Animation ========== */
+
+@keyframes count-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.count-animation {
+  animation: count-up 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ========== Reduced Motion Support ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .draggable:hover,
+  .interactive-card:hover {
+    transform: none;
+  }
+
+  .toggle-slider::before {
+    transition: transform 0.01ms;
+  }
+}

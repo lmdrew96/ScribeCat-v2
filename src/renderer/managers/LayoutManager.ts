@@ -35,6 +35,7 @@ export class LayoutManager {
   private isDragging: boolean = false;
   private startX: number = 0;
   private startLeftWidth: number = 0;
+  private resizeListenerEnabled: boolean = true;
 
   private currentLayout: LayoutState = {
     leftPanelWidth: 60,
@@ -161,7 +162,9 @@ export class LayoutManager {
 
     // Window resize - maintain layout proportions
     window.addEventListener('resize', () => {
-      this.applyLayout(this.currentLayout);
+      if (this.resizeListenerEnabled) {
+        this.applyLayout(this.currentLayout);
+      }
     });
   }
 
@@ -311,6 +314,20 @@ export class LayoutManager {
       ...this.presets,
       ...Array.from(this.customLayouts.values())
     ];
+  }
+
+  /**
+   * Temporarily disable resize listener (useful during tutorials/animations)
+   */
+  public disableResizeListener(): void {
+    this.resizeListenerEnabled = false;
+  }
+
+  /**
+   * Re-enable resize listener
+   */
+  public enableResizeListener(): void {
+    this.resizeListenerEnabled = true;
   }
 
   /**

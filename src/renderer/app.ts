@@ -34,6 +34,12 @@ import { ConfettiManager } from './utils/confetti.js';
 import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
 import { getRandomCatFact } from './utils/cat-facts.js';
 import { Phase3Integration } from './managers/Phase3Integration.js';
+// Phase 6: Polish & Delight
+import { FocusManager, initializeA11yStyles } from './utils/FocusManager.js';
+import { WelcomeModal } from './components/WelcomeModal.js';
+import { TutorialManager } from './utils/TutorialManager.js';
+import { SoundManager, initializeSoundSystem, enableGlobalSoundEffects } from './audio/SoundManager.js';
+import { BreakReminders } from './components/BreakReminders.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -80,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'color: #ff69b4; font-weight: bold; font-size: 14px;'
   );
   console.log(
-    '%c ScribeCat v1.2.20 - Built with 🐱 and ☕',
+    '%c ScribeCat v1.20.0 - Built with 🐱 and ☕',
     'color: #ffd700; font-size: 12px;'
   );
   console.log(
@@ -246,6 +252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize workspace layout manager
   layoutManager = new LayoutManager();
   layoutManager.initialize();
+  (window as any).layoutManager = layoutManager;
 
   // Initialize workspace layout picker
   layoutPicker = new WorkspaceLayoutPicker(layoutManager);
@@ -264,6 +271,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 🎉 Initialize Easter Eggs
   initializeEasterEggs();
+
+  // ===== Phase 6: Polish & Delight =====
+  console.log('%c✨ Phase 6: Polish & Delight initialized!', 'color: #ff69b4; font-weight: bold;');
+
+  // Initialize accessibility features
+  initializeA11yStyles();
+  FocusManager.createSkipLink('#main-content');
+
+  // Initialize sound system
+  initializeSoundSystem();
+  enableGlobalSoundEffects();
+
+  // Initialize break reminders (auto-starts if enabled in settings)
+  const breakConfig = BreakReminders.getConfig();
+  if (breakConfig.enabled) {
+    BreakReminders.start();
+  }
+
+  // Show welcome modal on first launch (after a short delay)
+  setTimeout(() => {
+    WelcomeModal.show();
+  }, 1000);
+
+  // Expose Phase 6 managers globally for console access and integration
+  (window as any).FocusManager = FocusManager;
+  (window as any).WelcomeModal = WelcomeModal;
+  (window as any).TutorialManager = TutorialManager;
+  (window as any).SoundManager = SoundManager;
+  (window as any).BreakReminders = BreakReminders;
 
   // Set up hot reload notification listener (development only)
   setupHotReloadListener();
