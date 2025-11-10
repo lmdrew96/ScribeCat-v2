@@ -53,6 +53,7 @@
   border: 1px solid var(--border);
   z-index: 1;
   will-change: transform, opacity;
+  pointer-events: auto;
 }
 
 .modal-content.modal-small {
@@ -184,7 +185,7 @@
   max-height: 5000px;
   opacity: 1;
   transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .settings-group.collapsed .settings-group-content {
