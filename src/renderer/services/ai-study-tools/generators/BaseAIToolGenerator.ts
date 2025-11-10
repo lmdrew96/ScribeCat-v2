@@ -99,7 +99,7 @@ export abstract class BaseAIToolGenerator {
    */
   protected static async saveResults(session: Session, toolName: string, data: any): Promise<void> {
     session.saveAIToolResult(toolName, data);
-    await window.scribeCat.sessions.update(session.id, session.toJSON());
+    await window.scribeCat.session.update(session.id, session.toJSON());
   }
 
   /**
