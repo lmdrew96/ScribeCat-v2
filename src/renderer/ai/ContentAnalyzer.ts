@@ -86,8 +86,9 @@ export class ContentAnalyzer {
    * Update content and reanalyze
    */
   public updateContent(transcription: string, notes: string): ContentInsights {
-    this.transcriptionText = transcription;
-    this.notesText = notes;
+    // Defensive: Ensure we have valid strings
+    this.transcriptionText = typeof transcription === 'string' ? transcription : '';
+    this.notesText = typeof notes === 'string' ? notes : '';
 
     const insights = this.analyze();
     this.lastAnalysis = insights;
@@ -99,8 +100,9 @@ export class ContentAnalyzer {
    * Perform comprehensive content analysis
    */
   private analyze(): ContentInsights {
-    const transcriptionLower = this.transcriptionText.toLowerCase();
-    const notesLower = this.notesText.toLowerCase();
+    // Defensive: Ensure we have valid strings before calling toLowerCase()
+    const transcriptionLower = (typeof this.transcriptionText === 'string' ? this.transcriptionText : '').toLowerCase();
+    const notesLower = (typeof this.notesText === 'string' ? this.notesText : '').toLowerCase();
 
     // Topic extraction
     const topics = this.extractTopics(transcriptionLower);

@@ -90,9 +90,12 @@ export class SettingsManager {
     const saveSettingsBtn = document.getElementById('save-settings-btn');
     saveSettingsBtn?.addEventListener('click', () => this.saveSettings());
 
-    // Close modals on overlay click
-    this.settingsModal.querySelector('.modal-overlay')?.addEventListener('click', () => {
-      this.closeSettings();
+    // Close modal when clicking outside the modal-content
+    this.settingsModal.addEventListener('click', (e) => {
+      // Only close if clicking directly on the modal backdrop (not on modal-content or its children)
+      if (e.target === this.settingsModal) {
+        this.closeSettings();
+      }
     });
 
     // Transcription mode change
