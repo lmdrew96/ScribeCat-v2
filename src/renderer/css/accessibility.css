@@ -316,8 +316,6 @@ input + input {
 /* Ensure touch targets are at least 44x44px (WCAG 2.1 Level AAA) */
 button,
 a,
-input[type="checkbox"],
-input[type="radio"],
 .clickable {
   min-width: 44px;
   min-height: 44px;
@@ -330,6 +328,16 @@ input[type="radio"],
 a.inline-link {
   min-width: auto;
   min-height: auto;
+}
+
+/* For checkboxes/radios, the LABEL should be the touch target, not the input itself */
+label.checkbox-label,
+label.radio-label {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
 }
 
 /* ========== Form Accessibility ========== */
