@@ -344,7 +344,7 @@ export class SettingsManager {
     const themes = this.themeManager.getThemes();
 
     // Group themes by category
-    const categories = ['calm', 'energetic', 'focus', 'creative', 'balanced', 'high-contrast'];
+    const categories = ['calm', 'energetic', 'focus', 'creative', 'balanced', 'high-contrast', 'special'];
     const themesByCategory = new Map<string, typeof themes>();
 
     categories.forEach(category => {

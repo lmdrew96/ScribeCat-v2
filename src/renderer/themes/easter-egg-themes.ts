@@ -14,7 +14,7 @@ export const easterEggThemes: Theme[] = [
   {
     id: 'nyan-cat',
     name: 'Nyan Cat 🌈',
-    category: 'creative',
+    category: 'special',
     variant: 'dark',
     description: 'Rainbow gradient magic - unlocked with secret meow code!',
     colors: {
@@ -47,7 +47,7 @@ export const easterEggThemes: Theme[] = [
   {
     id: 'nyan-cat-light',
     name: 'Nyan Cat Light 🌈',
-    category: 'creative',
+    category: 'special',
     variant: 'light',
     description: 'Rainbow gradient magic in light mode - unlocked with secret meow code!',
     colors: {
