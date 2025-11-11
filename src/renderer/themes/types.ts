@@ -7,7 +7,7 @@
 /**
  * Theme category for organizing themes by emotional impact
  */
-export type ThemeCategory = 'calm' | 'energetic' | 'focus' | 'creative' | 'balanced';
+export type ThemeCategory = 'calm' | 'energetic' | 'focus' | 'creative' | 'balanced' | 'high-contrast';
 
 /**
  * Theme variant for light/dark mode

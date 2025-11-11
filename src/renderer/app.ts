@@ -176,8 +176,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   trashModal = new TrashModal();
   userProfileMenu = new UserProfileMenu(authManager, accountSettingsModal);
 
-  // Initialize settings manager (requires authManager for Drive settings)
-  settingsManager = new SettingsManager(themeManager, authManager);
+  // Initialize settings manager (requires authManager for Drive settings and accountSettingsModal)
+  settingsManager = new SettingsManager(themeManager, authManager, accountSettingsModal);
 
   // Expose authManager globally for RecordingManager to access current user
   window.authManager = authManager;

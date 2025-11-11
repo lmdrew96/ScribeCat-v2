@@ -12,6 +12,7 @@ import { CanvasSettingsManager } from './settings/CanvasSettingsManager.js';
 import { SettingsUIManager } from './settings/SettingsUIManager.js';
 import { NotificationToast } from './components/shared/NotificationToast.js';
 import { AuthManager } from './managers/AuthManager.js';
+import { AccountSettingsModal } from './components/AccountSettingsModal.js';
 import { unlockTheme, isThemeUnlocked } from './themes/easter-egg-themes.js';
 import { SoundManager } from './audio/SoundManager.js';
 
@@ -41,14 +42,14 @@ export class SettingsManager {
   private driveSettings: DriveSettingsManager;
   private canvasSettings: CanvasSettingsManager;
   private uiManager: SettingsUIManager;
+  private accountSettingsModal: AccountSettingsModal;
 
   // Theme state
   private selectedThemeId: string = '';
-  private currentCategoryFilter: string = 'all';
-  private currentVariantFilter: string = 'all';
 
-  constructor(themeManager: ThemeManager, authManager: AuthManager) {
+  constructor(themeManager: ThemeManager, authManager: AuthManager, accountSettingsModal: AccountSettingsModal) {
     this.themeManager = themeManager;
+    this.accountSettingsModal = accountSettingsModal;
     this.settingsModal = document.getElementById('settings-modal')!;
 
     // Initialize specialized managers
@@ -91,6 +92,12 @@ export class SettingsManager {
     const saveSettingsBtn = document.getElementById('save-settings-btn');
     saveSettingsBtn?.addEventListener('click', () => this.saveSettings());
 
+    // Manage Account button - open account settings modal
+    const manageAccountBtn = document.getElementById('manage-account-btn');
+    manageAccountBtn?.addEventListener('click', () => {
+      this.accountSettingsModal.show();
+    });
+
     // Close modal when clicking the overlay (backdrop)
     const overlay = this.settingsModal.querySelector('.modal-overlay');
     overlay?.addEventListener('click', () => {
@@ -110,22 +117,6 @@ export class SettingsManager {
         const target = e.target as HTMLInputElement;
         this.transcriptionMode = target.value as 'assemblyai';
       });
-    });
-
-    // Theme category filter
-    const themeCategoryFilter = document.getElementById('theme-category-filter') as HTMLSelectElement;
-    themeCategoryFilter?.addEventListener('change', (e) => {
-      const target = e.target as HTMLSelectElement;
-      this.currentCategoryFilter = target.value;
-      this.filterThemes();
-    });
-
-    // Theme variant filter
-    const themeVariantFilter = document.getElementById('theme-variant-filter') as HTMLSelectElement;
-    themeVariantFilter?.addEventListener('change', (e) => {
-      const target = e.target as HTMLSelectElement;
-      this.currentVariantFilter = target.value;
-      this.filterThemes();
     });
 
     // 🎉 Easter Egg: Secret theme unlock with "meow meow meow"
@@ -343,57 +334,146 @@ export class SettingsManager {
   }
 
   /**
-   * Populate themes in the settings modal
+   * Populate themes in the settings modal grouped by category
    */
   private populateThemes(): void {
-    const themeGrid = document.getElementById('theme-grid');
-    if (!themeGrid) return;
-
     const currentTheme = this.themeManager.getCurrentTheme();
     this.selectedThemeId = currentTheme.id;
 
     // Get all themes
     const themes = this.themeManager.getThemes();
 
-    // Build theme cards HTML
-    themeGrid.innerHTML = themes.map(theme => {
-      const metadata = this.themeManager.getThemeMetadata(theme);
-      const isSelected = theme.id === this.selectedThemeId;
-      const variantLabel = theme.variant === 'light' ? 'Light' : 'Dark';
-      const variantClass = theme.variant === 'light' ? 'variant-light' : 'variant-dark';
+    // Group themes by category
+    const categories = ['calm', 'energetic', 'focus', 'creative', 'balanced', 'high-contrast'];
+    const themesByCategory = new Map<string, typeof themes>();
 
-      return `
-        <div class="theme-card ${isSelected ? 'selected' : ''}" data-theme-id="${theme.id}" data-category="${theme.category}" data-variant="${theme.variant}">
-          <div class="theme-preview">
-            ${metadata.previewColors.map(color => `
-              <div class="theme-preview-color" style="background-color: ${color};"></div>
-            `).join('')}
-          </div>
-          <div class="theme-info">
-            <h4 class="theme-name">${theme.name}</h4>
-            <div class="theme-badges">
-              <span class="theme-category ${theme.category}">${theme.category}</span>
-              <span class="theme-variant ${variantClass}">${variantLabel}</span>
+    categories.forEach(category => {
+      themesByCategory.set(category, []);
+    });
+
+    themes.forEach(theme => {
+      const category = theme.category || 'balanced'; // Default fallback
+      if (themesByCategory.has(category)) {
+        themesByCategory.get(category)!.push(theme);
+      }
+    });
+
+    // Populate each category's theme grid
+    let activeCategoryFound = false;
+    let activeCategory = '';
+
+    categories.forEach(category => {
+      const categoryThemes = themesByCategory.get(category) || [];
+      const themeGrid = document.querySelector(`[data-category-grid="${category}"]`);
+
+      if (!themeGrid) return;
+
+      // Check if current theme is in this category
+      const hasActiveTheme = categoryThemes.some(theme => theme.id === this.selectedThemeId);
+      if (hasActiveTheme) {
+        activeCategoryFound = true;
+        activeCategory = category;
+      }
+
+      // Build theme cards HTML
+      themeGrid.innerHTML = categoryThemes.map(theme => {
+        const metadata = this.themeManager.getThemeMetadata(theme);
+        const isSelected = theme.id === this.selectedThemeId;
+        const variantLabel = theme.variant === 'light' ? 'Light' : 'Dark';
+        const variantClass = theme.variant === 'light' ? 'variant-light' : 'variant-dark';
+
+        return `
+          <div class="theme-card ${isSelected ? 'selected' : ''}" data-theme-id="${theme.id}" data-category="${theme.category}" data-variant="${theme.variant}">
+            <div class="theme-preview">
+              ${metadata.previewColors.map(color => `
+                <div class="theme-preview-color" style="background-color: ${color};"></div>
+              `).join('')}
             </div>
-            <p class="theme-description">${theme.description}</p>
+            <div class="theme-info">
+              <h4 class="theme-name">${theme.name}</h4>
+              <div class="theme-badges">
+                <span class="theme-category ${theme.category}">${theme.category}</span>
+                <span class="theme-variant ${variantClass}">${variantLabel}</span>
+              </div>
+              <p class="theme-description">${theme.description}</p>
+            </div>
           </div>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
 
-    // Add click handlers to theme cards
-    themeGrid.querySelectorAll('.theme-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const themeId = card.getAttribute('data-theme-id');
-        if (themeId) {
-          this.selectTheme(themeId);
+      // Add click handlers to theme cards
+      themeGrid.querySelectorAll('.theme-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const themeId = card.getAttribute('data-theme-id');
+          if (themeId) {
+            this.selectTheme(themeId);
+          }
+        });
+      });
+    });
+
+    // Initialize collapsible category sections
+    this.initializeThemeCategorySections(activeCategory);
+  }
+
+  /**
+   * Initialize collapsible theme category sections
+   */
+  private initializeThemeCategorySections(activeCategoryToExpand: string): void {
+    const categorySections = document.querySelectorAll('.theme-category-section');
+
+    categorySections.forEach(section => {
+      const header = section.querySelector('.theme-category-header');
+      const content = section.querySelector('.theme-category-content') as HTMLElement;
+      const category = section.getAttribute('data-category');
+
+      if (!header || !content) return;
+
+      // Collapse all sections by default
+      section.classList.add('collapsed');
+      content.style.maxHeight = '0';
+      content.style.opacity = '0';
+      content.style.paddingTop = '0';
+      content.style.paddingBottom = '0';
+      content.style.overflow = 'hidden';
+
+      // Expand the active category
+      if (category === activeCategoryToExpand) {
+        section.classList.remove('collapsed');
+        content.style.maxHeight = '5000px';
+        content.style.opacity = '1';
+        content.style.paddingTop = '15px';
+        content.style.paddingBottom = '15px';
+        content.style.overflow = 'visible';
+      }
+
+      // Add click handler to toggle
+      header.addEventListener('click', () => {
+        const isCollapsed = section.classList.contains('collapsed');
+
+        if (isCollapsed) {
+          // Expand this section
+          section.classList.remove('collapsed');
+          content.style.maxHeight = '5000px';
+          content.style.opacity = '1';
+          content.style.paddingTop = '15px';
+          content.style.paddingBottom = '15px';
+          content.style.overflow = 'visible';
+        } else {
+          // Collapse this section
+          section.classList.add('collapsed');
+          content.style.maxHeight = '0';
+          content.style.opacity = '0';
+          content.style.paddingTop = '0';
+          content.style.paddingBottom = '0';
+          content.style.overflow = 'hidden';
         }
       });
     });
   }
 
   /**
-   * Filter themes by category and variant
+   * Filter themes by category and variant (DEPRECATED - no longer used)
    */
   private filterThemes(): void {
     const themeGrid = document.getElementById('theme-grid');

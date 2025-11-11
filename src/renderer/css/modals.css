@@ -325,6 +325,48 @@
   text-decoration: underline;
 }
 
+/* Settings Modal Checkbox Override */
+/* Remove full-width background from checkboxes in settings modal */
+.settings-modal .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+  cursor: default;
+}
+
+.settings-modal .checkbox-label:hover {
+  background-color: transparent;
+}
+
+.settings-modal .checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  /* Force perfect square dimensions */
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+}
+
+/* Center the checkmark inside the checkbox */
+.settings-modal .checkbox-label input[type="checkbox"]:checked::after {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) rotate(45deg) !important;
+}
+
+.settings-modal .checkbox-label span {
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: default;
+}
+
 /* Model Status */
 .model-status {
   display: flex;

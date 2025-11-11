@@ -18,7 +18,7 @@ export const highContrastThemes: Theme[] = [
   {
     id: 'high-contrast-dark',
     name: 'High Contrast Dark',
-    category: 'focus',
+    category: 'high-contrast',
     variant: 'dark',
     description: 'Maximum contrast for dark mode - WCAG AAA compliant',
     colors: {
@@ -54,7 +54,7 @@ export const highContrastThemes: Theme[] = [
   {
     id: 'high-contrast-dark-warm',
     name: 'High Contrast Dark (Warm)',
-    category: 'focus',
+    category: 'high-contrast',
     variant: 'dark',
     description: 'High contrast with warm tones - easier on eyes for extended use',
     colors: {
@@ -89,7 +89,7 @@ export const highContrastThemes: Theme[] = [
   {
     id: 'high-contrast-dark-cool',
     name: 'High Contrast Dark (Cool)',
-    category: 'focus',
+    category: 'high-contrast',
     variant: 'dark',
     description: 'High contrast with cool blue tones - reduces eye strain',
     colors: {
@@ -125,7 +125,7 @@ export const highContrastThemes: Theme[] = [
   {
     id: 'high-contrast-light',
     name: 'High Contrast Light',
-    category: 'focus',
+    category: 'high-contrast',
     variant: 'light',
     description: 'Maximum contrast for light mode - WCAG AAA compliant',
     colors: {
@@ -161,7 +161,7 @@ export const highContrastThemes: Theme[] = [
   {
     id: 'high-contrast-light-yellow',
     name: 'High Contrast Light (Yellow)',
-    category: 'focus',
+    category: 'high-contrast',
     variant: 'light',
     description: 'High contrast with yellow background - reduces glare',
     colors: {
@@ -196,7 +196,7 @@ export const highContrastThemes: Theme[] = [
   {
     id: 'high-contrast-light-blue',
     name: 'High Contrast Light (Blue)',
-    category: 'focus',
+    category: 'high-contrast',
     variant: 'light',
     description: 'High contrast with light blue background - calming and clear',
     colors: {
@@ -232,7 +232,7 @@ export const highContrastThemes: Theme[] = [
   {
     id: 'high-contrast-amber',
     name: 'High Contrast Amber',
-    category: 'focus',
+    category: 'high-contrast',
     variant: 'dark',
     description: 'Black and amber - inspired by retro terminals, easy on eyes',
     colors: {
@@ -267,7 +267,7 @@ export const highContrastThemes: Theme[] = [
   {
     id: 'high-contrast-green',
     name: 'High Contrast Green',
-    category: 'focus',
+    category: 'high-contrast',
     variant: 'dark',
     description: 'Black and green - classic terminal style, reduces eye strain',
     colors: {
