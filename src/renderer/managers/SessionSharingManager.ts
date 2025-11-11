@@ -28,7 +28,7 @@ export interface SessionAccessInfo {
 
 export interface ShareSessionParams {
   sessionId: string;
-  sharedWithEmail: string;
+  email: string;
   permissionLevel: 'viewer' | 'editor';
 }
 

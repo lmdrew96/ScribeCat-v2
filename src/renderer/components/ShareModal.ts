@@ -193,9 +193,9 @@ export class ShareModal {
    * Render a share item
    */
   private renderShare(share: any): string {
-    const email = share.shared_with?.email || 'Unknown';
-    const userName = share.shared_with?.full_name || email;
-    const permissionLabel = share.permission_level === 'editor' ? 'Can edit' : 'Can view';
+    const email = share.sharedWith?.email || 'Unknown';
+    const userName = share.sharedWith?.fullName || email;
+    const permissionLabel = share.permissionLevel === 'editor' ? 'Can edit' : 'Can view';
 
     return `
       <div class="share-item" data-share-id="${share.id}">
@@ -208,8 +208,8 @@ export class ShareModal {
         </div>
         <div class="share-actions">
           <select class="share-permission-select" data-share-id="${share.id}">
-            <option value="viewer" ${share.permission_level === 'viewer' ? 'selected' : ''}>Can view</option>
-            <option value="editor" ${share.permission_level === 'editor' ? 'selected' : ''}>Can edit</option>
+            <option value="viewer" ${share.permissionLevel === 'viewer' ? 'selected' : ''}>Can view</option>
+            <option value="editor" ${share.permissionLevel === 'editor' ? 'selected' : ''}>Can edit</option>
           </select>
           <button class="btn btn-danger btn-sm remove-share-btn" data-share-id="${share.id}">Remove</button>
         </div>
@@ -311,7 +311,7 @@ export class ShareModal {
     try {
       const result = await this.sessionSharingManager.shareSession({
         sessionId: this.sessionId,
-        sharedWithEmail: email,
+        email: email,
         permissionLevel: permission
       });
 
