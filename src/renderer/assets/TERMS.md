@@ -63,7 +63,7 @@ You can use ScribeCat without an account (local-only mode). To use cloud sync or
 - Notify us immediately if your account is compromised (scribecatscribes@gmail.com)
 
 ### 3.2 Account Termination
-- **You can leave anytime:** Delete your account by contacting us at scribecatscribes@gmail.com
+- **You can leave anytime:** Delete your account using the "Delete Account" button in Account Settings (Danger Zone section)
 - **We can terminate accounts:** We may suspend or terminate accounts that violate these Terms (though we really hope we never have to)
 
 ---
@@ -302,7 +302,12 @@ Some jurisdictions give you rights that can't be waived by arbitration clauses. 
 ## 13. Termination
 
 ### 13.1 You Can Leave Anytime
-You can stop using ScribeCat whenever you want. To delete your account and data, contact us at scribecatscribes@gmail.com.
+You can stop using ScribeCat whenever you want. To delete your account and data:
+1. Open Account Settings from the user profile menu
+2. Scroll to "Danger Zone" section
+3. Click "Delete Account" and confirm
+
+Your cloud data will be soft-deleted immediately and permanently removed after 30 days. Local files remain on your device until manually deleted.
 
 ### 13.2 We Can Terminate Accounts
 We may suspend or terminate your account if:

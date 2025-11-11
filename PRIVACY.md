@@ -220,14 +220,38 @@ If a data breach occurs affecting your personal information, we will:
 - **Active sessions:** Kept until you delete them
 - **Trash:** Soft-deleted sessions stay in trash for 30 days
 - **Auto-deletion:** After 30 days in trash, sessions are permanently deleted (automated daily at 2:00 AM UTC)
-- **Account deletion:** If you delete your account, all your data is permanently removed (note: account deletion must be requested via email for now)
+- **Account deletion:** If you delete your account, all your cloud data is permanently removed (see Section 7.2 for the in-app deletion process)
 
 ### 7.2 How to Delete Your Data
-- **Individual sessions:** Click delete → moves to trash → permanently delete from trash, or wait 30 days
-- **All data:** Contact us at scribecatscribes@gmail.com to request full account deletion
-- **Local data:** Uninstall ScribeCat and manually delete the app data folder
 
-**Important:** Deleted data cannot be recovered. Deletion from Supabase is permanent.
+**Individual Sessions:**
+- Click delete → moves to trash → permanently delete from trash, or wait 30 days for automatic deletion
+
+**Delete Your Entire Account:**
+1. Open Account Settings from the user profile menu
+2. Scroll to the "Danger Zone" section
+3. Click "Delete Account" button
+4. Confirm deletion in two warning dialogs
+
+**What happens when you delete your account:**
+- ✅ All cloud sessions are soft-deleted immediately (moved to trash)
+- ✅ Cloud sessions permanently deleted after 30 days
+- ✅ All shared sessions and invitations are revoked
+- ✅ Your user profile data is removed from cloud storage
+- ✅ You are automatically signed out
+- ⚠️ Local files remain on your device until you manually delete them
+- ⚠️ No recovery available after sign-out
+
+**Timeline:**
+- Immediate: Sign-out and cloud data moved to trash
+- 30 days: Permanent deletion of cloud data (automated daily at 2:00 AM UTC)
+
+**Local Data:**
+Local files are NOT automatically deleted. To remove them:
+- Uninstall ScribeCat
+- Manually delete the app data folder on your device
+
+**Important:** Account deletion cannot be undone after sign-out. Make sure to export any data you want to keep before deleting your account. Deletion from Supabase is permanent.
 
 ---
 
