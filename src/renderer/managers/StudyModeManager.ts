@@ -440,13 +440,20 @@ export class StudyModeManager {
     }
 
     await this.sessionDeletionManager.deleteSession(session, async () => {
-      // Clear selection from both managers to prevent orphaned selection state
+      // If in detail view, navigate back to list first
+      const inDetailView = !this.sessionDetailContainer.classList.contains('hidden');
+      if (inDetailView) {
+        this.sessionNavigationManager.backToSessionList();
+      }
+
+      // Reload sessions first (this triggers rendering)
+      await this.loadSessions(); // Phase3Integration will handle rendering
+
+      // Clear selections AFTER rendering to ensure proper cleanup
       this.sessionListManager.clearSelection();
       if (window.phase3Integration) {
         window.phase3Integration.getBulkSelectionManager()?.clearSelection();
       }
-      // Refresh the session list after deletion
-      await this.loadSessions(); // Phase3Integration will handle rendering
     });
   }
 
@@ -464,13 +471,20 @@ export class StudyModeManager {
       session,
       this.sessionDataLoader.getSharedWithMeSessions(),
       async () => {
-        // Clear selection from both managers to prevent orphaned selection state
+        // If in detail view, navigate back to list first
+        const inDetailView = !this.sessionDetailContainer.classList.contains('hidden');
+        if (inDetailView) {
+          this.sessionNavigationManager.backToSessionList();
+        }
+
+        // Reload sessions first (this triggers rendering)
+        await this.loadSessions(); // Phase3Integration will handle rendering
+
+        // Clear selections AFTER rendering to ensure proper cleanup
         this.sessionListManager.clearSelection();
         if (window.phase3Integration) {
           window.phase3Integration.getBulkSelectionManager()?.clearSelection();
         }
-        // Refresh the session list after leaving
-        await this.loadSessions(); // Phase3Integration will handle rendering
       }
     );
   }

@@ -328,6 +328,9 @@ export class Phase3Integration {
     if (!this.searchManager.isSearching() && this.searchManager.getState().query === '') {
       this.renderCurrentView(sessions);
     }
+
+    // Clean up orphaned selections (sessions that were selected but no longer exist)
+    this.cleanupOrphanedSelections(sessions);
   }
 
   /**
@@ -345,6 +348,22 @@ export class Phase3Integration {
    */
   getBulkSelectionManager(): BulkSelectionManager {
     return this.bulkSelectionManager;
+  }
+
+  /**
+   * Clean up orphaned selections (selected sessions that no longer exist)
+   */
+  private cleanupOrphanedSelections(sessions: Session[]): void {
+    const selectedIds = this.bulkSelectionManager.getSelectedSessionIds();
+    const sessionIds = new Set(sessions.map(s => s.id));
+
+    // Remove any selected IDs that don't exist in current sessions
+    selectedIds.forEach(id => {
+      if (!sessionIds.has(id)) {
+        logger.info(`Removing orphaned selection: ${id}`);
+        this.bulkSelectionManager.handleSessionSelection(id, false);
+      }
+    });
   }
 
   /**

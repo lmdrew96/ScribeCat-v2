@@ -62,7 +62,12 @@ export class StudyModeSessionListManager {
       this.searchInput.addEventListener('input', (e) => {
         this.searchQuery = (e.target as HTMLInputElement).value;
         this.applyFilters();
-        this.render();
+        // Use Phase3Integration to prevent dual rendering system conflicts
+        if (window.phase3Integration) {
+          window.phase3Integration.refreshCurrentView();
+        } else {
+          this.render();
+        }
       });
     }
 
@@ -71,7 +76,12 @@ export class StudyModeSessionListManager {
       this.courseFilter.addEventListener('change', (e) => {
         this.selectedCourse = (e.target as HTMLSelectElement).value;
         this.applyFilters();
-        this.render();
+        // Use Phase3Integration to prevent dual rendering system conflicts
+        if (window.phase3Integration) {
+          window.phase3Integration.refreshCurrentView();
+        } else {
+          this.render();
+        }
       });
     }
 
@@ -83,7 +93,12 @@ export class StudyModeSessionListManager {
           this.sortOrder = value;
         }
         this.applyFilters();
-        this.render();
+        // Use Phase3Integration to prevent dual rendering system conflicts
+        if (window.phase3Integration) {
+          window.phase3Integration.refreshCurrentView();
+        } else {
+          this.render();
+        }
       });
     }
 
