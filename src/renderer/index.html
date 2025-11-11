@@ -878,12 +878,26 @@
             <div class="modal-body">
                 <!-- Tab Navigation -->
                 <div class="tab-navigation">
-                    <button id="privacy-tab" class="tab-btn active" data-tab="privacy">Privacy Policy</button>
+                    <button id="about-tab" class="tab-btn active" data-tab="about">About</button>
+                    <button id="help-tab" class="tab-btn" data-tab="help">Help</button>
+                    <button id="privacy-tab" class="tab-btn" data-tab="privacy">Privacy Policy</button>
                     <button id="terms-tab" class="tab-btn" data-tab="terms">Terms of Service</button>
                 </div>
 
                 <!-- Tab Content -->
-                <div id="privacy-content" class="tab-content active">
+                <div id="about-content" class="tab-content active">
+                    <div class="legal-document" id="about-document">
+                        <!-- About content will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div id="help-content" class="tab-content hidden">
+                    <div class="legal-document" id="help-document">
+                        <!-- Help content will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div id="privacy-content" class="tab-content hidden">
                     <div class="legal-document" id="privacy-document">
                         <!-- Privacy policy will be loaded here -->
                     </div>
