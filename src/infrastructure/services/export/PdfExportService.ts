@@ -166,14 +166,51 @@ export class PdfExportService implements IExportService {
         doc.fontSize(11)
            .font('Helvetica');
 
-        // Strip HTML and split into paragraphs
-        const plainNotes = this.stripHtml(session.notes);
-        const noteParagraphs = plainNotes.split('\n');
-        
+        // Parse HTML to extract text and images
+        const { text, images } = this.parseHtmlContent(session.notes);
+
+        // Render text content
+        const noteParagraphs = text.split('\n');
         for (const para of noteParagraphs) {
           if (para.trim()) {
             doc.text(para);
             doc.moveDown(0.3);
+          }
+        }
+
+        // Render images
+        if (images.length > 0) {
+          doc.moveDown(1);
+
+          for (const img of images) {
+            try {
+              // Decode base64 image
+              const imageBuffer = this.decodeBase64Image(img.src);
+
+              if (img.anchorType === 'page' && img.posX !== null && img.posY !== null) {
+                // Page-anchored image - place at specific coordinates
+                // Note: PDF coordinates are in points (72 points per inch)
+                // We'll scale positions proportionally to fit the page
+                const scaleFactor = 0.5; // Adjust as needed
+                const x = doc.page.margins.left + (img.posX * scaleFactor);
+                const y = doc.page.margins.top + (img.posY * scaleFactor);
+
+                doc.image(imageBuffer, x, y, {
+                  fit: [img.width || 200, img.height || 200],
+                  align: 'left'
+                });
+              } else {
+                // Paragraph-anchored or inline image - place inline with text
+                doc.image(imageBuffer, {
+                  fit: [img.width || 200, img.height || 200],
+                  align: img.align || 'left'
+                });
+                doc.moveDown(0.5);
+              }
+            } catch (error) {
+              // Skip invalid images
+              console.warn('Failed to render image in PDF:', error);
+            }
           }
         }
 
@@ -221,6 +258,104 @@ export class PdfExportService implements IExportService {
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .trim();
+  }
+
+  /**
+   * Parse HTML content to extract text and images
+   */
+  private parseHtmlContent(html: string): { text: string; images: Array<{
+    src: string;
+    width?: number;
+    height?: number;
+    anchorType?: string;
+    posX?: number | null;
+    posY?: number | null;
+    align?: string;
+  }> } {
+    const images: Array<any> = [];
+
+    // Extract images with their attributes
+    const imgRegex = /<img[^>]*>/gi;
+    let match;
+
+    while ((match = imgRegex.exec(html)) !== null) {
+      const imgTag = match[0];
+
+      // Extract src
+      const srcMatch = imgTag.match(/src="([^"]*)"/i);
+      if (!srcMatch) continue;
+
+      const img: any = {
+        src: srcMatch[1],
+        anchorType: 'paragraph',
+        posX: null,
+        posY: null
+      };
+
+      // Extract width
+      const widthMatch = imgTag.match(/style="[^"]*width:\s*(\d+)px/i) || imgTag.match(/width="(\d+)"/i);
+      if (widthMatch) img.width = parseInt(widthMatch[1], 10);
+
+      // Extract height
+      const heightMatch = imgTag.match(/style="[^"]*height:\s*(\d+)px/i) || imgTag.match(/height="(\d+)"/i);
+      if (heightMatch) img.height = parseInt(heightMatch[1], 10);
+
+      // Check parent div for positioning attributes
+      const beforeImg = html.substring(0, match.index);
+      const divMatch = beforeImg.match(/<div[^>]*(data-anchor-type="([^"]*)"|data-position-mode="([^"]*)")[ ^>]*>(?![\s\S]*<div)/i);
+
+      if (divMatch) {
+        const fullDivTag = html.substring(divMatch.index!, match.index);
+
+        // Extract anchor type (prefer new attribute, fall back to position mode for backward compatibility)
+        const anchorTypeMatch = fullDivTag.match(/data-anchor-type="([^"]*)"/i);
+        const positionModeMatch = fullDivTag.match(/data-position-mode="([^"]*)"/i);
+
+        if (anchorTypeMatch) {
+          img.anchorType = anchorTypeMatch[1];
+        } else if (positionModeMatch) {
+          // Backward compatibility: convert old position mode to anchor type
+          img.anchorType = positionModeMatch[1] === 'absolute' ? 'page' : 'paragraph';
+        }
+
+        // Extract posX and posY (for page-anchored images)
+        const posXMatch = fullDivTag.match(/data-pos-x="(\d+)"/i);
+        if (posXMatch) img.posX = parseInt(posXMatch[1], 10);
+
+        const posYMatch = fullDivTag.match(/data-pos-y="(\d+)"/i);
+        if (posYMatch) img.posY = parseInt(posYMatch[1], 10);
+      }
+
+      // Extract text-align
+      const alignMatch = imgTag.match(/style="[^"]*text-align:\s*(left|center|right)/i);
+      if (alignMatch) img.align = alignMatch[1];
+
+      images.push(img);
+    }
+
+    // Strip all HTML for text content
+    const text = this.stripHtml(html);
+
+    return { text, images };
+  }
+
+  /**
+   * Decode base64 image to buffer
+   */
+  private decodeBase64Image(dataUrl: string): Buffer {
+    // Handle both data URLs and regular URLs
+    if (dataUrl.startsWith('data:')) {
+      // Extract base64 data from data URL
+      const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        throw new Error('Invalid data URL format');
+      }
+      return Buffer.from(matches[2], 'base64');
+    } else {
+      // For regular URLs, we'd need to fetch the image
+      // For now, throw an error as we primarily support base64
+      throw new Error('Only base64 images are supported in PDF export');
+    }
   }
 
   /**

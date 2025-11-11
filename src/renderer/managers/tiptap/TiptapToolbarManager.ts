@@ -35,6 +35,12 @@ export class TiptapToolbarManager {
   private linkBtn: HTMLButtonElement;
   private imageBtn: HTMLButtonElement;
   private imageInput: HTMLInputElement;
+  private anchorTypeBtn: HTMLButtonElement;
+  private anchorTypePalette: HTMLElement;
+  private anchorTypeDropdown: HTMLElement;
+  private wrapTypeBtn: HTMLButtonElement;
+  private wrapTypePalette: HTMLElement;
+  private wrapTypeDropdown: HTMLElement;
   private insertTableBtn: HTMLButtonElement;
   private tableToolbar: HTMLElement;
   private addRowBeforeBtn: HTMLButtonElement;
@@ -81,6 +87,12 @@ export class TiptapToolbarManager {
     this.linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
     this.imageBtn = document.getElementById('image-btn') as HTMLButtonElement;
     this.imageInput = document.getElementById('image-input') as HTMLInputElement;
+    this.anchorTypeBtn = document.getElementById('anchor-type-btn') as HTMLButtonElement;
+    this.anchorTypePalette = document.getElementById('anchor-type-palette') as HTMLElement;
+    this.anchorTypeDropdown = document.getElementById('anchor-type-dropdown') as HTMLElement;
+    this.wrapTypeBtn = document.getElementById('wrap-type-btn') as HTMLButtonElement;
+    this.wrapTypePalette = document.getElementById('wrap-type-palette') as HTMLElement;
+    this.wrapTypeDropdown = document.getElementById('wrap-type-dropdown') as HTMLElement;
     this.insertTableBtn = document.getElementById('insert-table-btn') as HTMLButtonElement;
     this.tableToolbar = document.getElementById('table-toolbar') as HTMLElement;
     this.addRowBeforeBtn = document.getElementById('add-row-before-btn') as HTMLButtonElement;
@@ -155,10 +167,16 @@ export class TiptapToolbarManager {
       const target = e.target as HTMLElement;
       if (!target.closest('#color-btn') &&
           !target.closest('#bg-color-btn') &&
+          !target.closest('#anchor-type-btn') &&
+          !target.closest('#wrap-type-btn') &&
           !target.closest('#color-palette') &&
-          !target.closest('#bg-color-palette')) {
+          !target.closest('#bg-color-palette') &&
+          !target.closest('#anchor-type-palette') &&
+          !target.closest('#wrap-type-palette')) {
         this.colorPalette.classList.remove('show');
         this.bgColorPalette.classList.remove('show');
+        this.anchorTypePalette.classList.remove('show');
+        this.wrapTypePalette.classList.remove('show');
       }
     };
     document.addEventListener('click', this.paletteClickHandler);
@@ -214,6 +232,46 @@ export class TiptapToolbarManager {
 
     this.imageInput.addEventListener('change', (e) => {
       this.handleImageUpload(e);
+    });
+
+    // Anchor type palette toggle
+    this.anchorTypeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.anchorTypePalette.classList.toggle('show');
+      this.colorPalette.classList.remove('show');
+      this.bgColorPalette.classList.remove('show');
+      this.wrapTypePalette.classList.remove('show');
+    });
+
+    // Anchor type palette options
+    this.anchorTypePalette.querySelectorAll('.anchor-option').forEach(option => {
+      option.addEventListener('click', (e) => {
+        const anchorType = (e.currentTarget as HTMLElement).getAttribute('data-anchor');
+        if (anchorType) {
+          this.changeImageAnchor(anchorType);
+          this.anchorTypePalette.classList.remove('show');
+        }
+      });
+    });
+
+    // Wrap type palette toggle
+    this.wrapTypeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.wrapTypePalette.classList.toggle('show');
+      this.colorPalette.classList.remove('show');
+      this.bgColorPalette.classList.remove('show');
+      this.anchorTypePalette.classList.remove('show');
+    });
+
+    // Wrap type palette options
+    this.wrapTypePalette.querySelectorAll('.wrap-option').forEach(option => {
+      option.addEventListener('click', (e) => {
+        const wrapType = (e.currentTarget as HTMLElement).getAttribute('data-wrap');
+        if (wrapType) {
+          this.changeImageWrapType(wrapType);
+          this.wrapTypePalette.classList.remove('show');
+        }
+      });
     });
 
     this.insertTableBtn.addEventListener('click', () => {
@@ -405,9 +463,11 @@ export class TiptapToolbarManager {
           height = maxHeight;
         }
 
+        // Set image with paragraph anchor by default
         this.editorCore.chain()?.focus().setImage({
           src: base64,
-          width: Math.round(width)
+          width: Math.round(width),
+          anchorType: 'paragraph',
         }).run();
       };
       img.src = base64;
@@ -416,6 +476,130 @@ export class TiptapToolbarManager {
     reader.readAsDataURL(file);
     input.value = '';
   }
+  /** Change image wrap type */
+  private changeImageWrapType(wrapType: string): void {
+    const editor = this.editorCore.getEditor();
+    if (!editor) return;
+
+    const { state } = editor;
+    const { selection } = state;
+
+    // Find the image node
+    let imageNode: any = null;
+    let imagePos: number | null = null;
+
+    state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+      if (node.type.name === 'draggableImage') {
+        imageNode = node;
+        imagePos = pos;
+        return false; // Stop iteration
+      }
+    });
+
+    if (!imageNode || imagePos === null) return;
+
+    // Update node attributes
+    const tr = state.tr.setNodeMarkup(imagePos, undefined, {
+      ...imageNode.attrs,
+      wrapType: wrapType,
+    });
+
+    editor.view.dispatch(tr);
+  }
+
+  /** Change image anchor type */
+  private changeImageAnchor(anchorType: string): void {
+    const editor = this.editorCore.getEditor();
+    if (!editor) return;
+
+    const { state } = editor;
+    const { selection } = state;
+
+    // Find the image node
+    let imageNode: any = null;
+    let imagePos: number | null = null;
+
+    state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+      if (node.type.name === 'draggableImage') {
+        imageNode = node;
+        imagePos = pos;
+        return false; // Stop iteration
+      }
+    });
+
+    if (!imageNode || imagePos === null) return;
+
+    // Update node attributes
+    const tr = state.tr.setNodeMarkup(imagePos, undefined, {
+      ...imageNode.attrs,
+      anchorType: anchorType,
+      // Reset position for page anchor
+      posX: anchorType === 'page' ? (imageNode.attrs.posX || 20) : null,
+      posY: anchorType === 'page' ? (imageNode.attrs.posY || 20) : null,
+    });
+
+    editor.view.dispatch(tr);
+  }
+
+  /** REMOVED: Toggle image position mode - all images now use absolute positioning */
+  private toggleImagePositionMode_REMOVED(): void {
+    const editor = this.editorCore.getEditor();
+    if (!editor) return;
+
+    const { state } = editor;
+    const { selection } = state;
+    const { $from } = selection;
+
+    // Find the image node
+    let imageNode: any = null;
+    let imagePos: number | null = null;
+
+    state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+      if (node.type.name === 'draggableImage') {
+        imageNode = node;
+        imagePos = pos;
+        return false; // Stop iteration
+      }
+    });
+
+    if (!imageNode || imagePos === null) return;
+
+    const currentMode = imageNode.attrs.positionMode || 'flow';
+    const newMode = currentMode === 'flow' ? 'absolute' : 'flow';
+
+    // Get current position if switching to absolute mode
+    let posX = imageNode.attrs.posX;
+    let posY = imageNode.attrs.posY;
+
+    if (newMode === 'absolute' && (posX === null || posY === null)) {
+      // Calculate initial position from current DOM position
+      const editorEl = editor.view.dom.closest('.tiptap-content') as HTMLElement;
+      const nodeEl = editor.view.nodeDOM(imagePos) as HTMLElement;
+
+      if (editorEl && nodeEl) {
+        const editorRect = editorEl.getBoundingClientRect();
+        const nodeRect = nodeEl.getBoundingClientRect();
+
+        posX = nodeRect.left - editorRect.left;
+        posY = nodeRect.top - editorRect.top;
+      }
+    } else if (newMode === 'flow') {
+      // Clear position when switching back to flow
+      posX = null;
+      posY = null;
+    }
+
+    // Update node attributes
+    const tr = state.tr.setNodeMarkup(imagePos, undefined, {
+      ...imageNode.attrs,
+      positionMode: newMode,
+      posX,
+      posY,
+    });
+
+    editor.view.dispatch(tr);
+  }
+
   /** Update button active states */
   updateButtonStates(): void {
     this.updateButtonState(this.boldBtn, this.editorCore.isActive('bold'));
@@ -443,6 +627,41 @@ export class TiptapToolbarManager {
 
     const isInTable = this.editorCore.isActive('table');
     this.tableToolbar.style.display = isInTable ? 'flex' : 'none';
+
+    // Show/hide anchor and wrap type dropdowns based on image selection
+    const imageAttrs = this.editorCore.getAttributes('draggableImage');
+    const isImageSelected = Object.keys(imageAttrs).length > 0;
+    const anchorType = imageAttrs.anchorType || 'paragraph';
+
+    // Always show anchor dropdown when image is selected
+    this.anchorTypeDropdown.style.display = isImageSelected ? 'inline-block' : 'none';
+
+    // Only show wrap dropdown for paragraph-anchored images (text wrapping only works with paragraph anchor)
+    const showWrapDropdown = isImageSelected && anchorType === 'paragraph';
+    this.wrapTypeDropdown.style.display = showWrapDropdown ? 'inline-block' : 'none';
+
+    if (isImageSelected) {
+      // Update active anchor type in palette
+      this.anchorTypePalette.querySelectorAll('.anchor-option').forEach(option => {
+        if (option.getAttribute('data-anchor') === anchorType) {
+          option.classList.add('active');
+        } else {
+          option.classList.remove('active');
+        }
+      });
+
+      // Update active wrap type in palette (if applicable)
+      if (anchorType === 'paragraph') {
+        const wrapType = imageAttrs.wrapType || 'square';
+        this.wrapTypePalette.querySelectorAll('.wrap-option').forEach(option => {
+          if (option.getAttribute('data-wrap') === wrapType) {
+            option.classList.add('active');
+          } else {
+            option.classList.remove('active');
+          }
+        });
+      }
+    }
 
     this.undoBtn.disabled = !this.editorCore.canUndo();
     this.redoBtn.disabled = !this.editorCore.canRedo();

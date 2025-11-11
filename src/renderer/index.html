@@ -219,6 +219,52 @@
                             <span class="btn-icon">🖼️</span>
                         </button>
                         <input type="file" id="image-input" accept="image/*" style="display: none;">
+                        <div class="toolbar-dropdown" id="anchor-type-dropdown" style="display: none;">
+                            <button id="anchor-type-btn" class="toolbar-btn" title="Image Anchor">
+                                <span class="btn-icon">⚓</span>
+                            </button>
+                            <div id="anchor-type-palette" class="anchor-palette">
+                                <div class="anchor-option" data-anchor="paragraph" title="Paragraph - anchored to paragraph with text wrapping">
+                                    <span class="anchor-icon">📄</span>
+                                    <span class="anchor-label">Paragraph</span>
+                                </div>
+                                <div class="anchor-option" data-anchor="page" title="Page - free positioning anywhere on page">
+                                    <span class="anchor-icon">📍</span>
+                                    <span class="anchor-label">Page</span>
+                                </div>
+                                <div class="anchor-option" data-anchor="inline" title="Inline - flows with text like a character">
+                                    <span class="anchor-icon">📝</span>
+                                    <span class="anchor-label">Inline</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="toolbar-dropdown" id="wrap-type-dropdown" style="display: none;">
+                            <button id="wrap-type-btn" class="toolbar-btn" title="Text Wrapping">
+                                <span class="btn-icon">↔️</span>
+                            </button>
+                            <div id="wrap-type-palette" class="wrap-palette">
+                                <div class="wrap-option" data-wrap="square" title="Square Wrap - text flows around both sides">
+                                    <span class="wrap-icon">▢</span>
+                                    <span class="wrap-label">Square</span>
+                                </div>
+                                <div class="wrap-option" data-wrap="tight" title="Tight Wrap - minimal margins">
+                                    <span class="wrap-icon">▣</span>
+                                    <span class="wrap-label">Tight</span>
+                                </div>
+                                <div class="wrap-option" data-wrap="top-bottom" title="Top & Bottom - no side wrapping">
+                                    <span class="wrap-icon">━</span>
+                                    <span class="wrap-label">Top/Bottom</span>
+                                </div>
+                                <div class="wrap-option" data-wrap="none" title="No Wrap - displaces text">
+                                    <span class="wrap-icon">□</span>
+                                    <span class="wrap-label">None</span>
+                                </div>
+                                <div class="wrap-option" data-wrap="inline" title="Inline - flows with text">
+                                    <span class="wrap-icon">⊡</span>
+                                    <span class="wrap-label">Inline</span>
+                                </div>
+                            </div>
+                        </div>
                         <button id="insert-table-btn" class="toolbar-btn" title="Insert Table">
                             <span class="btn-icon">⊞</span>
                         </button>

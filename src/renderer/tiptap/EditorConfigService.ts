@@ -14,8 +14,8 @@ import Typography from '@tiptap/extension-typography';
 import { Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
-import Image from '@tiptap/extension-image';
 import Collaboration from '@tiptap/extension-collaboration';
+import { DraggableImage } from './DraggableImageExtension.js';
 import type { Editor, EditorOptions } from '@tiptap/core';
 
 export interface EditorConfig {
@@ -80,7 +80,7 @@ export class EditorConfigService {
       BackgroundColor,
       FontSize,
       TextAlign.configure({
-        types: ['heading', 'paragraph'],
+        types: ['heading', 'paragraph', 'image', 'table'],
         alignments: ['left', 'center', 'right', 'justify'],
         defaultAlignment: 'left',
       }),
@@ -93,7 +93,7 @@ export class EditorConfigService {
       TableRow,
       TableCell,
       TableHeader,
-      Image.configure({
+      DraggableImage.configure({
         inline: false,
         allowBase64: true,
         HTMLAttributes: {

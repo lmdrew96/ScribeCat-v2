@@ -39,7 +39,7 @@ export class StudyModeEditorToolbar {
               <button class="toolbar-btn study-color-btn" title="Text Color">
                 <span class="btn-icon">A</span>
               </button>
-              <div class="color-palette study-color-palette hidden">
+              <div class="color-palette study-color-palette">
                 <div class="color-swatch" data-color="#000000" style="background: #000000;" title="Black"></div>
                 <div class="color-swatch" data-color="#FF0000" style="background: #FF0000;" title="Red"></div>
                 <div class="color-swatch" data-color="#00FF00" style="background: #00FF00;" title="Green"></div>
@@ -56,7 +56,7 @@ export class StudyModeEditorToolbar {
               <button class="toolbar-btn study-bg-color-btn" title="Background Color">
                 <span class="btn-icon">🎨</span>
               </button>
-              <div class="color-palette study-bg-color-palette hidden">
+              <div class="color-palette study-bg-color-palette">
                 <div class="color-swatch" data-color="#FFFFFF" style="background: #FFFFFF; border: 2px solid #ddd;" title="White"></div>
                 <div class="color-swatch" data-color="#FFEB3B" style="background: #FFEB3B;" title="Yellow"></div>
                 <div class="color-swatch" data-color="#FFCDD2" style="background: #FFCDD2;" title="Light Red"></div>
@@ -322,8 +322,8 @@ export class StudyModeEditorToolbar {
 
     colorBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      colorPalette?.classList.toggle('hidden');
-      bgColorPalette?.classList.add('hidden');
+      colorPalette?.classList.toggle('show');
+      bgColorPalette?.classList.remove('show');
     });
 
     const colorSwatches = document.querySelectorAll('.study-color-palette .color-swatch');
@@ -334,14 +334,14 @@ export class StudyModeEditorToolbar {
         if (color) {
           this.editor?.chain().focus().setColor(color).run();
         }
-        colorPalette?.classList.add('hidden');
+        colorPalette?.classList.remove('show');
       });
     });
 
     bgColorBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      bgColorPalette?.classList.toggle('hidden');
-      colorPalette?.classList.add('hidden');
+      bgColorPalette?.classList.toggle('show');
+      colorPalette?.classList.remove('show');
     });
 
     const bgColorSwatches = document.querySelectorAll('.study-bg-color-palette .color-swatch');
@@ -352,7 +352,7 @@ export class StudyModeEditorToolbar {
         if (color) {
           this.editor?.chain().focus().setBackgroundColor(color).run();
         }
-        bgColorPalette?.classList.add('hidden');
+        bgColorPalette?.classList.remove('show');
       });
     });
 
@@ -366,8 +366,8 @@ export class StudyModeEditorToolbar {
           !target.closest('.study-bg-color-btn') &&
           !target.closest('.study-color-palette') &&
           !target.closest('.study-bg-color-palette')) {
-        colorPalette?.classList.add('hidden');
-        bgColorPalette?.classList.add('hidden');
+        colorPalette?.classList.remove('show');
+        bgColorPalette?.classList.remove('show');
       }
     };
     document.addEventListener('click', this.paletteClickHandler);

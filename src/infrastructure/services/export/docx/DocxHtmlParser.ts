@@ -11,6 +11,14 @@ export interface HtmlBlock {
   content: string;
   level?: number;
   indentLevel?: number;
+  // Image-specific properties
+  imageSrc?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  anchorType?: 'paragraph' | 'page' | 'inline';
+  posX?: number;
+  posY?: number;
+  wrapType?: string;
 }
 
 export class DocxHtmlParser {
@@ -44,6 +52,21 @@ export class DocxHtmlParser {
     while (position < html.length) {
       // Try to match block-level elements
       const remainingHtml = html.substring(position);
+
+      // Check for image containers first (divs with data-anchor-type or img tags)
+      const imageContainerMatch = remainingHtml.match(/^<div[^>]*(data-anchor-type="([^"]*)"|data-position-mode="([^"]*)")[ ^>]*>/i);
+      if (imageContainerMatch) {
+        const imageBlock = this.parseImageBlock(remainingHtml);
+        if (imageBlock) {
+          blocks.push(imageBlock);
+          // Find the closing </div> to advance position
+          const closingDiv = remainingHtml.indexOf('</div>');
+          if (closingDiv !== -1) {
+            position += closingDiv + 6; // 6 = length of </div>
+            continue;
+          }
+        }
+      }
 
       // Match opening tags for block elements
       const blockMatch = remainingHtml.match(/^<(p|h[1-6]|ul|ol|li|blockquote|br)(?:\s[^>]*)?>/i);
@@ -283,5 +306,78 @@ export class DocxHtmlParser {
 
     // Otherwise strip all HTML and return
     return DocxFormatters.stripHtml(content).trim();
+  }
+
+  /**
+   * Parse an image block from HTML
+   */
+  private static parseImageBlock(html: string): HtmlBlock | null {
+    // Extract the div tag attributes
+    const divMatch = html.match(/^<div([^>]*)>/i);
+    if (!divMatch) return null;
+
+    const divAttrs = divMatch[1];
+
+    // Extract anchor type (prefer new attribute, fall back to position mode for backward compatibility)
+    const anchorTypeMatch = divAttrs.match(/data-anchor-type="([^"]*)"/i);
+    const positionModeMatch = divAttrs.match(/data-position-mode="([^"]*)"/i);
+
+    let anchorType: 'paragraph' | 'page' | 'inline' = 'paragraph';
+    if (anchorTypeMatch) {
+      anchorType = anchorTypeMatch[1] as ('paragraph' | 'page' | 'inline');
+    } else if (positionModeMatch) {
+      // Backward compatibility: convert old position mode to anchor type
+      anchorType = positionModeMatch[1] === 'absolute' ? 'page' : 'paragraph';
+    }
+
+    // Extract wrap type
+    const wrapTypeMatch = divAttrs.match(/data-wrap-type="([^"]*)"/i);
+    const wrapType = wrapTypeMatch ? wrapTypeMatch[1] : 'square';
+
+    // Extract position coordinates (for page-anchored images)
+    let posX: number | undefined = undefined;
+    let posY: number | undefined = undefined;
+
+    if (anchorType === 'page') {
+      const posXMatch = divAttrs.match(/data-pos-x="(\d+)"/i);
+      const posYMatch = divAttrs.match(/data-pos-y="(\d+)"/i);
+
+      if (posXMatch) posX = parseInt(posXMatch[1], 10);
+      if (posYMatch) posY = parseInt(posYMatch[1], 10);
+    }
+
+    // Find the img tag within the div
+    const imgMatch = html.match(/<img[^>]*>/i);
+    if (!imgMatch) return null;
+
+    const imgTag = imgMatch[0];
+
+    // Extract src
+    const srcMatch = imgTag.match(/src="([^"]*)"/i);
+    if (!srcMatch) return null;
+
+    const imageSrc = srcMatch[1];
+
+    // Extract width and height
+    let imageWidth: number | undefined = undefined;
+    let imageHeight: number | undefined = undefined;
+
+    const widthMatch = imgTag.match(/style="[^"]*width:\s*(\d+)px/i) || imgTag.match(/width="(\d+)"/i);
+    if (widthMatch) imageWidth = parseInt(widthMatch[1], 10);
+
+    const heightMatch = imgTag.match(/style="[^"]*height:\s*(\d+)px/i) || imgTag.match(/height="(\d+)"/i);
+    if (heightMatch) imageHeight = parseInt(heightMatch[1], 10);
+
+    return {
+      type: 'image',
+      content: '', // Images don't have text content
+      imageSrc,
+      imageWidth,
+      imageHeight,
+      anchorType,
+      posX,
+      posY,
+      wrapType
+    };
   }
 }

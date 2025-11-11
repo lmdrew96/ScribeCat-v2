@@ -13,7 +13,7 @@ import Typography from '@tiptap/extension-typography';
 import { TextStyle, Color, BackgroundColor, FontSize } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
-import Image from '@tiptap/extension-image';
+import { DraggableImage } from '../../tiptap/DraggableImageExtension.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('TiptapEditorCore');
@@ -72,7 +72,7 @@ export class TiptapEditorCore {
         BackgroundColor,
         FontSize,
         TextAlign.configure({
-          types: ['heading', 'paragraph'],
+          types: ['heading', 'paragraph', 'image', 'table'],
           alignments: ['left', 'center', 'right', 'justify'],
           defaultAlignment: 'left',
         }),
@@ -85,18 +85,11 @@ export class TiptapEditorCore {
         TableRow,
         TableCell,
         TableHeader,
-        Image.configure({
+        DraggableImage.configure({
           inline: false,
           allowBase64: true,
           HTMLAttributes: {
             class: 'tiptap-image',
-          },
-          resize: {
-            enabled: true,
-            directions: ['top', 'right', 'bottom', 'left', 'top-right', 'top-left', 'bottom-right', 'bottom-left'],
-            minWidth: 50,
-            minHeight: 50,
-            alwaysPreserveAspectRatio: true,
           },
         }),
       ],

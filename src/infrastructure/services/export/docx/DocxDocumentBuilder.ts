@@ -6,7 +6,19 @@
 
 import { Session } from '../../../../domain/entities/Session.js';
 import { ExportOptions } from '../../../../domain/services/IExportService.js';
-import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import {
+  Document,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  ImageRun,
+  HorizontalPositionAlign,
+  VerticalPositionAlign,
+  TextWrappingType,
+  HorizontalPositionRelativeFrom,
+  VerticalPositionRelativeFrom
+} from 'docx';
 import { DocxHtmlParser, HtmlBlock } from './DocxHtmlParser.js';
 import { DocxInlineFormatter } from './DocxInlineFormatter.js';
 import { DocxFormatters } from './DocxFormatters.js';
@@ -259,6 +271,11 @@ export class DocxDocumentBuilder {
    * Create a DOCX paragraph from an HTML block
    */
   private static createParagraphFromBlock(block: HtmlBlock): Paragraph | null {
+    // Handle image blocks
+    if (block.type === 'image' && block.imageSrc) {
+      return this.createImageParagraph(block);
+    }
+
     const textRuns = DocxInlineFormatter.parseInlineFormatting(block.content);
 
     if (textRuns.length === 0 && !block.content.trim()) {
@@ -292,5 +309,146 @@ export class DocxDocumentBuilder {
     }
 
     return new Paragraph(paragraphOptions);
+  }
+
+  /**
+   * Create a paragraph containing an image
+   */
+  private static createImageParagraph(block: HtmlBlock): Paragraph | null {
+    if (!block.imageSrc) return null;
+
+    try {
+      // Decode base64 image
+      const imageBuffer = this.decodeBase64Image(block.imageSrc);
+
+      // Get dimensions in EMUs (default to 200px if not specified)
+      const widthInPixels = block.imageWidth || 200;
+      const heightInPixels = block.imageHeight || 200;
+      const widthInEMUs = this.pixelsToEMUs(widthInPixels);
+      const heightInEMUs = this.pixelsToEMUs(heightInPixels);
+
+      const anchorType = block.anchorType || 'paragraph';
+      const wrapType = block.wrapType || 'square';
+      const textWrappingType = this.getTextWrappingType(wrapType);
+
+      // Create ImageRun based on anchor type
+      if (anchorType === 'page' && block.posX !== undefined && block.posY !== undefined) {
+        // Page-anchored: Floating image with absolute positioning
+        const xInEMUs = this.pixelsToEMUs(block.posX);
+        const yInEMUs = this.pixelsToEMUs(block.posY);
+
+        const imageRun = new ImageRun({
+          data: imageBuffer,
+          transformation: {
+            width: widthInEMUs,
+            height: heightInEMUs
+          },
+          floating: {
+            horizontalPosition: {
+              offset: xInEMUs
+            },
+            verticalPosition: {
+              offset: yInEMUs
+            },
+            wrap: {
+              type: TextWrappingType.NONE,  // No text wrapping for page-anchored
+              side: 'bothSides'
+            }
+          }
+        });
+
+        return new Paragraph({
+          children: [imageRun],
+          spacing: { after: 100 }
+        });
+      } else if (anchorType === 'paragraph') {
+        // Paragraph-anchored: Floating image with text wrapping
+        const imageRun = new ImageRun({
+          data: imageBuffer,
+          transformation: {
+            width: widthInEMUs,
+            height: heightInEMUs
+          },
+          floating: {
+            horizontalPosition: {
+              align: HorizontalPositionAlign.LEFT,  // Align left for wrapping
+            },
+            verticalPosition: {
+              align: VerticalPositionAlign.TOP,  // Align top
+            },
+            wrap: {
+              type: textWrappingType,  // Use selected wrap type
+              side: 'bothSides'
+            }
+          }
+        });
+
+        return new Paragraph({
+          children: [imageRun],
+          spacing: { after: 100 }
+        });
+      } else {
+        // Inline-anchored: Image flows with text like a character
+        const imageRun = new ImageRun({
+          data: imageBuffer,
+          transformation: {
+            width: widthInEMUs,
+            height: heightInEMUs
+          }
+        });
+
+        return new Paragraph({
+          children: [imageRun],
+          spacing: { after: 100 }
+        });
+      }
+    } catch (error) {
+      // If image processing fails, skip it
+      console.warn('Failed to process image for DOCX export:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Decode base64 image to buffer
+   */
+  private static decodeBase64Image(dataUrl: string): Buffer {
+    if (dataUrl.startsWith('data:')) {
+      // Extract base64 data from data URL
+      const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        throw new Error('Invalid data URL format');
+      }
+      return Buffer.from(matches[2], 'base64');
+    } else {
+      throw new Error('Only base64 images are supported in DOCX export');
+    }
+  }
+
+  /**
+   * Convert pixels to EMUs (English Metric Units)
+   * 1 pixel = 9525 EMUs at 96 DPI
+   */
+  private static pixelsToEMUs(pixels: number): number {
+    return Math.round(pixels * 9525);
+  }
+
+  /**
+   * Map wrap type to DOCX TextWrappingType
+   */
+  private static getTextWrappingType(wrapType: string): TextWrappingType {
+    switch (wrapType) {
+      case 'square':
+        return TextWrappingType.SQUARE;
+      case 'tight':
+        return TextWrappingType.TIGHT;
+      case 'top-bottom':
+        return TextWrappingType.TOP_AND_BOTTOM;
+      case 'none':
+        return TextWrappingType.NONE;
+      case 'inline':
+      default:
+        return TextWrappingType.SQUARE; // Default to square wrapping
+    }
   }
 }

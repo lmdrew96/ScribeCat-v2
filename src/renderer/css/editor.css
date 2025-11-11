@@ -110,6 +110,7 @@
   display: flex;
   max-height: 200px;
   opacity: 1;
+  overflow: visible;
 }
 
 /* Toolbar Groups for visual organization */
@@ -228,6 +229,114 @@
   transform: scale(1.15);
   border-color: var(--accent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Anchor Type Palette */
+.anchor-palette {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1000;
+  min-width: 140px;
+}
+
+.anchor-palette.show {
+  display: flex;
+}
+
+.anchor-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--bg-primary);
+}
+
+.anchor-option:hover {
+  background: var(--bg-hover);
+  transform: translateX(2px);
+}
+
+.anchor-option.active {
+  background: var(--accent);
+  color: white;
+}
+
+.anchor-icon {
+  font-size: 16px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.anchor-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Wrap Type Palette */
+.wrap-palette {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1000;
+  min-width: 140px;
+}
+
+.wrap-palette.show {
+  display: flex;
+}
+
+.wrap-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--bg-primary);
+}
+
+.wrap-option:hover {
+  background: var(--bg-hover);
+  transform: translateX(2px);
+}
+
+.wrap-option.active {
+  background: var(--accent);
+  color: white;
+}
+
+.wrap-icon {
+  font-size: 16px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.wrap-label {
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* Font Size Select */
@@ -501,6 +610,7 @@
 
 /* Tiptap Content Styles */
 .tiptap-content {
+  position: relative; /* Positioning context for absolutely positioned images */
   padding: 20px;
   font-size: 16px;
   line-height: 1.6;
@@ -679,19 +789,40 @@
 }
 
 /* Tiptap Images */
-.tiptap-content img.tiptap-image {
+.tiptap-content img {
   max-width: 100%;
-  max-height: 100px;
+  max-height: 600px;
+  min-height: 50px;
   width: auto;
   height: auto;
   display: block;
-  margin: 1rem auto;
+  margin: 1rem 0;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   object-fit: contain;
+  position: relative;
 }
 
-.tiptap-content img.tiptap-image.ProseMirror-selectednode {
+/* Image alignment based on text-align attribute */
+.tiptap-content img[style*="text-align: left"],
+.tiptap-content img[style*="text-align:left"] {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.tiptap-content img[style*="text-align: center"],
+.tiptap-content img[style*="text-align:center"] {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.tiptap-content img[style*="text-align: right"],
+.tiptap-content img[style*="text-align:right"] {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.tiptap-content img.ProseMirror-selectednode {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -812,6 +943,134 @@
   position: relative;
   overflow-x: auto;
   margin: 1rem 0;
+}
+
+/* Drag Handles for Images and Tables */
+.draggable-image-wrapper,
+.ProseMirror .tableWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.draggable-image-wrapper img {
+  display: block;
+}
+
+.drag-handle {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 18px;
+  background: var(--accent);
+  color: white;
+  border-radius: 4px 4px 0 0;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: -1px;
+  line-height: 1;
+  z-index: 200;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, top 0.2s ease;
+  user-select: none;
+  pointer-events: auto;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.drag-handle:hover {
+  opacity: 1;
+  top: -8px;
+  transform: translateX(-50%);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* ===== Anchor-Based Image Positioning ===== */
+
+/* Page-anchored images: Absolute positioning (free positioning, no text wrapping) */
+.draggable-image-wrapper.anchor-page,
+.draggable-image-wrapper.absolute-positioned {
+  position: absolute;
+  z-index: 10;
+  cursor: move;
+  border: 2px dashed var(--accent);
+  border-radius: 4px;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.draggable-image-wrapper.anchor-page:hover,
+.draggable-image-wrapper.absolute-positioned:hover {
+  border-color: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.draggable-image-wrapper.anchor-page .drag-handle,
+.draggable-image-wrapper.absolute-positioned .drag-handle {
+  opacity: 1; /* Always show drag handle for page-anchored images */
+  background: var(--accent-hover);
+}
+
+/* Paragraph-anchored images: Text wrapping enabled via float */
+.draggable-image-wrapper.anchor-paragraph {
+  position: relative;
+  display: inline-block;
+}
+
+/* Paragraph-anchored + Square wrap */
+.draggable-image-wrapper.anchor-paragraph.wrap-square {
+  float: left;
+  margin: 0 16px 16px 0;
+  clear: none;
+}
+
+/* Paragraph-anchored + Tight wrap */
+.draggable-image-wrapper.anchor-paragraph.wrap-tight {
+  float: left;
+  margin: 0 8px 8px 0;
+  clear: none;
+}
+
+/* Paragraph-anchored + Top/Bottom wrap */
+.draggable-image-wrapper.anchor-paragraph.wrap-top-bottom {
+  display: block;
+  margin: 16px 0;
+  clear: both;
+}
+
+/* Paragraph-anchored + None wrap */
+.draggable-image-wrapper.anchor-paragraph.wrap-none {
+  display: block;
+  margin: 0;
+  clear: both;
+}
+
+/* Paragraph-anchored + Inline wrap */
+.draggable-image-wrapper.anchor-paragraph.wrap-inline {
+  display: inline-block;
+  margin: 0 4px;
+  vertical-align: middle;
+}
+
+/* Inline-anchored images: Flow with text like a character */
+.draggable-image-wrapper.anchor-inline {
+  position: static;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 4px;
+}
+
+/* Drop indicator */
+.ProseMirror-dropcursor {
+  border-top: 2px solid var(--accent);
+  pointer-events: none;
 }
 
 /* Tiptap Focus */
