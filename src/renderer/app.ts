@@ -23,6 +23,7 @@ import { AuthScreen } from './components/AuthScreen.js';
 import { UserProfileMenu } from './components/UserProfileMenu.js';
 import { ShareModal } from './components/ShareModal.js';
 import { AccountSettingsModal } from './components/AccountSettingsModal.js';
+import { HelpModal } from './components/HelpModal.js';
 import { TrashModal } from './components/TrashModal.js';
 import { CommandPalette } from './components/CommandPalette.js';
 import { CommandRegistry } from './managers/CommandRegistry.js';
@@ -60,6 +61,7 @@ let authScreen: AuthScreen;
 let userProfileMenu: UserProfileMenu;
 let shareModal: ShareModal;
 let accountSettingsModal: AccountSettingsModal;
+let helpModal: HelpModal;
 let trashModal: TrashModal;
 let commandPalette: CommandPalette;
 let commandRegistry: CommandRegistry;
@@ -167,6 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await authManager.initialize();
   authScreen = new AuthScreen(authManager);
   accountSettingsModal = new AccountSettingsModal(authManager);
+  helpModal = new HelpModal();
   trashModal = new TrashModal();
   userProfileMenu = new UserProfileMenu(authManager, accountSettingsModal);
 

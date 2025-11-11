@@ -28,6 +28,10 @@
                 <button id="settings-btn" class="icon-btn" title="Settings">
                     <span class="settings-icon">⚙️</span>
                 </button>
+
+                <button id="help-btn" class="icon-btn" title="Help & Legal">
+                    <span class="help-icon">❓</span>
+                </button>
             </div>
         </header>
         
@@ -858,6 +862,42 @@
             <div class="modal-footer">
                 <button id="cancel-course-select-btn" class="secondary-btn">Cancel</button>
                 <button id="ok-course-select-btn" class="primary-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help & Legal Modal -->
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Help & Legal</h2>
+                <button id="close-help-btn" class="close-btn" title="Close">×</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Tab Navigation -->
+                <div class="tab-navigation">
+                    <button id="privacy-tab" class="tab-btn active" data-tab="privacy">Privacy Policy</button>
+                    <button id="terms-tab" class="tab-btn" data-tab="terms">Terms of Service</button>
+                </div>
+
+                <!-- Tab Content -->
+                <div id="privacy-content" class="tab-content active">
+                    <div class="legal-document" id="privacy-document">
+                        <!-- Privacy policy will be loaded here -->
+                    </div>
+                </div>
+
+                <div id="terms-content" class="tab-content hidden">
+                    <div class="legal-document" id="terms-document">
+                        <!-- Terms of service will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="close-help-modal-btn" class="secondary-btn">Close</button>
             </div>
         </div>
     </div>
