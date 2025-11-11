@@ -36,6 +36,7 @@ export class MainWindowManager {
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
+      icon: path.join(__dirname, '../../assets/nugget-logo.PNG'),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

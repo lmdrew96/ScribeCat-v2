@@ -9,9 +9,11 @@
     "assets/**/*",
     "node_modules/**/*"
   ],
+  "icon": "assets/nugget-logo.PNG",
   "mac": {
     "category": "public.app-category.education",
     "target": ["dmg", "zip"],
+    "icon": "assets/nugget-logo.PNG",
     "entitlements": "build/entitlements.mac.plist",
     "entitlementsInherit": "build/entitlements.mac.plist",
     "extendInfo": {
@@ -19,9 +21,11 @@
     }
   },
   "win": {
-    "target": "nsis"
+    "target": "nsis",
+    "icon": "assets/nugget-logo.PNG"
   },
   "linux": {
-    "target": "AppImage"
+    "target": "AppImage",
+    "icon": "assets/nugget-logo.PNG"
   }
 }
