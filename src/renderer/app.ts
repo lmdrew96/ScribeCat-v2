@@ -74,6 +74,9 @@ let phase3Integration: Phase3Integration;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
+  // Get app version dynamically
+  const version = await window.scribeCat.app.getVersion();
+
   // 🎉 Easter Egg: Console Cat ASCII Art
   console.log(
     '%c     /\\_/\\  \n' +
@@ -88,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'color: #ff69b4; font-weight: bold; font-size: 14px;'
   );
   console.log(
-    '%c ScribeCat v1.20.0 - Built with 🐱 and ☕',
+    `%c ScribeCat v${version} - Brought to You by ADHD: Agentic Development of Human Designs 🧠⚡️`,
     'color: #ffd700; font-size: 12px;'
   );
   console.log(
