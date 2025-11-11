@@ -331,6 +331,23 @@ export class Phase3Integration {
   }
 
   /**
+   * Refresh current view with existing sessions
+   * Used when navigating back to session list to ensure view is up to date
+   */
+  refreshCurrentView(): void {
+    const sessions = this.getCurrentSessions();
+    this.renderCurrentView(sessions);
+    logger.info('Refreshed current view');
+  }
+
+  /**
+   * Get the bulk selection manager instance
+   */
+  getBulkSelectionManager(): BulkSelectionManager {
+    return this.bulkSelectionManager;
+  }
+
+  /**
    * Get current sessions (search results or all)
    */
   private getCurrentSessions(): Session[] {
