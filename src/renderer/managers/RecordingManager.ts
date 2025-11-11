@@ -37,6 +37,7 @@ export class RecordingManager {
   private elapsedTimer: number | null = null;
   private vuMeterInterval: number | null = null;
   private suggestionCheckInterval: number | null = null;
+  private sessionTitleInput: HTMLInputElement | null = null;
 
   constructor(
     audioManager: AudioManager,
@@ -63,7 +64,8 @@ export class RecordingManager {
    * Initialize recording manager
    */
   initialize(): void {
-    // No initialization needed - transcription handled by TranscriptionModeService
+    // Get reference to session title input
+    this.sessionTitleInput = document.getElementById('session-title-input') as HTMLInputElement;
   }
 
   /**
@@ -128,6 +130,11 @@ export class RecordingManager {
     this.startElapsedTimer();
     this.startVUMeterUpdates();
 
+    // Clear session title input for new recording
+    if (this.sessionTitleInput) {
+      this.sessionTitleInput.value = '';
+    }
+
     logger.info('Recording started successfully');
   }
 
@@ -157,12 +164,22 @@ export class RecordingManager {
     const currentUser = window.authManager?.getCurrentUser();
     const userId = currentUser?.id || null;
 
+    // Get session title (if provided)
+    const sessionTitle = this.sessionTitleInput?.value.trim() || undefined;
+
+    logger.info('Session title from input:', {
+      rawValue: this.sessionTitleInput?.value,
+      trimmedValue: sessionTitle,
+      willUseCustomTitle: !!sessionTitle
+    });
+
     // Save the recording to disk
     const saveResult = await window.scribeCat.recording.stop(
       result.audioData.buffer as ArrayBuffer,
       durationSeconds,
       courseData,
-      userId
+      userId,
+      sessionTitle
     );
 
     if (!saveResult.success) {
@@ -522,7 +539,7 @@ export class RecordingManager {
   private async saveTranscriptionWithRetry(
     sessionId: string,
     transcriptionText: string,
-    timestampedEntries: Array<{ timestamp: number; text: string }>,
+    timestampedEntries: Array<{ startTime: number; endTime: number; text: string }>,
     maxAttempts: number = 3
   ): Promise<{ success: boolean; error?: string }> {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {

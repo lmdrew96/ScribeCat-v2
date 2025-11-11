@@ -46,9 +46,20 @@ export class SaveRecordingUseCase {
 
     // Create session entity
     const now = new Date();
+    const finalTitle = input.title || `Recording ${now.toLocaleDateString()}`;
+
+    console.log('📝 SaveRecordingUseCase - Creating session:', {
+      sessionId,
+      providedTitle: input.title,
+      finalTitle,
+      courseId: input.courseId,
+      courseTitle: input.courseTitle,
+      userId: input.userId
+    });
+
     const session = new Session(
       sessionId,
-      input.title || `Recording ${now.toLocaleDateString()}`,
+      finalTitle,
       filePath,
       '', // Empty notes initially
       now,
@@ -66,6 +77,8 @@ export class SaveRecordingUseCase {
 
     // Save session metadata
     await this.sessionRepository.save(session);
+
+    console.log('✅ SaveRecordingUseCase - Session saved with title:', session.title);
 
     return {
       sessionId,
