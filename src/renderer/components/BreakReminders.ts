@@ -20,6 +20,7 @@
 
 import { SoundManager } from '../audio/SoundManager.js';
 import { FocusManager } from '../utils/FocusManager.js';
+import type { RecordingManager } from '../managers/RecordingManager.js';
 
 interface BreakReminderConfig {
   /** Minutes between break reminders (default: 50) */
@@ -37,12 +38,17 @@ interface StudySession {
   lastBreakTime: number;
   totalStudyTime: number;
   breaksaken: number;
+  sessionDate: string; // ISO date string for session validation
 }
 
 export class BreakReminders {
   private static instance: BreakReminders | null = null;
   private static readonly STORAGE_KEY = 'scribecat_break_reminders';
   private static readonly SESSION_KEY = 'scribecat_current_session';
+
+  // Session expiration constants
+  private static readonly SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 hours
+  private static readonly SESSION_INACTIVITY_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours
 
   private config: BreakReminderConfig = {
     intervalMinutes: 50,
@@ -54,6 +60,7 @@ export class BreakReminders {
   private currentSession: StudySession | null = null;
   private checkInterval: number | null = null;
   private reminderTimeout: number | null = null;
+  private recordingManager: RecordingManager | null = null;
 
   /**
    * Cat-themed break messages
@@ -109,10 +116,14 @@ export class BreakReminders {
 
   /**
    * Get singleton instance
+   * @param recordingManager Optional RecordingManager to check recording state
    */
-  public static getInstance(): BreakReminders {
+  public static getInstance(recordingManager?: RecordingManager): BreakReminders {
     if (!this.instance) {
       this.instance = new BreakReminders();
+    }
+    if (recordingManager && !this.instance.recordingManager) {
+      this.instance.recordingManager = recordingManager;
     }
     return this.instance;
   }
@@ -133,7 +144,8 @@ export class BreakReminders {
         startTime: Date.now(),
         lastBreakTime: Date.now(),
         totalStudyTime: 0,
-        breaksaken: 0
+        breaksaken: 0,
+        sessionDate: new Date().toISOString()
       };
       instance.saveSession();
     }
@@ -234,9 +246,17 @@ export class BreakReminders {
     const instance = this.getInstance();
     if (!instance.currentSession) return null;
 
+    // Calculate elapsed time for current session
+    const currentElapsed = Date.now() - instance.currentSession.startTime;
+
+    // Safety check: prevent massive time accumulations
+    // If elapsed time > 12 hours, something went wrong - cap it
+    const MAX_SESSION_TIME = 12 * 60 * 60 * 1000; // 12 hours
+    const safeElapsed = Math.min(currentElapsed, MAX_SESSION_TIME);
+
     return {
       ...instance.currentSession,
-      totalStudyTime: instance.currentSession.totalStudyTime + (Date.now() - instance.currentSession.startTime)
+      totalStudyTime: instance.currentSession.totalStudyTime + safeElapsed
     };
   }
 
@@ -294,6 +314,11 @@ export class BreakReminders {
    */
   private checkBreakTime(): void {
     if (!this.currentSession || !this.config.enabled) return;
+
+    // IMPORTANT: Don't show break reminders while recording is active
+    if (this.recordingManager?.getIsRecording()) {
+      return;
+    }
 
     const timeSinceLastBreak = Date.now() - this.currentSession.lastBreakTime;
     const breakIntervalMs = this.config.intervalMinutes * 60000;
@@ -586,15 +611,53 @@ export class BreakReminders {
 
   /**
    * Load session from localStorage
+   * Validates session freshness and expires old/stale sessions
    */
   private loadSession(): void {
     const saved = localStorage.getItem(BreakReminders.SESSION_KEY);
-    if (saved) {
-      try {
-        this.currentSession = JSON.parse(saved);
-      } catch (error) {
-        console.warn('Failed to load session:', error);
+    if (!saved) return;
+
+    try {
+      const session: StudySession = JSON.parse(saved);
+
+      // Validate session has required fields
+      if (!session.sessionDate || !session.startTime || !session.lastBreakTime) {
+        console.warn('Invalid session structure, clearing session');
+        localStorage.removeItem(BreakReminders.SESSION_KEY);
+        return;
       }
+
+      const now = Date.now();
+      const sessionDate = new Date(session.sessionDate).getTime();
+      const timeSinceSessionStart = now - sessionDate;
+      const timeSinceLastBreak = now - session.lastBreakTime;
+
+      // Check if session is too old (> 12 hours)
+      if (timeSinceSessionStart > BreakReminders.SESSION_MAX_AGE_MS) {
+        console.log('Session expired (> 12 hours old), clearing session');
+        localStorage.removeItem(BreakReminders.SESSION_KEY);
+        return;
+      }
+
+      // Check if session has been inactive too long (> 4 hours)
+      if (timeSinceLastBreak > BreakReminders.SESSION_INACTIVITY_THRESHOLD_MS) {
+        console.log('Session inactive (> 4 hours), clearing session');
+        localStorage.removeItem(BreakReminders.SESSION_KEY);
+        return;
+      }
+
+      // Session is valid, but reset startTime to prevent massive time accumulation
+      // Keep totalStudyTime and other stats, but start fresh timer
+      this.currentSession = {
+        ...session,
+        startTime: now, // Reset to current time to fix time calculation
+        lastBreakTime: now // Reset last break to prevent immediate reminder
+      };
+
+      console.log('Valid session loaded, timer reset to prevent accumulation');
+    } catch (error) {
+      console.warn('Failed to load session:', error);
+      localStorage.removeItem(BreakReminders.SESSION_KEY);
     }
   }
 
@@ -656,8 +719,12 @@ document.head.appendChild(breakReminderStyles);
 /**
  * Initialize break reminders
  * Call this during app initialization
+ * @param recordingManager Optional RecordingManager to check recording state
  */
-export function initializeBreakReminders(): void {
+export function initializeBreakReminders(recordingManager?: RecordingManager): void {
+  // Initialize singleton with recording manager
+  BreakReminders.getInstance(recordingManager);
+
   // Auto-start if enabled
   const config = BreakReminders.getConfig();
   if (config.enabled) {

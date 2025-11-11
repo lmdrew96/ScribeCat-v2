@@ -40,7 +40,7 @@ import { FocusManager, initializeA11yStyles } from './utils/FocusManager.js';
 import { WelcomeModal } from './components/WelcomeModal.js';
 import { TutorialManager } from './utils/TutorialManager.js';
 import { SoundManager, initializeSoundSystem, enableGlobalSoundEffects } from './audio/SoundManager.js';
-import { BreakReminders } from './components/BreakReminders.js';
+import { BreakReminders, initializeBreakReminders } from './components/BreakReminders.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -289,11 +289,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeSoundSystem();
   enableGlobalSoundEffects();
 
-  // Initialize break reminders (auto-starts if enabled in settings)
-  const breakConfig = BreakReminders.getConfig();
-  if (breakConfig.enabled) {
-    BreakReminders.start();
-  }
+  // Initialize break reminders with recording manager (auto-starts if enabled in settings)
+  initializeBreakReminders(recordingManager);
 
   // Show welcome modal on first launch (after a short delay)
   setTimeout(() => {
