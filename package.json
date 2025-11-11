@@ -1,6 +1,6 @@
 {
   "name": "scribecat-v2",
-  "version": "1.31.3",
+  "version": "1.31.4",
   "type": "module",
   "description": "ScribeCat scribes and is cat. A revolutionary multi-platform app that can be used to record and accurately transcribe speech, take rich text notes, and interact with AI to better understand the content of the recording and your notes.",
   "main": "dist/main/main.js",
@@ -16,7 +16,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "lint": "echo \"No linter configured yet\"",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "generate-icons": "node scripts/generate-windows-icon.cjs"
   },
   "keywords": [],
   "author": "",
@@ -37,6 +38,7 @@
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.11",
     "happy-dom": "^20.0.10",
+    "icon-gen": "^5.0.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.6"
   },

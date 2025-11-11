@@ -7,13 +7,14 @@
   "files": [
     "dist/**/*",
     "assets/**/*",
+    "build/icon.*",
     "node_modules/**/*"
   ],
   "icon": "assets/nugget-logo.PNG",
   "mac": {
     "category": "public.app-category.education",
     "target": ["dmg", "zip"],
-    "icon": "assets/nugget-logo.PNG",
+    "icon": "build/icon.icns",
     "entitlements": "build/entitlements.mac.plist",
     "entitlementsInherit": "build/entitlements.mac.plist",
     "extendInfo": {
@@ -22,7 +23,7 @@
   },
   "win": {
     "target": "nsis",
-    "icon": "assets/nugget-logo.PNG"
+    "icon": "build/icon.ico"
   },
   "linux": {
     "target": "AppImage",
