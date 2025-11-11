@@ -175,7 +175,7 @@ export class HelpModal {
 
     this.aboutDocument.innerHTML = `
       <div style="text-align: center; padding: 20px 0;">
-        <img src="assets/nugget-logo.PNG" alt="ScribeCat Logo" style="width: 120px; height: 120px; border-radius: 20px; margin-bottom: 20px;">
+        <img src="../../assets/nugget-logo.PNG" alt="ScribeCat Logo" style="width: 120px; height: 120px; border-radius: 20px; margin-bottom: 20px;">
         <h1 style="margin: 0 0 10px 0;">ScribeCat</h1>
         <p style="font-size: 1.2em; color: #888; margin: 0 0 10px 0;">Version ${version}</p>
         <p style="font-size: 1.1em; font-style: italic; margin: 0 0 30px 0;">ScribeCat scribes and is cat 🐱✨</p>
