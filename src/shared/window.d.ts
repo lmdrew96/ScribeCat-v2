@@ -26,6 +26,9 @@ import type {
 declare global {
   interface Window {
     scribeCat: {
+      app: {
+        getVersion: () => Promise<string>;
+      };
       shell: {
         openExternal: (url: string) => Promise<void>;
       };

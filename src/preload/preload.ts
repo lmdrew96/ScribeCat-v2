@@ -74,6 +74,9 @@ interface SignUpWithEmailParams {
 
 // Expose the API to the renderer process
 const electronAPI = {
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:getVersion')
+  },
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url)
   },

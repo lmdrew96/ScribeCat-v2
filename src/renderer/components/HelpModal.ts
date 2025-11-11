@@ -170,8 +170,15 @@ export class HelpModal {
   /**
    * Populate the About tab content
    */
-  private populateAboutContent(): void {
-    const version = '1.26.0'; // TODO: Get version dynamically from package.json
+  private async populateAboutContent(): Promise<void> {
+    // Get version dynamically from package.json via IPC
+    let version = '...';
+    try {
+      version = await window.scribeCat.app.getVersion();
+    } catch (error) {
+      logger.error('Failed to get app version:', error);
+      version = 'Unknown';
+    }
 
     this.aboutDocument.innerHTML = `
       <div style="text-align: center; padding: 20px 0;">

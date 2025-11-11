@@ -130,6 +130,7 @@ export class IPCCoordinator {
     this.registerDriveHandlers();
     this.registerAuthHandlers();
     this.registerShellHandlers();
+    this.registerAppHandlers();
     this.registerSyncHandlers();
   }
 
@@ -359,6 +360,17 @@ export class IPCCoordinator {
         console.error('Failed to open external URL:', error);
         throw error;
       }
+    });
+  }
+
+  /**
+   * Register app-related handlers
+   */
+  private registerAppHandlers(): void {
+    // Get app version from package.json
+    ipcMain.handle('app:getVersion', async () => {
+      const { app } = await import('electron');
+      return app.getVersion();
     });
   }
 
