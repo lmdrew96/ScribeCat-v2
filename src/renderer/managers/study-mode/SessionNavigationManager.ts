@@ -62,6 +62,12 @@ export class SessionNavigationManager {
     this.sessionListContainer.classList.add('hidden');
     this.sessionDetailContainer.classList.remove('hidden');
 
+    // Hide study mode controls bar in detail view
+    const controlsBar = document.querySelector('.study-mode-controls') as HTMLElement;
+    if (controlsBar) {
+      controlsBar.classList.add('hidden');
+    }
+
     // Check if session is editable (owned by current user)
     const isEditable = this.isSessionEditable(session);
     await this.detailViewManager.render(session, isEditable);
@@ -183,6 +189,12 @@ export class SessionNavigationManager {
     // Hide detail view, show list view
     this.sessionDetailContainer.classList.add('hidden');
     this.sessionListContainer.classList.remove('hidden');
+
+    // Show study mode controls bar when back to list
+    const controlsBar = document.querySelector('.study-mode-controls') as HTMLElement;
+    if (controlsBar) {
+      controlsBar.classList.remove('hidden');
+    }
   }
 
   /**

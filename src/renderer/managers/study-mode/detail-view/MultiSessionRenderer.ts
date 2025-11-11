@@ -47,6 +47,14 @@ export class MultiSessionRenderer {
               <span class="action-icon">👥</span>
               <span class="action-label">Share</span>
             </button>
+            <button class="session-action-btn export-session-detail-btn" data-session-id="${session.id}" title="Export this study set">
+              <span class="action-icon">📤</span>
+              <span class="action-label">Export</span>
+            </button>
+            <button class="session-action-btn delete-session-detail-btn" data-session-id="${session.id}" title="Delete this study set">
+              <span class="action-icon">🗑️</span>
+              <span class="action-label">Delete</span>
+            </button>
             <div id="collaborators-panel-container"></div>
           </div>
         </div>

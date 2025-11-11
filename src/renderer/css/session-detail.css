@@ -23,23 +23,9 @@
 }
 
 .session-detail-right {
-  position: sticky;
-  top: 20px;
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
-}
-
-.session-detail-right::-webkit-scrollbar {
-  width: 6px;
-}
-
-.session-detail-right::-webkit-scrollbar-track {
-  background: var(--bg-primary);
-}
-
-.session-detail-right::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
-  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .back-to-list-btn {
@@ -405,6 +391,13 @@
 /* Content Tabs */
 .session-content-tabs {
   display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* When session-content-tabs contains direct .content-tab children (single session) */
+.session-content-tabs:has(> .content-tab) {
+  flex-direction: row;
   gap: 8px;
   border-bottom: 2px solid var(--border);
   padding-bottom: 0;
@@ -441,8 +434,6 @@
   border-radius: 8px;
   padding: 24px;
   min-height: 400px;
-  max-height: 600px;
-  overflow-y: auto;
 }
 
 .session-content-panel.active {
@@ -764,21 +755,6 @@
   border-radius: 8px;
   padding: 20px;
   min-height: 300px;
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.study-content-area::-webkit-scrollbar {
-  width: 6px;
-}
-
-.study-content-area::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-}
-
-.study-content-area::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
 }
 
 .study-placeholder {

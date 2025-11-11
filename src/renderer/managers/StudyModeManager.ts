@@ -523,6 +523,9 @@ export class StudyModeManager {
       // Refresh the session list to show the new study set
       await this.loadSessions(); // Phase3Integration will handle rendering
 
+      // Clear selection after creating study set
+      this.sessionListManager.clearSelection();
+
       // Optionally, open the newly created study set
       await this.openSessionDetail(newSessionId);
     });

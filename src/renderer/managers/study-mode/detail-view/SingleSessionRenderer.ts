@@ -92,15 +92,25 @@ export class SingleSessionRenderer {
             <span>📅 ${formattedDate} at ${formattedTime}</span>
             <span>⏱️ ${duration}</span>
           </div>
-          ${isEditable ? `
           <div class="session-detail-actions">
+            ${isEditable ? `
             <button class="session-action-btn share-session-btn" data-session-id="${session.id}" title="Share this session">
               <span class="action-icon">👥</span>
               <span class="action-label">Share</span>
             </button>
-            <div id="collaborators-panel-container"></div>
+            ` : ''}
+            <button class="session-action-btn export-session-detail-btn" data-session-id="${session.id}" title="Export this session">
+              <span class="action-icon">📤</span>
+              <span class="action-label">Export</span>
+            </button>
+            ${isEditable ? `
+            <button class="session-action-btn delete-session-detail-btn" data-session-id="${session.id}" title="Delete this session">
+              <span class="action-icon">🗑️</span>
+              <span class="action-label">Delete</span>
+            </button>
+            ` : ''}
+            ${isEditable ? `<div id="collaborators-panel-container"></div>` : ''}
           </div>
-          ` : ''}
         </div>
 
         <!-- Two Column Layout -->
@@ -261,19 +271,6 @@ export class SingleSessionRenderer {
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="session-detail-actions">
-          <button class="action-btn share-session-detail-btn" data-session-id="${session.id}">
-            👥 Share Session
-          </button>
-          <button class="action-btn export-session-detail-btn" data-session-id="${session.id}">
-            📤 Export Session
-          </button>
-          <button class="action-btn delete-session-detail-btn" data-session-id="${session.id}">
-            🗑️ Delete Session
-          </button>
         </div>
       </div>
     `;
