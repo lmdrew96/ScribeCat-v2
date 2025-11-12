@@ -23,6 +23,7 @@ export interface TranscriptionAccuracySettings {
   disfluencies: boolean;
   punctuate: boolean;
   formatText: boolean;
+  keyterms?: string[];  // Custom vocabulary for improved accuracy
 }
 
 export class SettingsManager {
@@ -227,10 +228,7 @@ export class SettingsManager {
     }
 
     // Set transcription accuracy settings
-    const speechModelSelect = document.getElementById('speech-model-select') as HTMLSelectElement;
-    if (speechModelSelect) {
-      speechModelSelect.value = this.transcriptionSettings.speechModel;
-    }
+    // Speech model selector removed - not supported in v3 WebSocket API
 
     const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
     if (languageSelect) {
@@ -255,6 +253,12 @@ export class SettingsManager {
     const formatTextCheckbox = document.getElementById('format-text-checkbox') as HTMLInputElement;
     if (formatTextCheckbox) {
       formatTextCheckbox.checked = this.transcriptionSettings.formatText;
+    }
+
+    // Set keyterms input
+    const keytermsInput = document.getElementById('keyterms-input') as HTMLTextAreaElement;
+    if (keytermsInput && this.transcriptionSettings.keyterms) {
+      keytermsInput.value = this.transcriptionSettings.keyterms.join(', ');
     }
 
     // Set sound effects checkbox
@@ -297,20 +301,30 @@ export class SettingsManager {
       }
 
       // Save transcription accuracy settings
-      const speechModelSelect = document.getElementById('speech-model-select') as HTMLSelectElement;
       const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
       const speakerLabelsCheckbox = document.getElementById('speaker-labels-checkbox') as HTMLInputElement;
       const disfluenciesCheckbox = document.getElementById('disfluencies-checkbox') as HTMLInputElement;
       const punctuateCheckbox = document.getElementById('punctuate-checkbox') as HTMLInputElement;
       const formatTextCheckbox = document.getElementById('format-text-checkbox') as HTMLInputElement;
+      const keytermsInput = document.getElementById('keyterms-input') as HTMLTextAreaElement;
+
+      // Parse keyterms from comma-separated input
+      let keyterms: string[] | undefined;
+      if (keytermsInput?.value.trim()) {
+        keyterms = keytermsInput.value
+          .split(',')
+          .map(term => term.trim())
+          .filter(term => term.length >= 5 && term.length <= 50);  // Validate term length
+      }
 
       this.transcriptionSettings = {
-        speechModel: speechModelSelect?.value as 'best' | 'nano' || 'best',
+        speechModel: 'best',  // Default value, not user-configurable (not supported in v3 API)
         languageCode: languageSelect?.value || '',
-        speakerLabels: speakerLabelsCheckbox?.checked || false,
+        speakerLabels: false,  // Always false, not supported for streaming
         disfluencies: disfluenciesCheckbox?.checked || true,
         punctuate: punctuateCheckbox?.checked || true,
-        formatText: formatTextCheckbox?.checked || true
+        formatText: formatTextCheckbox?.checked || true,
+        keyterms: keyterms
       };
 
       await window.scribeCat.store.set('transcription-accuracy-settings', this.transcriptionSettings);

@@ -574,16 +574,7 @@
                                 Configure AssemblyAI transcription parameters for improved accuracy. These settings only apply when AssemblyAI mode is selected.
                             </p>
 
-                            <div class="form-group">
-                                <label for="speech-model-select">Speech Model:</label>
-                                <select id="speech-model-select" class="text-input">
-                                    <option value="best">Best Accuracy (Recommended)</option>
-                                    <option value="nano">Fastest Speed</option>
-                                </select>
-                                <small class="help-text">
-                                    "Best Accuracy" provides the highest quality transcription. Use "Fastest Speed" for quicker results with slightly lower accuracy.
-                                </small>
-                            </div>
+                            <!-- Speech Model selector removed - not supported in v3 WebSocket API -->
 
                             <div class="form-group">
                                 <label for="language-select">Language:</label>
@@ -613,12 +604,25 @@
                             </div>
 
                             <div class="form-group">
+                                <label for="keyterms-input">Custom Vocabulary (BETA):</label>
+                                <textarea
+                                    id="keyterms-input"
+                                    class="text-input"
+                                    rows="3"
+                                    placeholder="Enter terms separated by commas (e.g., ScribeCat, Anthropic, TypeScript, Claude)"
+                                ></textarea>
+                                <small class="help-text">
+                                    Boost accuracy for course-specific terms, professor names, or technical jargon. Separate terms with commas. Each term must be 5-50 characters. Max 100 terms.
+                                </small>
+                            </div>
+
+                            <div class="form-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="speaker-labels-checkbox">
+                                    <input type="checkbox" id="speaker-labels-checkbox" disabled>
                                     <span>Enable Speaker Diarization</span>
                                 </label>
-                                <small class="help-text">
-                                    Identifies different speakers in multi-speaker scenarios (useful for lectures with Q&A).
+                                <small class="help-text" style="color: #888;">
+                                    Not available for real-time streaming. Speaker diarization is only supported for pre-recorded audio files or multi-channel streaming.
                                 </small>
                             </div>
 

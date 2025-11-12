@@ -11,12 +11,26 @@ export interface TranscriptionSettings {
   disfluencies?: boolean;
   punctuate?: boolean;
   formatText?: boolean;
+  keyterms?: string[];  // Custom vocabulary for improved accuracy (max 100 terms, 5-50 chars each)
+}
+
+export interface TranscriptionError {
+  type: 'AUTH_ERROR' | 'MAX_CONCURRENT_SESSIONS' | 'SESSION_EXPIRED' | 'TRANSMISSION_RATE' | 'UNKNOWN_ERROR';
+  message: string;
+  code?: number;
+}
+
+export interface TranscriptionWord {
+  text: string;
+  start: number;  // Start time in seconds
+  end: number;    // End time in seconds
 }
 
 export class AssemblyAITranscriptionService {
   private ws: WebSocket | null = null;
   private sessionId: string | null = null;
-  private resultCallback: ((text: string, isFinal: boolean, startTime?: number, endTime?: number) => void) | null = null;
+  private resultCallback: ((text: string, isFinal: boolean, startTime?: number, endTime?: number, words?: TranscriptionWord[]) => void) | null = null;
+  private errorCallback: ((error: TranscriptionError) => void) | null = null;
   private startTime: number = 0;
   private apiKey: string = '';
   private terminationReceived: boolean = false;
@@ -34,6 +48,11 @@ export class AssemblyAITranscriptionService {
   private stalledCheckInterval: NodeJS.Timeout | null = null;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 3;
+
+  // Session duration limits (AssemblyAI enforces 3-hour max)
+  private readonly MAX_SESSION_DURATION = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+  private readonly SESSION_WARNING_TIME = 2.75 * 60 * 60 * 1000; // 2h 45m (15 min warning)
+  private sessionDurationWarningTimer: NodeJS.Timeout | null = null;
 
   async initialize(apiKey: string, settings?: TranscriptionSettings): Promise<void> {
     this.apiKey = apiKey;
@@ -69,6 +88,9 @@ export class AssemblyAITranscriptionService {
 
     // Start monitoring for stalled transcription
     this.startStalledCheck();
+
+    // Schedule session duration warning (15 minutes before 3-hour limit)
+    this.scheduleSessionDurationWarning();
 
     return this.sessionId;
   }
@@ -127,6 +149,35 @@ export class AssemblyAITranscriptionService {
     }
   }
 
+  /**
+   * Schedule warning for approaching 3-hour session limit
+   */
+  private scheduleSessionDurationWarning(): void {
+    // Clear any existing timer
+    if (this.sessionDurationWarningTimer) {
+      clearTimeout(this.sessionDurationWarningTimer);
+    }
+
+    // Schedule warning at 2h 45m (15 minutes before 3-hour limit)
+    this.sessionDurationWarningTimer = setTimeout(() => {
+      console.warn('⚠️ Approaching 3-hour session limit! 15 minutes remaining before automatic disconnect.');
+      this.handleError({
+        type: 'UNKNOWN_ERROR',
+        message: 'Approaching maximum session duration. Your session will automatically end in 15 minutes. Please save your work.',
+        code: undefined
+      });
+    }, this.SESSION_WARNING_TIME);
+
+    console.log('📅 Session duration warning scheduled for 2h 45m from now');
+  }
+
+  private stopSessionDurationWarning(): void {
+    if (this.sessionDurationWarningTimer) {
+      clearTimeout(this.sessionDurationWarningTimer);
+      this.sessionDurationWarningTimer = null;
+    }
+  }
+
   private async refreshToken(): Promise<void> {
     if (this.isRefreshing || !this.sessionId) {
       return;
@@ -173,9 +224,20 @@ export class AssemblyAITranscriptionService {
         console.log(`⏳ Retry attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${retryDelay / 1000}s...`);
         setTimeout(() => this.refreshToken(), retryDelay);
       } else {
-        console.error('❌ Max reconnect attempts reached. Transcription may be lost.');
+        console.error('❌ Max reconnect attempts reached. Stopping session.');
         // Clear buffer to prevent memory issues
         this.audioBuffer = [];
+
+        // Notify about the error
+        this.handleError({
+          type: 'UNKNOWN_ERROR',
+          message: 'Failed to maintain connection after multiple attempts. Session has been stopped.',
+          code: undefined
+        });
+
+        // Properly stop the session
+        this.sessionId = null;
+        this.closeWebSocket();
       }
     } finally {
       this.isRefreshing = false;
@@ -223,6 +285,19 @@ export class AssemblyAITranscriptionService {
         params.append('format_text', String(this.settings.formatText));
       }
 
+      // Keyterms prompting: boost accuracy for custom vocabulary (BETA feature)
+      if (this.settings.keyterms && this.settings.keyterms.length > 0) {
+        // Validate keyterms: max 100 terms, 5-50 characters each
+        const validKeyterms = this.settings.keyterms
+          .filter(term => term.length >= 5 && term.length <= 50)
+          .slice(0, 100);
+
+        if (validKeyterms.length > 0) {
+          params.append('keyterms_prompt', JSON.stringify(validKeyterms));
+          console.log(`✨ Keyterms prompting enabled with ${validKeyterms.length} terms:`, validKeyterms);
+        }
+      }
+
       const url = `wss://streaming.assemblyai.com/v3/ws?${params.toString()}`;
 
       console.log('🔗 Connecting to AssemblyAI WebSocket with advanced settings:', this.settings);
@@ -245,11 +320,55 @@ export class AssemblyAITranscriptionService {
       this.ws.onclose = (event) => {
         console.log('AssemblyAI WebSocket closed:', event.code, event.reason);
 
+        // Parse specific error codes and notify user
+        if (event.code === 1008) {
+          // Authorization errors (API key, balance, concurrency limits)
+          if (event.reason.toLowerCase().includes('concurrent')) {
+            this.handleError({
+              type: 'MAX_CONCURRENT_SESSIONS',
+              message: 'Maximum concurrent transcription sessions reached. Please stop other active sessions and try again.',
+              code: event.code
+            });
+          } else {
+            this.handleError({
+              type: 'AUTH_ERROR',
+              message: 'Authorization error. Please check your API key and account balance.',
+              code: event.code
+            });
+          }
+        } else if (event.code === 3005) {
+          // Session/protocol errors
+          if (event.reason.toLowerCase().includes('session expired')) {
+            this.handleError({
+              type: 'SESSION_EXPIRED',
+              message: 'Session expired. The maximum session duration (3 hours) was reached.',
+              code: event.code
+            });
+          } else if (event.reason.toLowerCase().includes('transmission rate')) {
+            this.handleError({
+              type: 'TRANSMISSION_RATE',
+              message: 'Audio transmission rate exceeded. Please check your audio settings.',
+              code: event.code
+            });
+          } else {
+            this.handleError({
+              type: 'UNKNOWN_ERROR',
+              message: `Session error: ${event.reason}`,
+              code: event.code
+            });
+          }
+        }
+
         // If connection closes unexpectedly during active session (not during stop/refresh)
         // attempt to reconnect
         if (this.sessionId && !this.terminationReceived && !this.isRefreshing) {
-          console.log('⚠️ Unexpected disconnection detected, attempting to reconnect...');
-          this.handleUnexpectedDisconnection();
+          // Don't attempt reconnect for fatal errors
+          if (event.code !== 1008 && event.code !== 3005) {
+            console.log('⚠️ Unexpected disconnection detected, attempting to reconnect...');
+            this.handleUnexpectedDisconnection();
+          } else {
+            console.error('❌ Fatal error, cannot reconnect');
+          }
         }
       };
     });
@@ -320,6 +439,16 @@ export class AssemblyAITranscriptionService {
           endTime = message.audio_end / 1000;
         }
 
+        // Extract word-level timestamps for interactive features (click-to-seek, word highlighting)
+        let words: TranscriptionWord[] | undefined;
+        if (message.words && Array.isArray(message.words) && message.words.length > 0) {
+          words = message.words.map((w: any) => ({
+            text: w.text,
+            start: w.start / 1000,  // Convert ms to seconds
+            end: w.end / 1000       // Convert ms to seconds
+          }));
+        }
+
         console.log('📊 AssemblyAI Turn:', {
           text: text?.substring(0, 50) + '...',
           isFinal,
@@ -333,7 +462,7 @@ export class AssemblyAITranscriptionService {
         });
 
         if (text && text.trim().length > 0 && this.resultCallback) {
-          this.resultCallback(text, isFinal, startTime, endTime);
+          this.resultCallback(text, isFinal, startTime, endTime, words);
         }
       }
 
@@ -397,8 +526,25 @@ export class AssemblyAITranscriptionService {
     }
   }
 
-  onResult(callback: (text: string, isFinal: boolean, startTime?: number, endTime?: number) => void): void {
+  onResult(callback: (text: string, isFinal: boolean, startTime?: number, endTime?: number, words?: TranscriptionWord[]) => void): void {
     this.resultCallback = callback;
+  }
+
+  /**
+   * Register callback for transcription errors
+   */
+  onError(callback: (error: TranscriptionError) => void): void {
+    this.errorCallback = callback;
+  }
+
+  /**
+   * Handle transcription errors by logging and notifying callbacks
+   */
+  private handleError(error: TranscriptionError): void {
+    console.error(`🚨 Transcription Error [${error.type}]:`, error.message);
+    if (this.errorCallback) {
+      this.errorCallback(error);
+    }
   }
 
   async stop(): Promise<void> {
@@ -410,6 +556,9 @@ export class AssemblyAITranscriptionService {
 
     // Stop stalled transcription check
     this.stopStalledCheck();
+
+    // Stop session duration warning
+    this.stopSessionDurationWarning();
 
     if (this.ws) {
       // Create a promise that resolves when termination is received
@@ -457,6 +606,9 @@ export class AssemblyAITranscriptionService {
 
     // Stop stalled check
     this.stopStalledCheck();
+
+    // Stop session duration warning
+    this.stopSessionDurationWarning();
 
     // Close the WebSocket connection
     if (this.ws) {

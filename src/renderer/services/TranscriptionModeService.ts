@@ -4,9 +4,10 @@
  * Manages AssemblyAI transcription for recording sessions.
  */
 
-import { AssemblyAITranscriptionService, TranscriptionSettings } from '../assemblyai-transcription-service.js';
+import { AssemblyAITranscriptionService, TranscriptionSettings, TranscriptionError } from '../assemblyai-transcription-service.js';
 import { AudioManager } from '../audio-manager.js';
 import { TranscriptionManager } from '../managers/TranscriptionManager.js';
+import { NotificationToast } from '../components/shared/NotificationToast.js';
 
 export type TranscriptionMode = 'assemblyai';
 
@@ -120,6 +121,11 @@ export class TranscriptionModeService {
       this.transcriptionManager.updateFlowing(text, isFinal, startTime, endTime);
     });
 
+    // Set up error callback to display user-friendly messages
+    this.assemblyAIService.onError((error: TranscriptionError) => {
+      this.handleTranscriptionError(error);
+    });
+
     // Start session
     this.sessionId = await this.assemblyAIService.start();
 
@@ -191,6 +197,46 @@ export class TranscriptionModeService {
 
     this.audioManager.removeAudioDataCallback();
     console.log('AssemblyAI audio streaming stopped');
+  }
+
+  /**
+   * Handle transcription errors and display user-friendly messages
+   */
+  private handleTranscriptionError(error: TranscriptionError): void {
+    console.error('Transcription error:', error);
+
+    // Display user-friendly error message based on error type
+    let userMessage = '';
+    let notificationType: 'error' | 'warning' = 'error';
+
+    switch (error.type) {
+      case 'AUTH_ERROR':
+        userMessage = 'Authentication Error: ' + error.message;
+        break;
+      case 'MAX_CONCURRENT_SESSIONS':
+        userMessage = error.message;
+        notificationType = 'warning';
+        break;
+      case 'SESSION_EXPIRED':
+        userMessage = error.message;
+        notificationType = 'warning';
+        break;
+      case 'TRANSMISSION_RATE':
+        userMessage = 'Audio Transmission Error: ' + error.message;
+        break;
+      case 'UNKNOWN_ERROR':
+      default:
+        userMessage = error.message;
+        notificationType = 'warning';
+        break;
+    }
+
+    // Display notification to user
+    if (notificationType === 'error') {
+      NotificationToast.error(userMessage, 10000); // 10 second duration for errors
+    } else {
+      NotificationToast.warning(userMessage, 8000); // 8 second duration for warnings
+    }
   }
 
   /**
