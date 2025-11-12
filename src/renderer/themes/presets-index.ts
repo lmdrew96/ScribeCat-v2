@@ -59,7 +59,8 @@ export function getCategories(): string[] {
 
 /**
  * Get default theme
+ * Returns High Contrast Light (Blue) for new users
  */
 export function getDefaultTheme(): Theme {
-  return themes[0]; // Ocean Serenity (dark)
+  return themes.find(t => t.id === 'high-contrast-light-blue') || themes[0];
 }
