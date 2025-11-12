@@ -2,44 +2,23 @@
  * BoardView Component
  *
  * Kanban-style board for organizing sessions.
- * Columns: To Review | Studying | Mastered
+ * Columns are organized by course title.
  *
- * Sessions are automatically categorized based on metadata,
- * but users can drag-and-drop to reorganize (future enhancement).
+ * Sessions are automatically categorized by their course,
+ * with uncategorized sessions grouped separately.
  */
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { escapeHtml } from '../../utils/formatting.js';
 
-type BoardColumn = 'to-review' | 'studying' | 'mastered';
-
 interface BoardColumnConfig {
-  id: BoardColumn;
+  id: string;
   title: string;
   icon: string;
   description: string;
 }
 
-const COLUMNS: BoardColumnConfig[] = [
-  {
-    id: 'to-review',
-    title: 'To Review',
-    icon: '📋',
-    description: 'Sessions you haven\'t opened yet'
-  },
-  {
-    id: 'studying',
-    title: 'Studying',
-    icon: '📚',
-    description: 'Sessions you\'re actively working on'
-  },
-  {
-    id: 'mastered',
-    title: 'Mastered',
-    icon: '✅',
-    description: 'Sessions you\'ve fully reviewed'
-  }
-];
+const UNCATEGORIZED_COLUMN = 'uncategorized';
 
 export class BoardView {
   private container: HTMLElement;
@@ -53,12 +32,12 @@ export class BoardView {
    * Render board view
    */
   render(sessions: Session[]): void {
-    // Categorize sessions
-    const categorized = this.categorizeSessions(sessions);
+    // Categorize sessions by course
+    const { columns, categorized } = this.categorizeSessions(sessions);
 
     this.container.innerHTML = `
       <div class="board-view">
-        ${COLUMNS.map(column => this.renderColumn(column, categorized[column.id])).join('')}
+        ${columns.map(column => this.renderColumn(column, categorized[column.id])).join('')}
       </div>
     `;
 
@@ -79,52 +58,43 @@ export class BoardView {
   }
 
   /**
-   * Categorize sessions into board columns
+   * Categorize sessions into board columns by course title
    */
-  private categorizeSessions(sessions: Session[]): Record<BoardColumn, Session[]> {
-    const categorized: Record<BoardColumn, Session[]> = {
-      'to-review': [],
-      'studying': [],
-      'mastered': []
-    };
+  private categorizeSessions(sessions: Session[]): {
+    columns: BoardColumnConfig[];
+    categorized: Record<string, Session[]>;
+  } {
+    const categorized: Record<string, Session[]> = {};
 
+    // Group sessions by course title
     sessions.forEach(session => {
-      const category = this.categorizeSession(session);
-      categorized[category].push(session);
+      const courseKey = session.courseTitle?.trim() || UNCATEGORIZED_COLUMN;
+      if (!categorized[courseKey]) {
+        categorized[courseKey] = [];
+      }
+      categorized[courseKey].push(session);
     });
 
-    return categorized;
-  }
+    // Create column configs sorted alphabetically (with Uncategorized last)
+    const courseNames = Object.keys(categorized).sort((a, b) => {
+      if (a === UNCATEGORIZED_COLUMN) return 1;
+      if (b === UNCATEGORIZED_COLUMN) return -1;
+      return a.localeCompare(b);
+    });
 
-  /**
-   * Categorize a single session
-   *
-   * Logic:
-   * - "To Review": No notes, no summary, recently created
-   * - "Mastered": Has notes, has summary, has AI tools used
-   * - "Studying": Everything else
-   */
-  private categorizeSession(session: Session): BoardColumn {
-    const hasNotes = session.notes && session.notes.trim().length > 0;
-    const hasSummary = session.summary && session.summary.trim().length > 0;
-    const hasTranscription = session.hasTranscription();
+    const columns: BoardColumnConfig[] = courseNames.map(courseName => {
+      const isUncategorized = courseName === UNCATEGORIZED_COLUMN;
+      return {
+        id: courseName,
+        title: isUncategorized ? 'Uncategorized' : courseName,
+        icon: isUncategorized ? '📂' : '📚',
+        description: isUncategorized
+          ? 'Sessions without a course'
+          : `${categorized[courseName].length} session${categorized[courseName].length !== 1 ? 's' : ''}`
+      };
+    });
 
-    // Recently created (within 7 days) and no engagement
-    const daysSinceCreation = (Date.now() - session.createdAt.getTime()) / (1000 * 60 * 60 * 24);
-    const isRecent = daysSinceCreation < 7;
-
-    // Mastered: Has notes AND summary
-    if (hasNotes && hasSummary) {
-      return 'mastered';
-    }
-
-    // To Review: Recent, has transcription but no notes/summary
-    if (isRecent && hasTranscription && !hasNotes && !hasSummary) {
-      return 'to-review';
-    }
-
-    // Studying: Everything else (partial engagement)
-    return 'studying';
+    return { columns, categorized };
   }
 
   /**
@@ -155,15 +125,9 @@ export class BoardView {
    * Render empty state for a column
    */
   private renderEmptyState(column: BoardColumnConfig): string {
-    const messages: Record<BoardColumn, string> = {
-      'to-review': 'All caught up! 🎉',
-      'studying': 'Start reviewing sessions',
-      'mastered': 'No sessions mastered yet'
-    };
-
     return `
       <div class="board-column-empty">
-        <p>${messages[column.id]}</p>
+        <p>No sessions in this course</p>
       </div>
     `;
   }
@@ -185,10 +149,6 @@ export class BoardView {
       <div class="board-card" data-session-id="${session.id}">
         <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         <div class="board-card-title">${escapeHtml(session.title)}</div>
-
-        ${session.courseTitle ? `
-          <div class="board-card-course">${escapeHtml(session.courseTitle)}</div>
-        ` : ''}
 
         <div class="board-card-meta">
           <span>${date}</span>
