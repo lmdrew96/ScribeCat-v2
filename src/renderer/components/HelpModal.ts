@@ -235,6 +235,26 @@ export class HelpModal {
     this.helpDocument.innerHTML = `
       <h1>Help & Getting Started</h1>
 
+      <h2>Interactive Tutorials</h2>
+      <p>
+        Learn ScribeCat with hands-on guided tours that highlight features as you go.
+        Click any tutorial below to start:
+      </p>
+      <div class="tutorial-buttons" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 30px;">
+        <button class="tutorial-launch-btn primary-btn" data-tutorial="recording-basics" style="padding: 12px 16px; cursor: pointer;">
+          🎙️ Recording Basics
+        </button>
+        <button class="tutorial-launch-btn primary-btn" data-tutorial="ai-tools-intro" style="padding: 12px 16px; cursor: pointer;">
+          🤖 AI Tools Introduction
+        </button>
+        <button class="tutorial-launch-btn primary-btn" data-tutorial="study-mode" style="padding: 12px 16px; cursor: pointer;">
+          📚 Study Mode Tour
+        </button>
+        <button class="tutorial-launch-btn primary-btn" data-tutorial="keyboard-shortcuts" style="padding: 12px 16px; cursor: pointer;">
+          ⌨️ Keyboard Shortcuts
+        </button>
+      </div>
+
       <h2>Quick Start</h2>
       <ol>
         <li><strong>Start Recording:</strong> Click the red record button to begin capturing audio</li>
@@ -315,5 +335,19 @@ export class HelpModal {
         <li><strong>Use AI tools:</strong> Take advantage of the study tools to reinforce learning</li>
       </ul>
     `;
+
+    // Add event listeners for tutorial launch buttons
+    const tutorialButtons = this.helpDocument.querySelectorAll('.tutorial-launch-btn');
+    tutorialButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tutorialId = (e.target as HTMLElement).dataset.tutorial;
+        if (tutorialId && window.TutorialManager) {
+          window.TutorialManager.start(tutorialId);
+          this.hide(); // Close help modal when tutorial starts
+        } else if (!window.TutorialManager) {
+          logger.error('TutorialManager not available');
+        }
+      });
+    });
   }
 }

@@ -157,6 +157,11 @@ declare global {
     authManager?: import('../renderer/managers/AuthManager').AuthManager;
     studyModeManager?: import('../renderer/managers/StudyModeManager').StudyModeManager;
     phase3Integration?: import('../renderer/managers/Phase3Integration').Phase3Integration;
+    TutorialManager?: typeof import('../renderer/utils/TutorialManager').TutorialManager;
+    FocusManager?: any;
+    WelcomeModal?: any;
+    SoundManager?: any;
+    BreakReminders?: any;
   }
 }
 
