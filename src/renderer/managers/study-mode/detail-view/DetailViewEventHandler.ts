@@ -53,6 +53,9 @@ export class DetailViewEventHandler {
 
     // Scroll to top button
     this.attachScrollToTopHandler();
+
+    // Window resize handler for responsive AI tools panel
+    this.attachWindowResizeHandler();
   }
 
   /**
@@ -377,6 +380,46 @@ export class DetailViewEventHandler {
 
     // Initial check
     handleScroll();
+  }
+
+  /**
+   * Attach window resize handler to manage AI tools panel visibility
+   */
+  private static attachWindowResizeHandler(): void {
+    const handleResize = () => {
+      const aiToolsPanel = document.querySelector('.session-content-panel.ai-tools-panel') as HTMLElement;
+      const contentTabs = document.querySelectorAll('.content-tab');
+
+      if (!aiToolsPanel) return;
+
+      // If window width > 968px (large screen mode)
+      if (window.innerWidth > 968) {
+        // Hide AI tools panel and switch back to transcription tab
+        if (aiToolsPanel.classList.contains('active')) {
+          aiToolsPanel.classList.remove('active');
+
+          // Activate transcription tab instead
+          const transcriptionTab = document.querySelector('.content-tab[data-tab="transcription"]');
+          const transcriptionPanel = document.querySelector('.session-content-panel[data-panel="transcription"]');
+
+          if (transcriptionTab && transcriptionPanel) {
+            // Remove active from all tabs and panels
+            contentTabs.forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.session-content-panel').forEach(panel => panel.classList.remove('active'));
+
+            // Activate transcription
+            transcriptionTab.classList.add('active');
+            transcriptionPanel.classList.add('active');
+          }
+        }
+      }
+    };
+
+    // Attach resize listener
+    window.addEventListener('resize', handleResize);
+
+    // Initial check
+    handleResize();
   }
 
   /**

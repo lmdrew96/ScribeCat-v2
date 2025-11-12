@@ -33,10 +33,16 @@ export class StudyModeAIToolsManager {
    */
   initialize(session: Session): void {
     this.studyContentArea = document.getElementById('study-content-area');
-    this.aiToolsContainer = document.querySelector('.study-tool-section');
+    // Target the right column version specifically (not the tab version)
+    this.aiToolsContainer = document.querySelector('.session-detail-right .study-tool-section');
 
     if (!this.studyContentArea) {
       logger.warn('Study content area not found');
+      return;
+    }
+
+    if (!this.aiToolsContainer) {
+      logger.warn('AI tools container not found in right column');
       return;
     }
 
