@@ -2019,15 +2019,17 @@
 }
 
 .session-detail-container.multi-session .session-detail-left {
-  flex: 1;
+  flex: 3;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
 .session-detail-container.multi-session .session-detail-right {
-  width: 400px;
-  flex-shrink: 0;
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .session-detail-container.multi-session .ai-study-tools {
