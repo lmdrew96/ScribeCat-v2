@@ -152,7 +152,14 @@ const electronAPI = {
         ipcRenderer.invoke('sessions:delete', sessionId),
       deleteMultiple: (sessionIds: string[]) =>
         ipcRenderer.invoke('sessions:deleteMultiple', sessionIds),
-      update: (sessionId: string, updates: { title?: string; notes?: string; tags?: string[] }) =>
+      update: (sessionId: string, updates: {
+        title?: string;
+        notes?: string;
+        tags?: string[];
+        courseId?: string;
+        courseTitle?: string;
+        courseNumber?: string;
+      }) =>
         ipcRenderer.invoke('sessions:update', sessionId, updates),
       export: (sessionId: string, format: string, outputPath: string, options?: ExportOptions) =>
         ipcRenderer.invoke('session:export', sessionId, format, outputPath, options),

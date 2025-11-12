@@ -116,6 +116,11 @@ export class UpdateSessionUseCase {
         // Use update() instead of save() to preserve user_id and respect RLS policies
         await this.supabaseSessionRepository.update(session);
         console.log('  ✅ Successfully persisted to cloud repository');
+
+        // ALSO save to local repository to keep them in sync
+        console.log('  💾 Syncing to LOCAL repository (file system)...');
+        await this.sessionRepository.save(session);
+        console.log('  ✅ Successfully synced to local repository');
       } else {
         console.log('  💾 Persisting to LOCAL repository (file system)...');
         await this.sessionRepository.save(session);
