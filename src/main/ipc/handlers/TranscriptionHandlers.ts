@@ -119,6 +119,7 @@ export class TranscriptionHandlers extends BaseHandler {
         // Step 2: Submit transcription request
         console.log('🎙️ Submitting transcription request');
 
+        // Note: AssemblyAI automatically includes sentences in the response
         const transcriptId = await new Promise<string>((resolve, reject) => {
           const postData = JSON.stringify({
             audio_url: audioUrl,
@@ -221,6 +222,7 @@ export class TranscriptionHandlers extends BaseHandler {
           transcription: {
             text: result.text || '',
             words: result.words || [],
+            sentences: result.sentences || [],
             utterances: result.utterances || [],
             confidence: result.confidence,
             audio_duration: result.audio_duration

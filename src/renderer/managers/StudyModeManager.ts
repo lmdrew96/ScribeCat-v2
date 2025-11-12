@@ -576,7 +576,21 @@ export class StudyModeManager {
 
           const fallbackPaths: string[] = [];
 
-          // Try paths based on transcription creation time
+          // Try paths based on session creation time FIRST (most reliable - actual recording time)
+          const sessionTime = new Date(session.createdAt);
+          sessionTime.setUTCSeconds(0, 0);
+          fallbackPaths.push(constructLocalPath(sessionTime));
+          fallbackPaths.push(constructLocalPath(session.createdAt));
+
+          // Try +/- 5 seconds from session creation time (recording can start before session is created)
+          for (let offset = -5; offset <= 5; offset++) {
+            if (offset === 0) continue; // Already checked exact time above
+            const offsetTime = new Date(session.createdAt);
+            offsetTime.setUTCSeconds(offsetTime.getUTCSeconds() + offset);
+            fallbackPaths.push(constructLocalPath(offsetTime));
+          }
+
+          // Try paths based on transcription creation time (less reliable - may be from re-transcription)
           if (session.transcription?.createdAt) {
             const transcriptionTime = new Date(session.transcription.createdAt);
             fallbackPaths.push(constructLocalPath(transcriptionTime));
@@ -589,12 +603,6 @@ export class StudyModeManager {
             transcriptionPlus1.setUTCSeconds(transcriptionPlus1.getUTCSeconds() + 1);
             fallbackPaths.push(constructLocalPath(transcriptionPlus1));
           }
-
-          // Try paths based on session creation time
-          const sessionTime = new Date(session.createdAt);
-          sessionTime.setUTCSeconds(0, 0);
-          fallbackPaths.push(constructLocalPath(sessionTime));
-          fallbackPaths.push(constructLocalPath(session.createdAt));
 
           // Check each fallback path
           let foundLocalFile = false;
@@ -633,11 +641,11 @@ export class StudyModeManager {
       // Update the session with new transcription
       const transcriptionData = result.transcription;
 
-      // Format timestamped entries from AssemblyAI words
-      const timestampedEntries = transcriptionData.words?.map((word: any) => ({
-        startTime: word.start / 1000, // Convert ms to seconds
-        endTime: word.end / 1000,
-        text: word.text
+      // Format timestamped entries from AssemblyAI sentences
+      const timestampedEntries = transcriptionData.sentences?.map((sentence: any) => ({
+        startTime: sentence.start / 1000, // Convert ms to seconds
+        endTime: sentence.end / 1000,
+        text: sentence.text
       })) || [];
 
       // Update session transcription

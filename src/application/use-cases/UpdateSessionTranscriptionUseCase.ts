@@ -51,13 +51,17 @@ export class UpdateSessionTranscriptionUseCase {
         segments: segments.map(s => ({ start: s.startTime, end: s.endTime, text: s.text.substring(0, 30) }))
       });
 
+      // Preserve original transcription timestamp if re-transcribing, otherwise use current time
+      // This is critical for audio playback fallback logic which uses transcription.createdAt
+      const transcriptionTimestamp = session.transcription?.createdAt || new Date();
+
       // Create transcription entity
       const transcription = new Transcription(
         transcriptionText.trim(),
         segments,
         'en', // Default language
         provider,
-        new Date(),
+        transcriptionTimestamp,
         undefined // No average confidence
       );
 

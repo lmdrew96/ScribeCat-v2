@@ -46,8 +46,9 @@ export class SupabaseStorageService {
     try {
       const client = SupabaseClient.getInstance().getClient();
 
-      // Generate storage path: {user_id}/{session_id}/{filename}
-      const storagePath = `${params.userId}/${params.sessionId}/${params.fileName}`;
+      // Generate storage path: {user_id}/{session_id}/audio.webm
+      // Always use 'audio.webm' for consistency (ignores local timestamped filename)
+      const storagePath = `${params.userId}/${params.sessionId}/audio.webm`;
 
       // Upload file to storage
       const { data, error } = await client.storage
@@ -55,7 +56,7 @@ export class SupabaseStorageService {
         .upload(storagePath, params.audioData, {
           contentType: params.mimeType || 'audio/webm',
           cacheControl: '3600',
-          upsert: false // Don't overwrite existing files
+          upsert: true // Allow overwriting (e.g., when re-uploading or updating)
         });
 
       if (error) {

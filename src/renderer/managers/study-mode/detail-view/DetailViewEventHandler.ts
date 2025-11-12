@@ -88,7 +88,21 @@ export class DetailViewEventHandler {
     let fallbackAttempt = 0;
     const fallbackPaths: string[] = [];
 
-    // Prepare fallback paths
+    // Prepare fallback paths - prioritize session.createdAt (actual recording time) over transcription.createdAt
+    const sessionTime = new Date(session.createdAt);
+    sessionTime.setUTCSeconds(0, 0);
+    fallbackPaths.push(constructLocalPath(sessionTime));
+    fallbackPaths.push(constructLocalPath(session.createdAt));
+
+    // Try +/- 5 seconds from session creation time (recording can start before session is created)
+    for (let offset = -5; offset <= 5; offset++) {
+      if (offset === 0) continue; // Already checked exact time above
+      const offsetTime = new Date(session.createdAt);
+      offsetTime.setUTCSeconds(offsetTime.getUTCSeconds() + offset);
+      fallbackPaths.push(constructLocalPath(offsetTime));
+    }
+
+    // Try transcription timestamp as fallback (may be wrong if session was re-transcribed)
     if (session.transcription?.createdAt) {
       const transcriptionTime = new Date(session.transcription.createdAt);
       fallbackPaths.push(constructLocalPath(transcriptionTime));
@@ -101,11 +115,6 @@ export class DetailViewEventHandler {
       transcriptionPlus1.setUTCSeconds(transcriptionPlus1.getUTCSeconds() + 1);
       fallbackPaths.push(constructLocalPath(transcriptionPlus1));
     }
-
-    const sessionTime = new Date(session.createdAt);
-    sessionTime.setUTCSeconds(0, 0);
-    fallbackPaths.push(constructLocalPath(sessionTime));
-    fallbackPaths.push(constructLocalPath(session.createdAt));
 
     if (recordingPath.startsWith('cloud://')) {
       // Cloud recording - fetch signed URL
