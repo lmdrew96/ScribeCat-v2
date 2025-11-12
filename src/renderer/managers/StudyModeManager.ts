@@ -541,18 +541,72 @@ export class StudyModeManager {
       // Get the recording file path (handle both local and cloud paths)
       let audioFilePath = session.recordingPath;
 
-      // If it's a cloud path, get a signed URL from Supabase
+      // If it's a cloud path, try to get a signed URL from Supabase
       if (audioFilePath.startsWith('cloud://')) {
         const storagePath = audioFilePath.replace('cloud://', '');
+        logger.info(`Getting signed URL for cloud recording: ${storagePath}`);
+
         const storageService = new SupabaseStorageService();
         const result = await storageService.getSignedUrl(storagePath, 7200); // 2 hours
 
-        if (!result.success || !result.url) {
-          throw new Error('Failed to get signed URL for cloud recording');
-        }
+        if (result.success && result.url) {
+          // Cloud file exists, use the signed URL
+          audioFilePath = result.url;
+          logger.info(`Successfully obtained signed URL`);
+        } else {
+          // Cloud file not found, try local fallback paths
+          logger.warn(`Cloud file not found: ${result.error || 'Unknown error'}. Trying local fallbacks...`);
 
-        audioFilePath = result.url; // Use the signed URL instead
-        logger.info(`Using signed URL for cloud recording: ${storagePath}`);
+          // Construct local fallback paths (same logic as audio player)
+          const constructLocalPath = (date: Date): string => {
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            const hours = String(date.getUTCHours()).padStart(2, '0');
+            const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+            const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+            const timestampStr = `${year}-${month}-${day}T${hours}-${minutes}-${seconds}`;
+            return `/Users/nae/Library/Application Support/scribecat-v2/recordings/recording-${timestampStr}.webm`;
+          };
+
+          const fallbackPaths: string[] = [];
+
+          // Try paths based on transcription creation time
+          if (session.transcription?.createdAt) {
+            const transcriptionTime = new Date(session.transcription.createdAt);
+            fallbackPaths.push(constructLocalPath(transcriptionTime));
+
+            const transcriptionMinus1 = new Date(transcriptionTime);
+            transcriptionMinus1.setUTCSeconds(transcriptionMinus1.getUTCSeconds() - 1);
+            fallbackPaths.push(constructLocalPath(transcriptionMinus1));
+
+            const transcriptionPlus1 = new Date(transcriptionTime);
+            transcriptionPlus1.setUTCSeconds(transcriptionPlus1.getUTCSeconds() + 1);
+            fallbackPaths.push(constructLocalPath(transcriptionPlus1));
+          }
+
+          // Try paths based on session creation time
+          const sessionTime = new Date(session.createdAt);
+          sessionTime.setUTCSeconds(0, 0);
+          fallbackPaths.push(constructLocalPath(sessionTime));
+          fallbackPaths.push(constructLocalPath(session.createdAt));
+
+          // Check each fallback path
+          let foundLocalFile = false;
+          for (const localPath of fallbackPaths) {
+            const fileCheck = await (window as any).scribeCat.dialog.fileExists(localPath);
+            if (fileCheck.success && fileCheck.exists) {
+              audioFilePath = localPath;
+              logger.info(`Found local recording at: ${localPath}`);
+              foundLocalFile = true;
+              break;
+            }
+          }
+
+          if (!foundLocalFile) {
+            throw new Error('Recording file not found in cloud or local storage. Cannot re-transcribe.');
+          }
+        }
       }
       // Remove file:// prefix if present (for local files)
       else if (audioFilePath.startsWith('file://')) {
