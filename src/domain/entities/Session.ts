@@ -24,7 +24,7 @@ export enum SyncStatus {
  * AI tool result record for persistent storage
  */
 export interface AIToolResult {
-  toolType: 'summary' | 'flashcards' | 'quiz' | 'concept' | 'weak_spots' | 'learn_mode' | 'eli5' | 'study_plan' | 'concept_map';
+  toolType: 'summary' | 'flashcards' | 'quiz' | 'concept' | 'weak_spots' | 'eli5' | 'study_plan' | 'concept_map';
   data: any; // Flexible structure for each tool's data
   generatedAt: Date;
   regenerationCount: number; // Track how many times this was regenerated

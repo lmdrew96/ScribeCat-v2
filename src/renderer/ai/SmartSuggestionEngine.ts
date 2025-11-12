@@ -10,7 +10,7 @@ import { ContentAnalyzer, SuggestionTrigger, ContextMode } from './ContentAnalyz
 
 export type SuggestionAction =
   // Study mode actions (active AI tools)
-  | 'flashcards' | 'quiz' | 'summary' | 'eli5' | 'concept' | 'weak_spots' | 'learn_mode' | 'study_plan' | 'concept_map'
+  | 'flashcards' | 'quiz' | 'summary' | 'eli5' | 'concept' | 'weak_spots' | 'study_plan' | 'concept_map'
   // Recording mode actions (passive helpers)
   | 'bookmark' | 'highlight' | 'note_prompt';
 
@@ -313,9 +313,9 @@ export class SmartSuggestionEngine {
       return this.createManualSuggestion('weak_spots', 'Identifying knowledge gaps');
     }
 
-    // Learn mode
+    // Learn mode (now integrated into flashcards)
     if (commandLower.includes('learn') || commandLower.includes('study guide')) {
-      return this.createManualSuggestion('learn_mode', 'Creating interactive learning module');
+      return this.createManualSuggestion('flashcards', 'Creating interactive flashcards with learn mode');
     }
 
     // Study plan
@@ -363,7 +363,6 @@ export class SmartSuggestionEngine {
       eli5: '🤔',
       concept: '💡',
       weak_spots: '🎯',
-      learn_mode: '📚',
       study_plan: '📅',
       concept_map: '🗺️',
       // Recording mode icons

@@ -23,7 +23,13 @@ export class StudyPlanGenerator extends BaseAIToolGenerator {
     // Check if we have saved results with the same parameters
     if (!forceRegenerate && session.hasAIToolResult('study_plan')) {
       const savedResult = session.getAIToolResult('study_plan');
-      if (savedResult && savedResult.data && savedResult.data.length === daysUntilExam) {
+      // Check if saved result has the same parameters (new format) or matches days (old format)
+      const savedDays = savedResult?.data?.daysUntilExam || savedResult?.data?.length;
+      const savedHours = savedResult?.data?.hoursPerDay;
+      const savedPlan = savedResult?.data?.plan || savedResult?.data;
+
+      if (savedResult && savedPlan && savedDays === daysUntilExam &&
+          (savedHours === hoursPerDay || savedHours === undefined)) {
         const totalHours = daysUntilExam * hoursPerDay;
         this.showLoadOrRegeneratePrompt(
           session,
@@ -32,7 +38,7 @@ export class StudyPlanGenerator extends BaseAIToolGenerator {
           '📅',
           'Study Plan Available',
           `You have a ${daysUntilExam}-day study plan (${totalHours}h total) generated on {date}.`,
-          () => this.renderStudyPlan(savedResult.data, daysUntilExam, hoursPerDay, contentArea, session),
+          () => this.renderStudyPlan(savedPlan, daysUntilExam, hoursPerDay, contentArea, session),
           () => this.generate(session, contentArea, daysUntilExam, hoursPerDay, true)
         );
         return;
@@ -115,8 +121,13 @@ ${transcriptionText.substring(0, 3000)}...`;
           throw new Error('No study plan generated');
         }
 
-        // Save the results to session
-        await this.saveResults(session, 'study_plan', studyPlan);
+        // Save the results to session with parameters for proper caching
+        const planData = {
+          daysUntilExam,
+          hoursPerDay,
+          plan: studyPlan
+        };
+        await this.saveResults(session, 'study_plan', planData);
 
         // Render study plan
         this.renderStudyPlan(studyPlan, daysUntilExam, hoursPerDay, contentArea, session);

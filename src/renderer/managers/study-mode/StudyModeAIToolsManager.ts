@@ -76,14 +76,13 @@ export class StudyModeAIToolsManager {
    * Generate chat HTML
    */
   private generateChatHTML(): string {
-    // Generate all 9 AI tool chips
+    // Generate all 8 AI tool chips (learn mode merged into flashcards)
     const allTools: SuggestionAction[] = [
       'summary',
       'concept',
       'flashcards',
       'quiz',
       'weak_spots',
-      'learn_mode',
       'eli5',
       'study_plan',
       'concept_map'
@@ -224,7 +223,6 @@ export class StudyModeAIToolsManager {
       'flashcards': { icon: '🃏', label: 'Flashcards' },
       'quiz': { icon: '📝', label: 'Quiz' },
       'weak_spots': { icon: '🎯', label: 'Weak Spots' },
-      'learn_mode': { icon: '📚', label: 'Learn Mode' },
       'eli5': { icon: '🤔', label: 'ELI5' },
       'study_plan': { icon: '📅', label: 'Study Plan' },
       'concept_map': { icon: '🗺️', label: 'Concept Map' },
@@ -285,9 +283,6 @@ export class StudyModeAIToolsManager {
       case 'weak_spots':
         this.generateWeakSpots(session, activeContentArea);
         break;
-      case 'learn_mode':
-        this.generateLearnMode(session, activeContentArea);
-        break;
       case 'eli5':
         this.generateELI5Explainer(session, activeContentArea);
         break;
@@ -340,14 +335,6 @@ export class StudyModeAIToolsManager {
   private generateWeakSpots(session: Session, contentArea: HTMLElement): void {
     this.aiSummaryManager.generateWeakSpots(session, contentArea);
     logger.info('Generating weak spots analysis for session');
-  }
-
-  /**
-   * Generate learn mode
-   */
-  private generateLearnMode(session: Session, contentArea: HTMLElement): void {
-    this.aiSummaryManager.generateLearnMode(session, contentArea);
-    logger.info('Generating learn mode for session');
   }
 
   /**

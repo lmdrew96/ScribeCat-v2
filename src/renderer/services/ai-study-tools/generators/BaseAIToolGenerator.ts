@@ -45,13 +45,31 @@ export abstract class BaseAIToolGenerator {
         childSessionTitles: childSessions.map(s => s.title)
       };
     } else {
-      // Single session - check if transcription exists
-      if (!session.transcription || !session.transcription.fullText) {
+      // Single session - combine transcription and notes
+      const contentParts: string[] = [];
+
+      // Add transcription if available
+      if (session.transcription && session.transcription.fullText) {
+        contentParts.push('TRANSCRIPTION:\n');
+        contentParts.push(session.transcription.fullText);
+      }
+
+      // Add notes if available
+      if (session.notes && session.notes.trim().length > 0) {
+        if (contentParts.length > 0) {
+          contentParts.push('\n\n');
+        }
+        contentParts.push('NOTES:\n');
+        contentParts.push(session.notes);
+      }
+
+      // Return null if no content available
+      if (contentParts.length === 0) {
         return null;
       }
 
       return {
-        text: session.transcription.fullText,
+        text: contentParts.join(''),
         isMultiSession: false
       };
     }

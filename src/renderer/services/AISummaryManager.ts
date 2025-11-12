@@ -11,7 +11,6 @@ import { ConceptGenerator } from './ai-study-tools/generators/ConceptGenerator.j
 import { FlashcardGenerator } from './ai-study-tools/generators/FlashcardGenerator.js';
 import { QuizGenerator } from './ai-study-tools/generators/QuizGenerator.js';
 import { WeakSpotsGenerator } from './ai-study-tools/generators/WeakSpotsGenerator.js';
-import { LearnModeGenerator } from './ai-study-tools/generators/LearnModeGenerator.js';
 import { StudyPlanGenerator } from './ai-study-tools/generators/StudyPlanGenerator.js';
 import { ELI5Generator } from './ai-study-tools/generators/ELI5Generator.js';
 
@@ -62,14 +61,6 @@ export class AISummaryManager {
   async generateWeakSpots(session: Session, contentArea: HTMLElement): Promise<void> {
     this.setActiveStudyTool('weak-spots-btn');
     return WeakSpotsGenerator.generate(session, contentArea);
-  }
-
-  /**
-   * Generate learn mode with spaced repetition
-   */
-  async generateLearnMode(session: Session, contentArea: HTMLElement): Promise<void> {
-    this.setActiveStudyTool('learn-mode-btn');
-    return LearnModeGenerator.generate(session, contentArea);
   }
 
   /**

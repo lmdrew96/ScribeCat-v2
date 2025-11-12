@@ -47,14 +47,14 @@ export class MultiSessionHelper {
   }
 
   /**
-   * Merge transcriptions from child sessions dynamically
+   * Merge transcriptions and notes from child sessions dynamically
    */
   static mergeTranscriptions(childSessions: Session[]): string {
-    const transcriptionParts: string[] = [];
+    const contentParts: string[] = [];
 
     childSessions.forEach((session, index) => {
       // Add session header
-      transcriptionParts.push(
+      contentParts.push(
         `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `SESSION ${index + 1}: ${session.title}\n` +
         `Date: ${new Date(session.createdAt).toLocaleDateString()}\n` +
@@ -63,12 +63,21 @@ export class MultiSessionHelper {
 
       // Add transcription content
       if (session.transcription && session.transcription.fullText) {
-        transcriptionParts.push(session.transcription.fullText);
+        contentParts.push('TRANSCRIPTION:\n');
+        contentParts.push(session.transcription.fullText);
+        contentParts.push('\n');
       } else {
-        transcriptionParts.push('(No transcription available for this session)');
+        contentParts.push('(No transcription available for this session)\n');
+      }
+
+      // Add notes content
+      if (session.notes && session.notes.trim().length > 0) {
+        contentParts.push('\nNOTES:\n');
+        contentParts.push(session.notes);
+        contentParts.push('\n');
       }
     });
 
-    return transcriptionParts.join('\n');
+    return contentParts.join('\n');
   }
 }
