@@ -489,7 +489,18 @@ export class RecordingManager {
 
     // Get transcription and notes
     const transcription = this.transcriptionManager.getText();
-    const notes = this.editorManager.getText();
+    const notes = this.editorManager.getNotesText();
+
+    // Count words for logging
+    const transcriptionWords = transcription.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const notesWords = notes.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+    logger.debug('Checking for live AI suggestions:', {
+      durationMinutes: Math.round(durationMinutes * 10) / 10, // Round to 1 decimal
+      transcriptionWords,
+      notesWords,
+      noteRatio: transcriptionWords > 0 ? Math.round((notesWords / transcriptionWords) * 100) + '%' : '0%'
+    });
 
     // Update live suggestions with latest content and duration
     this.chatUI.updateLiveSuggestions(transcription, notes, durationMinutes);

@@ -21,7 +21,6 @@ export class LiveSuggestionsPanel {
 
   // Recording timing
   private recordingDuration: number = 0; // in minutes
-  private lastBreakSuggestion: number = 0;
 
   constructor(contentAnalyzer: ContentAnalyzer, options: LiveSuggestionsOptions = {}) {
     this.contentAnalyzer = contentAnalyzer;
@@ -35,7 +34,6 @@ export class LiveSuggestionsPanel {
     this.isRecording = true;
     this.currentSuggestions = [];
     this.recordingDuration = 0;
-    this.lastBreakSuggestion = 0;
     this.updateBadge();
   }
 
@@ -62,18 +60,7 @@ export class LiveSuggestionsPanel {
     const insights = this.contentAnalyzer.updateContent(transcription, notes);
     const triggers = this.contentAnalyzer.getSuggestionTriggers('recording');
 
-    // Add duration-based break suggestion if needed
-    if (this.shouldSuggestBreak(durationMinutes)) {
-      triggers.push({
-        type: 'duration',
-        confidence: 0.75,
-        reason: `You've been recording for ${Math.round(durationMinutes)} minutes`,
-        suggestedAction: 'break',
-        mode: 'recording',
-        context: { durationMinutes }
-      });
-      this.lastBreakSuggestion = durationMinutes;
-    }
+    // Break suggestions removed - they're disruptive during recording
 
     this.currentSuggestions = triggers;
 
@@ -81,20 +68,6 @@ export class LiveSuggestionsPanel {
     this.updateBadge();
   }
 
-  /**
-   * Should we suggest a break?
-   */
-  private shouldSuggestBreak(durationMinutes: number): boolean {
-    // Suggest break every 25 minutes (Pomodoro-style)
-    const breakInterval = 25;
-
-    if (durationMinutes >= breakInterval &&
-        durationMinutes - this.lastBreakSuggestion >= breakInterval) {
-      return true;
-    }
-
-    return false;
-  }
 
   /**
    * Update badge count

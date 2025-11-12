@@ -5,6 +5,10 @@
  * Tracks topics, patterns, confusion indicators, and content density.
  */
 
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('ContentAnalyzer');
+
 export interface ContentInsights {
   // Topic tracking
   topics: Map<string, number>; // topic -> mention count
@@ -33,10 +37,10 @@ export interface ContentInsights {
 export type ContextMode = 'recording' | 'study';
 
 export interface SuggestionTrigger {
-  type: 'topic_density' | 'confusion' | 'duration' | 'content_quality' | 'note_gap' | 'topic_emphasis' | 'important_moment';
+  type: 'topic_density' | 'confusion' | 'duration' | 'content_quality' | 'note_gap' | 'topic_emphasis' | 'important_moment' | 'milestone';
   confidence: number; // 0-1
   reason: string;
-  suggestedAction: 'flashcards' | 'quiz' | 'summary' | 'eli5' | 'break' | 'notes' | 'bookmark' | 'highlight' | 'note_prompt';
+  suggestedAction: 'flashcards' | 'quiz' | 'summary' | 'eli5' | 'break' | 'notes' | 'bookmark' | 'highlight' | 'note_prompt' | 'encouragement';
   context?: any;
   mode?: ContextMode; // Which mode this suggestion is for
 }
@@ -154,27 +158,7 @@ export class ContentAnalyzer {
 
     // ===== RECORDING MODE: Passive, non-intrusive suggestions =====
     if (mode === 'recording') {
-      // Trigger 1: Topic emphasis (bookmark this moment)
-      // DISABLED: Bookmark functionality not yet implemented (RecordingManager.ts:493)
-      // Re-enable when bookmark feature is implemented
-      // if (insights.dominantTopics.length >= 2 && insights.wordCount > 300) {
-      //   const topTopic = insights.dominantTopics[0];
-      //   const topicMentions = insights.topics.get(topTopic) || 0;
-      //
-      //   // Only trigger if topic is mentioned 3+ times (emphasis)
-      //   if (topicMentions >= 3) {
-      //     triggers.push({
-      //       type: 'topic_emphasis',
-      //       confidence: Math.min(0.85, topicMentions / 5),
-      //       reason: `"${topTopic}" has been mentioned ${topicMentions} times`,
-      //       suggestedAction: 'bookmark',
-      //       mode: 'recording',
-      //       context: { topic: topTopic, mentions: topicMentions }
-      //     });
-      //   }
-      // }
-
-      // Trigger 2: Confusion detected (prompt to add notes)
+      // Trigger 1: Confusion detected (prompt to add notes)
       if (insights.confusionIndicators >= 2) {
         triggers.push({
           type: 'confusion',
@@ -186,22 +170,9 @@ export class ContentAnalyzer {
         });
       }
 
-      // Trigger 3: Important moment (questions being discussed)
-      // DISABLED: Highlight functionality not yet implemented (RecordingManager.ts:504)
-      // Re-enable when highlight feature is implemented
-      // if (insights.hasQuestions && insights.questionCount >= 2) {
-      //   triggers.push({
-      //     type: 'important_moment',
-      //     confidence: 0.75,
-      //     reason: `${insights.questionCount} questions discussed - this might be important`,
-      //     suggestedAction: 'highlight',
-      //     mode: 'recording',
-      //     context: { questionCount: insights.questionCount }
-      //   });
-      // }
-
-      // Trigger 4: Note gap (gentle reminder to take notes)
-      if (insights.wordCount > 500 && insights.notesWordCount < insights.wordCount * 0.1) {
+      // Trigger 2: Note gap (gentle reminder to take notes)
+      // Lowered threshold from 500 to 250 words to trigger more frequently
+      if (insights.wordCount > 250 && insights.notesWordCount < insights.wordCount * 0.1) {
         triggers.push({
           type: 'note_gap',
           confidence: 0.65,
@@ -212,6 +183,30 @@ export class ContentAnalyzer {
             transcriptionWords: insights.wordCount,
             notesWords: insights.notesWordCount
           }
+        });
+      }
+
+      // Trigger 3: 5-minute milestone (encouragement)
+      if (insights.durationMinutes >= 5 && insights.durationMinutes < 6) {
+        triggers.push({
+          type: 'milestone',
+          confidence: 0.8,
+          reason: "You've been recording for 5 minutes - great start!",
+          suggestedAction: 'encouragement',
+          mode: 'recording',
+          context: { duration: insights.durationMinutes }
+        });
+      }
+
+      // Trigger 4: 10-minute milestone (progress check)
+      if (insights.durationMinutes >= 10 && insights.durationMinutes < 11) {
+        triggers.push({
+          type: 'milestone',
+          confidence: 0.8,
+          reason: '10 minutes of content captured - keep up the good work!',
+          suggestedAction: 'encouragement',
+          mode: 'recording',
+          context: { duration: insights.durationMinutes }
         });
       }
     }
@@ -292,6 +287,15 @@ export class ContentAnalyzer {
           }
         });
       }
+    }
+
+    // Log what triggers were generated (or not)
+    if (triggers.length > 0) {
+      logger.debug(`Generated ${triggers.length} suggestion trigger(s) for ${mode} mode:`,
+        triggers.map(t => ({ type: t.type, confidence: t.confidence, reason: t.reason }))
+      );
+    } else {
+      logger.debug(`No suggestion triggers generated for ${mode} mode`);
     }
 
     // Sort by confidence (highest first)
