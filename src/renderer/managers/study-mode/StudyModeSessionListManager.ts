@@ -6,7 +6,6 @@
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { createLogger } from '../../../shared/logger.js';
-import { SessionCardRenderer } from './SessionCardRenderer.js';
 
 const logger = createLogger('StudyModeSessionListManager');
 
@@ -62,12 +61,8 @@ export class StudyModeSessionListManager {
       this.searchInput.addEventListener('input', (e) => {
         this.searchQuery = (e.target as HTMLInputElement).value;
         this.applyFilters();
-        // Use Phase3Integration to prevent dual rendering system conflicts
-        if (window.phase3Integration) {
-          window.phase3Integration.refreshCurrentView();
-        } else {
-          this.render();
-        }
+        // Phase3Integration handles all rendering
+        window.phase3Integration?.refreshCurrentView();
       });
     }
 
@@ -76,12 +71,8 @@ export class StudyModeSessionListManager {
       this.courseFilter.addEventListener('change', (e) => {
         this.selectedCourse = (e.target as HTMLSelectElement).value;
         this.applyFilters();
-        // Use Phase3Integration to prevent dual rendering system conflicts
-        if (window.phase3Integration) {
-          window.phase3Integration.refreshCurrentView();
-        } else {
-          this.render();
-        }
+        // Phase3Integration handles all rendering
+        window.phase3Integration?.refreshCurrentView();
       });
     }
 
@@ -93,12 +84,8 @@ export class StudyModeSessionListManager {
           this.sortOrder = value;
         }
         this.applyFilters();
-        // Use Phase3Integration to prevent dual rendering system conflicts
-        if (window.phase3Integration) {
-          window.phase3Integration.refreshCurrentView();
-        } else {
-          this.render();
-        }
+        // Phase3Integration handles all rendering
+        window.phase3Integration?.refreshCurrentView();
       });
     }
 
@@ -180,44 +167,7 @@ export class StudyModeSessionListManager {
     });
   }
 
-  /**
-   * Render the session list
-   */
-  render(): void {
-    if (this.filteredSessions.length === 0) {
-      this.renderEmptyState();
-      return;
-    }
-
-    const sessionCards = this.filteredSessions.map(session =>
-      SessionCardRenderer.createSessionCard(session, this.selectedSessionIds.has(session.id))
-    ).join('');
-
-    this.sessionListContainer.innerHTML = sessionCards;
-
-    // Add click handlers to session cards
-    this.attachSessionCardHandlers();
-
-    // Add title edit handlers
-    this.attachTitleEditHandlers();
-  }
-
-  /**
-   * Render empty state
-   */
-  private renderEmptyState(): void {
-    const hasFilters = this.selectedCourse || this.searchQuery || this.selectedTags.length > 0;
-
-    this.sessionListContainer.innerHTML = hasFilters
-      ? `<div class="empty-state"><div class="empty-icon">🔍</div><h3>No sessions found</h3><p>Try adjusting your filters or search query</p></div>`
-      : `<div class="empty-state"><div class="empty-icon">📚</div><h3>No recording sessions yet</h3><p>Start recording to create your first session!</p><button id="start-recording-prompt" class="primary-btn">Start Recording</button></div>`;
-
-    if (!hasFilters) {
-      document.getElementById('start-recording-prompt')?.addEventListener('click', () => {
-        this.sessionListContainer.dispatchEvent(new CustomEvent('hideStudyMode'));
-      });
-    }
-  }
+  // Phase 2 renderer removed - Phase3Integration now handles all rendering
 
   /**
    * Populate course filter dropdown
@@ -245,119 +195,7 @@ export class StudyModeSessionListManager {
   }
 
 
-  /**
-   * Attach event handlers to session cards
-   */
-  private attachSessionCardHandlers(): void {
-    // Checkbox handlers
-    const checkboxes = document.querySelectorAll('.session-card-checkbox');
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', (e) => {
-        e.stopPropagation();
-        const sessionId = (checkbox as HTMLElement).dataset.sessionId;
-        const isChecked = (checkbox as HTMLInputElement).checked;
-
-        if (sessionId) {
-          this.handleSessionSelection(sessionId, isChecked);
-        }
-      });
-    });
-
-    // Share session buttons
-    const shareButtons = document.querySelectorAll('.share-session-btn');
-    shareButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const sessionId = (btn as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.sessionListContainer.dispatchEvent(new CustomEvent('shareSession', { detail: { sessionId } }));
-        }
-      });
-    });
-
-    // Export session buttons
-    const exportButtons = document.querySelectorAll('.export-session-btn');
-    exportButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const sessionId = (btn as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.sessionListContainer.dispatchEvent(new CustomEvent('exportSession', { detail: { sessionId } }));
-        }
-      });
-    });
-
-    // Delete session buttons
-    const deleteButtons = document.querySelectorAll('.delete-session-btn');
-    deleteButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const sessionId = (btn as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.sessionListContainer.dispatchEvent(new CustomEvent('deleteSession', { detail: { sessionId } }));
-        }
-      });
-    });
-
-    // Leave button handlers (for shared sessions)
-    const leaveButtons = document.querySelectorAll('.leave-session-btn');
-    leaveButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const sessionId = (btn as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.sessionListContainer.dispatchEvent(new CustomEvent('leaveSession', { detail: { sessionId } }));
-        }
-      });
-    });
-
-    // Card click (same as view button)
-    const cards = document.querySelectorAll('.session-card');
-    cards.forEach(card => {
-      card.addEventListener('click', (e) => {
-        // Don't trigger if clicking on buttons, title, or checkbox
-        const target = e.target as HTMLElement;
-        if (target.closest('.action-btn') || target.closest('.edit-title-btn') ||
-            target.closest('.session-title') || target.closest('.session-card-checkbox')) {
-          return;
-        }
-
-        const sessionId = (card as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.sessionListContainer.dispatchEvent(new CustomEvent('openSessionDetail', { detail: { sessionId } }));
-        }
-      });
-    });
-  }
-
-  /**
-   * Attach title edit handlers
-   */
-  private attachTitleEditHandlers(): void {
-    // Edit buttons
-    const editButtons = document.querySelectorAll('.edit-title-btn');
-    editButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const sessionId = (btn as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.sessionListContainer.dispatchEvent(new CustomEvent('startTitleEdit', { detail: { sessionId } }));
-        }
-      });
-    });
-
-    // Title click to open session details
-    const titles = document.querySelectorAll('.session-title');
-    titles.forEach(title => {
-      title.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const sessionId = (title as HTMLElement).dataset.sessionId;
-        if (sessionId) {
-          this.sessionListContainer.dispatchEvent(new CustomEvent('openSessionDetail', { detail: { sessionId } }));
-        }
-      });
-    });
-  }
+  // Phase 2 event handlers removed - Phase3 views handle their own events
 
 
   /**
