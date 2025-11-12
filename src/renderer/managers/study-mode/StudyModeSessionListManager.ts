@@ -389,7 +389,8 @@ export class StudyModeSessionListManager {
     }
 
     this.updateBulkActionsBar();
-    this.render();
+    // Note: Don't call render() here - Phase3Integration handles all rendering
+    // Selection state is maintained through Phase3 BulkSelectionManager
   }
 
   /**
@@ -479,7 +480,7 @@ export class StudyModeSessionListManager {
   clearSelection(): void {
     this.selectedSessionIds.clear();
     this.updateBulkActionsBar();
-    this.render();
+    // Note: Don't call render() here - Phase3Integration handles all rendering
   }
 
   /**

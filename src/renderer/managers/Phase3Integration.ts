@@ -324,8 +324,18 @@ export class Phase3Integration {
     // Update search manager
     this.searchManager.setSessions(sessions);
 
-    // If no search is active, render all sessions in current view
-    if (!this.searchManager.isSearching() && this.searchManager.getState().query === '') {
+    // Always render when sessions are updated (search will be maintained if active)
+    const searchState = this.searchManager.getState();
+    const isSearching = this.searchManager.isSearching();
+    logger.info(`Search state: isSearching=${isSearching}, query="${searchState.query}"`);
+
+    if (isSearching || searchState.query.trim().length > 0) {
+      // If search is active, render search results
+      const searchResults = this.searchManager.getResultSessions();
+      logger.info(`Rendering search results: ${searchResults.length} sessions`);
+      this.renderCurrentView(searchResults);
+    } else {
+      // No search active, render all sessions
       this.renderCurrentView(sessions);
     }
 
