@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:* https://api.assemblyai.com wss://api.assemblyai.com wss://streaming.assemblyai.com https://api.anthropic.com https://djlvwxmakxaffdqbuwkv.supabase.co data: blob:; font-src 'self' data:; worker-src 'self' blob: data:; media-src 'self' https://djlvwxmakxaffdqbuwkv.supabase.co blob: data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:* https://api.assemblyai.com wss://api.assemblyai.com wss://streaming.assemblyai.com https://api.anthropic.com https://djlvwxmakxaffdqbuwkv.supabase.co https://cdn.jsdelivr.net data: blob:; font-src 'self' data:; worker-src 'self' blob: data:; media-src 'self' https://djlvwxmakxaffdqbuwkv.supabase.co blob: data:;">
     <title>ScribeCat</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -212,6 +212,21 @@
 
                     <!-- Insert Group -->
                     <div class="toolbar-group">
+                        <button id="blockquote-btn" class="toolbar-btn" title="Blockquote • Ctrl+Shift+B">
+                            <span class="btn-icon">💬</span>
+                        </button>
+                        <button id="code-btn" class="toolbar-btn" title="Inline Code • Ctrl+E">
+                            <span class="btn-icon">💻</span>
+                        </button>
+                        <button id="code-block-btn" class="toolbar-btn" title="Code Block • Ctrl+Alt+C">
+                            <span class="btn-icon">📝</span>
+                        </button>
+                        <button id="divider-btn" class="toolbar-btn" title="Horizontal Rule">
+                            <span class="btn-icon">➖</span>
+                        </button>
+                        <button id="emoji-btn" class="toolbar-btn" title="Insert Emoji">
+                            <span class="btn-icon">😊</span>
+                        </button>
                         <button id="link-btn" class="toolbar-btn" title="Add Link">
                             <span class="btn-icon">🔗</span>
                         </button>

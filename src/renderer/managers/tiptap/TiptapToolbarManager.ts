@@ -6,6 +6,7 @@
 
 import type { TiptapEditorCore } from './TiptapEditorCore.js';
 import { createLogger } from '../../../shared/logger.js';
+import { showEmojiPicker } from '../../components/editor/EmojiPicker.js';
 
 const logger = createLogger('TiptapToolbarManager');
 
@@ -32,6 +33,11 @@ export class TiptapToolbarManager {
   private heading2Btn: HTMLButtonElement;
   private bulletListBtn: HTMLButtonElement;
   private numberedListBtn: HTMLButtonElement;
+  private blockquoteBtn: HTMLButtonElement;
+  private codeBtn: HTMLButtonElement;
+  private codeBlockBtn: HTMLButtonElement;
+  private dividerBtn: HTMLButtonElement;
+  private emojiBtn: HTMLButtonElement;
   private linkBtn: HTMLButtonElement;
   private imageBtn: HTMLButtonElement;
   private imageInput: HTMLInputElement;
@@ -84,6 +90,11 @@ export class TiptapToolbarManager {
     this.heading2Btn = document.getElementById('heading2-btn') as HTMLButtonElement;
     this.bulletListBtn = document.getElementById('bullet-list-btn') as HTMLButtonElement;
     this.numberedListBtn = document.getElementById('numbered-list-btn') as HTMLButtonElement;
+    this.blockquoteBtn = document.getElementById('blockquote-btn') as HTMLButtonElement;
+    this.codeBtn = document.getElementById('code-btn') as HTMLButtonElement;
+    this.codeBlockBtn = document.getElementById('code-block-btn') as HTMLButtonElement;
+    this.dividerBtn = document.getElementById('divider-btn') as HTMLButtonElement;
+    this.emojiBtn = document.getElementById('emoji-btn') as HTMLButtonElement;
     this.linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
     this.imageBtn = document.getElementById('image-btn') as HTMLButtonElement;
     this.imageInput = document.getElementById('image-input') as HTMLInputElement;
@@ -220,6 +231,29 @@ export class TiptapToolbarManager {
 
     this.numberedListBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().toggleOrderedList().run();
+    });
+
+    this.blockquoteBtn.addEventListener('click', () => {
+      this.editorCore.chain()?.focus().toggleBlockquote().run();
+    });
+
+    this.codeBtn.addEventListener('click', () => {
+      this.editorCore.chain()?.focus().toggleCode().run();
+    });
+
+    this.codeBlockBtn.addEventListener('click', () => {
+      this.editorCore.chain()?.focus().toggleCodeBlock().run();
+    });
+
+    this.dividerBtn.addEventListener('click', () => {
+      this.editorCore.chain()?.focus().setHorizontalRule().run();
+    });
+
+    this.emojiBtn.addEventListener('click', () => {
+      const editor = this.editorCore.getEditor();
+      if (editor) {
+        showEmojiPicker(editor, this.emojiBtn);
+      }
     });
 
     this.linkBtn.addEventListener('click', () => {
@@ -624,6 +658,10 @@ export class TiptapToolbarManager {
 
     this.updateButtonState(this.bulletListBtn, this.editorCore.isActive('bulletList'));
     this.updateButtonState(this.numberedListBtn, this.editorCore.isActive('orderedList'));
+
+    this.updateButtonState(this.blockquoteBtn, this.editorCore.isActive('blockquote'));
+    this.updateButtonState(this.codeBtn, this.editorCore.isActive('code'));
+    this.updateButtonState(this.codeBlockBtn, this.editorCore.isActive('codeBlock'));
 
     this.updateButtonState(this.linkBtn, this.editorCore.isActive('link'));
 

@@ -31,29 +31,50 @@ export function showEmojiPicker(editor: Editor, button: HTMLElement): void {
     if (!isHidden) {
       return; // Just hide it
     }
-  } else {
-    // Create new picker
-    picker = document.createElement('emoji-picker');
-    picker.id = 'emoji-picker-popup';
-    picker.className = 'emoji-picker-popup';
 
-    // Style the picker
-    picker.style.position = 'absolute';
-    picker.style.zIndex = '2000';
-    picker.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
-    picker.style.borderRadius = '12px';
-    picker.style.overflow = 'hidden';
+    // Position near the button when showing
+    const buttonRect = button.getBoundingClientRect();
+    picker.style.top = `${buttonRect.bottom + 8}px`;
+    picker.style.left = `${buttonRect.left}px`;
 
-    // Add to document
-    document.body.appendChild(picker);
+    // Close picker when clicking outside
+    const closeHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!picker.contains(target) && !button.contains(target)) {
+        picker.style.display = 'none';
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+
+    // Add close handler after a short delay to prevent immediate closing
+    setTimeout(() => {
+      document.addEventListener('click', closeHandler);
+    }, 100);
+
+    return; // Picker already has listener, just showing it
   }
+
+  // Create new picker (first time only)
+  picker = document.createElement('emoji-picker');
+  picker.id = 'emoji-picker-popup';
+  picker.className = 'emoji-picker-popup';
+
+  // Style the picker
+  picker.style.position = 'absolute';
+  picker.style.zIndex = '2000';
+  picker.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
+  picker.style.borderRadius = '12px';
+  picker.style.overflow = 'hidden';
 
   // Position near the button
   const buttonRect = button.getBoundingClientRect();
   picker.style.top = `${buttonRect.bottom + 8}px`;
   picker.style.left = `${buttonRect.left}px`;
 
-  // Handle emoji selection
+  // Add to document
+  document.body.appendChild(picker);
+
+  // Handle emoji selection (add listener ONCE during creation)
   const handleEmojiClick = (event: CustomEvent) => {
     const emoji = event.detail.unicode;
 
@@ -66,10 +87,7 @@ export function showEmojiPicker(editor: Editor, button: HTMLElement): void {
     logger.debug(`Inserted emoji: ${emoji}`);
   };
 
-  // Remove old listener if exists
-  picker.removeEventListener('emoji-click', handleEmojiClick);
-
-  // Add new listener
+  // Add listener only once
   picker.addEventListener('emoji-click', handleEmojiClick);
 
   // Close picker when clicking outside

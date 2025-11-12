@@ -42,6 +42,7 @@ import { SoundManager, initializeSoundSystem, enableGlobalSoundEffects } from '.
 import { BreakReminders, initializeBreakReminders } from './components/BreakReminders.js';
 // Editor Enhancements: Professional icon system
 import { initToolbarUpgrades } from './components/editor/ToolbarIconUpgrader.js';
+import { initEmojiPicker } from './components/editor/EmojiPicker.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -106,6 +107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize professional toolbar icons (upgrade emoji to SVG)
   initToolbarUpgrades();
+
+  // Initialize emoji picker
+  initEmojiPicker();
 
   // Initialize core managers
   audioManager = new AudioManager();
