@@ -5,7 +5,7 @@
 
 .floating-toolbar {
   position: fixed;
-  z-index: 10000;
+  z-index: 1500; /* Above editor content and dropdowns, below modals */
   display: none;
   flex-direction: column;
   align-items: center;
@@ -254,10 +254,7 @@
   background: var(--bg-tertiary, #3d3d3d);
 }
 
-/* Ensure toolbar appears above other elements */
-.floating-toolbar {
-  z-index: 10000;
-}
+/* Z-index already set in main .floating-toolbar declaration above (1500) */
 
 /* Smooth appearance */
 .floating-toolbar-content {
