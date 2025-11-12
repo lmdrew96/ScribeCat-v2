@@ -353,6 +353,11 @@ export class StudyModeManager {
    */
   private backToSessionList(): void {
     this.sessionNavigationManager.backToSessionList();
+
+    // Refresh view to ensure it's not stale (user manually navigated back)
+    if (window.phase3Integration) {
+      window.phase3Integration.refreshCurrentView();
+    }
   }
 
   /**
@@ -457,6 +462,11 @@ export class StudyModeManager {
       // Reload sessions first (this triggers rendering)
       await this.loadSessions(); // Phase3Integration will handle rendering
 
+      // Refresh view to show updated data (prevents stale list)
+      if (window.phase3Integration) {
+        window.phase3Integration.refreshCurrentView();
+      }
+
       // Clear selections AFTER rendering to ensure proper cleanup
       this.sessionListManager.clearSelection();
       if (window.phase3Integration) {
@@ -487,6 +497,11 @@ export class StudyModeManager {
 
         // Reload sessions first (this triggers rendering)
         await this.loadSessions(); // Phase3Integration will handle rendering
+
+        // Refresh view to show updated data (prevents stale list)
+        if (window.phase3Integration) {
+          window.phase3Integration.refreshCurrentView();
+        }
 
         // Clear selections AFTER rendering to ensure proper cleanup
         this.sessionListManager.clearSelection();

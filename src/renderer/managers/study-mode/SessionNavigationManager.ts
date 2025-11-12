@@ -196,10 +196,8 @@ export class SessionNavigationManager {
       controlsBar.classList.remove('hidden');
     }
 
-    // Trigger Phase3 re-render to ensure view is fresh (prevents stale grid issue)
-    if (window.phase3Integration) {
-      window.phase3Integration.refreshCurrentView();
-    }
+    // Note: Don't refresh view here - let caller decide when to refresh
+    // This prevents showing stale data when navigating back after deletion
   }
 
   /**
