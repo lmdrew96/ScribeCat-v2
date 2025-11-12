@@ -1,5 +1,10 @@
 /** StudyModeEditorToolbar - Manages the rich text editing toolbar for study mode notes */
 import type { Editor } from '@tiptap/core';
+import { compressImage, isSupportedImageType, getRecommendedOptions } from '../utils/imageCompression.js';
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('StudyModeEditorToolbar');
+
 export class StudyModeEditorToolbar {
   private editor: Editor | null = null;
   private paletteClickHandler: ((e: MouseEvent) => void) | null = null;
@@ -403,35 +408,37 @@ export class StudyModeEditorToolbar {
 
     if (!file) return;
 
-    const reader = new FileReader();
+    // Check if file type is supported
+    if (!isSupportedImageType(file)) {
+      logger.warn(`Unsupported image type: ${file.type}`);
+      alert('Please select a valid image file (JPEG, PNG, WebP, or GIF)');
+      input.value = '';
+      return;
+    }
 
-    reader.onload = () => {
-      const base64 = reader.result as string;
+    try {
+      // Show loading state (TODO: Add UI indicator)
+      logger.info('Compressing image...');
 
-      const img = new window.Image();
-      img.onload = () => {
-        // Allow images up to 1200px width, preserving aspect ratio
-        const maxWidth = 1200;
-        let width = img.width;
-        let height = img.height;
+      // Compress image with recommended settings
+      const options = getRecommendedOptions(file);
+      const result = await compressImage(file, options);
 
-        if (width > maxWidth) {
-          height = (maxWidth / width) * height;
-          width = maxWidth;
-        }
+      // Insert compressed image into editor
+      this.editor?.chain().focus().setImage({
+        src: result.dataUrl,
+        width: result.width,
+        height: result.height,
+      }).run();
 
-        this.editor?.chain().focus().setImage({
-          src: base64,
-          width: Math.round(width),
-          height: Math.round(height),
-        }).run();
-      };
-      img.src = base64;
-    };
-
-    reader.readAsDataURL(file);
-
-    input.value = '';
+      logger.info('Image inserted successfully');
+    } catch (error) {
+      logger.error('Failed to process image:', error);
+      alert('Failed to process image. Please try again.');
+    } finally {
+      // Clear input so same file can be selected again
+      input.value = '';
+    }
   }
   /** Insert table */
   private async insertTable(): Promise<void> {

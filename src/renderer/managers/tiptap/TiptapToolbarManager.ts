@@ -8,6 +8,7 @@ import type { TiptapEditorCore } from './TiptapEditorCore.js';
 import { createLogger } from '../../../shared/logger.js';
 import { showEmojiPicker } from '../../components/editor/EmojiPicker.js';
 import { EditorColorPalettes } from '../../components/editor/ColorPicker.js';
+import { compressImage, isSupportedImageType, getRecommendedOptions } from '../../utils/imageCompression.js';
 
 const logger = createLogger('TiptapToolbarManager');
 
@@ -493,43 +494,45 @@ export class TiptapToolbarManager {
         .run();
     }
   }
-  /** Handle image upload */
+  /** Handle image upload with compression */
   private async handleImageUpload(e: Event): Promise<void> {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
 
     if (!file) return;
 
-    const reader = new FileReader();
+    // Check if file type is supported
+    if (!isSupportedImageType(file)) {
+      logger.warn(`Unsupported image type: ${file.type}`);
+      alert('Please select a valid image file (JPEG, PNG, WebP, or GIF)');
+      input.value = '';
+      return;
+    }
 
-    reader.onload = () => {
-      const base64 = reader.result as string;
+    try {
+      // Show loading state (TODO: Add UI indicator)
+      logger.info('Compressing image...');
 
-      const img = new window.Image();
-      img.onload = () => {
-        // Allow images up to 1200px width, preserving aspect ratio
-        const maxWidth = 1200;
-        let width = img.width;
-        let height = img.height;
+      // Compress image with recommended settings
+      const options = getRecommendedOptions(file);
+      const result = await compressImage(file, options);
 
-        if (width > maxWidth) {
-          height = (maxWidth / width) * height;
-          width = maxWidth;
-        }
+      // Insert compressed image into editor
+      this.editorCore.chain()?.focus().setImage({
+        src: result.dataUrl,
+        width: result.width,
+        height: result.height,
+        anchorType: 'paragraph',
+      }).run();
 
-        // Set image with paragraph anchor by default
-        this.editorCore.chain()?.focus().setImage({
-          src: base64,
-          width: Math.round(width),
-          height: Math.round(height),
-          anchorType: 'paragraph',
-        }).run();
-      };
-      img.src = base64;
-    };
-
-    reader.readAsDataURL(file);
-    input.value = '';
+      logger.info('Image inserted successfully');
+    } catch (error) {
+      logger.error('Failed to process image:', error);
+      alert('Failed to process image. Please try again.');
+    } finally {
+      // Clear input so same file can be selected again
+      input.value = '';
+    }
   }
   /** Change image wrap type */
   private changeImageWrapType(wrapType: string): void {
