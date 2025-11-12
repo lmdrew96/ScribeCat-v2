@@ -482,11 +482,50 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   /**
    * Permanently delete a session (hard delete)
-   * Removes the session completely from the database
+   * Removes the session completely from the database AND Supabase Storage
+   * - Deletes audio file from audio-files bucket
+   * - Deletes transcription file from transcription-data bucket
+   * - Deletes session row from database
    */
   async permanentlyDelete(sessionId: string): Promise<void> {
     try {
       const client = SupabaseClient.getInstance().getClient();
+
+      // First, fetch the session to get userId (needed for storage paths)
+      // Query without the deleted_at filter to include trashed sessions
+      const { data: sessionData, error: fetchError } = await client
+        .from(this.tableName)
+        .select('id, user_id, has_transcription')
+        .eq('id', sessionId)
+        .single();
+
+      if (fetchError) {
+        if (fetchError.code === 'PGRST116') {
+          throw new Error(`Session ${sessionId} not found in database - it may have already been deleted`);
+        }
+        throw new Error(`Failed to fetch session for deletion: ${fetchError.message}`);
+      }
+
+      const userId = sessionData.user_id;
+      const hasTranscription = sessionData.has_transcription;
+
+      // Delete from Supabase Storage buckets
+      // Delete audio file
+      const audioPath = `${userId}/${sessionId}/audio.webm`;
+      const audioDeleteResult = await this.storageService.deleteAudioFile(audioPath);
+      if (!audioDeleteResult.success && audioDeleteResult.error) {
+        console.warn(`Failed to delete audio file from storage: ${audioDeleteResult.error}`);
+        // Continue with deletion even if audio file doesn't exist
+      }
+
+      // Delete transcription file (if it exists)
+      if (hasTranscription) {
+        const transcriptionDeleteResult = await this.storageService.deleteTranscriptionFile(userId, sessionId);
+        if (!transcriptionDeleteResult.success && transcriptionDeleteResult.error) {
+          console.warn(`Failed to delete transcription file from storage: ${transcriptionDeleteResult.error}`);
+          // Continue with deletion even if transcription file doesn't exist
+        }
+      }
 
       // Hard delete - physically remove from database
       const { data, error } = await client
