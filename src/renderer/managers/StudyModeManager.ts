@@ -29,6 +29,18 @@ import { SessionDataLoader } from './study-mode/SessionDataLoader.js';
 import { MultiSessionCoordinator } from './study-mode/MultiSessionCoordinator.js';
 import { NotesEditCoordinator } from './study-mode/NotesEditCoordinator.js';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard.js';
+import { SearchManager } from './SearchManager.js';
+import { ViewModeManager, type ViewMode } from './ViewModeManager.js';
+import { BulkSelectionManager } from './study-mode/BulkSelectionManager.js';
+import { KeyboardShortcutHandler } from './KeyboardShortcutHandler.js';
+import { SearchBar } from '../components/SearchBar.js';
+import { TimelineView } from '../components/views/TimelineView.js';
+import { GridView } from '../components/views/GridView.js';
+import { ListView } from '../components/views/ListView.js';
+import { BoardView } from '../components/views/BoardView.js';
+import { KeyboardShortcutsOverlay } from '../components/KeyboardShortcutsOverlay.js';
+import { QuickActionsMenu, type QuickAction } from '../components/QuickActionsMenu.js';
+import { StudySetTitleModal } from '../components/StudySetTitleModal.js';
 import { createLogger } from '../../shared/logger.js';
 import { config } from '../../config.js';
 import { SupabaseStorageService } from '../../infrastructure/services/supabase/SupabaseStorageService.js';
@@ -52,6 +64,25 @@ export class StudyModeManager {
   private multiSessionCoordinator: MultiSessionCoordinator;
   private notesEditCoordinator: NotesEditCoordinator;
   private analyticsDashboard: AnalyticsDashboard;
+
+  // Advanced search and view managers
+  private searchManager: SearchManager;
+  private viewModeManager: ViewModeManager;
+  private bulkSelectionManager: BulkSelectionManager;
+  private keyboardShortcutHandler: KeyboardShortcutHandler;
+  private searchBar: SearchBar | null = null;
+  private checkboxListenerAdded: boolean = false;
+
+  // View components
+  private timelineView: TimelineView | null = null;
+  private gridView: GridView | null = null;
+  private listView: ListView | null = null;
+  private boardView: BoardView | null = null;
+
+  // UI components
+  private keyboardShortcuts: KeyboardShortcutsOverlay;
+  private quickActions: QuickActionsMenu;
+  private studySetTitleModal: StudySetTitleModal;
 
   // Services
   private authManager: AuthManager;
@@ -123,9 +154,75 @@ export class StudyModeManager {
     this.notesEditCoordinator = new NotesEditCoordinator(this.notesEditorManager);
     this.analyticsDashboard = new AnalyticsDashboard();
 
+    // Initialize advanced search and view managers
+    this.searchManager = new SearchManager();
+    this.viewModeManager = new ViewModeManager('session-list');
+    this.bulkSelectionManager = new BulkSelectionManager();
+    this.keyboardShortcutHandler = this.createKeyboardShortcutHandler();
+
+    // Initialize UI components
+    this.keyboardShortcuts = new KeyboardShortcutsOverlay();
+    this.quickActions = new QuickActionsMenu();
+    this.studySetTitleModal = new StudySetTitleModal();
+
     this.initializeEventListeners();
     this.initializeAnalyticsModal();
     this.setupAuthListener();
+  }
+
+  /**
+   * Create keyboard shortcut handler with callbacks
+   */
+  private createKeyboardShortcutHandler(): KeyboardShortcutHandler {
+    return new KeyboardShortcutHandler({
+      onViewModeChange: (mode) => {
+        this.viewModeManager.setMode(mode);
+      },
+      onFocusSearch: () => {
+        const searchInput = document.querySelector('.search-input') as HTMLInputElement;
+        searchInput?.focus();
+      },
+      onNewRecording: () => {
+        // Return to recording view
+        (window as any).viewManager?.show('recording');
+      },
+      onExportSession: () => {
+        // Export selected sessions if any, otherwise do nothing
+        const selectedIds = this.bulkSelectionManager.getSelectedSessionIds();
+        if (selectedIds.size > 0) {
+          this.handleBulkExport(selectedIds);
+        }
+      },
+      onDeleteSelected: () => {
+        // Delete selected sessions if any
+        const selectedIds = this.bulkSelectionManager.getSelectedSessionIds();
+        if (selectedIds.size > 0) {
+          this.handleBulkDelete(selectedIds);
+        }
+      },
+      onToggleRecording: () => {
+        // Toggle recording
+        const recordingManager = (window as any).recordingManager;
+        if (recordingManager) {
+          if (recordingManager.isRecording) {
+            recordingManager.stopRecording();
+          } else {
+            recordingManager.startRecording();
+          }
+        }
+      },
+      onTogglePause: () => {
+        // Toggle pause
+        const recordingManager = (window as any).recordingManager;
+        if (recordingManager && recordingManager.isRecording) {
+          if (recordingManager.isPaused) {
+            recordingManager.resumeRecording();
+          } else {
+            recordingManager.pauseRecording();
+          }
+        }
+      }
+    });
   }
 
   /**
@@ -135,6 +232,9 @@ export class StudyModeManager {
     try {
       // Initialize ShareModal
       this.shareModal.initialize();
+
+      // Initialize advanced search and view features
+      await this.initializeAdvancedFeatures();
 
       await this.loadSessions();
     } catch (error) {
@@ -166,6 +266,371 @@ export class StudyModeManager {
         this.loadSessions(); // Phase3Integration will handle rendering
       }
     });
+  }
+
+  /**
+   * Initialize advanced search and view features
+   */
+  private async initializeAdvancedFeatures(): Promise<void> {
+    logger.info('Initializing advanced search and view features...');
+
+    try {
+      // 1. Initialize SearchBar
+      this.initializeSearchBar();
+
+      // 2. Initialize ViewModeManager UI
+      this.initializeViewModeSwitcher();
+
+      // 3. Initialize view components
+      this.initializeViews();
+
+      // 4. Initialize keyboard shortcuts
+      this.initializeKeyboardShortcuts();
+
+      // 5. Initialize quick actions menu
+      this.initializeQuickActions();
+
+      // 6. Set up event listeners
+      this.setupAdvancedFeatureListeners();
+
+      logger.info('Advanced search and view features initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize advanced features', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initialize search bar
+   */
+  private initializeSearchBar(): void {
+    const container = document.getElementById('advanced-search-container');
+    if (!container) {
+      logger.warn('Search container not found, skipping search bar');
+      return;
+    }
+
+    // Create search bar HTML
+    container.innerHTML = `
+      <div id="search-bar-wrapper"></div>
+    `;
+
+    try {
+      this.searchBar = new SearchBar(this.searchManager, 'search-bar-wrapper');
+      logger.info('SearchBar initialized');
+    } catch (error) {
+      logger.error('Failed to initialize SearchBar', error);
+    }
+  }
+
+  /**
+   * Initialize view mode switcher
+   */
+  private initializeViewModeSwitcher(): void {
+    try {
+      this.viewModeManager.createViewModeSwitcher('view-mode-switcher-container');
+      logger.info('ViewModeSwitcher initialized');
+    } catch (error) {
+      logger.error('Failed to initialize ViewModeSwitcher', error);
+    }
+  }
+
+  /**
+   * Initialize view components
+   */
+  private initializeViews(): void {
+    const sessionListContainer = document.getElementById('session-list');
+    if (!sessionListContainer) {
+      logger.error('Session list container not found');
+      return;
+    }
+
+    try {
+      this.timelineView = new TimelineView(sessionListContainer);
+      this.gridView = new GridView(sessionListContainer);
+      this.listView = new ListView(sessionListContainer);
+      this.boardView = new BoardView(sessionListContainer);
+
+      logger.info('View components initialized');
+    } catch (error) {
+      logger.error('Failed to initialize view components', error);
+    }
+  }
+
+  /**
+   * Initialize keyboard shortcuts overlay
+   */
+  private initializeKeyboardShortcuts(): void {
+    try {
+      const shortcuts = KeyboardShortcutsOverlay.getDefaultShortcuts();
+      this.keyboardShortcuts.initialize(shortcuts);
+      logger.info('Keyboard shortcuts overlay initialized');
+    } catch (error) {
+      logger.error('Failed to initialize keyboard shortcuts', error);
+    }
+  }
+
+  /**
+   * Initialize quick actions menu
+   */
+  private initializeQuickActions(): void {
+    try {
+      const actions: QuickAction[] = [
+        {
+          id: 'open',
+          label: 'Open Session',
+          icon: '📖',
+          shortcut: 'Enter',
+          action: (session: Session) => {
+            this.showSessionDetail(session.id);
+          }
+        },
+        {
+          id: 'share',
+          label: 'Share Session',
+          icon: '🔗',
+          shortcut: 'Cmd+Shift+S',
+          action: (session: Session) => {
+            this.shareSession(session.id);
+          }
+        },
+        {
+          id: 'export',
+          label: 'Export Session',
+          icon: '📤',
+          shortcut: 'Cmd+E',
+          action: (session: Session) => {
+            console.log('Export session:', session.id);
+          },
+          divider: true
+        },
+        {
+          id: 'delete',
+          label: 'Delete Session',
+          icon: '🗑️',
+          shortcut: 'Del',
+          action: (session: Session) => {
+            this.deleteSession(session.id);
+          }
+        }
+      ];
+
+      this.quickActions.initialize(actions);
+      logger.info('Quick actions menu initialized');
+    } catch (error) {
+      logger.error('Failed to initialize quick actions', error);
+    }
+  }
+
+  /**
+   * Set up event listeners for advanced features
+   */
+  private setupAdvancedFeatureListeners(): void {
+    // Search results change
+    this.searchManager.onResults((results) => {
+      logger.info(`Search returned ${results.length} results`);
+      const sessions = this.searchManager.getResultSessions();
+      this.renderCurrentView(sessions);
+    });
+
+    // View mode change
+    this.viewModeManager.onChange((mode: ViewMode) => {
+      logger.info(`View mode changed to: ${mode}`);
+
+      // Get current sessions (either search results or all sessions)
+      const sessions = this.getCurrentSessions();
+      this.renderCurrentView(sessions);
+    });
+
+    // Session click handlers for all views
+    this.timelineView?.onSessionSelect((session) => this.handleSessionClick(session));
+    this.gridView?.onSessionSelect((session) => this.handleSessionClick(session));
+    this.listView?.onSessionSelect((session) => this.handleSessionClick(session));
+    this.boardView?.onSessionSelect((session) => this.handleSessionClick(session));
+
+    // Bulk selection callbacks
+    this.bulkSelectionManager.onBulkExport((sessionIds) => {
+      this.handleBulkExport(sessionIds);
+    });
+
+    this.bulkSelectionManager.onBulkDelete((sessionIds) => {
+      this.handleBulkDelete(sessionIds);
+    });
+
+    this.bulkSelectionManager.onCreateStudySet(() => {
+      const sessionIds = Array.from(this.bulkSelectionManager.getSelectedSessionIds());
+      if (sessionIds.length >= 2) {
+        // Show input modal for study set title
+        this.studySetTitleModal.show(sessionIds, (title) => {
+          this.createMultiSessionStudySet(sessionIds, title);
+        });
+      }
+    });
+  }
+
+  /**
+   * Update sessions (called when sessions are loaded/updated)
+   */
+  private updateSessions(sessions: Session[]): void {
+    logger.info(`Updating with ${sessions.length} sessions`);
+
+    // Store sessions internally (already done by loadSessions)
+    this.sessions = sessions;
+
+    // Update search manager
+    this.searchManager.setSessions(sessions);
+
+    // Always render when sessions are updated (search will be maintained if active)
+    const searchState = this.searchManager.getState();
+    const isSearching = this.searchManager.isSearching();
+    logger.info(`Search state: isSearching=${isSearching}, query="${searchState.query}"`);
+
+    if (isSearching || searchState.query.trim().length > 0) {
+      // If search is active, render search results
+      const searchResults = this.searchManager.getResultSessions();
+      logger.info(`Rendering search results: ${searchResults.length} sessions`);
+      this.renderCurrentView(searchResults);
+    } else {
+      // No search active, render all sessions
+      this.renderCurrentView(sessions);
+    }
+
+    // Clean up orphaned selections (sessions that were selected but no longer exist)
+    this.cleanupOrphanedSelections(sessions);
+  }
+
+  /**
+   * Refresh current view with existing sessions
+   */
+  private refreshCurrentView(): void {
+    const sessions = this.getCurrentSessions();
+    this.renderCurrentView(sessions);
+    logger.info('Refreshed current view');
+  }
+
+  /**
+   * Clean up orphaned selections (selected sessions that no longer exist)
+   */
+  private cleanupOrphanedSelections(sessions: Session[]): void {
+    const selectedIds = this.bulkSelectionManager.getSelectedSessionIds();
+    const sessionIds = new Set(sessions.map(s => s.id));
+
+    // Remove any selected IDs that don't exist in current sessions
+    selectedIds.forEach(id => {
+      if (!sessionIds.has(id)) {
+        logger.info(`Removing orphaned selection: ${id}`);
+        this.bulkSelectionManager.handleSessionSelection(id, false);
+      }
+    });
+  }
+
+  /**
+   * Get current sessions (search results or all)
+   */
+  private getCurrentSessions(): Session[] {
+    const searchState = this.searchManager.getState();
+
+    if (searchState.query.trim().length > 0 || !searchState.filter.isEmpty()) {
+      return this.searchManager.getResultSessions();
+    }
+
+    // Return all sessions when no search is active
+    return this.sessions;
+  }
+
+  /**
+   * Render current view mode
+   */
+  private renderCurrentView(sessions: Session[]): void {
+    const currentMode = this.viewModeManager.getCurrentMode();
+
+    logger.info(`Rendering ${currentMode} view with ${sessions.length} sessions`);
+
+    switch (currentMode) {
+      case 'timeline':
+        this.timelineView?.render(sessions);
+        break;
+      case 'grid':
+        this.gridView?.render(sessions);
+        break;
+      case 'list':
+        this.listView?.render(sessions);
+        break;
+      case 'board':
+        this.boardView?.render(sessions);
+        break;
+    }
+
+    // Wire up checkbox handlers after rendering
+    this.wireUpCheckboxHandlers();
+  }
+
+  /**
+   * Wire up checkbox event handlers (called once during initialization)
+   */
+  private wireUpCheckboxHandlers(): void {
+    // Only add the listener once
+    if (this.checkboxListenerAdded) {
+      return;
+    }
+
+    // Use event delegation on the session-list container
+    const sessionListContainer = document.getElementById('session-list');
+    if (!sessionListContainer) {
+      logger.warn('Session list container not found for checkbox handlers');
+      return;
+    }
+
+    // Add event listener for all checkboxes using event delegation
+    sessionListContainer.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.classList.contains('session-checkbox')) {
+        const sessionId = target.dataset.sessionId;
+        if (sessionId) {
+          this.bulkSelectionManager.handleSessionSelection(sessionId, target.checked);
+        }
+      }
+    });
+
+    this.checkboxListenerAdded = true;
+    logger.info('Checkbox event handlers wired up');
+  }
+
+  /**
+   * Handle session click
+   */
+  private handleSessionClick(session: Session): void {
+    logger.info(`Session clicked: ${session.id}`);
+
+    // Trigger openSessionDetail event on session list container
+    const sessionListContainer = document.getElementById('session-list');
+    if (sessionListContainer) {
+      const event = new CustomEvent('openSessionDetail', {
+        detail: { sessionId: session.id }
+      });
+      sessionListContainer.dispatchEvent(event);
+    }
+  }
+
+  /**
+   * Get the bulk selection manager instance
+   */
+  getBulkSelectionManager(): BulkSelectionManager {
+    return this.bulkSelectionManager;
+  }
+
+  /**
+   * Get search manager (for external access)
+   */
+  getSearchManager(): SearchManager {
+    return this.searchManager;
+  }
+
+  /**
+   * Get view mode manager (for external access)
+   */
+  getViewModeManager(): ViewModeManager {
+    return this.viewModeManager;
   }
 
   /**
@@ -273,10 +738,8 @@ export class StudyModeManager {
     this.sessions = await this.sessionDataLoader.loadAllSessions();
     this.sessionListManager.setSessions(this.sessions);
 
-    // Notify Phase 3 integration about updated sessions
-    if (window.phase3Integration) {
-      window.phase3Integration.updateSessions(this.sessions);
-    }
+    // Update advanced features with sessions
+    this.updateSessions(this.sessions);
   }
 
   /**
@@ -291,10 +754,8 @@ export class StudyModeManager {
       ? this.dataTransformer.filterSharedOnly(this.sessions)
       : this.sessions;
 
-    // Update Phase3Integration with filtered sessions
-    if (window.phase3Integration) {
-      window.phase3Integration.updateSessions(sessionsToShow);
-    }
+    // Update advanced features with filtered sessions
+    this.updateSessions(sessionsToShow);
 
     // Hide record mode, show study mode
     this.recordModeView.classList.add('hidden');
@@ -310,7 +771,6 @@ export class StudyModeManager {
     // Populate course filter (still needed for legacy UI)
     this.sessionListManager.setSessions(sessionsToShow);
     this.sessionListManager.populateCourseFilter();
-    // Note: Rendering is now handled by Phase3Integration, not the old session list manager
 
     this.isActive = true;
     logger.info(filterSharedOnly ? 'Study mode activated with shared sessions filter' : 'Study mode activated');
@@ -355,9 +815,7 @@ export class StudyModeManager {
     this.sessionNavigationManager.backToSessionList();
 
     // Refresh view to ensure it's not stale (user manually navigated back)
-    if (window.phase3Integration) {
-      window.phase3Integration.refreshCurrentView();
-    }
+    this.refreshCurrentView();
   }
 
   /**
@@ -368,10 +826,8 @@ export class StudyModeManager {
     if (!session) return;
 
     this.sessionEditingManager.startTitleEdit(session, 'list', () => {
-      // Trigger Phase3 re-render with updated sessions
-      if (window.phase3Integration) {
-        window.phase3Integration.updateSessions(this.sessions);
-      }
+      // Trigger re-render with updated sessions
+      this.updateSessions(this.sessions);
     });
   }
 
@@ -387,10 +843,8 @@ export class StudyModeManager {
       const isEditable = this.sessionNavigationManager.isSessionEditable(session);
       this.detailViewManager.render(session, isEditable);
 
-      // Trigger Phase3 re-render with updated sessions
-      if (window.phase3Integration) {
-        window.phase3Integration.updateSessions(this.sessions);
-      }
+      // Trigger re-render with updated sessions
+      this.updateSessions(this.sessions);
     });
   }
 
@@ -406,10 +860,8 @@ export class StudyModeManager {
       const isEditable = this.sessionNavigationManager.isSessionEditable(session);
       this.detailViewManager.render(session, isEditable);
 
-      // Trigger Phase3 re-render with updated sessions
-      if (window.phase3Integration) {
-        window.phase3Integration.updateSessions(this.sessions);
-      }
+      // Trigger re-render with updated sessions
+      this.updateSessions(this.sessions);
     });
   }
 
@@ -459,14 +911,12 @@ export class StudyModeManager {
         this.sessionNavigationManager.backToSessionList();
       }
 
-      // Reload sessions (Phase3Integration automatically renders with fresh data)
+      // Reload sessions (automatically renders with fresh data)
       await this.loadSessions();
 
       // Clear selections AFTER rendering to ensure proper cleanup
       this.sessionListManager.clearSelection();
-      if (window.phase3Integration) {
-        window.phase3Integration.getBulkSelectionManager()?.clearSelection();
-      }
+      this.bulkSelectionManager.clearSelection();
     });
   }
 
@@ -490,14 +940,12 @@ export class StudyModeManager {
           this.sessionNavigationManager.backToSessionList();
         }
 
-        // Reload sessions (Phase3Integration automatically renders with fresh data)
+        // Reload sessions (automatically renders with fresh data)
         await this.loadSessions();
 
         // Clear selections AFTER rendering to ensure proper cleanup
         this.sessionListManager.clearSelection();
-        if (window.phase3Integration) {
-          window.phase3Integration.getBulkSelectionManager()?.clearSelection();
-        }
+        this.bulkSelectionManager.clearSelection();
       }
     );
   }
@@ -730,7 +1178,8 @@ export class StudyModeManager {
     await this.sessionDeletionManager.handleBulkDelete(sessionIds, async () => {
       // Clear selection and refresh after bulk deletion
       this.sessionListManager.clearSelection();
-      await this.loadSessions(); // Phase3Integration will handle rendering
+      this.bulkSelectionManager.clearSelection();
+      await this.loadSessions(); // Automatically renders with fresh data
     });
   }
 
@@ -784,7 +1233,20 @@ export class StudyModeManager {
    */
   public async refresh(): Promise<void> {
     await this.loadSessions();
-    // Note: Phase3Integration handles rendering via updateSessions() call in loadSessions()
+  }
+
+  /**
+   * Public method to show session detail (used by QuickActions and other components)
+   */
+  public async showSessionDetail(sessionId: string): Promise<void> {
+    await this.openSessionDetail(sessionId);
+  }
+
+  /**
+   * Public method to share a session (used by QuickActions and other components)
+   */
+  public shareSession(sessionId: string): void {
+    this.openShareModal(sessionId);
   }
 
 }
