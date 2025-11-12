@@ -212,7 +212,7 @@ ${transcriptionText}`;
         }
 
         return `
-          <div class="quiz-option" data-index="${index}">
+          <div class="${className}" data-index="${index}">
             ${optionLabels[index]}: ${escapeHtml(option)}
           </div>
         `;
@@ -255,8 +255,9 @@ ${transcriptionText}`;
       // Add event listeners for options
       if (!answered) {
         const options = document.querySelectorAll('.quiz-option');
-        options.forEach((option, index) => {
+        options.forEach((option) => {
           option.addEventListener('click', () => {
+            const index = parseInt((option as HTMLElement).dataset.index || '0');
             selectedAnswer = index;
             answered = true;
             if (index === question.correctAnswer) {
