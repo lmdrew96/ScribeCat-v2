@@ -30,6 +30,7 @@ import { MultiSessionCoordinator } from './study-mode/MultiSessionCoordinator.js
 import { NotesEditCoordinator } from './study-mode/NotesEditCoordinator.js';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard.js';
 import { createLogger } from '../../shared/logger.js';
+import { config } from '../../config.js';
 
 const logger = createLogger('StudyModeManager');
 
@@ -519,10 +520,10 @@ export class StudyModeManager {
 
     if (!confirmed) return;
 
-    // Get AssemblyAI API key from settings
-    const assemblyaiKey = await (window as any).scribeCat.store.get('assemblyaiApiKey');
+    // Get AssemblyAI API key from config (.env file)
+    const assemblyaiKey = config.assemblyai.apiKey;
     if (!assemblyaiKey) {
-      alert('AssemblyAI API key not found. Please configure it in Settings.');
+      alert('AssemblyAI API key not configured. Please add ASSEMBLYAI_API_KEY to your .env file.');
       return;
     }
 
