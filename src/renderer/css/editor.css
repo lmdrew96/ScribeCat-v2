@@ -791,16 +791,21 @@
 /* Tiptap Images */
 .tiptap-content img {
   max-width: 100%;
-  max-height: 600px;
+  max-height: 800px;
   min-height: 50px;
   width: auto;
   height: auto;
   display: block;
   margin: 1rem 0;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   object-fit: contain;
   position: relative;
+  transition: box-shadow 0.2s ease;
+}
+
+.tiptap-content img:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 /* Image alignment based on text-align attribute */
@@ -1215,7 +1220,7 @@
 /* Study Mode Images */
 .notes-html-content img {
   max-width: 100%;
-  max-height: 100px;
+  max-height: 800px;
   width: auto;
   height: auto;
   display: block;

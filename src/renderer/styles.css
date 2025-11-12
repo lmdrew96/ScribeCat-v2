@@ -7,6 +7,7 @@
 /* Layout & Components */
 @import './css/top-bar.css';       /* Header, controls, record button, device select */
 @import './css/editor.css';        /* Notes editor, formatting toolbar, Tiptap editor */
+@import './css/editor-theme.css';  /* Enhanced editor theme system (professional styling) */
 @import './css/utilities.css';     /* Status bar, utility classes, responsive design */
 
 /* UI Elements */

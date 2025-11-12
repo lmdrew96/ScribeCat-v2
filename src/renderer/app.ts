@@ -40,6 +40,8 @@ import { WelcomeModal } from './components/WelcomeModal.js';
 import { TutorialManager } from './utils/TutorialManager.js';
 import { SoundManager, initializeSoundSystem, enableGlobalSoundEffects } from './audio/SoundManager.js';
 import { BreakReminders, initializeBreakReminders } from './components/BreakReminders.js';
+// Editor Enhancements: Professional icon system
+import { initToolbarUpgrades } from './components/editor/ToolbarIconUpgrader.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -101,6 +103,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize theme manager first
   themeManager = new ThemeManager();
   await themeManager.initialize();
+
+  // Initialize professional toolbar icons (upgrade emoji to SVG)
+  initToolbarUpgrades();
 
   // Initialize core managers
   audioManager = new AudioManager();

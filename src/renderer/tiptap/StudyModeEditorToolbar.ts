@@ -407,18 +407,20 @@ export class StudyModeEditorToolbar {
 
       const img = new window.Image();
       img.onload = () => {
-        const maxHeight = 100;
+        // Allow images up to 1200px width, preserving aspect ratio
+        const maxWidth = 1200;
         let width = img.width;
         let height = img.height;
 
-        if (height > maxHeight) {
-          width = (maxHeight / height) * width;
-          height = maxHeight;
+        if (width > maxWidth) {
+          height = (maxWidth / width) * height;
+          width = maxWidth;
         }
 
         this.editor?.chain().focus().setImage({
           src: base64,
-          width: Math.round(width)
+          width: Math.round(width),
+          height: Math.round(height),
         }).run();
       };
       img.src = base64;

@@ -67,13 +67,22 @@ class DraggableImageNodeView implements NodeView {
     const wrapType = node.attrs.wrapType || 'square';
     this.dom.classList.add(`wrap-${wrapType}`);
 
-    // Create drag handle (smaller size)
+    // Create drag handle with professional icon
     this.handle = document.createElement('div');
     this.handle.className = 'drag-handle';
     this.handle.draggable = true;
     this.handle.contentEditable = 'false';
-    this.handle.innerHTML = '⋮⋮';
-    this.handle.title = 'Drag to reorder';
+    this.handle.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="5" r="1"/>
+        <circle cx="9" cy="12" r="1"/>
+        <circle cx="9" cy="19" r="1"/>
+        <circle cx="15" cy="5" r="1"/>
+        <circle cx="15" cy="12" r="1"/>
+        <circle cx="15" cy="19" r="1"/>
+      </svg>
+    `;
+    this.handle.title = 'Drag to move image';
 
     // Create image
     this.img = document.createElement('img');

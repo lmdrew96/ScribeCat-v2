@@ -1,0 +1,725 @@
+/**
+ * Editor Theme System
+ *
+ * Professional theme variables and styling for notes editors.
+ * Designed to work seamlessly with dark and light themes.
+ */
+
+:root {
+  /* ===== Editor-Specific Colors ===== */
+
+  /* Toolbar colors */
+  --editor-toolbar-bg: var(--bg-secondary);
+  --editor-toolbar-border: var(--border);
+  --editor-toolbar-btn-hover: rgba(255, 255, 255, 0.08);
+  --editor-toolbar-btn-active: rgba(0, 122, 204, 0.25);
+
+  /* Editor content area */
+  --editor-bg: var(--bg-primary);
+  --editor-text: var(--text-primary);
+  --editor-placeholder: var(--text-tertiary);
+  --editor-selection: rgba(0, 122, 204, 0.3);
+
+  /* Focus states */
+  --editor-focus-border: var(--accent);
+  --editor-focus-shadow: 0 0 0 3px rgba(0, 122, 204, 0.2);
+
+  /* Buttons and controls */
+  --editor-btn-radius: 6px;
+  --editor-btn-padding: 8px 12px;
+  --editor-btn-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --editor-btn-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.15);
+
+  /* Spacing */
+  --editor-padding: 20px;
+  --editor-gap: 8px;
+  --editor-gap-small: 4px;
+  --editor-gap-large: 12px;
+
+  /* Typography */
+  --editor-font-size: 16px;
+  --editor-line-height: 1.6;
+  --editor-heading-weight: 600;
+
+  /* Icons */
+  --editor-icon-size: 18px;
+  --editor-icon-color: var(--text-primary);
+  --editor-icon-hover: var(--accent);
+
+  /* Dropdowns and palettes */
+  --editor-dropdown-bg: var(--bg-secondary);
+  --editor-dropdown-border: var(--border);
+  --editor-dropdown-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  --editor-dropdown-radius: 8px;
+
+  /* Image controls */
+  --editor-img-border: var(--accent);
+  --editor-img-handle-size: 12px;
+  --editor-img-handle-color: var(--accent);
+  --editor-img-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  /* Tables */
+  --editor-table-border: #666666;
+  --editor-table-header-bg: var(--bg-tertiary);
+  --editor-table-cell-bg: var(--bg-secondary);
+  --editor-table-hover: rgba(255, 255, 255, 0.05);
+
+  /* Status indicators */
+  --editor-success: #66BB6A;
+  --editor-warning: #FFA726;
+  --editor-error: #EF5350;
+  --editor-info: #42A5F5;
+
+  /* Transitions */
+  --editor-transition-fast: 0.15s ease;
+  --editor-transition-normal: 0.2s ease;
+  --editor-transition-slow: 0.3s ease;
+}
+
+/* ===== Professional Toolbar Styling ===== */
+
+.formatting-toolbar,
+.study-editor-toolbar {
+  background: var(--editor-toolbar-bg);
+  border-bottom: 1px solid var(--editor-toolbar-border);
+  padding: var(--editor-gap) var(--editor-gap-large);
+  display: flex;
+  align-items: center;
+  gap: var(--editor-gap-small);
+  flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.toolbar-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--editor-btn-radius);
+  border: none;
+  background: transparent;
+  color: var(--editor-icon-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--editor-transition-fast);
+  position: relative;
+}
+
+.toolbar-btn svg {
+  width: var(--editor-icon-size);
+  height: var(--editor-icon-size);
+  stroke: currentColor;
+  transition: stroke var(--editor-transition-fast);
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: var(--editor-toolbar-btn-hover);
+  color: var(--editor-icon-hover);
+  transform: translateY(-1px);
+}
+
+.toolbar-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.toolbar-btn.active {
+  background: var(--editor-toolbar-btn-active);
+  color: var(--accent);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Enhanced tooltips */
+.toolbar-btn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.95);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--editor-transition-fast);
+  z-index: 2000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.toolbar-btn:hover::after {
+  opacity: 1;
+  transition-delay: 0.6s;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--editor-gap-small);
+  padding: var(--editor-gap-small);
+  border-radius: var(--editor-btn-radius);
+  transition: background var(--editor-transition-fast);
+}
+
+.toolbar-group:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 var(--editor-gap-small);
+}
+
+/* ===== Enhanced Color Picker Styling ===== */
+
+.editor-color-palette {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  padding: 14px;
+  background: var(--editor-dropdown-bg);
+  border: 1px solid var(--editor-dropdown-border);
+  border-radius: var(--editor-dropdown-radius);
+  box-shadow: var(--editor-dropdown-shadow);
+  display: none;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  z-index: 2000;
+  min-width: 220px;
+  animation: slideDown 0.2s ease;
+}
+
+.editor-color-palette.show {
+  display: grid;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.editor-color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all var(--editor-transition-normal);
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.editor-color-swatch:hover {
+  transform: scale(1.15);
+  border-color: var(--editor-focus-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.editor-color-swatch.active {
+  border-color: var(--editor-focus-border);
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.25);
+}
+
+.editor-color-swatch.active::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* ===== Enhanced Image Controls ===== */
+
+/* Drag handles - more visible and professional */
+.drag-handle {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 24px;
+  background: var(--editor-img-handle-color);
+  color: white;
+  border-radius: 6px 6px 0 0;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 200;
+  opacity: 0;
+  transition: all var(--editor-transition-normal);
+  user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.drag-handle svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+.draggable-image-wrapper:hover .drag-handle,
+.draggable-image-wrapper.selected .drag-handle {
+  opacity: 1;
+  top: -12px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  transform: translateX(-50%) scale(0.95);
+}
+
+/* Resize handles - larger and more visible */
+[data-resize-handle] {
+  position: absolute;
+  width: var(--editor-img-handle-size);
+  height: var(--editor-img-handle-size);
+  background: white;
+  border: 2px solid var(--editor-img-handle-color);
+  border-radius: 50%;
+  opacity: 0;
+  transition: all var(--editor-transition-normal);
+  z-index: 201;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+[data-resize-container]:hover [data-resize-handle],
+[data-resize-container].resizing [data-resize-handle] {
+  opacity: 1;
+}
+
+[data-resize-handle]:hover {
+  transform: scale(1.3);
+  background: var(--editor-img-handle-color);
+  border-color: white;
+}
+
+/* ===== Enhanced Focus States ===== */
+
+.tiptap-content:focus-within {
+  outline: none;
+}
+
+.tiptap-content img.ProseMirror-selectednode {
+  outline: 2px solid var(--editor-focus-border);
+  outline-offset: 3px;
+  box-shadow: var(--editor-focus-shadow);
+}
+
+/* ===== Smooth Animations ===== */
+
+.toolbar-btn,
+.editor-color-swatch,
+.drag-handle,
+[data-resize-handle] {
+  will-change: transform, opacity;
+}
+
+/* ===== Professional Table Styling ===== */
+
+.tiptap-content table {
+  border: 1px solid var(--editor-table-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tiptap-content table tbody td,
+.tiptap-content table tbody th {
+  border: 1px solid var(--editor-table-border);
+  background: var(--editor-table-cell-bg);
+  transition: background var(--editor-transition-fast);
+}
+
+.tiptap-content table tbody tr:hover td {
+  background: var(--editor-table-hover);
+}
+
+.tiptap-content table tbody tr:first-child th {
+  background: var(--editor-table-header-bg);
+  font-weight: 600;
+}
+
+/* ===== Status Indicators ===== */
+
+.editor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.editor-status.success {
+  background: rgba(102, 187, 106, 0.15);
+  color: var(--editor-success);
+}
+
+.editor-status.warning {
+  background: rgba(255, 167, 38, 0.15);
+  color: var(--editor-warning);
+}
+
+.editor-status.error {
+  background: rgba(239, 83, 80, 0.15);
+  color: var(--editor-error);
+}
+
+.editor-status.info {
+  background: rgba(66, 165, 245, 0.15);
+  color: var(--editor-info);
+}
+
+/* ===== Responsive Design ===== */
+
+@media (max-width: 768px) {
+  .formatting-toolbar,
+  .study-editor-toolbar {
+    padding: var(--editor-gap-small);
+  }
+
+  .toolbar-btn {
+    min-width: 32px;
+    height: 32px;
+  }
+
+  .toolbar-group {
+    gap: 2px;
+  }
+
+  .editor-color-palette {
+    grid-template-columns: repeat(4, 1fr);
+    min-width: 180px;
+  }
+}
+
+/* ===== Enhanced Focus States ===== */
+
+.toolbar-btn:focus-visible {
+  outline: 2px solid var(--editor-focus-border);
+  outline-offset: 2px;
+  box-shadow: var(--editor-focus-shadow);
+}
+
+.editor-color-swatch:focus-visible {
+  outline: 2px solid var(--editor-focus-border);
+  outline-offset: 2px;
+}
+
+.tiptap-content:focus-within {
+  /* Subtle glow when editor has focus */
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 204, 0.1);
+}
+
+/* ===== Smooth Scrolling ===== */
+
+.tiptap-editor {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
+}
+
+.tiptap-editor::-webkit-scrollbar {
+  width: 10px;
+}
+
+.tiptap-editor::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+}
+
+.tiptap-editor::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  border: 2px solid var(--bg-secondary);
+  transition: background var(--editor-transition-fast);
+}
+
+.tiptap-editor::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+
+/* ===== Selection Styling ===== */
+
+.tiptap-content ::selection {
+  background-color: rgba(0, 122, 204, 0.3);
+  color: inherit;
+}
+
+.tiptap-content ::-moz-selection {
+  background-color: rgba(0, 122, 204, 0.3);
+  color: inherit;
+}
+
+/* ===== Placeholder Styling ===== */
+
+.tiptap-content .ProseMirror > p.is-editor-empty:first-child::before {
+  color: var(--editor-placeholder);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* ===== Micro-Interactions ===== */
+
+/* Button press animation */
+.toolbar-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Ripple effect on button click */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.toolbar-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toolbar-btn:active::before {
+  animation: ripple 0.4s ease-out;
+}
+
+/* Enhanced dropdown animations */
+.editor-color-palette,
+.anchor-palette,
+.wrap-palette {
+  animation: slideDownFade 0.2s ease;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth state transitions */
+.toolbar-btn,
+.editor-color-swatch,
+.toolbar-group {
+  will-change: transform, background-color, border-color;
+}
+
+/* ===== Loading States ===== */
+
+.toolbar-btn.loading {
+  pointer-events: none;
+  opacity: 0.6;
+  position: relative;
+}
+
+.toolbar-btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Success/Error States ===== */
+
+.toolbar-btn.success {
+  background: rgba(102, 187, 106, 0.2);
+  color: var(--editor-success);
+}
+
+.toolbar-btn.error {
+  background: rgba(239, 83, 80, 0.2);
+  color: var(--editor-error);
+}
+
+/* ===== Enhanced Image Selection ===== */
+
+.tiptap-content img.ProseMirror-selectednode {
+  outline: 3px solid var(--editor-focus-border);
+  outline-offset: 4px;
+  box-shadow: var(--editor-focus-shadow);
+  cursor: move;
+}
+
+/* Animated border for selected images */
+@keyframes pulseOutline {
+  0%, 100% {
+    outline-color: var(--editor-focus-border);
+    outline-offset: 4px;
+  }
+  50% {
+    outline-color: var(--accent);
+    outline-offset: 6px;
+  }
+}
+
+.tiptap-content img.ProseMirror-selectednode {
+  animation: pulseOutline 2s ease-in-out infinite;
+}
+
+/* ===== Improved Table Interactions ===== */
+
+.tiptap-content table {
+  transition: box-shadow var(--editor-transition-fast);
+}
+
+.tiptap-content table:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tiptap-content table .selectedCell {
+  background: rgba(0, 122, 204, 0.15);
+  transition: background var(--editor-transition-fast);
+}
+
+/* ===== Drag & Drop Visual Feedback ===== */
+
+.draggable-image-wrapper.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.tiptap-content.drag-over {
+  background: rgba(0, 122, 204, 0.05);
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+
+/* Drop zone indicator */
+.ProseMirror-dropcursor {
+  border-top: 3px solid var(--accent);
+  pointer-events: none;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0.5;
+  }
+}
+
+/* ===== Accessibility ===== */
+
+/* High contrast focus for keyboard navigation */
+.toolbar-btn:focus-visible,
+.editor-color-swatch:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  z-index: 1;
+}
+
+/* Skip to content link */
+.skip-to-editor {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--accent);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+  border-radius: 4px;
+}
+
+.skip-to-editor:focus {
+  top: 0;
+}
+
+/* ===== Reduce Motion ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar-btn,
+  .editor-color-swatch,
+  .drag-handle,
+  [data-resize-handle],
+  .toolbar-group,
+  .tiptap-content img,
+  .tiptap-content table {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .editor-color-palette {
+    animation: none !important;
+  }
+
+  .tiptap-editor {
+    scroll-behavior: auto;
+  }
+}
+
+/* ===== Print Styles ===== */
+
+@media print {
+  .formatting-toolbar,
+  .study-editor-toolbar,
+  .toolbar-divider,
+  .drag-handle,
+  [data-resize-handle] {
+    display: none !important;
+  }
+
+  .tiptap-content {
+    padding: 0;
+  }
+
+  .tiptap-content img {
+    max-width: 100%;
+    page-break-inside: avoid;
+  }
+}
