@@ -62,12 +62,8 @@ export class StudyModeAIToolsManager {
       this.setupChatEventListenersForContainer(aiToolsTabContainer);
       this.setupChipEventListenersForContainer(aiToolsTabContainer);
 
-      // Share the same study content area for both versions
-      const studyContentAreaTab = document.getElementById('study-content-area-tab');
-      if (studyContentAreaTab) {
-        // Mirror content from main study area to tab version
-        this.mirrorContentAreas(studyContentAreaTab);
-      }
+      // Note: Content is now rendered directly to the active content area
+      // instead of being mirrored, so event listeners work correctly
     }
 
     // Analyze content and generate initial suggestions
@@ -178,30 +174,6 @@ export class StudyModeAIToolsManager {
   }
 
   /**
-   * Mirror content between main and tab study content areas
-   */
-  private mirrorContentAreas(tabContentArea: HTMLElement): void {
-    if (!this.studyContentArea) return;
-
-    // Create a MutationObserver to sync content changes
-    const observer = new MutationObserver(() => {
-      if (this.studyContentArea) {
-        tabContentArea.innerHTML = this.studyContentArea.innerHTML;
-      }
-    });
-
-    // Observe changes to the main study content area
-    observer.observe(this.studyContentArea, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
-
-    // Initial sync
-    tabContentArea.innerHTML = this.studyContentArea.innerHTML;
-  }
-
-  /**
    * Handle sending a message
    */
   private handleSendMessage(message: string): void {
@@ -264,41 +236,66 @@ export class StudyModeAIToolsManager {
   }
 
   /**
+   * Get the currently active/visible content area
+   */
+  private getActiveContentArea(): HTMLElement | null {
+    // Check if we're in small window mode (AI tools tab is visible)
+    const aiToolsTab = document.querySelector('.content-tab.ai-tools-tab') as HTMLElement;
+    const isSmallWindow = aiToolsTab && window.getComputedStyle(aiToolsTab).display !== 'none';
+
+    if (isSmallWindow) {
+      // Check if AI tools panel is active in tab view
+      const aiToolsPanel = document.querySelector('.session-content-panel.ai-tools-panel');
+      if (aiToolsPanel && aiToolsPanel.classList.contains('active')) {
+        // Return tab version of content area
+        const tabContentArea = document.getElementById('study-content-area-tab');
+        if (tabContentArea) {
+          return tabContentArea;
+        }
+      }
+    }
+
+    // Default to main content area
+    return this.studyContentArea;
+  }
+
+  /**
    * Handle AI tool action from inline chat
    */
   private handleToolAction(action: SuggestionAction, session: Session): void {
-    if (!this.studyContentArea) return;
+    const activeContentArea = this.getActiveContentArea();
+    if (!activeContentArea) return;
 
     logger.info(`Executing AI tool action: ${action}`);
 
     // Map actions to AI tool methods
     switch (action) {
       case 'summary':
-        this.generateSummary(session);
+        this.generateSummary(session, activeContentArea);
         break;
       case 'concept':
-        this.extractKeyConcepts(session);
+        this.extractKeyConcepts(session, activeContentArea);
         break;
       case 'flashcards':
-        this.generateFlashcards(session);
+        this.generateFlashcards(session, activeContentArea);
         break;
       case 'quiz':
-        this.generateQuiz(session);
+        this.generateQuiz(session, activeContentArea);
         break;
       case 'weak_spots':
-        this.generateWeakSpots(session);
+        this.generateWeakSpots(session, activeContentArea);
         break;
       case 'learn_mode':
-        this.generateLearnMode(session);
+        this.generateLearnMode(session, activeContentArea);
         break;
       case 'eli5':
-        this.generateELI5Explainer(session);
+        this.generateELI5Explainer(session, activeContentArea);
         break;
       case 'study_plan':
-        this.generateStudyPlan(session);
+        this.generateStudyPlan(session, activeContentArea);
         break;
       case 'concept_map':
-        this.generateConceptMap(session);
+        this.generateConceptMap(session, activeContentArea);
         break;
       default:
         logger.warn(`Unknown action: ${action}`);
@@ -308,81 +305,72 @@ export class StudyModeAIToolsManager {
   /**
    * Generate summary
    */
-  private generateSummary(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateSummary(session, this.studyContentArea);
+  private generateSummary(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.generateSummary(session, contentArea);
     logger.info('Generating summary for session');
   }
 
   /**
    * Extract key concepts
    */
-  private extractKeyConcepts(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.extractKeyConcepts(session, this.studyContentArea);
+  private extractKeyConcepts(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.extractKeyConcepts(session, contentArea);
     logger.info('Extracting key concepts for session');
   }
 
   /**
    * Generate flashcards
    */
-  private generateFlashcards(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateFlashcards(session, this.studyContentArea);
+  private generateFlashcards(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.generateFlashcards(session, contentArea);
     logger.info('Generating flashcards for session');
   }
 
   /**
    * Generate quiz
    */
-  private generateQuiz(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateQuiz(session, this.studyContentArea);
+  private generateQuiz(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.generateQuiz(session, contentArea);
     logger.info('Generating quiz for session');
   }
 
   /**
    * Generate weak spots analysis
    */
-  private generateWeakSpots(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateWeakSpots(session, this.studyContentArea);
+  private generateWeakSpots(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.generateWeakSpots(session, contentArea);
     logger.info('Generating weak spots analysis for session');
   }
 
   /**
    * Generate learn mode
    */
-  private generateLearnMode(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateLearnMode(session, this.studyContentArea);
+  private generateLearnMode(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.generateLearnMode(session, contentArea);
     logger.info('Generating learn mode for session');
   }
 
   /**
    * Generate ELI5 explainer
    */
-  private generateELI5Explainer(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateELI5Explainer(session, this.studyContentArea);
+  private generateELI5Explainer(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.generateELI5Explainer(session, contentArea);
     logger.info('Generating ELI5 explainer for session');
   }
 
   /**
    * Generate concept map
    */
-  private generateConceptMap(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateConceptMap(session, this.studyContentArea);
+  private generateConceptMap(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.generateConceptMap(session, contentArea);
     logger.info('Generating concept map for session');
   }
 
   /**
    * Generate study plan
    */
-  private generateStudyPlan(session: Session): void {
-    if (!this.studyContentArea) return;
-    this.aiSummaryManager.generateStudyPlan(session, this.studyContentArea);
+  private generateStudyPlan(session: Session, contentArea: HTMLElement): void {
+    this.aiSummaryManager.generateStudyPlan(session, contentArea);
     logger.info('Generating study plan for session');
   }
 }
