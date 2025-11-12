@@ -3,6 +3,8 @@
  * Fun interactive features for ScribeCat-v2
  */
 
+import { SoundManager } from '../audio/SoundManager.js';
+
 /**
  * Konami Code Detector
  * Detects: Up, Up, Down, Down, Left, Right, Left, Right, B, A
@@ -132,8 +134,11 @@ export class KeyboardSequenceDetector {
  * Creates falling cat emojis across the screen
  */
 export function triggerCatParty(): void {
+  // Play purr sound when cat party starts
+  SoundManager.play('purr');
+
   const cats = ['🐱', '😸', '😺', '😻', '🐈', '😹', '😼', '😽', '🙀', '😿', '😾', '🐈‍⬛'];
-  const numCats = 100; // MOAR CATS!!!
+  const numCats = 200; // MOAR CATS!!!
 
   for (let i = 0; i < numCats; i++) {
     setTimeout(() => {
