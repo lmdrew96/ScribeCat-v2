@@ -9,3 +9,4 @@ export * from './EditorIcons.js';
 export * from './ColorPicker.js';
 export * from './ToolbarButton.js';
 export * from './ToolbarIconUpgrader.js';
+export * from './EmojiPicker.js';

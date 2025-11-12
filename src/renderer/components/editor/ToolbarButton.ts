@@ -111,6 +111,14 @@ export function getCommonToolbarButtons(editor: Editor) {
       isActive: () => editor.isActive('bold'),
     }),
 
+    code: createToolbarButton({
+      icon: 'code',
+      title: 'Inline Code',
+      shortcut: 'Ctrl+E',
+      onClick: () => editor.chain().focus().toggleCode().run(),
+      isActive: () => editor.isActive('code'),
+    }),
+
     italic: createToolbarButton({
       icon: 'italic',
       title: 'Italic',
@@ -234,6 +242,29 @@ export function getCommonToolbarButtons(editor: Editor) {
       icon: 'clearFormat',
       title: 'Clear Formatting',
       onClick: () => editor.chain().focus().clearNodes().unsetAllMarks().run(),
+    }),
+
+    // Enhanced content
+    blockquote: createToolbarButton({
+      icon: 'quote',
+      title: 'Blockquote',
+      shortcut: 'Ctrl+Shift+B',
+      onClick: () => editor.chain().focus().toggleBlockquote().run(),
+      isActive: () => editor.isActive('blockquote'),
+    }),
+
+    codeBlock: createToolbarButton({
+      icon: 'code',
+      title: 'Code Block',
+      shortcut: 'Ctrl+Alt+C',
+      onClick: () => editor.chain().focus().toggleCodeBlock().run(),
+      isActive: () => editor.isActive('codeBlock'),
+    }),
+
+    divider: createToolbarButton({
+      icon: 'divider',
+      title: 'Horizontal Rule',
+      onClick: () => editor.chain().focus().setHorizontalRule().run(),
     }),
   };
 }

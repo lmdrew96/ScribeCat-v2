@@ -57,6 +57,27 @@ export class EditorConfigService {
             class: 'tiptap-list-item',
           },
         },
+        blockquote: {
+          HTMLAttributes: {
+            class: 'editor-blockquote',
+          },
+        },
+        codeBlock: {
+          HTMLAttributes: {
+            class: 'editor-code-block',
+            spellcheck: 'false',
+          },
+        },
+        code: {
+          HTMLAttributes: {
+            class: 'editor-inline-code',
+          },
+        },
+        horizontalRule: {
+          HTMLAttributes: {
+            class: 'editor-divider',
+          },
+        },
         // Disable History when collaborating (Yjs handles undo/redo)
         history: yjsDoc ? false : undefined,
         link: {
