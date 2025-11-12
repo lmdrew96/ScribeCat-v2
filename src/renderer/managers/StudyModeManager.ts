@@ -31,6 +31,7 @@ import { NotesEditCoordinator } from './study-mode/NotesEditCoordinator.js';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard.js';
 import { createLogger } from '../../shared/logger.js';
 import { config } from '../../config.js';
+import { SupabaseStorageService } from '../../infrastructure/services/supabase/SupabaseStorageService.js';
 
 const logger = createLogger('StudyModeManager');
 
@@ -540,14 +541,21 @@ export class StudyModeManager {
       // Get the recording file path (handle both local and cloud paths)
       let audioFilePath = session.recordingPath;
 
-      // If it's a cloud path, we need to download it first
+      // If it's a cloud path, get a signed URL from Supabase
       if (audioFilePath.startsWith('cloud://')) {
-        alert('Cloud recordings are not yet supported for re-transcription. Please use a local recording.');
-        throw new Error('Cloud recordings not supported');
-      }
+        const storagePath = audioFilePath.replace('cloud://', '');
+        const storageService = new SupabaseStorageService();
+        const result = await storageService.getSignedUrl(storagePath, 7200); // 2 hours
 
-      // Remove file:// prefix if present
-      if (audioFilePath.startsWith('file://')) {
+        if (!result.success || !result.url) {
+          throw new Error('Failed to get signed URL for cloud recording');
+        }
+
+        audioFilePath = result.url; // Use the signed URL instead
+        logger.info(`Using signed URL for cloud recording: ${storagePath}`);
+      }
+      // Remove file:// prefix if present (for local files)
+      else if (audioFilePath.startsWith('file://')) {
         audioFilePath = audioFilePath.substring(7);
       }
 

@@ -63,57 +63,65 @@ export class TranscriptionHandlers extends BaseHandler {
     });
 
     // AssemblyAI: Batch transcription
-    this.handle(ipcMain, 'transcription:assemblyai:batch', async (event, apiKey: string, audioFilePath: string) => {
+    this.handle(ipcMain, 'transcription:assemblyai:batch', async (event, apiKey: string, audioSource: string) => {
       const https = await import('https');
       const fs = await import('fs');
-      const path = await import('path');
 
       try {
-        // Step 1: Upload audio file to AssemblyAI
-        console.log('📤 Uploading audio file to AssemblyAI:', audioFilePath);
+        let audioUrl: string;
 
-        const fileBuffer = fs.readFileSync(audioFilePath);
-        const uploadUrl = await new Promise<string>((resolve, reject) => {
-          const options = {
-            hostname: 'api.assemblyai.com',
-            path: '/v2/upload',
-            method: 'POST',
-            headers: {
-              'Authorization': apiKey,
-              'Content-Type': 'application/octet-stream',
-              'Content-Length': fileBuffer.length
-            }
-          };
+        // Determine if audioSource is a URL or file path
+        if (audioSource.startsWith('http://') || audioSource.startsWith('https://')) {
+          // It's already a URL (e.g., Supabase signed URL)
+          console.log('📤 Using provided audio URL:', audioSource);
+          audioUrl = audioSource;
+        } else {
+          // It's a local file path - upload to AssemblyAI
+          console.log('📤 Uploading audio file to AssemblyAI:', audioSource);
 
-          const req = https.request(options, (res) => {
-            let data = '';
-            res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
-              try {
-                const response = JSON.parse(data);
-                if (res.statusCode === 200 && response.upload_url) {
-                  console.log('✅ Audio file uploaded successfully');
-                  resolve(response.upload_url);
-                } else {
-                  reject(new Error(`Upload failed: ${res.statusCode} - ${JSON.stringify(response)}`));
-                }
-              } catch (error) {
-                reject(new Error(`Failed to parse upload response: ${data}`));
+          const fileBuffer = fs.readFileSync(audioSource);
+          audioUrl = await new Promise<string>((resolve, reject) => {
+            const options = {
+              hostname: 'api.assemblyai.com',
+              path: '/v2/upload',
+              method: 'POST',
+              headers: {
+                'Authorization': apiKey,
+                'Content-Type': 'application/octet-stream',
+                'Content-Length': fileBuffer.length
               }
-            });
-          });
+            };
 
-          req.on('error', reject);
-          req.write(fileBuffer);
-          req.end();
-        });
+            const req = https.request(options, (res) => {
+              let data = '';
+              res.on('data', (chunk) => { data += chunk; });
+              res.on('end', () => {
+                try {
+                  const response = JSON.parse(data);
+                  if (res.statusCode === 200 && response.upload_url) {
+                    console.log('✅ Audio file uploaded successfully');
+                    resolve(response.upload_url);
+                  } else {
+                    reject(new Error(`Upload failed: ${res.statusCode} - ${JSON.stringify(response)}`));
+                  }
+                } catch (error) {
+                  reject(new Error(`Failed to parse upload response: ${data}`));
+                }
+              });
+            });
+
+            req.on('error', reject);
+            req.write(fileBuffer);
+            req.end();
+          });
+        }
 
         // Step 2: Submit transcription request
         console.log('🎙️ Submitting transcription request');
 
         const transcriptId = await new Promise<string>((resolve, reject) => {
           const postData = JSON.stringify({
-            audio_url: uploadUrl,
+            audio_url: audioUrl,
             language_code: 'en_us',
             punctuate: true,
             format_text: true
