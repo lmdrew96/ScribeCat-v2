@@ -9,7 +9,10 @@ import { ISessionRepository } from '../../domain/repositories/ISessionRepository
 import { Transcription } from '../../domain/entities/Transcription.js';
 
 export class UpdateSessionTranscriptionUseCase {
-  constructor(private sessionRepository: ISessionRepository) {}
+  constructor(
+    private sessionRepository: ISessionRepository,
+    private supabaseSessionRepository?: ISessionRepository
+  ) {}
 
   /**
    * Execute the use case to update session transcription
@@ -26,16 +29,38 @@ export class UpdateSessionTranscriptionUseCase {
     timestampedEntries?: Array<{ startTime: number; endTime: number; text: string }>
   ): Promise<boolean> {
     try {
-      // Load the session
-      const session = await this.sessionRepository.findById(sessionId);
-      
+      console.log('🔵 UpdateSessionTranscriptionUseCase.execute() called');
+      console.log('  sessionId:', sessionId);
+      console.log('  transcription length:', transcriptionText?.length || 0);
+      console.log('  has supabaseSessionRepository:', !!this.supabaseSessionRepository);
+
+      // Try to load from local file repository first
+      let session = await this.sessionRepository.findById(sessionId);
+      console.log('  ✅ Local repository search result:', session ? 'Found' : 'Not found');
+
+      // If not found locally and we have Supabase repository, try cloud
+      if (!session && this.supabaseSessionRepository) {
+        console.log('  🔍 Session not found locally, searching cloud...');
+        session = await this.supabaseSessionRepository.findById(sessionId);
+        console.log('  ✅ Cloud repository search result:', session ? 'Found' : 'Not found');
+      }
+
       if (!session) {
+        console.error('  ❌ Session not found in any repository');
         return false;
       }
 
+      console.log('  📝 Session found, updating transcription...');
+      console.log('  Session details:');
+      console.log('    - id:', session.id);
+      console.log('    - title:', session.title);
+      console.log('    - userId:', session.userId);
+      console.log('    - cloudId:', session.cloudId);
+      console.log('    - duration:', session.duration);
+
       // Skip if transcription is empty
       if (!transcriptionText || transcriptionText.trim().length === 0) {
-        console.log('Skipping empty transcription');
+        console.log('  ⚠️ Skipping empty transcription');
         return true;
       }
 
@@ -44,7 +69,7 @@ export class UpdateSessionTranscriptionUseCase {
         ? this.createSegmentsFromTimestampedEntries(timestampedEntries, session.duration)
         : this.createSegmentsFromText(transcriptionText.trim(), session.duration);
 
-      console.log('🎯 Created segments:', {
+      console.log('  🎯 Created segments:', {
         method: timestampedEntries && timestampedEntries.length > 0 ? 'timestamped' : 'text-splitting',
         sessionDuration: session.duration,
         segmentCount: segments.length,
@@ -65,39 +90,70 @@ export class UpdateSessionTranscriptionUseCase {
         undefined // No average confidence
       );
 
-      console.log('📝 Created transcription entity:', {
+      console.log('  📝 Created transcription entity:', {
         fullTextLength: transcription.fullText.length,
         segmentCount: transcription.segments.length,
         provider: transcription.provider
       });
 
-      // Add transcription to session
+      // Add transcription to session using domain method
       session.addTranscription(transcription);
 
-      console.log('✅ Added transcription to session. Session state before save:', {
+      console.log('  ✅ Transcription added to session via domain method, updatedAt:', session.updatedAt.toISOString());
+      console.log('  Session state before save:', {
         sessionId: session.id,
         hasTranscription: !!session.transcription,
         transcriptionSegmentCount: session.transcription?.segments.length,
         transcriptionFullTextLength: session.transcription?.fullText.length
       });
 
-      // Save updated session
-      await this.sessionRepository.save(session);
+      // Determine if this is a cloud session
+      // A session is a cloud session if it has a cloudId (whether found locally or in cloud)
+      const isCloudSession = !!session.cloudId && !!this.supabaseSessionRepository;
+      console.log('  🔍 Cloud session detection:');
+      console.log('    - has cloudId:', !!session.cloudId);
+      console.log('    - has supabaseRepo:', !!this.supabaseSessionRepository);
+      console.log('    - isCloudSession:', isCloudSession);
 
-      console.log('💾 Session saved. Verifying by reloading...');
+      // Persist changes to the appropriate repository
+      if (isCloudSession && this.supabaseSessionRepository) {
+        console.log('  💾 Persisting to CLOUD repository (Supabase)...');
+        try {
+          await this.supabaseSessionRepository.update(session);
+          console.log('  ✅ Successfully persisted to cloud repository');
+        } catch (error) {
+          console.error('  ❌ Failed to persist to cloud repository:', error);
+          throw error;
+        }
+      } else {
+        console.log('  💾 Persisting to LOCAL repository (file system)...');
+        try {
+          await this.sessionRepository.update(session);
+          console.log('  ✅ Successfully persisted to local repository');
+        } catch (error) {
+          console.error('  ❌ Failed to persist to local repository:', error);
+          throw error;
+        }
+      }
 
-      // Verify the save worked by reloading
-      const reloadedSession = await this.sessionRepository.findById(sessionId);
-      console.log('🔍 Reloaded session verification:', {
+      console.log('  💾 Session saved. Verifying by reloading...');
+
+      // Verify the save worked by reloading from the appropriate repository
+      const reloadedSession = isCloudSession && this.supabaseSessionRepository
+        ? await this.supabaseSessionRepository.findById(sessionId)
+        : await this.sessionRepository.findById(sessionId);
+
+      console.log('  🔍 Reloaded session verification:', {
         sessionId: reloadedSession?.id,
         hasTranscription: !!reloadedSession?.transcription,
         transcriptionSegmentCount: reloadedSession?.transcription?.segments.length,
         transcriptionFullTextLength: reloadedSession?.transcription?.fullText.length
       });
 
+      console.log('🟢 UpdateSessionTranscriptionUseCase.execute() completed successfully');
       return true;
     } catch (error) {
-      console.error('Failed to update session transcription:', error);
+      console.error('❌ Failed to update session transcription:', error);
       return false;
     }
   }

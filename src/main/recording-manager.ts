@@ -53,7 +53,8 @@ export class RecordingManager {
       supabaseSessionRepository
     );
     this.updateSessionTranscriptionUseCase = new UpdateSessionTranscriptionUseCase(
-      sessionRepository
+      sessionRepository,
+      supabaseSessionRepository
     );
     this.updateSessionSummaryUseCase = new UpdateSessionSummaryUseCase(
       sessionRepository,
