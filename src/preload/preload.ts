@@ -101,7 +101,9 @@ const electronAPI = {
   },
   transcription: {
     assemblyai: {
-      getToken: (apiKey: string) => ipcRenderer.invoke('transcription:assemblyai:getToken', apiKey)
+      getToken: (apiKey: string) => ipcRenderer.invoke('transcription:assemblyai:getToken', apiKey),
+      batchTranscribe: (apiKey: string, audioFilePath: string) =>
+        ipcRenderer.invoke('transcription:assemblyai:batch', apiKey, audioFilePath)
     }
   },
   store: {

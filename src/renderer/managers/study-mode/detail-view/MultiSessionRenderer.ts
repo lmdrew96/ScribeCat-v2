@@ -134,6 +134,11 @@ export class MultiSessionRenderer {
             </div>
           </div>
         </div>
+
+        <!-- Scroll to Top Button (shows when scrolled down) -->
+        <button class="scroll-to-top-btn" id="scroll-to-top-btn" title="Return to top" style="display: none;">
+          <span class="scroll-top-icon">↑</span>
+        </button>
       </div>
     `;
   }

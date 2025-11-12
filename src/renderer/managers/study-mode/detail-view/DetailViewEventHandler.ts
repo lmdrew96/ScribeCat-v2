@@ -50,6 +50,9 @@ export class DetailViewEventHandler {
 
     // Search functionality
     this.attachSearchHandlers(session, searchState, onSearchUpdate);
+
+    // Scroll to top button
+    this.attachScrollToTopHandler();
   }
 
   /**
@@ -225,6 +228,11 @@ export class DetailViewEventHandler {
     deleteBtn?.addEventListener('click', () => {
       sessionDetailContainer.dispatchEvent(new CustomEvent('deleteSession', { detail: { sessionId: session.id } }));
     });
+
+    const retranscribeBtn = document.querySelector('.retranscribe-session-btn');
+    retranscribeBtn?.addEventListener('click', () => {
+      sessionDetailContainer.dispatchEvent(new CustomEvent('retranscribeSession', { detail: { sessionId: session.id } }));
+    });
   }
 
   /**
@@ -328,6 +336,50 @@ export class DetailViewEventHandler {
   }
 
   /**
+   * Attach scroll-to-top button handler
+   */
+  private static attachScrollToTopHandler(): void {
+    const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+    if (!scrollToTopBtn) return;
+
+    // Get the scrollable container (study mode container)
+    const studyModeContainer = document.querySelector('.study-mode-container') as HTMLElement;
+    if (!studyModeContainer) return;
+
+    // Show/hide button based on scroll position
+    const handleScroll = () => {
+      if (studyModeContainer.scrollTop > 300) {
+        scrollToTopBtn.classList.add('visible');
+        scrollToTopBtn.style.display = 'flex';
+      } else {
+        scrollToTopBtn.classList.remove('visible');
+        // Keep display flex while animating out, then hide after transition
+        if (!scrollToTopBtn.classList.contains('visible')) {
+          setTimeout(() => {
+            if (!scrollToTopBtn.classList.contains('visible')) {
+              scrollToTopBtn.style.display = 'none';
+            }
+          }, 300); // Match CSS transition duration
+        }
+      }
+    };
+
+    // Attach scroll listener
+    studyModeContainer.addEventListener('scroll', handleScroll);
+
+    // Handle click to scroll to top
+    scrollToTopBtn.addEventListener('click', () => {
+      studyModeContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
+
+    // Initial check
+    handleScroll();
+  }
+
+  /**
    * Attach event handlers for multi-session view
    */
   static attachMultiSessionHandlers(
@@ -359,6 +411,9 @@ export class DetailViewEventHandler {
     // Setup audio player for active session
     const activeSession = childSessions[activeTabIndex];
     this.setupAudioPlayer(activeSession, sessionPlaybackManager, sessionDetailContainer);
+
+    // Scroll to top button
+    this.attachScrollToTopHandler();
   }
 
   /**

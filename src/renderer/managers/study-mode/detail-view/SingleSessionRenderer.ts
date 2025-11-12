@@ -103,6 +103,12 @@ export class SingleSessionRenderer {
               <span class="action-icon">📤</span>
               <span class="action-label">Export</span>
             </button>
+            ${isEditable && session.recordingPath ? `
+            <button class="session-action-btn retranscribe-session-btn" data-session-id="${session.id}" title="Re-transcribe this session">
+              <span class="action-icon">🔄</span>
+              <span class="action-label">Re-transcribe</span>
+            </button>
+            ` : ''}
             ${isEditable ? `
             <button class="session-action-btn delete-session-detail-btn" data-session-id="${session.id}" title="Delete this session">
               <span class="action-icon">🗑️</span>
@@ -170,6 +176,7 @@ export class SingleSessionRenderer {
             <div class="session-content-tabs">
               <button class="content-tab active" data-tab="transcription">📝 Transcription</button>
               <button class="content-tab" data-tab="notes">✍️ Notes</button>
+              <button class="content-tab ai-tools-tab" data-tab="ai-tools">🤖 AI Tools</button>
             </div>
 
             <!-- Transcription Content -->
@@ -204,6 +211,29 @@ export class SingleSessionRenderer {
               </div>
               <div class="content-panel-inner notes-edit-content hidden">
                 <!-- Notes editor will be injected here by StudyModeNotesEditorManager -->
+              </div>
+            </div>
+
+            <!-- AI Tools Panel (visible in small window mode as a tab) -->
+            <div class="session-content-panel ai-tools-panel" data-panel="ai-tools">
+              <div class="ai-study-tools-tab-content">
+                <h3 class="study-tools-title">🤖 AI Study Tools</h3>
+
+                <!-- AI Tools container for small screens - will be populated by StudyModeAIToolsManager -->
+                <div class="study-tool-section study-tool-section-tab">
+                  <div class="ai-tools-loading">
+                    <p>Loading AI tools...</p>
+                  </div>
+                </div>
+
+                <!-- Study Content Area for tab version -->
+                <div class="study-content-area study-content-area-tab" id="study-content-area-tab">
+                  <div class="study-placeholder">
+                    <div class="placeholder-icon">🎓</div>
+                    <p>Select an AI tool above to get started</p>
+                    <p class="placeholder-hint">AI-powered tools help you learn and retain information better</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -272,6 +302,11 @@ export class SingleSessionRenderer {
             </div>
           </div>
         </div>
+
+        <!-- Scroll to Top Button (shows when scrolled down) -->
+        <button class="scroll-to-top-btn" id="scroll-to-top-btn" title="Return to top" style="display: none;">
+          <span class="scroll-top-icon">↑</span>
+        </button>
       </div>
     `;
   }

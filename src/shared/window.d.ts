@@ -54,6 +54,7 @@ declare global {
           onResult: (callback: (result: TranscriptionResult) => void) => void;
           removeResultListener: () => void;
           getToken: (apiKey: string) => Promise<{ success: boolean; token?: string; error?: string }>;
+          batchTranscribe: (apiKey: string, audioFilePath: string) => Promise<{ success: boolean; transcription?: any; error?: string }>;
         };
       };
       store: {

@@ -46,6 +46,24 @@ export class StudyModeAIToolsManager {
     // Create inline chat interface in place of button grid
     this.createInlineChat();
 
+    // Also create chat interface in tab version for small window mode
+    const aiToolsTabContainer = document.querySelector('.study-tool-section-tab');
+    if (aiToolsTabContainer) {
+      const chatsHTML = this.generateChatHTML();
+      aiToolsTabContainer.innerHTML = chatsHTML;
+
+      // Setup event listeners for tab version
+      this.setupChatEventListenersForContainer(aiToolsTabContainer);
+      this.setupChipEventListenersForContainer(aiToolsTabContainer);
+
+      // Share the same study content area for both versions
+      const studyContentAreaTab = document.getElementById('study-content-area-tab');
+      if (studyContentAreaTab) {
+        // Mirror content from main study area to tab version
+        this.mirrorContentAreas(studyContentAreaTab);
+      }
+    }
+
     // Analyze content and generate initial suggestions
     this.analyzeSessionContent(session);
 
@@ -53,11 +71,9 @@ export class StudyModeAIToolsManager {
   }
 
   /**
-   * Create inline chat interface
+   * Generate chat HTML
    */
-  private createInlineChat(): void {
-    if (!this.aiToolsContainer) return;
-
+  private generateChatHTML(): string {
     // Generate all 9 AI tool chips
     const allTools: SuggestionAction[] = [
       'summary',
@@ -81,7 +97,7 @@ export class StudyModeAIToolsManager {
       `;
     }).join('');
 
-    const chatHTML = `
+    return `
       <div class="inline-ai-chat">
         <div class="chat-suggestions">
           ${chipsHTML}
@@ -99,18 +115,26 @@ export class StudyModeAIToolsManager {
         </div>
       </div>
     `;
-
-    this.aiToolsContainer.innerHTML = chatHTML;
-    this.setupChatEventListeners();
-    this.setupChipEventListeners();
   }
 
   /**
-   * Setup event listeners for inline chat
+   * Create inline chat interface
    */
-  private setupChatEventListeners(): void {
-    const chatInput = this.aiToolsContainer?.querySelector('.chat-input') as HTMLInputElement;
-    const sendBtn = this.aiToolsContainer?.querySelector('.chat-send-btn');
+  private createInlineChat(): void {
+    if (!this.aiToolsContainer) return;
+
+    const chatHTML = this.generateChatHTML();
+    this.aiToolsContainer.innerHTML = chatHTML;
+    this.setupChatEventListenersForContainer(this.aiToolsContainer);
+    this.setupChipEventListenersForContainer(this.aiToolsContainer);
+  }
+
+  /**
+   * Setup event listeners for inline chat in a specific container
+   */
+  private setupChatEventListenersForContainer(container: HTMLElement | Element): void {
+    const chatInput = container?.querySelector('.chat-input') as HTMLInputElement;
+    const sendBtn = container?.querySelector('.chat-send-btn');
 
     if (!chatInput || !sendBtn) return;
 
@@ -131,10 +155,10 @@ export class StudyModeAIToolsManager {
   }
 
   /**
-   * Setup event listeners for suggestion chips
+   * Setup event listeners for suggestion chips in a specific container
    */
-  private setupChipEventListeners(): void {
-    const chips = this.aiToolsContainer?.querySelectorAll('.suggestion-chip');
+  private setupChipEventListenersForContainer(container: HTMLElement | Element): void {
+    const chips = container?.querySelectorAll('.suggestion-chip');
     if (!chips) return;
 
     chips.forEach(chip => {
@@ -145,6 +169,30 @@ export class StudyModeAIToolsManager {
         }
       });
     });
+  }
+
+  /**
+   * Mirror content between main and tab study content areas
+   */
+  private mirrorContentAreas(tabContentArea: HTMLElement): void {
+    if (!this.studyContentArea) return;
+
+    // Create a MutationObserver to sync content changes
+    const observer = new MutationObserver(() => {
+      if (this.studyContentArea) {
+        tabContentArea.innerHTML = this.studyContentArea.innerHTML;
+      }
+    });
+
+    // Observe changes to the main study content area
+    observer.observe(this.studyContentArea, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    // Initial sync
+    tabContentArea.innerHTML = this.studyContentArea.innerHTML;
   }
 
   /**

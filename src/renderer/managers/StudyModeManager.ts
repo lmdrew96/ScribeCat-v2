@@ -246,6 +246,7 @@ export class StudyModeManager {
         { element: this.sessionDetailContainer, eventName: 'backToList', handler: () => this.backToSessionList() },
         { element: this.sessionDetailContainer, eventName: 'exportSession', handler: (detail) => this.exportSession(detail.sessionId) },
         { element: this.sessionDetailContainer, eventName: 'deleteSession', handler: (detail) => this.deleteSession(detail.sessionId) },
+        { element: this.sessionDetailContainer, eventName: 'retranscribeSession', handler: (detail) => this.retranscribeSession(detail.sessionId) },
         { element: this.sessionDetailContainer, eventName: 'startTitleEdit', handler: (detail) => this.startDetailTitleEdit(detail.sessionId) },
         { element: this.sessionDetailContainer, eventName: 'startCourseEdit', handler: (detail) => this.startCourseEdit(detail.sessionId) },
         { element: this.sessionDetailContainer, eventName: 'shareSession', handler: (detail) => this.openShareModal(detail.sessionId) },
@@ -287,6 +288,11 @@ export class StudyModeManager {
     const sessionsToShow = filterSharedOnly
       ? this.dataTransformer.filterSharedOnly(this.sessions)
       : this.sessions;
+
+    // Update Phase3Integration with filtered sessions
+    if (window.phase3Integration) {
+      window.phase3Integration.updateSessions(sessionsToShow);
+    }
 
     // Hide record mode, show study mode
     this.recordModeView.classList.add('hidden');
@@ -487,6 +493,124 @@ export class StudyModeManager {
         }
       }
     );
+  }
+
+  /**
+   * Re-transcribe a session with AssemblyAI
+   */
+  private async retranscribeSession(sessionId: string): Promise<void> {
+    const session = this.sessions.find(s => s.id === sessionId);
+    if (!session) {
+      logger.error('Session not found', sessionId);
+      return;
+    }
+
+    if (!session.recordingPath) {
+      alert('No recording file found for this session. Cannot re-transcribe.');
+      return;
+    }
+
+    // Confirm with user
+    const confirmed = confirm(
+      'Re-transcribe this session?\n\n' +
+      'This will send the audio file to AssemblyAI for transcription and replace the existing transcription. ' +
+      'This may take a few minutes depending on the length of the recording.'
+    );
+
+    if (!confirmed) return;
+
+    // Get AssemblyAI API key from settings
+    const assemblyaiKey = await (window as any).scribeCat.store.get('assemblyaiApiKey');
+    if (!assemblyaiKey) {
+      alert('AssemblyAI API key not found. Please configure it in Settings.');
+      return;
+    }
+
+    try {
+      // Show loading indicator
+      const retranscribeBtn = document.querySelector('.retranscribe-session-btn') as HTMLButtonElement;
+      if (retranscribeBtn) {
+        retranscribeBtn.disabled = true;
+        retranscribeBtn.innerHTML = '<span class="action-icon">⏳</span><span class="action-label">Transcribing...</span>';
+      }
+
+      logger.info(`Starting re-transcription for session: ${sessionId}`);
+
+      // Get the recording file path (handle both local and cloud paths)
+      let audioFilePath = session.recordingPath;
+
+      // If it's a cloud path, we need to download it first
+      if (audioFilePath.startsWith('cloud://')) {
+        alert('Cloud recordings are not yet supported for re-transcription. Please use a local recording.');
+        throw new Error('Cloud recordings not supported');
+      }
+
+      // Remove file:// prefix if present
+      if (audioFilePath.startsWith('file://')) {
+        audioFilePath = audioFilePath.substring(7);
+      }
+
+      // Call the batch transcription API
+      const result = await (window as any).scribeCat.transcription.assemblyai.batchTranscribe(
+        assemblyaiKey,
+        audioFilePath
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Transcription failed');
+      }
+
+      logger.info('Transcription completed successfully');
+
+      // Update the session with new transcription
+      const transcriptionData = result.transcription;
+
+      // Format timestamped entries from AssemblyAI words
+      const timestampedEntries = transcriptionData.words?.map((word: any) => ({
+        startTime: word.start / 1000, // Convert ms to seconds
+        endTime: word.end / 1000,
+        text: word.text
+      })) || [];
+
+      // Update session transcription
+      await (window as any).scribeCat.session.updateTranscription(
+        sessionId,
+        transcriptionData.text,
+        'assemblyai',
+        timestampedEntries
+      );
+
+      // Reload sessions to get updated data
+      await this.loadSessions();
+
+      // Refresh the detail view if we're still on this session
+      const inDetailView = !this.sessionDetailContainer.classList.contains('hidden');
+      if (inDetailView) {
+        const updatedSession = this.sessions.find(s => s.id === sessionId);
+        if (updatedSession) {
+          await this.detailViewManager.render(updatedSession, true);
+        }
+      }
+
+      // Restore button
+      if (retranscribeBtn) {
+        retranscribeBtn.disabled = false;
+        retranscribeBtn.innerHTML = '<span class="action-icon">🔄</span><span class="action-label">Re-transcribe</span>';
+      }
+
+      alert('Transcription completed successfully!');
+
+    } catch (error) {
+      logger.error('Failed to re-transcribe session', error);
+      alert(`Failed to re-transcribe session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      // Restore button
+      const retranscribeBtn = document.querySelector('.retranscribe-session-btn') as HTMLButtonElement;
+      if (retranscribeBtn) {
+        retranscribeBtn.disabled = false;
+        retranscribeBtn.innerHTML = '<span class="action-icon">🔄</span><span class="action-label">Re-transcribe</span>';
+      }
+    }
   }
 
   /**

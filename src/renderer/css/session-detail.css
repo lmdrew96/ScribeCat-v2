@@ -26,6 +26,11 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  position: sticky;
+  top: 20px;
+  align-self: flex-start;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
 .back-to-list-btn {
@@ -414,6 +419,11 @@
   transition: all 0.2s ease;
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
+}
+
+/* Hide AI Tools tab by default (show only in small window mode) */
+.content-tab.ai-tools-tab {
+  display: none;
 }
 
 .content-tab:hover {
@@ -2025,6 +2035,50 @@
   line-height: 1;
 }
 
+/* Scroll to Top Button */
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.scroll-to-top-btn:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(0) scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 122, 204, 0.4);
+}
+
+.scroll-to-top-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.scroll-to-top-btn.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-top-icon {
+  line-height: 1;
+  user-select: none;
+}
+
 /* Responsive Session Detail */
 @media (max-width: 1200px) {
   .session-detail-content {
@@ -2041,9 +2095,23 @@
     grid-template-columns: 1fr;
   }
 
+  /* Hide right column in small window mode */
   .session-detail-right {
-    position: static;
-    max-height: none;
+    display: none !important;
+  }
+
+  /* Show AI Tools tab in small window mode */
+  .content-tab.ai-tools-tab {
+    display: flex !important;
+  }
+
+  /* Ensure AI tools panel is available for display */
+  .session-content-panel.ai-tools-panel {
+    display: none;
+  }
+
+  .session-content-panel.ai-tools-panel.active {
+    display: block;
   }
 
   .study-tool-buttons {

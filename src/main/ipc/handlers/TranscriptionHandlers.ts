@@ -61,5 +61,171 @@ export class TranscriptionHandlers extends BaseHandler {
         req.end();
       });
     });
+
+    // AssemblyAI: Batch transcription
+    this.handle(ipcMain, 'transcription:assemblyai:batch', async (event, apiKey: string, audioFilePath: string) => {
+      const https = await import('https');
+      const fs = await import('fs');
+      const path = await import('path');
+
+      try {
+        // Step 1: Upload audio file to AssemblyAI
+        console.log('📤 Uploading audio file to AssemblyAI:', audioFilePath);
+
+        const fileBuffer = fs.readFileSync(audioFilePath);
+        const uploadUrl = await new Promise<string>((resolve, reject) => {
+          const options = {
+            hostname: 'api.assemblyai.com',
+            path: '/v2/upload',
+            method: 'POST',
+            headers: {
+              'Authorization': apiKey,
+              'Content-Type': 'application/octet-stream',
+              'Content-Length': fileBuffer.length
+            }
+          };
+
+          const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const response = JSON.parse(data);
+                if (res.statusCode === 200 && response.upload_url) {
+                  console.log('✅ Audio file uploaded successfully');
+                  resolve(response.upload_url);
+                } else {
+                  reject(new Error(`Upload failed: ${res.statusCode} - ${JSON.stringify(response)}`));
+                }
+              } catch (error) {
+                reject(new Error(`Failed to parse upload response: ${data}`));
+              }
+            });
+          });
+
+          req.on('error', reject);
+          req.write(fileBuffer);
+          req.end();
+        });
+
+        // Step 2: Submit transcription request
+        console.log('🎙️ Submitting transcription request');
+
+        const transcriptId = await new Promise<string>((resolve, reject) => {
+          const postData = JSON.stringify({
+            audio_url: uploadUrl,
+            language_code: 'en_us',
+            punctuate: true,
+            format_text: true
+          });
+
+          const options = {
+            hostname: 'api.assemblyai.com',
+            path: '/v2/transcript',
+            method: 'POST',
+            headers: {
+              'Authorization': apiKey,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(postData)
+            }
+          };
+
+          const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const response = JSON.parse(data);
+                if (res.statusCode === 200 && response.id) {
+                  console.log('✅ Transcription request submitted:', response.id);
+                  resolve(response.id);
+                } else {
+                  reject(new Error(`Transcription request failed: ${res.statusCode} - ${JSON.stringify(response)}`));
+                }
+              } catch (error) {
+                reject(new Error(`Failed to parse transcription response: ${data}`));
+              }
+            });
+          });
+
+          req.on('error', reject);
+          req.write(postData);
+          req.end();
+        });
+
+        // Step 3: Poll for completion
+        console.log('⏳ Polling for transcription completion...');
+
+        const result = await new Promise<any>((resolve, reject) => {
+          const pollInterval = 3000; // Poll every 3 seconds
+          const maxAttempts = 600; // 30 minutes max
+          let attempts = 0;
+
+          const poll = () => {
+            attempts++;
+            if (attempts > maxAttempts) {
+              reject(new Error('Transcription timeout: exceeded 30 minutes'));
+              return;
+            }
+
+            const options = {
+              hostname: 'api.assemblyai.com',
+              path: `/v2/transcript/${transcriptId}`,
+              method: 'GET',
+              headers: {
+                'Authorization': apiKey
+              }
+            };
+
+            const req = https.request(options, (res) => {
+              let data = '';
+              res.on('data', (chunk) => { data += chunk; });
+              res.on('end', () => {
+                try {
+                  const response = JSON.parse(data);
+
+                  if (response.status === 'completed') {
+                    console.log('✅ Transcription completed successfully');
+                    resolve(response);
+                  } else if (response.status === 'error') {
+                    reject(new Error(`Transcription error: ${response.error}`));
+                  } else {
+                    // Still processing, poll again
+                    console.log(`⏳ Status: ${response.status} (attempt ${attempts}/${maxAttempts})`);
+                    setTimeout(poll, pollInterval);
+                  }
+                } catch (error) {
+                  reject(new Error(`Failed to parse polling response: ${data}`));
+                }
+              });
+            });
+
+            req.on('error', reject);
+            req.end();
+          };
+
+          poll();
+        });
+
+        // Step 4: Format and return transcription
+        return {
+          success: true,
+          transcription: {
+            text: result.text || '',
+            words: result.words || [],
+            utterances: result.utterances || [],
+            confidence: result.confidence,
+            audio_duration: result.audio_duration
+          }
+        };
+
+      } catch (error) {
+        console.error('❌ Batch transcription failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
   }
 }
