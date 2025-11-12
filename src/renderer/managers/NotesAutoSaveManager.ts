@@ -14,8 +14,11 @@ export class NotesAutoSaveManager {
   private currentSessionId: string | null = null;
   private isDraftSession: boolean = false;
   private autoSaveTimer: number | null = null;
-  private readonly DEBOUNCE_DELAY = 2000; // 2 seconds
+  private maxIntervalTimer: number | null = null;
+  private readonly DEBOUNCE_DELAY = 2000; // 2 seconds after user stops typing
+  private readonly MAX_INTERVAL = 10000; // 10 seconds max between saves (even while typing)
   private isSaving: boolean = false;
+  private lastSaveTime: number = 0;
   private indicator: AutoSaveIndicator;
 
   constructor(editorManager: TiptapEditorManager) {
@@ -33,18 +36,41 @@ export class NotesAutoSaveManager {
 
   /**
    * Called when editor content changes
-   * Debounces the save operation
+   * Uses debounce timer + max interval to ensure periodic saves
    */
   onEditorUpdate(): void {
-    // Clear existing timer
+    const now = Date.now();
+    const timeSinceLastSave = now - this.lastSaveTime;
+
+    // If it's been more than MAX_INTERVAL since last save, save immediately
+    if (this.lastSaveTime > 0 && timeSinceLastSave >= this.MAX_INTERVAL) {
+      logger.debug(`Max interval reached (${timeSinceLastSave}ms), saving immediately`);
+      this.saveNotes();
+      return;
+    }
+
+    // Clear existing debounce timer
     if (this.autoSaveTimer !== null) {
       clearTimeout(this.autoSaveTimer);
     }
 
-    // Set up debounced save
+    // Set up debounced save (triggers when user stops typing)
     this.autoSaveTimer = window.setTimeout(() => {
       this.saveNotes();
     }, this.DEBOUNCE_DELAY);
+
+    // Set up max interval timer if not already running
+    // This ensures we save every MAX_INTERVAL even if user types continuously
+    if (this.maxIntervalTimer === null && this.lastSaveTime > 0) {
+      const timeUntilMaxInterval = this.MAX_INTERVAL - timeSinceLastSave;
+      if (timeUntilMaxInterval > 0) {
+        this.maxIntervalTimer = window.setTimeout(() => {
+          logger.debug('Max interval timer fired, forcing save');
+          this.maxIntervalTimer = null;
+          this.saveNotes();
+        }, timeUntilMaxInterval);
+      }
+    }
   }
 
   /**
@@ -55,6 +81,16 @@ export class NotesAutoSaveManager {
     if (this.isSaving) {
       logger.debug('Save already in progress, skipping');
       return;
+    }
+
+    // Clear timers
+    if (this.autoSaveTimer !== null) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
+    if (this.maxIntervalTimer !== null) {
+      clearTimeout(this.maxIntervalTimer);
+      this.maxIntervalTimer = null;
     }
 
     try {
@@ -98,6 +134,9 @@ export class NotesAutoSaveManager {
 
       if (result.success) {
         logger.info('Notes saved successfully');
+
+        // Update last save time
+        this.lastSaveTime = Date.now();
 
         // Show saved indicator (fades out automatically)
         this.indicator.showSaved();
@@ -186,10 +225,15 @@ export class NotesAutoSaveManager {
    * Used for critical saves like window close
    */
   async saveImmediately(): Promise<void> {
-    // Clear debounce timer
+    // Clear timers
     if (this.autoSaveTimer !== null) {
       clearTimeout(this.autoSaveTimer);
       this.autoSaveTimer = null;
+    }
+
+    if (this.maxIntervalTimer !== null) {
+      clearTimeout(this.maxIntervalTimer);
+      this.maxIntervalTimer = null;
     }
 
     // Save immediately
@@ -217,6 +261,11 @@ export class NotesAutoSaveManager {
     if (this.autoSaveTimer !== null) {
       clearTimeout(this.autoSaveTimer);
       this.autoSaveTimer = null;
+    }
+
+    if (this.maxIntervalTimer !== null) {
+      clearTimeout(this.maxIntervalTimer);
+      this.maxIntervalTimer = null;
     }
 
     // Cleanup indicator
