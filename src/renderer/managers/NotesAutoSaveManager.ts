@@ -4,6 +4,7 @@
  */
 
 import { TiptapEditorManager } from './TiptapEditorManager.js';
+import { AutoSaveIndicator } from '../components/AutoSaveIndicator.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('NotesAutoSaveManager');
@@ -15,9 +16,11 @@ export class NotesAutoSaveManager {
   private autoSaveTimer: number | null = null;
   private readonly DEBOUNCE_DELAY = 2000; // 2 seconds
   private isSaving: boolean = false;
+  private indicator: AutoSaveIndicator;
 
   constructor(editorManager: TiptapEditorManager) {
     this.editorManager = editorManager;
+    this.indicator = new AutoSaveIndicator();
   }
 
   /**
@@ -25,6 +28,7 @@ export class NotesAutoSaveManager {
    */
   initialize(): void {
     // Auto-save manager ready
+    logger.info('NotesAutoSaveManager initialized with AutoSaveIndicator');
   }
 
   /**
@@ -56,6 +60,9 @@ export class NotesAutoSaveManager {
     try {
       this.isSaving = true;
 
+      // Show saving indicator
+      this.indicator.showSaving();
+
       // Get notes content
       const notes = this.editorManager.getNotesHTML();
       const plainText = this.editorManager.getNotesText();
@@ -64,6 +71,7 @@ export class NotesAutoSaveManager {
       // Check plain text content to avoid saving empty HTML tags like <p></p>
       if (!notes || notes.trim().length === 0 || !plainText || plainText.trim().length === 0) {
         logger.debug('Notes are empty, skipping save');
+        this.indicator.hide();
         return;
       }
 
@@ -73,6 +81,7 @@ export class NotesAutoSaveManager {
         const sessionId = await this.createDraftSession();
         if (!sessionId) {
           logger.error('Failed to create draft session');
+          this.indicator.showError('Failed to create draft');
           return;
         }
         this.currentSessionId = sessionId;
@@ -90,19 +99,15 @@ export class NotesAutoSaveManager {
       if (result.success) {
         logger.info('Notes saved successfully');
 
-        // Show success toast
-        const toastManager = (window as any).toastManager;
-        if (toastManager) {
-          toastManager.success('Saved', {
-            duration: 1500,
-            position: 'bottom-right',
-            icon: '✓'
-          });
-        }
+        // Show saved indicator (fades out automatically)
+        this.indicator.showSaved();
       } else {
         logger.error('Failed to save notes', result.error);
 
-        // Show error toast
+        // Show error indicator
+        this.indicator.showError('Save failed');
+
+        // Also show error toast for critical failures
         const toastManager = (window as any).toastManager;
         if (toastManager) {
           toastManager.error('Failed to save notes', {
@@ -113,6 +118,16 @@ export class NotesAutoSaveManager {
       }
     } catch (error) {
       logger.error('Error saving notes', error);
+      this.indicator.showError('Save error');
+
+      // Show error toast for exceptions
+      const toastManager = (window as any).toastManager;
+      if (toastManager) {
+        toastManager.error('Failed to save notes', {
+          duration: 3000,
+          position: 'bottom-right'
+        });
+      }
     } finally {
       this.isSaving = false;
     }
@@ -203,5 +218,8 @@ export class NotesAutoSaveManager {
       clearTimeout(this.autoSaveTimer);
       this.autoSaveTimer = null;
     }
+
+    // Cleanup indicator
+    this.indicator.destroy();
   }
 }

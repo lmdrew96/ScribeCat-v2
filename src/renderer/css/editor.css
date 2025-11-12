@@ -1352,3 +1352,87 @@
   opacity: 0.6;
   font-style: italic;
 }
+
+/* Auto-Save Indicator */
+.auto-save-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  animation: slideInLeft 0.2s ease;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.auto-save-indicator.saving {
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: var(--text-secondary);
+}
+
+.auto-save-indicator.saved {
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+}
+
+.auto-save-indicator.error {
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #f44336;
+}
+
+.auto-save-icon {
+  font-size: 14px;
+  line-height: 1;
+  display: inline-block;
+}
+
+.auto-save-icon.saving {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auto-save-text {
+  line-height: 1;
+}
+
+/* Light theme adjustments */
+[data-theme*="light"] .auto-save-indicator.saving {
+  background-color: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.4);
+  color: #F57C00;
+}
+
+[data-theme*="light"] .auto-save-indicator.saved {
+  background-color: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #2E7D32;
+}
+
+[data-theme*="light"] .auto-save-indicator.error {
+  background-color: rgba(244, 67, 54, 0.15);
+  border-color: rgba(244, 67, 54, 0.4);
+  color: #C62828;
+}
