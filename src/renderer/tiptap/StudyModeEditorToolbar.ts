@@ -192,8 +192,11 @@ export class StudyModeEditorToolbar {
             <span class="btn-icon">✕</span>
           </button>
         </div>
-        <!-- Editor -->
-        <div id="study-notes-editor" class="study-notes-editor"></div>
+        <!-- Editor with Cursor Overlay -->
+        <div class="study-editor-wrapper" style="position: relative;">
+          <div id="study-notes-editor" class="study-notes-editor"></div>
+          <div id="study-cursor-overlay" class="cursor-overlay-container"></div>
+        </div>
       </div>
     `;
   }

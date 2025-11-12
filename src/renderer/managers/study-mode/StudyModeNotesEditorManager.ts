@@ -10,6 +10,7 @@ import { EditorConfigService } from '../../tiptap/EditorConfigService.js';
 import { CollaborationAdapter } from '../../tiptap/CollaborationAdapter.js';
 import { StudyModeEditorToolbar } from '../../tiptap/StudyModeEditorToolbar.js';
 import { CollaboratorsPanel } from '../../components/CollaboratorsPanel.js';
+import { CursorOverlay } from '../../components/CursorOverlay.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('StudyModeNotesEditorManager');
@@ -21,6 +22,7 @@ export class StudyModeNotesEditorManager {
   private collaborationAdapter: CollaborationAdapter;
   private toolbar: StudyModeEditorToolbar;
   private collaboratorsPanel: CollaboratorsPanel | null = null;
+  private cursorOverlay: CursorOverlay | null = null;
   private collaborationStateUnsubscribe: (() => void) | null = null;
 
   constructor() {
@@ -160,6 +162,9 @@ export class StudyModeNotesEditorManager {
       // Initialize CollaboratorsPanel
       this.setupCollaboratorsPanel();
 
+      // Initialize CursorOverlay
+      this.setupCursorOverlay();
+
       logger.info('Collaboration enabled successfully');
     } catch (error) {
       logger.error('Failed to enable collaboration:', error);
@@ -191,6 +196,9 @@ export class StudyModeNotesEditorManager {
 
       // Cleanup CollaboratorsPanel
       this.cleanupCollaboratorsPanel();
+
+      // Cleanup CursorOverlay
+      this.cleanupCursorOverlay();
 
       logger.info('Collaboration disabled successfully');
     } catch (error) {
@@ -284,10 +292,67 @@ export class StudyModeNotesEditorManager {
   }
 
   /**
+   * Setup CursorOverlay for real-time cursor tracking
+   */
+  private setupCursorOverlay(): void {
+    try {
+      // Get the Yjs provider's awareness for cursor tracking
+      const collaborationManager = this.collaborationAdapter.getManager();
+      const yjsDoc = this.collaborationAdapter.getYjsDoc();
+
+      if (!collaborationManager || !yjsDoc) {
+        logger.warn('Cannot setup cursor overlay: Collaboration not active');
+        return;
+      }
+
+      // Get awareness from the Yjs provider
+      const provider = collaborationManager.getState().provider;
+      if (!provider) {
+        logger.warn('Cannot setup cursor overlay: Provider not available');
+        return;
+      }
+
+      const awareness = (provider as any).getAwareness?.();
+      if (!awareness) {
+        logger.warn('Cannot setup cursor overlay: Awareness not available');
+        return;
+      }
+
+      // Create CursorOverlay instance
+      this.cursorOverlay = new CursorOverlay('study-cursor-overlay', 'study-notes-editor');
+
+      // Store reference to editor in DOM (required by CursorOverlay)
+      const editorElement = document.getElementById('study-notes-editor') as any;
+      if (editorElement && this.notesEditor) {
+        editorElement.__tiptapEditor = this.notesEditor;
+      }
+
+      // Start tracking cursors
+      this.cursorOverlay.start(awareness);
+
+      logger.info('CursorOverlay initialized and started');
+    } catch (error) {
+      logger.error('Failed to setup CursorOverlay:', error);
+    }
+  }
+
+  /**
+   * Cleanup CursorOverlay
+   */
+  private cleanupCursorOverlay(): void {
+    if (this.cursorOverlay) {
+      this.cursorOverlay.stop();
+      this.cursorOverlay = null;
+      logger.info('CursorOverlay cleaned up');
+    }
+  }
+
+  /**
    * Destroy editor and cleanup
    */
   destroy(): void {
     this.cleanupCollaboratorsPanel();
+    this.cleanupCursorOverlay();
 
     if (this.notesEditor) {
       this.notesEditor.destroy();

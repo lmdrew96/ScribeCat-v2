@@ -37,6 +37,8 @@
 @import './css/study-mode.css';    /* Study mode list view, sessions, filters */
 @import './css/session-detail.css'; /* Session detail view, audio player, flashcards, quiz */
 @import './css/analytics.css';     /* Study analytics dashboard and visualizations */
+@import './css/collaboration.css'; /* Real-time collaboration features */
+@import './css/collaboration-cursors.css'; /* Live cursor overlay for collaborators */
 
 /* Easter Eggs */
 @import './css/easter-eggs.css';   /* Fun interactive features and animations */
