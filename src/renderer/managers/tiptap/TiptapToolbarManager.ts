@@ -7,6 +7,7 @@
 import type { TiptapEditorCore } from './TiptapEditorCore.js';
 import { createLogger } from '../../../shared/logger.js';
 import { showEmojiPicker } from '../../components/editor/EmojiPicker.js';
+import { EditorColorPalettes } from '../../components/editor/ColorPicker.js';
 
 const logger = createLogger('TiptapToolbarManager');
 
@@ -354,38 +355,56 @@ export class TiptapToolbarManager {
   }
   /** Set up color palette swatches */
   private setupColorPalette(): void {
-    const colors = [
-      '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00',
-      '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000'
-    ];
+    // Clear existing swatches
+    this.colorPalette.innerHTML = '';
 
-    colors.forEach(color => {
-      const swatch = this.colorPalette.querySelector(`[data-color="${color}"]`) as HTMLElement;
-      if (swatch) {
-        swatch.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.editorCore.chain()?.focus().setColor(color).run();
-          this.colorPalette.classList.remove('show');
-        });
+    // Create swatches from professional palette
+    EditorColorPalettes.textColors.forEach(({ name, value }) => {
+      const swatch = document.createElement('div');
+      swatch.className = 'editor-color-swatch';
+      swatch.setAttribute('data-color', value);
+      swatch.setAttribute('title', name);
+      swatch.style.background = value;
+
+      // Add border for light colors
+      if (value === '#FFFFFF' || value === '#EEEEEE') {
+        swatch.style.border = '1px solid var(--border)';
       }
+
+      swatch.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.editorCore.chain()?.focus().setColor(value).run();
+        this.colorPalette.classList.remove('show');
+      });
+
+      this.colorPalette.appendChild(swatch);
     });
   }
   /** Set up background color palette swatches */
   private setupBgColorPalette(): void {
-    const colors = [
-      '#FFFFFF', '#FFEB3B', '#FFCDD2', '#B3E5FC', '#C8E6C9',
-      '#F8BBD0', '#FFE0B2', '#E1BEE7', '#D1C4E9', '#DCEDC8'
-    ];
+    // Clear existing swatches
+    this.bgColorPalette.innerHTML = '';
 
-    colors.forEach(color => {
-      const swatch = this.bgColorPalette.querySelector(`[data-color="${color}"]`) as HTMLElement;
-      if (swatch) {
-        swatch.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.editorCore.chain()?.focus().setBackgroundColor(color).run();
-          this.bgColorPalette.classList.remove('show');
-        });
+    // Create swatches from professional highlight palette
+    EditorColorPalettes.highlightColors.forEach(({ name, value }) => {
+      const swatch = document.createElement('div');
+      swatch.className = 'editor-color-swatch';
+      swatch.setAttribute('data-color', value);
+      swatch.setAttribute('title', name);
+      swatch.style.background = value;
+
+      // Add border for very light colors
+      if (value === '#FFFFFF' || value.toUpperCase().startsWith('#FFF')) {
+        swatch.style.border = '1px solid var(--border)';
       }
+
+      swatch.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.editorCore.chain()?.focus().setBackgroundColor(value).run();
+        this.bgColorPalette.classList.remove('show');
+      });
+
+      this.bgColorPalette.appendChild(swatch);
     });
   }
   /** Show input prompt modal */
