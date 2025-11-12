@@ -345,13 +345,13 @@ export class DetailViewEventHandler {
     const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
     if (!scrollToTopBtn) return;
 
-    // Get the scrollable container (study mode container)
-    const studyModeContainer = document.querySelector('.study-mode-container') as HTMLElement;
-    if (!studyModeContainer) return;
+    // Get the scrollable container (session detail view)
+    const sessionDetailContainer = document.getElementById('session-detail') as HTMLElement;
+    if (!sessionDetailContainer) return;
 
     // Show/hide button based on scroll position
     const handleScroll = () => {
-      if (studyModeContainer.scrollTop > 300) {
+      if (sessionDetailContainer.scrollTop > 300) {
         scrollToTopBtn.classList.add('visible');
         scrollToTopBtn.style.display = 'flex';
       } else {
@@ -368,11 +368,11 @@ export class DetailViewEventHandler {
     };
 
     // Attach scroll listener
-    studyModeContainer.addEventListener('scroll', handleScroll);
+    sessionDetailContainer.addEventListener('scroll', handleScroll);
 
     // Handle click to scroll to top
     scrollToTopBtn.addEventListener('click', () => {
-      studyModeContainer.scrollTo({
+      sessionDetailContainer.scrollTo({
         top: 0,
         behavior: 'smooth'
       });
