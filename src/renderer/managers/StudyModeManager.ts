@@ -656,15 +656,32 @@ export class StudyModeManager {
         timestampedEntries
       );
 
+      console.log('✅ Re-transcription update complete, waiting for file system...');
+
+      // Add small delay to ensure file system writes complete before reloading
+      // This prevents race condition where we reload stale data before save finishes
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      console.log('📥 Reloading sessions to get updated transcription data...');
       // Reload sessions to get updated data
       await this.loadSessions();
 
       // Refresh the detail view if we're still on this session
       const inDetailView = !this.sessionDetailContainer.classList.contains('hidden');
+      console.log(`🔍 Detail view status: ${inDetailView ? 'visible' : 'hidden'}`);
+
       if (inDetailView) {
         const updatedSession = this.sessions.find(s => s.id === sessionId);
         if (updatedSession) {
+          console.log(`✅ Found updated session, re-rendering detail view`);
+          console.log(`   Transcription segments: ${updatedSession.transcription?.segments.length || 0}`);
+          console.log(`   Transcription text length: ${updatedSession.transcription?.fullText.length || 0}`);
           await this.detailViewManager.render(updatedSession, true);
+          console.log('✅ Detail view re-rendered successfully');
+        } else {
+          console.error(`❌ Updated session ${sessionId} not found in reloaded sessions`);
+          console.error(`   Total sessions loaded: ${this.sessions.length}`);
+          console.error(`   Session IDs: ${this.sessions.map(s => s.id).join(', ')}`);
         }
       }
 
