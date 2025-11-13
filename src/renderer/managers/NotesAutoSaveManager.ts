@@ -40,10 +40,16 @@ export class NotesAutoSaveManager {
    */
   onEditorUpdate(): void {
     const now = Date.now();
+
+    // Initialize lastSaveTime on first update (start the throttle clock)
+    if (this.lastSaveTime === 0) {
+      this.lastSaveTime = now;
+    }
+
     const timeSinceLastSave = now - this.lastSaveTime;
 
-    // If it's been more than MAX_INTERVAL since last save, save immediately
-    if (this.lastSaveTime > 0 && timeSinceLastSave >= this.MAX_INTERVAL) {
+    // If it's been more than MAX_INTERVAL since last save, save immediately (throttle)
+    if (timeSinceLastSave >= this.MAX_INTERVAL) {
       logger.debug(`Max interval reached (${timeSinceLastSave}ms), saving immediately`);
       this.saveNotes();
       return;
@@ -61,7 +67,7 @@ export class NotesAutoSaveManager {
 
     // Set up max interval timer if not already running
     // This ensures we save every MAX_INTERVAL even if user types continuously
-    if (this.maxIntervalTimer === null && this.lastSaveTime > 0) {
+    if (this.maxIntervalTimer === null) {
       const timeUntilMaxInterval = this.MAX_INTERVAL - timeSinceLastSave;
       if (timeUntilMaxInterval > 0) {
         this.maxIntervalTimer = window.setTimeout(() => {

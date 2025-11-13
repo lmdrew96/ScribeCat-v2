@@ -5,7 +5,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1000;
+  z-index: 10000; /* Highest priority - modals appear above everything except accessibility overlays */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -15,7 +15,7 @@
 
 /* Drive folder picker modal should appear above other modals */
 #drive-folder-picker-modal {
-  z-index: 1100;
+  z-index: 10100;
 }
 
 @keyframes fadeIn {

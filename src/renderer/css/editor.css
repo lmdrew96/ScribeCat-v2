@@ -209,7 +209,7 @@
   display: none;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
-  z-index: 2000; /* Above editor content, floating toolbar, and other dropdowns */
+  z-index: 2000; /* Above floating toolbar (1500), below modals (10000) */
 }
 
 .color-palette.show {
@@ -245,7 +245,7 @@
   display: none;
   flex-direction: column;
   gap: 4px;
-  z-index: 2000; /* Above editor content, floating toolbar, and other dropdowns */
+  z-index: 2000; /* Above floating toolbar (1500), below modals (10000) */
   min-width: 140px;
 }
 
@@ -299,7 +299,7 @@
   display: none;
   flex-direction: column;
   gap: 4px;
-  z-index: 2000; /* Above editor content, floating toolbar, and other dropdowns */
+  z-index: 2000; /* Above floating toolbar (1500), below modals (10000) */
   min-width: 140px;
 }
 

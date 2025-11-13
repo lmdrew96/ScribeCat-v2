@@ -5,7 +5,7 @@
 
 .floating-toolbar {
   position: fixed;
-  z-index: 1500; /* Above editor content and dropdowns, below modals */
+  z-index: 1500; /* Above editor content, below toolbar palettes (2000) and modals (10000) */
   display: none;
   flex-direction: column;
   align-items: center;

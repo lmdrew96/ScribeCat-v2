@@ -228,7 +228,7 @@ export function getColorPickerCSS(): string {
       display: none;
       grid-template-columns: repeat(5, 1fr);
       gap: 8px;
-      z-index: 1000;
+      z-index: 2000; /* Above floating toolbar (1500), below modals (10000) */
       min-width: 200px;
     }
 

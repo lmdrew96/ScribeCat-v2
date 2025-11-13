@@ -61,7 +61,7 @@ export function showEmojiPicker(editor: Editor, button: HTMLElement): void {
 
   // Style the picker
   picker.style.position = 'absolute';
-  picker.style.zIndex = '2000';
+  picker.style.zIndex = '2000'; // Above floating toolbar (1500), below modals (10000)
   picker.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
   picker.style.borderRadius = '12px';
   picker.style.overflow = 'hidden';

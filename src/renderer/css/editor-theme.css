@@ -194,7 +194,7 @@
   display: none;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
-  z-index: 2000;
+  z-index: 2000; /* Above floating toolbar (1500), below modals (10000) */
   min-width: 220px;
   animation: slideDown 0.2s ease;
 }
