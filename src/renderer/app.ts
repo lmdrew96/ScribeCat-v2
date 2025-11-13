@@ -362,6 +362,20 @@ function setupEventListeners(): void {
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
+    // Shift+Space - Toggle recording (global shortcut)
+    if (e.shiftKey && e.key === ' ' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // Don't trigger if user is typing in an input field
+      const target = e.target as HTMLElement;
+      const isInputField = target instanceof HTMLInputElement ||
+                          target instanceof HTMLTextAreaElement ||
+                          target.isContentEditable;
+
+      if (!isInputField) {
+        e.preventDefault();
+        handleRecordToggle();
+      }
+    }
+
     // Cmd+Shift+F (Mac) or Ctrl+Shift+F (Windows/Linux) - Cycle focus modes
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
       e.preventDefault();
