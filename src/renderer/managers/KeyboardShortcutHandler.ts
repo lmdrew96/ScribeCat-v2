@@ -117,8 +117,8 @@ export class KeyboardShortcutHandler {
     }
 
     // Recording shortcuts
-    // Toggle recording: Option/Alt + Space
-    if (e.altKey && e.key === ' ' && !cmdOrCtrl && !e.shiftKey) {
+    // Toggle recording: Shift + Space
+    if (e.shiftKey && e.key === ' ' && !cmdOrCtrl && !e.altKey) {
       e.preventDefault();
       this.callbacks.onToggleRecording();
       logger.info('Keyboard shortcut: Toggle recording');

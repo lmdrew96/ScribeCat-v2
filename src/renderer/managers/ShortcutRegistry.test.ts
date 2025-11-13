@@ -89,7 +89,7 @@ describe('ShortcutRegistry', () => {
     it('should retrieve a specific shortcut by ID', () => {
       const shortcut = ShortcutRegistry.getShortcut('toggle-recording');
       expect(shortcut).toBeDefined();
-      expect(shortcut?.keys).toBe('Option+Space');
+      expect(shortcut?.keys).toBe('Shift+Space');
       expect(shortcut?.description).toBe('Start/Stop Recording');
     });
 
@@ -100,7 +100,7 @@ describe('ShortcutRegistry', () => {
 
     it('should retrieve shortcut keys by ID', () => {
       const keys = ShortcutRegistry.getShortcutKeys('toggle-recording');
-      expect(keys).toBe('Option+Space');
+      expect(keys).toBe('Shift+Space');
     });
 
     it('should return null for non-existent shortcut keys', () => {
@@ -110,9 +110,9 @@ describe('ShortcutRegistry', () => {
   });
 
   describe('Critical Shortcuts', () => {
-    it('should have recording toggle as Option+Space (NOT Cmd+R or Cmd+Space)', () => {
+    it('should have recording toggle as Shift+Space (NOT Cmd+R or Cmd+Space)', () => {
       const shortcut = ShortcutRegistry.getShortcut('toggle-recording');
-      expect(shortcut?.keys).toBe('Option+Space');
+      expect(shortcut?.keys).toBe('Shift+Space');
       expect(shortcut?.keys).not.toBe('Cmd+R');
       expect(shortcut?.keys).not.toBe('Cmd+Space'); // Conflicts with Spotlight
     });
@@ -179,7 +179,7 @@ describe('ShortcutRegistry', () => {
   });
 
   describe('Platform-Specific Formatting', () => {
-    it('should convert Cmd to Ctrl and Option to Alt on non-Mac platforms', () => {
+    it('should convert Cmd to Ctrl on non-Mac platforms', () => {
       // Mock non-Mac platform
       const originalPlatform = Object.getOwnPropertyDescriptor(navigator, 'platform');
       Object.defineProperty(navigator, 'platform', {
@@ -187,11 +187,8 @@ describe('ShortcutRegistry', () => {
         configurable: true
       });
 
-      const formattedCmd = ShortcutRegistry.toPlatformKeys('Cmd+Space');
-      expect(formattedCmd).toBe('Ctrl+Space');
-
-      const formattedOption = ShortcutRegistry.toPlatformKeys('Option+Space');
-      expect(formattedOption).toBe('Alt+Space');
+      const formatted = ShortcutRegistry.toPlatformKeys('Cmd+Space');
+      expect(formatted).toBe('Ctrl+Space');
 
       // Restore original platform
       if (originalPlatform) {
@@ -199,7 +196,7 @@ describe('ShortcutRegistry', () => {
       }
     });
 
-    it('should keep Cmd and Option on Mac platforms', () => {
+    it('should keep Cmd on Mac platforms', () => {
       // Mock Mac platform
       const originalPlatform = Object.getOwnPropertyDescriptor(navigator, 'platform');
       Object.defineProperty(navigator, 'platform', {
@@ -207,11 +204,8 @@ describe('ShortcutRegistry', () => {
         configurable: true
       });
 
-      const formattedCmd = ShortcutRegistry.toPlatformKeys('Cmd+Space');
-      expect(formattedCmd).toBe('Cmd+Space');
-
-      const formattedOption = ShortcutRegistry.toPlatformKeys('Option+Space');
-      expect(formattedOption).toBe('Option+Space');
+      const formatted = ShortcutRegistry.toPlatformKeys('Cmd+Space');
+      expect(formatted).toBe('Cmd+Space');
 
       // Restore original platform
       if (originalPlatform) {
@@ -240,7 +234,7 @@ describe('ShortcutRegistry', () => {
       const toggleRecording = shortcuts.find(s => s.id === 'toggle-recording');
       expect(toggleRecording?.keys).not.toBe('Cmd+R');
       expect(toggleRecording?.keys).not.toBe('Cmd+Space'); // Conflicts with Spotlight
-      expect(toggleRecording?.keys).toBe('Option+Space');
+      expect(toggleRecording?.keys).toBe('Shift+Space');
     });
 
     it('should NOT have Cmd+E for export session (regression)', () => {
@@ -251,12 +245,12 @@ describe('ShortcutRegistry', () => {
       expect(exportSession).toBeUndefined();
     });
 
-    it('should have exactly one use of Option+Space (toggle recording)', () => {
+    it('should have exactly one use of Shift+Space (toggle recording)', () => {
       const shortcuts = ShortcutRegistry.getAllShortcuts();
-      const optionSpaceShortcuts = shortcuts.filter(s => s.keys === 'Option+Space');
+      const shiftSpaceShortcuts = shortcuts.filter(s => s.keys === 'Shift+Space');
 
-      expect(optionSpaceShortcuts).toHaveLength(1);
-      expect(optionSpaceShortcuts[0].id).toBe('toggle-recording');
+      expect(shiftSpaceShortcuts).toHaveLength(1);
+      expect(shiftSpaceShortcuts[0].id).toBe('toggle-recording');
     });
 
     it('should NOT use Cmd+Space (conflicts with Spotlight)', () => {
