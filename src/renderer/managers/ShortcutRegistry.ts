@@ -94,7 +94,7 @@ export class ShortcutRegistry {
     {
       id: 'toggle-recording',
       description: 'Start/Stop Recording',
-      keys: 'Cmd+Space',
+      keys: 'Option+Space',
       context: 'global',
       handler: 'onToggleRecording',
       implementedIn: 'KeyboardShortcutHandler.ts'
@@ -493,14 +493,14 @@ export class ShortcutRegistry {
 
   /**
    * Convert platform-agnostic key to platform-specific
-   * (e.g., 'Cmd' -> 'Ctrl' on Windows/Linux)
+   * (e.g., 'Cmd' -> 'Ctrl' on Windows/Linux, 'Option' -> 'Alt' on Windows/Linux)
    */
   static toPlatformKeys(keys: string): string {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     if (isMac) {
       return keys;
     }
-    return keys.replace(/Cmd/g, 'Ctrl');
+    return keys.replace(/Cmd/g, 'Ctrl').replace(/Option/g, 'Alt');
   }
 
   /**

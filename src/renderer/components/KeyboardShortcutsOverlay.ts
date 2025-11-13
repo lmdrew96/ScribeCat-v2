@@ -205,7 +205,7 @@ export class KeyboardShortcutsOverlay {
       {
         name: 'Recording',
         shortcuts: [
-          { keys: ['Cmd', 'Space'], description: 'Start/Stop recording' },
+          { keys: ['Option', 'Space'], description: 'Start/Stop recording' },
           { keys: ['Cmd', 'P'], description: 'Pause/Resume' }
         ]
       }
