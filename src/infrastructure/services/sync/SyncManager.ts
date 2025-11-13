@@ -15,7 +15,13 @@ import { Session } from '../../../domain/entities/Session.js';
 import { ISessionRepository } from '../../../domain/repositories/ISessionRepository.js';
 import { SupabaseStorageService } from '../supabase/SupabaseStorageService.js';
 import { DeletedSessionsTracker } from '../DeletedSessionsTracker.js';
+import { SyncOperationQueue } from './SyncOperationQueue.js';
+import { ConnectivityMonitor } from './ConnectivityMonitor.js';
+import { SupabaseClient } from '../supabase/SupabaseClient.js';
+import { createLogger } from '../../../shared/logger.js';
 import * as fs from 'fs/promises';
+
+const logger = createLogger('SyncManager');
 
 export enum SyncStatus {
   NOT_SYNCED = 'not_synced',
@@ -35,16 +41,21 @@ export interface SyncQueueItem {
 export class SyncManager {
   private syncQueue: Map<string, SyncQueueItem> = new Map();
   private syncStatus: Map<string, SyncStatus> = new Map();
-  private isOnline: boolean = true;
   private syncInProgress: Set<string> = new Set();
+  private connectivityMonitor: ConnectivityMonitor;
 
   constructor(
     private localRepository: ISessionRepository,
     private remoteRepository: ISessionRepository,
     private storageService: SupabaseStorageService,
     private currentUserId: string | null = null,
-    private deletedTracker?: DeletedSessionsTracker
+    private deletedTracker?: DeletedSessionsTracker,
+    private syncOperationQueue?: SyncOperationQueue
   ) {
+    // ROOT CAUSE FIX: Use real connectivity monitoring
+    const supabaseUrl = SupabaseClient.getInstance().getClient().supabaseUrl;
+    this.connectivityMonitor = new ConnectivityMonitor(supabaseUrl);
+
     // Monitor online/offline status
     this.setupConnectivityMonitoring();
   }
@@ -63,6 +74,8 @@ export class SyncManager {
   /**
    * Upload a session to the cloud
    * This is called automatically after a recording completes
+   *
+   * ROOT CAUSE FIX: Now checks real connectivity status instead of assuming online
    */
   async uploadSession(session: Session): Promise<{ success: boolean; error?: string }> {
     try {
@@ -73,10 +86,11 @@ export class SyncManager {
         };
       }
 
-      // Check if we're online
-      if (!this.isOnline) {
+      // ROOT CAUSE FIX: Check real connectivity status
+      if (!this.connectivityMonitor.isOnline()) {
         this.queueForSync(session.id, session.recordingPath);
         this.updateSyncStatus(session.id, SyncStatus.QUEUED);
+        logger.info(`Session ${session.id} queued for sync (offline)`);
         return {
           success: false,
           error: 'Offline - queued for sync'
@@ -308,9 +322,11 @@ export class SyncManager {
   /**
    * Process offline sync queue
    * Called when connection is restored
+   *
+   * ROOT CAUSE FIX: Now checks real connectivity before processing
    */
   async processQueue(): Promise<void> {
-    if (!this.isOnline || this.syncQueue.size === 0) {
+    if (!this.connectivityMonitor.isOnline() || this.syncQueue.size === 0) {
       return;
     }
 
@@ -368,28 +384,124 @@ export class SyncManager {
 
   /**
    * Check if online
+   *
+   * ROOT CAUSE FIX: Returns real connectivity status
    */
   isConnected(): boolean {
-    return this.isOnline;
+    return this.connectivityMonitor.isOnline();
   }
 
   /**
    * Setup connectivity monitoring
+   *
+   * ROOT CAUSE FIX: Now uses real connectivity monitoring with Supabase health endpoint ping
    */
   private setupConnectivityMonitoring(): void {
-    // For Node.js environment (main process), we can't use navigator.onLine
-    // We'll assume online by default and rely on error handling
-    // In a production app, you might ping a health endpoint periodically
+    // Start the connectivity monitor
+    this.connectivityMonitor.start().catch(error => {
+      logger.error('Failed to start connectivity monitor:', error);
+    });
 
-    // For now, just set to true
-    this.isOnline = true;
+    // Listen for connectivity changes
+    this.connectivityMonitor.onConnectivityChange(event => {
+      logger.info(`Connectivity changed: ${event.previousStatus} → ${event.status}`);
 
-    // Process queue every 30 seconds
+      // When connectivity is restored, immediately process queues
+      if (event.status === 'online' && event.previousStatus === 'offline') {
+        logger.info('Connectivity restored! Processing pending sync queues...');
+
+        // Process upload queue immediately
+        this.processQueue().catch(error => {
+          logger.error('Error processing sync queue after connectivity restore:', error);
+        });
+
+        // Process failed operations queue immediately
+        if (this.syncOperationQueue) {
+          this.processSyncOperationQueue().catch(error => {
+            logger.error('Error processing sync operation queue after connectivity restore:', error);
+          });
+        }
+      }
+    });
+
+    // Process upload queue every 30 seconds (only when online)
     setInterval(() => {
-      this.processQueue().catch(error => {
-        console.error('Error processing sync queue:', error);
-      });
+      if (this.connectivityMonitor.isOnline()) {
+        this.processQueue().catch(error => {
+          logger.error('Error processing sync queue:', error);
+        });
+      }
     }, 30000);
+
+    // Process failed operations queue every 60 seconds (only when online)
+    if (this.syncOperationQueue) {
+      setInterval(() => {
+        if (this.connectivityMonitor.isOnline()) {
+          this.processSyncOperationQueue().catch(error => {
+            logger.error('Error processing sync operation queue:', error);
+          });
+        }
+      }, 60000);
+
+      // Also process immediately on startup (after 5 seconds, if online)
+      setTimeout(() => {
+        if (this.connectivityMonitor.isOnline()) {
+          this.processSyncOperationQueue().catch(error => {
+            logger.error('Error processing sync operation queue on startup:', error);
+          });
+        }
+      }, 5000);
+    }
+
+    logger.info('Connectivity monitoring initialized');
+  }
+
+  /**
+   * Process the sync operation queue with registered handlers
+   *
+   * ROOT CAUSE FIX: This processes failed cloud operations with retry logic
+   */
+  private async processSyncOperationQueue(): Promise<void> {
+    if (!this.syncOperationQueue || !this.connectivityMonitor.isOnline()) {
+      return;
+    }
+
+    const stats = this.syncOperationQueue.getStats();
+    if (stats.total === 0) {
+      return;
+    }
+
+    logger.info(`Processing ${stats.total} failed sync operations...`);
+
+    await this.syncOperationQueue.processQueue({
+      cloudDelete: async (sessionId: string) => {
+        if (this.remoteRepository) {
+          await this.remoteRepository.delete(sessionId);
+          logger.info(`Retried cloud delete for session ${sessionId}`);
+        }
+      },
+
+      cloudRestore: async (sessionId: string) => {
+        if (this.remoteRepository) {
+          await this.remoteRepository.restore(sessionId);
+          logger.info(`Retried cloud restore for session ${sessionId}`);
+        }
+      },
+
+      trackerMarkDeleted: async (sessionId: string) => {
+        if (this.deletedTracker) {
+          await this.deletedTracker.markAsDeleted(sessionId);
+          logger.info(`Retried tracker mark deleted for session ${sessionId}`);
+        }
+      },
+
+      trackerRemoveDeleted: async (sessionId: string) => {
+        if (this.deletedTracker) {
+          await this.deletedTracker.remove(sessionId);
+          logger.info(`Retried tracker remove deleted for session ${sessionId}`);
+        }
+      }
+    });
   }
 
   /**

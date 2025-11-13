@@ -271,7 +271,6 @@ export class SupabaseStorageService {
   }> {
     const maxRetries = 5;
     const baseDelay = 1000; // 1 second
-    const timeout = 120000; // 120 seconds (2 minutes) for large files
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -290,6 +289,18 @@ export class SupabaseStorageService {
         // Create blob from compressed data
         const blob = new Blob([compressionResult.compressed], { type: 'application/gzip' });
 
+        // ROOT CAUSE FIX: Calculate adaptive timeout based on file size
+        // Assumptions: ~100KB/s for slow connection, with 30s base timeout
+        const fileSizeBytes = compressionResult.compressedSize;
+        const baseTimeout = 30000; // 30 seconds base
+        const timeoutPerMB = 10000; // 10 seconds per MB
+        const adaptiveTimeout = baseTimeout + (fileSizeBytes / (1024 * 1024)) * timeoutPerMB;
+        const timeout = Math.min(Math.max(adaptiveTimeout, 30000), 300000); // Min 30s, max 5 minutes
+
+        logger.info(
+          `Uploading with adaptive timeout: ${(timeout / 1000).toFixed(0)}s for ${formatBytes(fileSizeBytes)}`
+        );
+
         // Upload with timeout
         const uploadPromise = client.storage
           .from(this.transcriptionBucketName)
@@ -299,9 +310,9 @@ export class SupabaseStorageService {
             upsert: true // Allow overwriting (in case transcription is updated)
           });
 
-        // Race against timeout
+        // Race against adaptive timeout
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Upload timeout')), timeout)
+          setTimeout(() => reject(new Error(`Upload timeout after ${(timeout / 1000).toFixed(0)}s`)), timeout)
         );
 
         const { data, error } = await Promise.race([uploadPromise, timeoutPromise]) as any;

@@ -2,7 +2,12 @@
  * AssemblyAI Real-Time Transcription Service (Browser)
  * Runs directly in renderer process using browser WebSocket API
  * Uses Universal Streaming API
+ *
+ * ROOT CAUSE FIX: Now uses WebSocketErrorHandler for proper error categorization
+ * and circuit breaker pattern to prevent infinite retry loops.
  */
+
+import { WebSocketErrorHandler, CircuitState } from './utils/WebSocketErrorHandler.js';
 
 export interface TranscriptionSettings {
   speechModel?: 'best' | 'nano';
@@ -43,16 +48,24 @@ export class AssemblyAITranscriptionService {
 
   // Audio buffering for token refresh transitions
   private audioBuffer: ArrayBuffer[] = [];
-  private maxBufferSize: number = 100; // Max audio chunks to buffer (prevent memory issues)
+  private maxBufferSize: number = 300; // Max audio chunks to buffer (~30 seconds at 100ms intervals)
   private lastTranscriptionTime: number = 0;
   private stalledCheckInterval: NodeJS.Timeout | null = null;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 3;
+  private droppedPacketCount: number = 0;
+
+  // ROOT CAUSE FIX: Audio level monitoring to distinguish silence from stalled transcription
+  private currentAudioLevel: number = 0;
+  private readonly SILENCE_THRESHOLD = 0.01; // Below this level (0-1 range) is considered silence
 
   // Session duration limits (AssemblyAI enforces 3-hour max)
   private readonly MAX_SESSION_DURATION = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
   private readonly SESSION_WARNING_TIME = 2.75 * 60 * 60 * 1000; // 2h 45m (15 min warning)
   private sessionDurationWarningTimer: NodeJS.Timeout | null = null;
+
+  // ROOT CAUSE FIX: Error categorization and circuit breaker
+  private errorHandler: WebSocketErrorHandler = new WebSocketErrorHandler();
 
   async initialize(apiKey: string, settings?: TranscriptionSettings): Promise<void> {
     this.apiKey = apiKey;
@@ -71,6 +84,11 @@ export class AssemblyAITranscriptionService {
     if (this.sessionId) {
       throw new Error('Session already active');
     }
+
+    // ROOT CAUSE FIX: Reset error handler for new session
+    this.errorHandler.reset();
+    this.droppedPacketCount = 0;
+    this.audioBuffer = [];
 
     this.sessionId = `assemblyai-${Date.now()}`;
     this.startTime = Date.now();
@@ -113,8 +131,19 @@ export class AssemblyAITranscriptionService {
   }
 
   /**
+   * Update the current audio level (called by TranscriptionModeService)
+   * ROOT CAUSE FIX: This allows stalled detection to distinguish silence from actual failures
+   */
+  setAudioLevel(level: number): void {
+    this.currentAudioLevel = level;
+  }
+
+  /**
    * Start periodic check for stalled transcription
-   * If no transcription received for 30 seconds, attempt recovery
+   *
+   * ROOT CAUSE FIX: Now checks audio level to distinguish silence from stalled transcription.
+   * If there's actual audio but no transcription, that's a real problem.
+   * If audio level is silent, no transcription is expected and normal.
    */
   private startStalledCheck(): void {
     // Clear any existing interval
@@ -129,14 +158,24 @@ export class AssemblyAITranscriptionService {
 
       // Only consider it stalled if we're not already refreshing and session is active
       if (timeSinceLastTranscription > thirtySeconds && !this.isRefreshing && this.sessionId) {
-        console.warn(`⚠️ No transcription received for ${Math.floor(timeSinceLastTranscription / 1000)}s, checking connection...`);
+        const isSilent = this.currentAudioLevel < this.SILENCE_THRESHOLD;
+
+        if (isSilent) {
+          // Audio is silent, so no transcription is expected - this is normal
+          console.log(`🔇 No transcription for ${Math.floor(timeSinceLastTranscription / 1000)}s, but audio is silent (level: ${this.currentAudioLevel.toFixed(3)}) - normal`);
+          return;
+        }
+
+        // ROOT CAUSE FIX: Audio is NOT silent but no transcription received - this indicates a problem
+        console.warn(`⚠️ Audio detected (level: ${this.currentAudioLevel.toFixed(3)}) but no transcription for ${Math.floor(timeSinceLastTranscription / 1000)}s - possible issue`);
 
         // Check if WebSocket is still connected
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
           console.error('❌ WebSocket disconnected, attempting recovery...');
           this.handleUnexpectedDisconnection();
         } else {
-          console.log('✅ WebSocket connected, may be silence or processing delay');
+          console.warn('⚠️ WebSocket connected but not transcribing audio - may be server processing delay or quality issue');
+          // Could add user notification here if this persists
         }
       }
     }, 15000); // Check every 15 seconds
@@ -305,6 +344,9 @@ export class AssemblyAITranscriptionService {
 
       this.ws.onopen = () => {
         console.log('✅ AssemblyAI WebSocket connected');
+        // ROOT CAUSE FIX: Record success for circuit breaker
+        this.errorHandler.recordSuccess();
+        this.reconnectAttempts = 0; // Reset on successful connection
         resolve();
       };
 
@@ -320,68 +362,91 @@ export class AssemblyAITranscriptionService {
       this.ws.onclose = (event) => {
         console.log('AssemblyAI WebSocket closed:', event.code, event.reason);
 
-        // Parse specific error codes and notify user
+        // ROOT CAUSE FIX: Use error handler to categorize and decide retry strategy
+        const categorizedError = this.errorHandler.categorizeCloseEvent(event);
+
+        console.log(`📊 Error category: ${categorizedError.category}`, {
+          shouldRetry: categorizedError.shouldRetry,
+          retryDelay: categorizedError.retryDelayMs,
+          circuitState: this.errorHandler.getCircuitState()
+        });
+
+        // Map to legacy error types for backward compatibility
+        let errorType: TranscriptionError['type'] = 'UNKNOWN_ERROR';
         if (event.code === 1008) {
-          // Authorization errors (API key, balance, concurrency limits)
           if (event.reason.toLowerCase().includes('concurrent')) {
-            this.handleError({
-              type: 'MAX_CONCURRENT_SESSIONS',
-              message: 'Maximum concurrent transcription sessions reached. Please stop other active sessions and try again.',
-              code: event.code
-            });
+            errorType = 'MAX_CONCURRENT_SESSIONS';
           } else {
-            this.handleError({
-              type: 'AUTH_ERROR',
-              message: 'Authorization error. Please check your API key and account balance.',
-              code: event.code
-            });
+            errorType = 'AUTH_ERROR';
           }
         } else if (event.code === 3005) {
-          // Session/protocol errors
           if (event.reason.toLowerCase().includes('session expired')) {
-            this.handleError({
-              type: 'SESSION_EXPIRED',
-              message: 'Session expired. The maximum session duration (3 hours) was reached.',
-              code: event.code
-            });
+            errorType = 'SESSION_EXPIRED';
           } else if (event.reason.toLowerCase().includes('transmission rate')) {
-            this.handleError({
-              type: 'TRANSMISSION_RATE',
-              message: 'Audio transmission rate exceeded. Please check your audio settings.',
-              code: event.code
-            });
-          } else {
-            this.handleError({
-              type: 'UNKNOWN_ERROR',
-              message: `Session error: ${event.reason}`,
-              code: event.code
-            });
+            errorType = 'TRANSMISSION_RATE';
           }
         }
 
-        // If connection closes unexpectedly during active session (not during stop/refresh)
-        // attempt to reconnect
+        // Notify user with categorized error message
+        this.handleError({
+          type: errorType,
+          message: categorizedError.userMessage,
+          code: event.code
+        });
+
+        // Decide whether to reconnect based on error category
         if (this.sessionId && !this.terminationReceived && !this.isRefreshing) {
-          // Don't attempt reconnect for fatal errors
-          if (event.code !== 1008 && event.code !== 3005) {
-            console.log('⚠️ Unexpected disconnection detected, attempting to reconnect...');
-            this.handleUnexpectedDisconnection();
+          if (categorizedError.shouldRetry) {
+            console.log(`♻️ Error is retryable (${categorizedError.category}), attempting reconnection...`);
+            this.handleUnexpectedDisconnection(categorizedError.retryDelayMs);
           } else {
-            console.error('❌ Fatal error, cannot reconnect');
+            console.error(`❌ Fatal error (${categorizedError.category}), cannot reconnect:`, categorizedError.technicalDetails);
+            // Force circuit open for permanent errors
+            if (categorizedError.category === 'permanent') {
+              this.errorHandler.forceCircuitOpen();
+            }
+            // Clean up session
+            this.sessionId = null;
+            this.audioBuffer = [];
           }
         }
       };
     });
   }
 
-  private async handleUnexpectedDisconnection(): Promise<void> {
+  /**
+   * Handle unexpected disconnection with circuit breaker pattern
+   *
+   * ROOT CAUSE FIX: No longer blindly retries every 10 seconds.
+   * Now uses circuit breaker to detect permanent failures and categorizes errors.
+   */
+  private async handleUnexpectedDisconnection(retryDelayMs: number = 0): Promise<void> {
     // Don't reconnect if we're already stopping or refreshing
     if (!this.sessionId || this.terminationReceived || this.isRefreshing) {
       return;
     }
 
+    // ROOT CAUSE FIX: Check circuit breaker before attempting retry
+    if (!this.errorHandler.shouldAttemptRetry()) {
+      console.error('🔴 Circuit breaker OPEN: Too many failures, giving up reconnection attempts');
+      this.handleError({
+        type: 'UNKNOWN_ERROR',
+        message: 'Connection failed after multiple attempts. Please check your network and try starting a new session.',
+        code: undefined
+      });
+      this.sessionId = null;
+      this.audioBuffer = [];
+      return;
+    }
+
+    // Wait for specified delay before retrying (exponential backoff)
+    if (retryDelayMs > 0) {
+      console.log(`⏳ Waiting ${retryDelayMs / 1000}s before retry (circuit: ${this.errorHandler.getCircuitState()})...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+    }
+
     try {
-      console.log('🔄 Attempting to reconnect...');
+      console.log(`🔄 Attempting to reconnect... (attempt ${this.errorHandler.getFailureCount() + 1}, circuit: ${this.errorHandler.getCircuitState()})`);
 
       // Get a new token
       const newToken = await this.getTemporaryToken();
@@ -393,10 +458,37 @@ export class AssemblyAITranscriptionService {
 
       // Reschedule token refresh
       this.scheduleTokenRefresh();
+
+      // Flush buffered audio
+      this.flushAudioBuffer();
     } catch (error) {
       console.error('❌ Failed to reconnect:', error);
-      // Try again in 10 seconds
-      setTimeout(() => this.handleUnexpectedDisconnection(), 10000);
+
+      // ROOT CAUSE FIX: Categorize the connection error
+      const categorizedError = this.errorHandler.categorizeConnectionError(error as Error);
+      this.errorHandler.recordFailure();
+
+      console.log(`📊 Connection error category: ${categorizedError.category}`, {
+        shouldRetry: categorizedError.shouldRetry,
+        retryDelay: categorizedError.retryDelayMs,
+        failureCount: this.errorHandler.getFailureCount(),
+        circuitState: this.errorHandler.getCircuitState()
+      });
+
+      if (categorizedError.shouldRetry) {
+        // Retry with categorized delay
+        this.handleUnexpectedDisconnection(categorizedError.retryDelayMs);
+      } else {
+        // Permanent error, stop trying
+        console.error(`❌ Permanent error detected, stopping reconnection attempts:`, categorizedError.technicalDetails);
+        this.handleError({
+          type: 'AUTH_ERROR',
+          message: categorizedError.userMessage,
+          code: undefined
+        });
+        this.sessionId = null;
+        this.audioBuffer = [];
+      }
     }
   }
 
@@ -488,6 +580,12 @@ export class AssemblyAITranscriptionService {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       // Universal Streaming expects raw PCM audio data (not base64)
       this.ws.send(audioData);
+
+      // Reset dropped packet count on successful send
+      if (this.droppedPacketCount > 0) {
+        console.log(`ℹ️ Connection recovered. Previously dropped ${this.droppedPacketCount} packets (~${(this.droppedPacketCount * 0.1).toFixed(1)}s of audio)`);
+        this.droppedPacketCount = 0;
+      }
     } else if (this.isRefreshing && this.audioBuffer.length < this.maxBufferSize) {
       // Buffer audio during token refresh to prevent data loss
       this.audioBuffer.push(audioData);
@@ -495,7 +593,27 @@ export class AssemblyAITranscriptionService {
         console.log('🔄 WebSocket not ready, buffering audio packets during token refresh...');
       }
     } else if (this.audioBuffer.length >= this.maxBufferSize) {
-      console.warn('⚠️ Audio buffer full, dropping packets. This may indicate a connection issue.');
+      // ROOT CAUSE FIX LIMITATION: Buffer full - this indicates token refresh is taking too long
+      // Ideally we would pause audio capture, but that requires complex state coordination
+      // between services. Instead, we track dropped packets and warn the user.
+      this.droppedPacketCount++;
+
+      if (this.droppedPacketCount === 1) {
+        console.error('❌ Audio buffer full! Token refresh taking longer than expected.');
+        console.error('⚠️ Dropping audio packets - transcription gaps may occur.');
+      } else if (this.droppedPacketCount % 50 === 0) {
+        // Log every 50 dropped packets (~5 seconds)
+        console.error(`❌ Dropped ${this.droppedPacketCount} packets so far (~${(this.droppedPacketCount * 0.1).toFixed(1)}s of audio)`);
+      }
+
+      // Notify user if we're dropping significant audio
+      if (this.droppedPacketCount === 50) { // ~5 seconds of audio
+        this.handleError({
+          type: 'UNKNOWN_ERROR',
+          message: 'Connection refresh taking longer than expected. Some audio may not be transcribed.',
+          code: undefined
+        });
+      }
     }
   }
 

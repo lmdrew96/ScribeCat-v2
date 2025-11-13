@@ -25,6 +25,7 @@ export class TranscriptionModeService {
   private sessionId: string | null = null;
   private assemblyAIService: AssemblyAITranscriptionService | null = null;
   private assemblyAIStreamingInterval: ReturnType<typeof setInterval> | null = null;
+  private audioLevelMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private audioManager: AudioManager,
@@ -78,6 +79,8 @@ export class TranscriptionModeService {
       clearInterval(this.assemblyAIStreamingInterval);
       this.assemblyAIStreamingInterval = null;
     }
+    // ROOT CAUSE FIX: Stop audio level monitoring when paused
+    this.stopAudioLevelMonitoring();
     this.audioManager.removeAudioDataCallback();
   }
 
@@ -137,6 +140,9 @@ export class TranscriptionModeService {
 
   /**
    * Start streaming audio to AssemblyAI
+   *
+   * ROOT CAUSE FIX: Now also monitors audio levels and passes them to the transcription service
+   * for intelligent stalled detection (silence vs actual stall).
    */
   private startAssemblyAIAudioStreaming(): void {
     const CHUNK_INTERVAL = 100;
@@ -178,7 +184,37 @@ export class TranscriptionModeService {
     }, CHUNK_INTERVAL);
 
     this.assemblyAIStreamingInterval = intervalId;
-    console.log('AssemblyAI audio streaming enabled');
+
+    // ROOT CAUSE FIX: Start monitoring audio levels for intelligent stalled detection
+    this.startAudioLevelMonitoring();
+
+    console.log('AssemblyAI audio streaming enabled with level monitoring');
+  }
+
+  /**
+   * Start monitoring audio levels and pass them to transcription service
+   *
+   * ROOT CAUSE FIX: This enables the transcription service to distinguish
+   * between silence (normal, no transcription expected) and actual stalled transcription.
+   */
+  private startAudioLevelMonitoring(): void {
+    // Update audio level every 500ms
+    this.audioLevelMonitorInterval = setInterval(() => {
+      if (this.assemblyAIService) {
+        const level = this.audioManager.getAudioLevel();
+        this.assemblyAIService.setAudioLevel(level);
+      }
+    }, 500);
+  }
+
+  /**
+   * Stop audio level monitoring
+   */
+  private stopAudioLevelMonitoring(): void {
+    if (this.audioLevelMonitorInterval !== null) {
+      clearInterval(this.audioLevelMonitorInterval);
+      this.audioLevelMonitorInterval = null;
+    }
   }
 
   /**
@@ -189,6 +225,9 @@ export class TranscriptionModeService {
       clearInterval(this.assemblyAIStreamingInterval);
       this.assemblyAIStreamingInterval = null;
     }
+
+    // ROOT CAUSE FIX: Stop audio level monitoring
+    this.stopAudioLevelMonitoring();
 
     if (this.assemblyAIService) {
       await this.assemblyAIService.stop();

@@ -36,6 +36,7 @@ import { SupabaseSessionRepository } from '../infrastructure/repositories/Supaba
 import { SupabaseShareRepository } from '../infrastructure/repositories/SupabaseShareRepository.js';
 import { SupabaseClient } from '../infrastructure/services/supabase/SupabaseClient.js';
 import { SyncManager } from '../infrastructure/services/sync/SyncManager.js';
+import { SyncOperationQueue } from '../infrastructure/services/sync/SyncOperationQueue.js';
 import { DeletedSessionsTracker } from '../infrastructure/services/DeletedSessionsTracker.js';
 import {
   ShareSessionUseCase,
@@ -68,6 +69,7 @@ export interface Services {
   audioRepository: FileAudioRepository;
   exportServices: Map<string, any>;
   deletedSessionsTracker: DeletedSessionsTracker;
+  syncOperationQueue: SyncOperationQueue;
 
   // Use cases
   listSessionsUseCase: ListSessionsUseCase;
@@ -130,6 +132,10 @@ export class ServiceBootstrapper {
     // Initialize DeletedSessionsTracker
     this.services.deletedSessionsTracker = new DeletedSessionsTracker();
     await this.services.deletedSessionsTracker.initialize();
+
+    // Initialize SyncOperationQueue
+    this.services.syncOperationQueue = new SyncOperationQueue();
+    await this.services.syncOperationQueue.initialize();
 
     // Initialize use cases
     this.initializeUseCases();
@@ -231,6 +237,7 @@ export class ServiceBootstrapper {
     const audioRepo = this.services.audioRepository!;
     const supabaseSessionRepo = this.services.supabaseSessionRepository || undefined;
     const deletedTracker = this.services.deletedSessionsTracker!;
+    const syncQueue = this.services.syncOperationQueue!;
     const exportServices = this.services.exportServices!;
 
     this.services.listSessionsUseCase = new ListSessionsUseCase(sessionRepo);
@@ -239,7 +246,8 @@ export class ServiceBootstrapper {
       sessionRepo,
       audioRepo,
       supabaseSessionRepo,
-      deletedTracker
+      deletedTracker,
+      syncQueue
     );
 
     this.services.exportSessionUseCase = new ExportSessionUseCase(
@@ -255,7 +263,8 @@ export class ServiceBootstrapper {
     this.services.restoreSessionUseCase = new RestoreSessionUseCase(
       sessionRepo,
       supabaseSessionRepo,
-      deletedTracker
+      deletedTracker,
+      syncQueue
     );
 
     this.services.permanentlyDeleteSessionUseCase = new PermanentlyDeleteSessionUseCase(
@@ -307,10 +316,11 @@ export class ServiceBootstrapper {
       this.services.supabaseSessionRepository,
       this.services.supabaseStorageService,
       null, // no user ID yet - set when renderer sends auth state
-      this.services.deletedSessionsTracker!
+      this.services.deletedSessionsTracker!,
+      this.services.syncOperationQueue!
     );
 
-    console.log('SyncManager initialized (waiting for user auth from renderer)');
+    console.log('SyncManager initialized with sync operation queue (waiting for user auth from renderer)');
   }
 
   /**

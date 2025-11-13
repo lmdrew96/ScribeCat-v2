@@ -8,13 +8,18 @@
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository.js';
 import { IAudioRepository } from '../../domain/repositories/IAudioRepository.js';
 import { DeletedSessionsTracker } from '../../infrastructure/services/DeletedSessionsTracker.js';
+import { SyncOperationQueue, SyncOperationType } from '../../infrastructure/services/sync/SyncOperationQueue.js';
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('DeleteSessionUseCase');
 
 export class DeleteSessionUseCase {
   constructor(
     private sessionRepository: ISessionRepository,
     private audioRepository: IAudioRepository,
     private remoteRepository?: ISessionRepository,
-    private deletedTracker?: DeletedSessionsTracker
+    private deletedTracker?: DeletedSessionsTracker,
+    private syncQueue?: SyncOperationQueue
   ) {}
 
   /**
@@ -22,6 +27,10 @@ export class DeleteSessionUseCase {
    * Moves the session to trash. Audio files and session data are kept for 30 days.
    * @param sessionId The ID of the session to delete
    * @throws Error if session not found or deletion fails
+   *
+   * ROOT CAUSE FIX: Instead of silently failing on cloud/tracker errors,
+   * we now queue failed operations for retry with exponential backoff.
+   * This ensures eventual consistency between local and cloud.
    */
   async execute(sessionId: string): Promise<void> {
     try {
@@ -39,15 +48,29 @@ export class DeleteSessionUseCase {
 
       // Soft delete the session metadata from local repository
       await this.sessionRepository.delete(sessionId);
+      logger.info(`Deleted session ${sessionId} locally`);
 
       // If session was synced to cloud, also delete from remote repository
       if (session.cloudId && this.remoteRepository) {
         try {
           await this.remoteRepository.delete(sessionId);
-          console.log(`Deleted session ${sessionId} from cloud`);
-        } catch (error) {
-          // Log but don't fail if cloud deletion fails (session is already deleted locally)
-          console.warn(`Failed to delete session from cloud: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          logger.info(`Deleted session ${sessionId} from cloud`);
+        } catch (cloudError) {
+          logger.error(`Failed to delete session from cloud: ${cloudError instanceof Error ? cloudError.message : 'Unknown error'}`);
+
+          // ROOT CAUSE FIX: Queue cloud deletion for retry instead of giving up
+          if (this.syncQueue) {
+            await this.syncQueue.addOperation(
+              SyncOperationType.CLOUD_DELETE,
+              sessionId,
+              cloudError instanceof Error ? cloudError.message : 'Unknown error'
+            );
+            logger.info(`Queued cloud deletion for retry`);
+          }
+
+          // Don't fail the whole operation - session is deleted locally
+          // Cloud deletion will be retried automatically
+          logger.warn(`Session deleted locally but cloud deletion failed - will retry automatically`);
         }
       }
 
@@ -56,8 +79,23 @@ export class DeleteSessionUseCase {
       if (this.deletedTracker) {
         try {
           await this.deletedTracker.markAsDeleted(sessionId);
-        } catch (error) {
-          console.warn(`Failed to mark session as deleted in tracker: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          logger.info(`Marked session ${sessionId} as deleted in tracker`);
+        } catch (trackerError) {
+          logger.error(`Failed to mark session as deleted in tracker: ${trackerError instanceof Error ? trackerError.message : 'Unknown error'}`);
+
+          // ROOT CAUSE FIX: Queue tracker operation for retry
+          if (this.syncQueue) {
+            await this.syncQueue.addOperation(
+              SyncOperationType.TRACKER_MARK_DELETED,
+              sessionId,
+              trackerError instanceof Error ? trackerError.message : 'Unknown error'
+            );
+            logger.info(`Queued tracker update for retry`);
+          }
+
+          // Don't fail the whole operation if tracker fails
+          // The session is deleted locally (and potentially in cloud), tracker will be updated via retry
+          logger.warn(`Session deleted but tracker update failed - will retry automatically`);
         }
       }
 
