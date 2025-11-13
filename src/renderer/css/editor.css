@@ -101,15 +101,14 @@
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   max-height: 0;
-  opacity: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  /* Removed opacity to prevent stacking context - palettes need z-index relative to document root */
 }
 
 .formatting-toolbar.visible {
   display: flex;
   max-height: 200px;
-  opacity: 1;
   overflow: visible;
 }
 
