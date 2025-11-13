@@ -13,22 +13,29 @@ A browser extension that collects course information from Canvas Instructure das
 
 ## Installation
 
+### Download the Extension
+
+1. Go to the [ScribeCat v2 Releases page](https://github.com/lmdrew96/ScribeCat-v2/releases)
+2. Download the `browser-extension.zip` file from the latest release
+3. Extract the ZIP file to a location on your computer (remember this location!)
+
 ### Chrome
 
-1. Download or clone this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right
-4. Click "Load unpacked" and select the `browser-extension` folder
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable "Developer mode" in the top right
+3. Click "Load unpacked"
+4. Select the extracted `browser-extension` folder
 5. The extension will appear in your extensions toolbar
 
 ### Firefox
 
-1. Download or clone this repository
-2. Open Firefox and navigate to `about:debugging`
-3. Click "This Firefox" in the sidebar
-4. Click "Load Temporary Add-on"
-5. Navigate to the `browser-extension` folder and select `manifest.json`
-6. The extension will be loaded temporarily
+1. Open Firefox and navigate to `about:debugging`
+2. Click "This Firefox" in the sidebar
+3. Click "Load Temporary Add-on"
+4. Navigate to the extracted `browser-extension` folder and select `manifest.json`
+5. The extension will be loaded temporarily
+
+**Note for Firefox users:** Temporary add-ons are removed when Firefox restarts. You'll need to reload the extension each time you open Firefox.
 
 ## Usage
 
@@ -84,7 +91,7 @@ The extension exports data in the following format:
 {
   "source": "ScribeCat Canvas Browser Extension",
   "format": "scribecat_course_import_v1",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "timestamp": "2024-01-15T10:30:00.000Z",
   "canvasUrl": "https://canvas.udel.edu",
   "institution": "udel",
@@ -132,39 +139,21 @@ The extension exports data in the following format:
 - **Canvas Only**: Only accesses Canvas Instructure domains
 - **User Control**: You can clear all stored data at any time
 
-## Development
-
-### Building from Source
-
-1. Clone the repository
-2. Navigate to the `browser-extension` directory
-3. No build process required - the extension runs directly from source
-
-### Testing
-
-1. Load the extension in developer mode
-2. Navigate to a Canvas dashboard
-3. Test course collection functionality
-4. Verify data export formats
-
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
 ## Support
 
 For issues or questions:
 
 1. Check the troubleshooting section above
 2. Review the browser console for error messages
-3. Create an issue in the repository
-4. Contact the ScribeCat development team
+3. Email us at scribecatscribes@gmail.com
 
 ## Version History
+
+### v2.0.0
+- Packaged for distribution via GitHub Releases
+- Updated installation instructions for ZIP download
+- Streamlined user experience for non-developers
+- Updated data format version to 2.0.0
 
 ### v1.1.0
 - Enhanced data format with institution and Canvas URL
