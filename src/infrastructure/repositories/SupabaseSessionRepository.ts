@@ -10,6 +10,10 @@ import { Transcription } from '../../domain/entities/Transcription.js';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository.js';
 import { SupabaseClient } from '../services/supabase/SupabaseClient.js';
 import { SupabaseStorageService } from '../services/supabase/SupabaseStorageService.js';
+import { compressJSON } from '../../shared/utils/compressionUtils.js';
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('SupabaseSessionRepository');
 
 interface SessionRow {
   id: string;
@@ -62,30 +66,51 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
       const client = SupabaseClient.getInstance().getClient();
 
-      // DUAL STORAGE: Upload transcription to Storage (if exists)
+      // DUAL STORAGE: Compress and check size of transcription
       let storageUploadSuccess = false;
-      if (session.transcription) {
-        try {
-          const uploadResult = await this.storageService.uploadTranscriptionFile({
-            sessionId: session.id,
-            userId: this.userId,
-            transcriptionData: session.transcription.toJSON()
-          });
-          storageUploadSuccess = uploadResult.success;
-        } catch (storageError) {
-          console.warn('Storage upload error:', storageError);
-        }
-      }
-
-      // DUAL STORAGE: Conditionally write to database based on size
       let transcriptionJson: string | null = null;
       const MAX_DB_SIZE = 7 * 1024 * 1024; // 7MB safety margin
 
       if (session.transcription) {
-        transcriptionJson = JSON.stringify(session.transcription.toJSON());
-        const transcriptionSize = new Blob([transcriptionJson]).size;
-        if (transcriptionSize >= MAX_DB_SIZE) {
-          transcriptionJson = null; // Don't write to database, rely on Storage
+        // Compress transcription data first to get accurate size
+        const compressionResult = compressJSON(session.transcription.toJSON());
+        const compressedSize = compressionResult.compressedSize;
+
+        logger.info(
+          `Session ${session.id} transcription: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB → ${(compressedSize / 1024 / 1024).toFixed(2)}MB (${compressionResult.compressionRatio.toFixed(1)}% reduction)`
+        );
+
+        // If compressed transcription is still too large for database, Storage upload is MANDATORY
+        const requiresStorage = compressedSize >= MAX_DB_SIZE;
+
+        // Upload to Storage (always upload compressed version for better performance)
+        const uploadResult = await this.storageService.uploadTranscriptionFile({
+          sessionId: session.id,
+          userId: this.userId,
+          transcriptionData: session.transcription.toJSON()
+        });
+
+        if (uploadResult.success) {
+          storageUploadSuccess = true;
+          logger.info(`Storage upload successful for session ${session.id}`);
+        } else {
+          // FAIL FAST: If transcription requires Storage (too big for DB) and upload failed, throw error
+          if (requiresStorage) {
+            throw new Error(
+              `Transcription too large for database (${(compressedSize / 1024 / 1024).toFixed(2)}MB) and Storage upload failed: ${uploadResult.error}. Cannot save session without losing transcription data.`
+            );
+          }
+
+          // If small enough for DB, warn but continue (will save to DB as backup)
+          logger.warn(
+            `Storage upload failed for session ${session.id}, but transcription fits in database. Continuing with DB-only storage.`,
+            uploadResult.error
+          );
+        }
+
+        // Store in database if small enough (even if Storage succeeded - provides faster access)
+        if (!requiresStorage) {
+          transcriptionJson = JSON.stringify(session.transcription.toJSON());
         }
       }
 
@@ -211,30 +236,51 @@ export class SupabaseSessionRepository implements ISessionRepository {
     try {
       const client = SupabaseClient.getInstance().getClient();
 
-      // DUAL STORAGE: Upload transcription to Storage (if exists)
+      // DUAL STORAGE: Compress and check size of transcription
       let storageUploadSuccess = false;
-      if (session.transcription && session.userId) {
-        try {
-          const uploadResult = await this.storageService.uploadTranscriptionFile({
-            sessionId: session.id,
-            userId: session.userId,
-            transcriptionData: session.transcription.toJSON()
-          });
-          storageUploadSuccess = uploadResult.success;
-        } catch (storageError) {
-          console.warn('Storage upload error:', storageError);
-        }
-      }
-
-      // DUAL STORAGE: Conditionally write to database based on size
       let transcriptionJson: string | null = null;
       const MAX_DB_SIZE = 7 * 1024 * 1024; // 7MB safety margin
 
-      if (session.transcription) {
-        transcriptionJson = JSON.stringify(session.transcription.toJSON());
-        const transcriptionSize = new Blob([transcriptionJson]).size;
-        if (transcriptionSize >= MAX_DB_SIZE) {
-          transcriptionJson = null; // Don't write to database, rely on Storage
+      if (session.transcription && session.userId) {
+        // Compress transcription data first to get accurate size
+        const compressionResult = compressJSON(session.transcription.toJSON());
+        const compressedSize = compressionResult.compressedSize;
+
+        logger.info(
+          `Session ${session.id} transcription update: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB → ${(compressedSize / 1024 / 1024).toFixed(2)}MB (${compressionResult.compressionRatio.toFixed(1)}% reduction)`
+        );
+
+        // If compressed transcription is still too large for database, Storage upload is MANDATORY
+        const requiresStorage = compressedSize >= MAX_DB_SIZE;
+
+        // Upload to Storage (always upload compressed version for better performance)
+        const uploadResult = await this.storageService.uploadTranscriptionFile({
+          sessionId: session.id,
+          userId: session.userId,
+          transcriptionData: session.transcription.toJSON()
+        });
+
+        if (uploadResult.success) {
+          storageUploadSuccess = true;
+          logger.info(`Storage upload successful for session ${session.id}`);
+        } else {
+          // FAIL FAST: If transcription requires Storage (too big for DB) and upload failed, throw error
+          if (requiresStorage) {
+            throw new Error(
+              `Transcription too large for database (${(compressedSize / 1024 / 1024).toFixed(2)}MB) and Storage upload failed: ${uploadResult.error}. Cannot update session without losing transcription data.`
+            );
+          }
+
+          // If small enough for DB, warn but continue (will save to DB as backup)
+          logger.warn(
+            `Storage upload failed for session ${session.id}, but transcription fits in database. Continuing with DB-only storage.`,
+            uploadResult.error
+          );
+        }
+
+        // Store in database if small enough (even if Storage succeeded - provides faster access)
+        if (!requiresStorage) {
+          transcriptionJson = JSON.stringify(session.transcription.toJSON());
         }
       }
 

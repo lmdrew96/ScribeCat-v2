@@ -16,6 +16,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import Collaboration from '@tiptap/extension-collaboration';
 import { DraggableImage } from './DraggableImageExtension.js';
+import { DraggableTextBox } from './DraggableTextBoxExtension.js';
 import type { Editor, EditorOptions } from '@tiptap/core';
 
 export interface EditorConfig {
@@ -121,6 +122,7 @@ export class EditorConfigService {
           class: 'tiptap-image',
         },
       }),
+      DraggableTextBox,
     ];
 
     // Add collaboration extensions if Yjs doc is provided

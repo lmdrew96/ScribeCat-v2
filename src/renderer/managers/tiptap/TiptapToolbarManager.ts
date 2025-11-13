@@ -43,12 +43,17 @@ export class TiptapToolbarManager {
   private linkBtn: HTMLButtonElement;
   private imageBtn: HTMLButtonElement;
   private imageInput: HTMLInputElement;
+  private textboxBtn: HTMLButtonElement;
   private anchorTypeBtn: HTMLButtonElement;
   private anchorTypePalette: HTMLElement;
   private anchorTypeDropdown: HTMLElement;
   private wrapTypeBtn: HTMLButtonElement;
   private wrapTypePalette: HTMLElement;
   private wrapTypeDropdown: HTMLElement;
+  private imageAlignLeftBtn: HTMLButtonElement;
+  private imageAlignRightBtn: HTMLButtonElement;
+  private imageIndentBtn: HTMLButtonElement;
+  private imageOutdentBtn: HTMLButtonElement;
   private insertTableBtn: HTMLButtonElement;
   private tableToolbar: HTMLElement;
   private addRowBeforeBtn: HTMLButtonElement;
@@ -100,12 +105,17 @@ export class TiptapToolbarManager {
     this.linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
     this.imageBtn = document.getElementById('image-btn') as HTMLButtonElement;
     this.imageInput = document.getElementById('image-input') as HTMLInputElement;
+    this.textboxBtn = document.getElementById('textbox-btn') as HTMLButtonElement;
     this.anchorTypeBtn = document.getElementById('anchor-type-btn') as HTMLButtonElement;
     this.anchorTypePalette = document.getElementById('anchor-type-palette') as HTMLElement;
     this.anchorTypeDropdown = document.getElementById('anchor-type-dropdown') as HTMLElement;
     this.wrapTypeBtn = document.getElementById('wrap-type-btn') as HTMLButtonElement;
     this.wrapTypePalette = document.getElementById('wrap-type-palette') as HTMLElement;
     this.wrapTypeDropdown = document.getElementById('wrap-type-dropdown') as HTMLElement;
+    this.imageAlignLeftBtn = document.getElementById('image-align-left-btn') as HTMLButtonElement;
+    this.imageAlignRightBtn = document.getElementById('image-align-right-btn') as HTMLButtonElement;
+    this.imageIndentBtn = document.getElementById('image-indent-btn') as HTMLButtonElement;
+    this.imageOutdentBtn = document.getElementById('image-outdent-btn') as HTMLButtonElement;
     this.insertTableBtn = document.getElementById('insert-table-btn') as HTMLButtonElement;
     this.tableToolbar = document.getElementById('table-toolbar') as HTMLElement;
     this.addRowBeforeBtn = document.getElementById('add-row-before-btn') as HTMLButtonElement;
@@ -337,6 +347,10 @@ export class TiptapToolbarManager {
       this.handleImageUpload(e);
     });
 
+    this.textboxBtn.addEventListener('click', () => {
+      this.insertTextBox();
+    });
+
     // Anchor type palette toggle
     this.anchorTypeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -387,6 +401,24 @@ export class TiptapToolbarManager {
           this.wrapTypePalette.classList.remove('show');
         }
       });
+    });
+
+    // Image alignment buttons
+    this.imageAlignLeftBtn.addEventListener('click', () => {
+      this.changeImageFloatDirection('left');
+    });
+
+    this.imageAlignRightBtn.addEventListener('click', () => {
+      this.changeImageFloatDirection('right');
+    });
+
+    // Image position adjustment buttons
+    this.imageIndentBtn.addEventListener('click', () => {
+      this.adjustImageHorizontalOffset(-20); // Move inward by 20px
+    });
+
+    this.imageOutdentBtn.addEventListener('click', () => {
+      this.adjustImageHorizontalOffset(20); // Move outward by 20px
     });
 
     this.insertTableBtn.addEventListener('click', () => {
@@ -573,6 +605,31 @@ export class TiptapToolbarManager {
         .run();
     }
   }
+
+  /** Insert text box */
+  private insertTextBox(): void {
+    const editor = this.editorCore.getEditor();
+    if (!editor) return;
+
+    editor.chain().focus().insertContent({
+      type: 'draggableTextBox',
+      attrs: {
+        anchorType: 'paragraph',
+        wrapType: 'square',
+        floatDirection: 'left',
+        horizontalOffset: 0,
+        width: 200,
+        height: 100,
+      },
+      content: [
+        {
+          type: 'text',
+          text: 'Text Box',
+        },
+      ],
+    }).run();
+  }
+
   /** Handle image upload with compression */
   private async handleImageUpload(e: Event): Promise<void> {
     const input = e.target as HTMLInputElement;
@@ -626,7 +683,7 @@ export class TiptapToolbarManager {
     let imagePos: number | null = null;
 
     state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
-      if (node.type.name === 'draggableImage') {
+      if (node.type.name === 'draggableImage' || node.type.name === 'draggableTextBox') {
         imageNode = node;
         imagePos = pos;
         return false; // Stop iteration
@@ -639,6 +696,72 @@ export class TiptapToolbarManager {
     const tr = state.tr.setNodeMarkup(imagePos, undefined, {
       ...imageNode.attrs,
       wrapType: wrapType,
+    });
+
+    editor.view.dispatch(tr);
+  }
+
+  /** Change image float direction */
+  private changeImageFloatDirection(direction: 'left' | 'right' | 'none'): void {
+    const editor = this.editorCore.getEditor();
+    if (!editor) return;
+
+    const { state } = editor;
+    const { selection } = state;
+
+    // Find the image node
+    let imageNode: any = null;
+    let imagePos: number | null = null;
+
+    state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+      if (node.type.name === 'draggableImage' || node.type.name === 'draggableTextBox') {
+        imageNode = node;
+        imagePos = pos;
+        return false; // Stop iteration
+      }
+    });
+
+    if (!imageNode || imagePos === null) return;
+
+    // Update node attributes
+    const tr = state.tr.setNodeMarkup(imagePos, undefined, {
+      ...imageNode.attrs,
+      floatDirection: direction,
+    });
+
+    editor.view.dispatch(tr);
+  }
+
+  /** Adjust image horizontal offset */
+  private adjustImageHorizontalOffset(delta: number): void {
+    const editor = this.editorCore.getEditor();
+    if (!editor) return;
+
+    const { state } = editor;
+    const { selection } = state;
+
+    // Find the image node
+    let imageNode: any = null;
+    let imagePos: number | null = null;
+
+    state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+      if (node.type.name === 'draggableImage' || node.type.name === 'draggableTextBox') {
+        imageNode = node;
+        imagePos = pos;
+        return false; // Stop iteration
+      }
+    });
+
+    if (!imageNode || imagePos === null) return;
+
+    // Calculate new offset (clamp between -100 and 100)
+    const currentOffset = imageNode.attrs.horizontalOffset || 0;
+    const newOffset = Math.max(-100, Math.min(100, currentOffset + delta));
+
+    // Update node attributes
+    const tr = state.tr.setNodeMarkup(imagePos, undefined, {
+      ...imageNode.attrs,
+      horizontalOffset: newOffset,
     });
 
     editor.view.dispatch(tr);
@@ -657,7 +780,7 @@ export class TiptapToolbarManager {
     let imagePos: number | null = null;
 
     state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
-      if (node.type.name === 'draggableImage') {
+      if (node.type.name === 'draggableImage' || node.type.name === 'draggableTextBox') {
         imageNode = node;
         imagePos = pos;
         return false; // Stop iteration
@@ -692,7 +815,7 @@ export class TiptapToolbarManager {
     let imagePos: number | null = null;
 
     state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
-      if (node.type.name === 'draggableImage') {
+      if (node.type.name === 'draggableImage' || node.type.name === 'draggableTextBox') {
         imageNode = node;
         imagePos = pos;
         return false; // Stop iteration
@@ -769,19 +892,33 @@ export class TiptapToolbarManager {
     const isInTable = this.editorCore.isActive('table');
     this.tableToolbar.style.display = isInTable ? 'flex' : 'none';
 
-    // Show/hide anchor and wrap type dropdowns based on image selection
+    // Show/hide anchor and wrap type dropdowns based on image or text box selection
     const imageAttrs = this.editorCore.getAttributes('draggableImage');
+    const textboxAttrs = this.editorCore.getAttributes('draggableTextBox');
     const isImageSelected = Object.keys(imageAttrs).length > 0;
-    const anchorType = imageAttrs.anchorType || 'paragraph';
+    const isTextBoxSelected = Object.keys(textboxAttrs).length > 0;
+    const isPositionableSelected = isImageSelected || isTextBoxSelected;
 
-    // Always show anchor dropdown when image is selected
-    this.anchorTypeDropdown.style.display = isImageSelected ? 'inline-block' : 'none';
+    const attrs = isImageSelected ? imageAttrs : textboxAttrs;
+    const anchorType = attrs.anchorType || 'paragraph';
 
-    // Only show wrap dropdown for paragraph-anchored images (text wrapping only works with paragraph anchor)
-    const showWrapDropdown = isImageSelected && anchorType === 'paragraph';
+    // Always show anchor dropdown when image or text box is selected
+    this.anchorTypeDropdown.style.display = isPositionableSelected ? 'inline-block' : 'none';
+
+    // Only show wrap dropdown for paragraph-anchored items
+    const showWrapDropdown = isPositionableSelected && anchorType === 'paragraph';
     this.wrapTypeDropdown.style.display = showWrapDropdown ? 'inline-block' : 'none';
 
-    if (isImageSelected) {
+    // Show alignment and position buttons for paragraph-anchored items with wrapping enabled
+    const wrapType = attrs.wrapType || 'square';
+    const showPositionControls = isPositionableSelected && anchorType === 'paragraph' &&
+                                  (wrapType === 'square' || wrapType === 'tight');
+    this.imageAlignLeftBtn.style.display = showPositionControls ? 'inline-block' : 'none';
+    this.imageAlignRightBtn.style.display = showPositionControls ? 'inline-block' : 'none';
+    this.imageIndentBtn.style.display = showPositionControls ? 'inline-block' : 'none';
+    this.imageOutdentBtn.style.display = showPositionControls ? 'inline-block' : 'none';
+
+    if (isPositionableSelected) {
       // Update active anchor type in palette
       this.anchorTypePalette.querySelectorAll('.anchor-option').forEach(option => {
         if (option.getAttribute('data-anchor') === anchorType) {
@@ -801,6 +938,13 @@ export class TiptapToolbarManager {
             option.classList.remove('active');
           }
         });
+
+        // Update active alignment button
+        if (wrapType === 'square' || wrapType === 'tight') {
+          const floatDirection = imageAttrs.floatDirection || 'left';
+          this.updateButtonState(this.imageAlignLeftBtn, floatDirection === 'left');
+          this.updateButtonState(this.imageAlignRightBtn, floatDirection === 'right');
+        }
       }
     }
 

@@ -1024,47 +1024,130 @@
   display: inline-block;
 }
 
-/* Paragraph-anchored + Square wrap */
-.draggable-image-wrapper.anchor-paragraph.wrap-square {
+/* Paragraph-anchored + Square wrap + Float Left */
+.draggable-image-wrapper.anchor-paragraph.wrap-square.float-left {
   float: left;
   margin: 0 16px 16px 0;
   clear: none;
 }
 
-/* Paragraph-anchored + Tight wrap */
-.draggable-image-wrapper.anchor-paragraph.wrap-tight {
+/* Paragraph-anchored + Square wrap + Float Right */
+.draggable-image-wrapper.anchor-paragraph.wrap-square.float-right {
+  float: right;
+  margin: 0 0 16px 16px;
+  clear: none;
+}
+
+/* Paragraph-anchored + Tight wrap + Float Left */
+.draggable-image-wrapper.anchor-paragraph.wrap-tight.float-left {
   float: left;
   margin: 0 8px 8px 0;
   clear: none;
 }
 
-/* Paragraph-anchored + Top/Bottom wrap */
-.draggable-image-wrapper.anchor-paragraph.wrap-top-bottom {
-  display: block;
-  margin: 16px 0;
-  clear: both;
+/* Paragraph-anchored + Tight wrap + Float Right */
+.draggable-image-wrapper.anchor-paragraph.wrap-tight.float-right {
+  float: right;
+  margin: 0 0 8px 8px;
+  clear: none;
 }
 
-/* Paragraph-anchored + None wrap */
-.draggable-image-wrapper.anchor-paragraph.wrap-none {
-  display: block;
-  margin: 0;
-  clear: both;
-}
+/* ===== Text Box Positioning ===== */
 
-/* Paragraph-anchored + Inline wrap */
-.draggable-image-wrapper.anchor-paragraph.wrap-inline {
+/* Text box base styles */
+.draggable-textbox-wrapper {
+  position: relative;
   display: inline-block;
-  margin: 0 4px;
-  vertical-align: middle;
+  border: 2px solid var(--border);
+  background: var(--background-secondary);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Inline-anchored images: Flow with text like a character */
-.draggable-image-wrapper.anchor-inline {
-  position: static;
-  display: inline-block;
-  vertical-align: middle;
-  margin: 0 4px;
+.draggable-textbox-wrapper:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.draggable-textbox-wrapper .drag-handle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Fixed typo: was justify-center */
+  cursor: move;
+  opacity: 0.3; /* Made slightly visible for debugging */
+  transition: opacity 0.2s ease;
+  z-index: 100; /* Higher z-index to ensure it's above contentDOM */
+  pointer-events: auto; /* Ensure handle receives events */
+}
+
+.draggable-textbox-wrapper:hover .drag-handle {
+  opacity: 1;
+}
+
+.draggable-textbox-wrapper .resize-handle {
+  opacity: 0.3; /* Made slightly visible for debugging */
+  transition: opacity 0.2s ease;
+  z-index: 100; /* Ensure resize handles are above contentDOM */
+  pointer-events: auto; /* Ensure handles receive events */
+}
+
+.draggable-textbox-wrapper:hover .resize-handle {
+  opacity: 1;
+}
+
+.textbox-content {
+  padding: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.textbox-content:focus {
+  outline: none;
+}
+
+/* Page-anchored text boxes */
+.draggable-textbox-wrapper.anchor-page {
+  position: absolute;
+  z-index: 10;
+  cursor: move;
+  border: 2px dashed var(--accent);
+}
+
+/* Paragraph-anchored text boxes with wrapping */
+.draggable-textbox-wrapper.anchor-paragraph.wrap-square.float-left {
+  float: left;
+  margin: 0 16px 16px 0;
+  clear: none;
+}
+
+.draggable-textbox-wrapper.anchor-paragraph.wrap-square.float-right {
+  float: right;
+  margin: 0 0 16px 16px;
+  clear: none;
+}
+
+.draggable-textbox-wrapper.anchor-paragraph.wrap-tight.float-left {
+  float: left;
+  margin: 0 8px 8px 0;
+  clear: none;
+}
+
+.draggable-textbox-wrapper.anchor-paragraph.wrap-tight.float-right {
+  float: right;
+  margin: 0 0 8px 8px;
+  clear: none;
 }
 
 /* Drop indicator */

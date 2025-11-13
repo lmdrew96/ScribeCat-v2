@@ -8,6 +8,10 @@
  */
 
 import { SupabaseClient } from './SupabaseClient.js';
+import { compressJSON, decompressJSON, formatBytes } from '../../../shared/utils/compressionUtils.js';
+import { createLogger } from '../../../shared/logger.js';
+
+const logger = createLogger('SupabaseStorageService');
 
 export interface UploadAudioFileParams {
   sessionId: string;
@@ -256,8 +260,8 @@ export class SupabaseStorageService {
   }
 
   /**
-   * Upload a transcription file to Supabase Storage
-   * Stores transcription data as JSON to avoid database size limits
+   * Upload a transcription file to Supabase Storage with compression and retry logic
+   * Stores transcription data as compressed JSON to reduce size and improve upload reliability
    * Uses separate transcription-data bucket to avoid MIME type restrictions
    */
   async uploadTranscriptionFile(params: UploadTranscriptionParams): Promise<{
@@ -265,46 +269,84 @@ export class SupabaseStorageService {
     storagePath?: string;
     error?: string;
   }> {
-    try {
-      const client = SupabaseClient.getInstance().getClient();
+    const maxRetries = 5;
+    const baseDelay = 1000; // 1 second
+    const timeout = 120000; // 120 seconds (2 minutes) for large files
 
-      // Generate storage path: {user_id}/{session_id}/transcription.json
-      const storagePath = `${params.userId}/${params.sessionId}/transcription.json`;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const client = SupabaseClient.getInstance().getClient();
 
-      // Convert transcription data to JSON string
-      const jsonData = JSON.stringify(params.transcriptionData);
-      const blob = new Blob([jsonData], { type: 'application/json' });
+        // Generate storage path: {user_id}/{session_id}/transcription.json.gz
+        const storagePath = `${params.userId}/${params.sessionId}/transcription.json.gz`;
 
-      // Upload file to transcription-data bucket (NOT audio-files bucket)
-      const { data, error } = await client.storage
-        .from(this.transcriptionBucketName)
-        .upload(storagePath, blob, {
-          contentType: 'application/json',
-          cacheControl: '3600',
-          upsert: true // Allow overwriting (in case transcription is updated)
-        });
+        // Compress transcription data using gzip
+        const compressionResult = compressJSON(params.transcriptionData);
 
-      if (error) {
+        logger.info(
+          `Compressing transcription for upload: ${formatBytes(compressionResult.originalSize)} → ${formatBytes(compressionResult.compressedSize)} (${compressionResult.compressionRatio.toFixed(1)}% reduction)`
+        );
+
+        // Create blob from compressed data
+        const blob = new Blob([compressionResult.compressed], { type: 'application/gzip' });
+
+        // Upload with timeout
+        const uploadPromise = client.storage
+          .from(this.transcriptionBucketName)
+          .upload(storagePath, blob, {
+            contentType: 'application/gzip',
+            cacheControl: '3600',
+            upsert: true // Allow overwriting (in case transcription is updated)
+          });
+
+        // Race against timeout
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Upload timeout')), timeout)
+        );
+
+        const { data, error } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        logger.info(`Transcription uploaded successfully on attempt ${attempt}`);
         return {
-          success: false,
-          error: error.message
+          success: true,
+          storagePath: data.path
         };
-      }
 
-      return {
-        success: true,
-        storagePath: data.path
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error uploading transcription'
-      };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        if (attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+          const delayMs = baseDelay * Math.pow(2, attempt - 1);
+          logger.warn(
+            `Transcription upload failed (attempt ${attempt}/${maxRetries}): ${errorMessage}. Retrying in ${delayMs}ms...`
+          );
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        } else {
+          logger.error(
+            `Transcription upload failed after ${maxRetries} attempts: ${errorMessage}`
+          );
+          return {
+            success: false,
+            error: `Upload failed after ${maxRetries} retries: ${errorMessage}`
+          };
+        }
+      }
     }
+
+    return {
+      success: false,
+      error: 'Max retry attempts reached'
+    };
   }
 
   /**
-   * Download a transcription file from Supabase Storage
+   * Download a transcription file from Supabase Storage and decompress it
+   * Handles both new compressed (.json.gz) and legacy uncompressed (.json) files
    */
   async downloadTranscriptionFile(userId: string, sessionId: string): Promise<{
     success: boolean;
@@ -314,23 +356,48 @@ export class SupabaseStorageService {
     try {
       const client = SupabaseClient.getInstance().getClient();
 
-      // Generate storage path: {user_id}/{session_id}/transcription.json
-      const storagePath = `${userId}/${sessionId}/transcription.json`;
+      // Try new compressed format first
+      const compressedPath = `${userId}/${sessionId}/transcription.json.gz`;
 
-      const { data, error } = await client.storage
+      let downloadResult = await client.storage
         .from(this.transcriptionBucketName)
-        .download(storagePath);
+        .download(compressedPath);
 
-      if (error) {
-        return {
-          success: false,
-          error: error.message
-        };
+      let isCompressed = true;
+
+      // If compressed file not found, try legacy uncompressed format
+      if (downloadResult.error) {
+        const uncompressedPath = `${userId}/${sessionId}/transcription.json`;
+        downloadResult = await client.storage
+          .from(this.transcriptionBucketName)
+          .download(uncompressedPath);
+        isCompressed = false;
+
+        if (downloadResult.error) {
+          return {
+            success: false,
+            error: downloadResult.error.message
+          };
+        }
       }
 
-      // Parse JSON from blob
-      const text = await data.text();
-      const transcriptionData = JSON.parse(text);
+      const { data } = downloadResult;
+
+      // Decompress or parse based on file format
+      let transcriptionData: any;
+
+      if (isCompressed) {
+        // Decompress gzipped data
+        const arrayBuffer = await data.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        transcriptionData = decompressJSON(uint8Array);
+        logger.info(`Downloaded and decompressed transcription for session ${sessionId}`);
+      } else {
+        // Legacy: parse uncompressed JSON
+        const text = await data.text();
+        transcriptionData = JSON.parse(text);
+        logger.info(`Downloaded legacy uncompressed transcription for session ${sessionId}`);
+      }
 
       return {
         success: true,
@@ -346,6 +413,7 @@ export class SupabaseStorageService {
 
   /**
    * Delete a transcription file from Supabase Storage
+   * Handles both new compressed (.json.gz) and legacy uncompressed (.json) files
    */
   async deleteTranscriptionFile(userId: string, sessionId: string): Promise<{
     success: boolean;
@@ -354,19 +422,17 @@ export class SupabaseStorageService {
     try {
       const client = SupabaseClient.getInstance().getClient();
 
-      const storagePath = `${userId}/${sessionId}/transcription.json`;
+      // Try to delete both formats (one will fail, that's okay)
+      const compressedPath = `${userId}/${sessionId}/transcription.json.gz`;
+      const uncompressedPath = `${userId}/${sessionId}/transcription.json`;
 
-      const { error } = await client.storage
+      // Attempt to delete both (silently ignore if one doesn't exist)
+      await client.storage
         .from(this.transcriptionBucketName)
-        .remove([storagePath]);
+        .remove([compressedPath, uncompressedPath]);
 
-      if (error) {
-        return {
-          success: false,
-          error: error.message
-        };
-      }
-
+      // We don't check for errors because files might not exist
+      // As long as we attempted to delete, it's a success
       return { success: true };
     } catch (error) {
       return {

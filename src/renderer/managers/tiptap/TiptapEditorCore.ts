@@ -14,6 +14,7 @@ import { TextStyle, Color, BackgroundColor, FontSize } from '@tiptap/extension-t
 import TextAlign from '@tiptap/extension-text-align';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import { DraggableImage } from '../../tiptap/DraggableImageExtension.js';
+import { DraggableTextBox } from '../../tiptap/DraggableTextBoxExtension.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('TiptapEditorCore');
@@ -92,6 +93,7 @@ export class TiptapEditorCore {
             class: 'tiptap-image',
           },
         }),
+        DraggableTextBox,
       ],
       content: '',
       editorProps: {

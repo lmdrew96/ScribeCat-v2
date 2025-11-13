@@ -194,12 +194,21 @@ export class RecordingManager {
       if (transcriptionText && transcriptionText.trim().length > 0) {
         logger.info('Saving transcription to session');
 
+        // Show user feedback for large transcriptions
+        const transcriptionSize = new Blob([transcriptionText]).size;
+        const sizeInMB = (transcriptionSize / 1024 / 1024).toFixed(2);
+
+        if (transcriptionSize > 5 * 1024 * 1024) { // > 5MB
+          this.viewManager.showSessionInfo(`Saving large transcription (${sizeInMB}MB)...`);
+        }
+
         // Get timestamped entries for accurate synchronization
         const timestampedEntries = this.transcriptionManager.getTimestampedEntries();
 
         logger.debug('Saving transcription with metadata', {
           sessionDuration: durationSeconds,
           entryCount: timestampedEntries.length,
+          transcriptionSizeMB: sizeInMB,
           firstTimestamp: timestampedEntries[0]?.timestamp,
           lastTimestamp: timestampedEntries[timestampedEntries.length - 1]?.timestamp
         });
@@ -215,6 +224,10 @@ export class RecordingManager {
         if (transcriptionResult.success) {
           logger.info('Transcription saved to session');
 
+          if (transcriptionSize > 5 * 1024 * 1024) {
+            this.viewManager.showSessionInfo(`Transcription saved successfully (${sizeInMB}MB)`);
+          }
+
           // Generate and save short summary for card display
           logger.info('Generating short summary for session');
           const summaryManager = new AISummaryManager();
@@ -226,7 +239,13 @@ export class RecordingManager {
               logger.warn('Failed to generate short summary (non-critical):', error);
             });
         } else {
-          logger.error('Failed to save transcription after retries', transcriptionResult.error);
+          const errorMsg = `Failed to save transcription: ${transcriptionResult.error}`;
+          logger.error(errorMsg);
+
+          // Show clear error to user
+          this.viewManager.showSessionInfo(
+            `⚠️ Transcription save failed. Your recording is safe locally, but cloud upload failed. Please check your internet connection and try syncing again later.`
+          );
         }
       }
 
