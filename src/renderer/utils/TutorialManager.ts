@@ -99,7 +99,7 @@ export class TutorialManager {
         {
           target: '.transcription-container',
           title: 'Real-Time Transcription',
-          content: 'Watch your words appear here as you speak! The transcription updates automatically.',
+          content: 'Watch your words appear here as you speak! Powered by AssemblyAI, the transcription streams in real-time with high accuracy.',
           position: 'right'
         },
         {
@@ -122,13 +122,13 @@ export class TutorialManager {
       description: 'Discover how AI can supercharge your studying',
       steps: [
         {
-          target: '#ai-chat-button',
+          target: '#floating-chat-btn',
           title: 'AI Assistant',
           content: 'Click here to open the AI chat. Ask questions about your content, get explanations, or request summaries.',
           position: 'left',
           beforeShow: async () => {
             // Ensure we have a session selected
-            const chatBtn = document.querySelector('#ai-chat-button');
+            const chatBtn = document.querySelector('#floating-chat-btn');
             if (chatBtn) {
               (chatBtn as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
@@ -137,11 +137,11 @@ export class TutorialManager {
         {
           target: '#ai-chat-drawer',
           title: 'Chat with Your Content',
-          content: 'The AI knows everything in your session. Try asking "What are the main topics?" or "Explain this concept".',
+          content: 'The AI can access your session content (you can choose what to include). Try asking "What are the main topics?" or "Explain this concept".',
           position: 'left',
           beforeShow: async () => {
             // Open AI chat drawer
-            const chatBtn = document.querySelector('#ai-chat-button') as HTMLElement;
+            const chatBtn = document.querySelector('#floating-chat-btn') as HTMLElement;
             if (chatBtn) chatBtn.click();
             await new Promise(resolve => setTimeout(resolve, 300)); // Wait for drawer to open
           }
@@ -150,12 +150,20 @@ export class TutorialManager {
           target: '#ai-suggestion-chip',
           title: 'Proactive Suggestions',
           content: 'See this pulsing chip? The AI automatically suggests helpful actions based on your content. Click it to see suggestions!',
-          position: 'bottom'
+          position: 'bottom',
+          beforeShow: async () => {
+            // Check if AI suggestion chip exists (it's dynamically created)
+            const chip = document.getElementById('ai-suggestion-chip');
+            if (!chip) {
+              console.warn('AI suggestion chip not yet initialized - tutorial will show error if not found');
+            }
+            await new Promise(resolve => setTimeout(resolve, 100)); // Brief wait for chip to appear
+          }
         },
         {
           target: '.ai-tools-panel',
           title: 'AI Tool Library',
-          content: 'Generate flashcards, create quizzes, get summaries, and more! All tools are context-aware and based on your session content.',
+          content: 'Access AI tools in Study Mode to generate flashcards, create quizzes, get summaries, and more! All tools are context-aware and based on your session content.',
           position: 'left'
         }
       ]
@@ -185,13 +193,7 @@ export class TutorialManager {
           position: 'right'
         },
         {
-          target: '.session-card .ai-indicator',
-          title: 'AI Tools Badge',
-          content: 'This badge shows which AI tools you\'ve generated for this session. Flashcards, quizzes, summaries - all in one place.',
-          position: 'top'
-        },
-        {
-          target: '#search-bar',
+          target: '.search-bar-container',
           title: 'Smart Search',
           content: 'Search across all sessions, transcriptions, notes, and AI-generated content. Try "photosynthesis" or "exam prep".',
           position: 'bottom'
@@ -229,9 +231,9 @@ export class TutorialManager {
           }
         },
         {
-          target: '#notes-editor',
+          target: '#tiptap-editor',
           title: 'Text Formatting',
-          content: 'Use standard shortcuts: <kbd>Cmd+B</kbd> for bold, <kbd>Cmd+I</kbd> for italic, <kbd>Cmd+K</kbd> for links. Just like your favorite editor!',
+          content: 'Use standard shortcuts: <kbd>Cmd+B</kbd> for bold, <kbd>Cmd+I</kbd> for italic, <kbd>Cmd+U</kbd> for underline. More shortcuts available in the ? overlay!',
           position: 'top'
         }
       ]
@@ -464,26 +466,54 @@ export class TutorialManager {
           /* Only use visual effects that DON'T affect layout */
           outline: 4px solid var(--accent) !important;
           outline-offset: 4px !important;
-          box-shadow: 0 0 30px rgba(0, 122, 204, 0.8),
-                      0 0 50px rgba(0, 122, 204, 0.4),
-                      inset 0 0 0 2000px rgba(0, 122, 204, 0.05) !important;
+          box-shadow: 0 0 40px rgba(0, 122, 204, 0.9),
+                      0 0 70px rgba(0, 122, 204, 0.5),
+                      inset 0 0 0 2000px rgba(0, 122, 204, 0.08) !important;
           border-radius: var(--radius-md) !important;
           animation: tutorial-pulse 2s ease-in-out infinite !important;
           /* NO position, z-index, or pointer-events changes - these cause layout shifts */
         }
 
+        /* Light theme variant - stronger shadow for visibility on light backgrounds */
+        [data-theme*="light"] .tutorial-highlight {
+          outline: 4px solid #005a9e !important;
+          box-shadow: 0 0 40px rgba(0, 90, 158, 0.7),
+                      0 0 70px rgba(0, 90, 158, 0.4),
+                      inset 0 0 0 2000px rgba(0, 122, 204, 0.15) !important;
+        }
+
         @keyframes tutorial-pulse {
           0%, 100% {
             outline-offset: 4px;
-            box-shadow: 0 0 30px rgba(0, 122, 204, 0.8),
-                        0 0 50px rgba(0, 122, 204, 0.4),
-                        inset 0 0 0 2000px rgba(0, 122, 204, 0.05);
+            box-shadow: 0 0 40px rgba(0, 122, 204, 0.9),
+                        0 0 70px rgba(0, 122, 204, 0.5),
+                        inset 0 0 0 2000px rgba(0, 122, 204, 0.08);
           }
           50% {
             outline-offset: 6px;
-            box-shadow: 0 0 40px rgba(0, 122, 204, 1),
-                        0 0 60px rgba(0, 122, 204, 0.6),
-                        inset 0 0 0 2000px rgba(0, 122, 204, 0.08);
+            box-shadow: 0 0 50px rgba(0, 122, 204, 1),
+                        0 0 80px rgba(0, 122, 204, 0.7),
+                        inset 0 0 0 2000px rgba(0, 122, 204, 0.12);
+          }
+        }
+
+        /* Light theme pulse animation */
+        [data-theme*="light"] .tutorial-highlight {
+          animation: tutorial-pulse-light 2s ease-in-out infinite !important;
+        }
+
+        @keyframes tutorial-pulse-light {
+          0%, 100% {
+            outline-offset: 4px;
+            box-shadow: 0 0 40px rgba(0, 90, 158, 0.7),
+                        0 0 70px rgba(0, 90, 158, 0.4),
+                        inset 0 0 0 2000px rgba(0, 122, 204, 0.15);
+          }
+          50% {
+            outline-offset: 6px;
+            box-shadow: 0 0 50px rgba(0, 90, 158, 0.9),
+                        0 0 80px rgba(0, 90, 158, 0.6),
+                        inset 0 0 0 2000px rgba(0, 122, 204, 0.2);
           }
         }
 
@@ -491,6 +521,32 @@ export class TutorialManager {
           .tutorial-highlight {
             animation: none !important;
           }
+        }
+
+        /* kbd element styling for tutorial tooltips */
+        .tutorial-tooltip kbd {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 28px;
+          height: 28px;
+          padding: 0 8px;
+          background: var(--bg-tertiary, #3d3d3d);
+          border: 1px solid var(--border, #404040);
+          border-radius: 6px;
+          font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-primary, #ffffff);
+          box-shadow: 0 2px 0 var(--border, #404040);
+        }
+
+        /* Light theme kbd - HIGH CONTRAST for readability */
+        [data-theme*="light"] .tutorial-tooltip kbd {
+          background: #e8e8e8 !important;
+          border-color: #c0c0c0 !important;
+          color: #1a1a1a !important;
+          box-shadow: 0 2px 0 #c0c0c0 !important;
         }
       `;
       document.head.appendChild(style);
@@ -517,13 +573,13 @@ export class TutorialManager {
     this.tooltip.setAttribute('aria-labelledby', 'tutorial-tooltip-title');
     this.tooltip.style.cssText = `
       position: fixed;
-      background: var(--bg-secondary);
-      border: 2px solid var(--accent);
+      background: var(--bg-primary);
+      border: 3px solid var(--accent);
       border-radius: var(--radius-lg);
       padding: 20px;
       max-width: 350px;
       z-index: 10000;
-      box-shadow: var(--shadow-xl);
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
       animation: tooltip-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
       pointer-events: auto;
     `;
@@ -615,13 +671,13 @@ export class TutorialManager {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: var(--bg-secondary);
-      border: 2px solid #e74c3c;
+      background: var(--bg-primary);
+      border: 3px solid #e74c3c;
       border-radius: var(--radius-lg);
       padding: 24px;
       max-width: 400px;
       z-index: 10000;
-      box-shadow: var(--shadow-xl);
+      box-shadow: 0 12px 48px rgba(231, 76, 60, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
       animation: tooltip-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     `;
 

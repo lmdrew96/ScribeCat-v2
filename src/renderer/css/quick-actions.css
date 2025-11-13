@@ -228,14 +228,22 @@ kbd {
   min-width: 28px;
   height: 28px;
   padding: 0 8px;
-  background: var(--bg-quaternary, #1d1d1d);
-  border: 1px solid var(--border-color, #444444);
+  background: var(--bg-tertiary, #3d3d3d);
+  border: 1px solid var(--border, #404040);
   border-radius: 6px;
   font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary, #ffffff);
-  box-shadow: 0 2px 0 var(--border-color, #444444);
+  box-shadow: 0 2px 0 var(--border, #404040);
+}
+
+/* Light theme kbd styling - high contrast with dark text on light background */
+[data-theme*="light"] kbd {
+  background: #e8e8e8 !important;
+  border-color: #c0c0c0 !important;
+  color: #1a1a1a !important;
+  box-shadow: 0 2px 0 #c0c0c0 !important;
 }
 
 .shortcut-description {
