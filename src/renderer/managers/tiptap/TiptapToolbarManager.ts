@@ -126,6 +126,61 @@ export class TiptapToolbarManager {
     this.okInputPromptBtn = document.getElementById('ok-input-prompt-btn') as HTMLButtonElement;
     this.cancelInputPromptBtn = document.getElementById('cancel-input-prompt-btn') as HTMLButtonElement;
     this.closeInputPromptBtn = document.getElementById('close-input-prompt-btn') as HTMLButtonElement;
+
+    // CRITICAL: Move palettes to document.body to escape overflow:hidden clipping
+    // The .main-content has overflow:hidden which creates a containing block that clips
+    // fixed-position children. Moving to body allows palettes to truly escape all constraints.
+    this.movePalettesToBody();
+  }
+
+  /**
+   * Move palette elements to document.body to escape parent overflow clipping
+   * This is necessary because .main-content has overflow:hidden which creates a
+   * containing block that clips fixed-position descendants
+   */
+  private movePalettesToBody(): void {
+    document.body.appendChild(this.colorPalette);
+    document.body.appendChild(this.bgColorPalette);
+    document.body.appendChild(this.anchorTypePalette);
+    document.body.appendChild(this.wrapTypePalette);
+    logger.info('Moved palettes to document.body to escape overflow clipping');
+  }
+
+  /**
+   * Position a palette element relative to a button using fixed positioning
+   * This escapes all parent stacking contexts and ensures proper z-index layering
+   */
+  private positionPaletteRelativeToButton(button: HTMLElement, palette: HTMLElement): void {
+    const buttonRect = button.getBoundingClientRect();
+
+    // Position palette below the button with a small gap
+    const top = buttonRect.bottom + 6;
+    const left = buttonRect.left;
+
+    // Apply position
+    palette.style.top = `${top}px`;
+    palette.style.left = `${left}px`;
+
+    // Optional: Adjust if palette would go off-screen
+    // Get palette dimensions after it's shown (might need a small delay)
+    requestAnimationFrame(() => {
+      const paletteRect = palette.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      // Adjust horizontal position if palette goes off right edge
+      if (paletteRect.right > viewportWidth) {
+        const adjustedLeft = viewportWidth - paletteRect.width - 10;
+        palette.style.left = `${Math.max(10, adjustedLeft)}px`;
+      }
+
+      // Adjust vertical position if palette goes off bottom edge
+      if (paletteRect.bottom > viewportHeight) {
+        // Position above button instead
+        const adjustedTop = buttonRect.top - paletteRect.height - 6;
+        palette.style.top = `${Math.max(10, adjustedTop)}px`;
+      }
+    });
   }
   /** Set up toolbar button event listeners */
   setupToolbarListeners(): void {
@@ -158,16 +213,28 @@ export class TiptapToolbarManager {
 
     this.colorBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      const isShowing = this.colorPalette.classList.contains('show');
       this.colorPalette.classList.toggle('show');
       this.bgColorPalette.classList.remove('show');
+
+      // Position palette when showing
+      if (!isShowing) {
+        this.positionPaletteRelativeToButton(this.colorBtn, this.colorPalette);
+      }
     });
 
     this.setupColorPalette();
 
     this.bgColorBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      const isShowing = this.bgColorPalette.classList.contains('show');
       this.bgColorPalette.classList.toggle('show');
       this.colorPalette.classList.remove('show');
+
+      // Position palette when showing
+      if (!isShowing) {
+        this.positionPaletteRelativeToButton(this.bgColorBtn, this.bgColorPalette);
+      }
     });
 
     this.setupBgColorPalette();
@@ -273,10 +340,16 @@ export class TiptapToolbarManager {
     // Anchor type palette toggle
     this.anchorTypeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      const isShowing = this.anchorTypePalette.classList.contains('show');
       this.anchorTypePalette.classList.toggle('show');
       this.colorPalette.classList.remove('show');
       this.bgColorPalette.classList.remove('show');
       this.wrapTypePalette.classList.remove('show');
+
+      // Position palette when showing
+      if (!isShowing) {
+        this.positionPaletteRelativeToButton(this.anchorTypeBtn, this.anchorTypePalette);
+      }
     });
 
     // Anchor type palette options
@@ -293,10 +366,16 @@ export class TiptapToolbarManager {
     // Wrap type palette toggle
     this.wrapTypeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      const isShowing = this.wrapTypePalette.classList.contains('show');
       this.wrapTypePalette.classList.toggle('show');
       this.colorPalette.classList.remove('show');
       this.bgColorPalette.classList.remove('show');
       this.anchorTypePalette.classList.remove('show');
+
+      // Position palette when showing
+      if (!isShowing) {
+        this.positionPaletteRelativeToButton(this.wrapTypeBtn, this.wrapTypePalette);
+      }
     });
 
     // Wrap type palette options
@@ -742,6 +821,21 @@ export class TiptapToolbarManager {
       document.removeEventListener('click', this.paletteClickHandler);
       this.paletteClickHandler = null;
     }
+
+    // Remove palettes from body if they were moved there
+    if (this.colorPalette.parentElement === document.body) {
+      document.body.removeChild(this.colorPalette);
+    }
+    if (this.bgColorPalette.parentElement === document.body) {
+      document.body.removeChild(this.bgColorPalette);
+    }
+    if (this.anchorTypePalette.parentElement === document.body) {
+      document.body.removeChild(this.anchorTypePalette);
+    }
+    if (this.wrapTypePalette.parentElement === document.body) {
+      document.body.removeChild(this.wrapTypePalette);
+    }
+
     logger.info('Toolbar manager destroyed');
   }
 }

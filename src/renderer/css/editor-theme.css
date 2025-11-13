@@ -182,10 +182,8 @@
 /* ===== Enhanced Color Picker Styling ===== */
 
 .editor-color-palette {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 6px;
+  position: fixed;
+  /* Position calculated dynamically via JavaScript */
   padding: 14px;
   background: var(--editor-dropdown-bg);
   border: 1px solid var(--editor-dropdown-border);

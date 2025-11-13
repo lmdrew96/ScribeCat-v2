@@ -232,10 +232,8 @@
 
 /* Anchor Type Palette */
 .anchor-palette {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 4px;
+  position: fixed;
+  /* Position calculated dynamically via JavaScript */
   padding: 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -286,10 +284,8 @@
 
 /* Wrap Type Palette */
 .wrap-palette {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 4px;
+  position: fixed;
+  /* Position calculated dynamically via JavaScript */
   padding: 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
