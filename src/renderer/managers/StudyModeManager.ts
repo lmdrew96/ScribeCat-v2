@@ -186,11 +186,13 @@ export class StudyModeManager {
         // Return to recording view
         (window as any).viewManager?.show('recording');
       },
-      onExportSession: () => {
-        // Export selected sessions if any, otherwise do nothing
-        const selectedIds = this.bulkSelectionManager.getSelectedSessionIds();
-        if (selectedIds.size > 0) {
-          this.handleBulkExport(selectedIds);
+      onSaveNotes: async () => {
+        // Save notes in current editor immediately
+        const notesAutoSaveManager = (window as any).notesAutoSaveManager;
+
+        if (notesAutoSaveManager) {
+          await notesAutoSaveManager.saveImmediately();
+          // Note: saveImmediately() shows its own indicator, no toast needed
         }
       },
       onDeleteSelected: () => {

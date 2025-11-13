@@ -199,14 +199,13 @@ export class KeyboardShortcutsOverlay {
         shortcuts: [
           { keys: ['Cmd', 'N'], description: 'New recording' },
           { keys: ['Cmd', 'S'], description: 'Save notes' },
-          { keys: ['Cmd', 'E'], description: 'Export session' },
           { keys: ['Del'], description: 'Delete selected' }
         ]
       },
       {
         name: 'Recording',
         shortcuts: [
-          { keys: ['Cmd', 'R'], description: 'Start/Stop recording' },
+          { keys: ['Cmd', 'Space'], description: 'Start/Stop recording' },
           { keys: ['Cmd', 'P'], description: 'Pause/Resume' }
         ]
       }

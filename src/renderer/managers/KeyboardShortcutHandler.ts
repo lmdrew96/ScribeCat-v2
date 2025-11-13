@@ -14,7 +14,7 @@ export interface KeyboardShortcutCallbacks {
   onViewModeChange: (mode: ViewMode) => void;
   onFocusSearch: () => void;
   onNewRecording: () => void;
-  onExportSession: () => void;
+  onSaveNotes: () => void;
   onDeleteSelected: () => void;
   onToggleRecording: () => void;
   onTogglePause: () => void;
@@ -99,11 +99,11 @@ export class KeyboardShortcutHandler {
       return;
     }
 
-    // Export: Cmd/Ctrl + E
-    if (cmdOrCtrl && e.key === 'e') {
+    // Save notes: Cmd/Ctrl + S
+    if (cmdOrCtrl && e.key === 's') {
       e.preventDefault();
-      this.callbacks.onExportSession();
-      logger.info('Keyboard shortcut: Export session');
+      this.callbacks.onSaveNotes();
+      logger.info('Keyboard shortcut: Save notes');
       return;
     }
 
@@ -117,8 +117,8 @@ export class KeyboardShortcutHandler {
     }
 
     // Recording shortcuts
-    // Toggle recording: Cmd/Ctrl + R
-    if (cmdOrCtrl && e.key === 'r') {
+    // Toggle recording: Cmd/Ctrl + Space
+    if (cmdOrCtrl && e.key === ' ') {
       e.preventDefault();
       this.callbacks.onToggleRecording();
       logger.info('Keyboard shortcut: Toggle recording');

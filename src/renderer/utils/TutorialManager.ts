@@ -75,7 +75,7 @@ export class TutorialManager {
         {
           target: '#record-btn',
           title: 'Start Recording',
-          content: 'Click this button or press <kbd>Cmd+R</kbd> to start recording. Your audio will be transcribed in real-time!',
+          content: 'Click this button or press <kbd>Cmd+Space</kbd> to start recording. Your audio will be transcribed in real-time!',
           position: 'bottom',
           beforeShow: async () => {
             // Ensure we're in recording view, not study mode
@@ -111,7 +111,7 @@ export class TutorialManager {
         {
           target: '#record-btn',
           title: 'Stop Recording',
-          content: 'Click the button again or press <kbd>Cmd+R</kbd> to stop. Your session is automatically saved - no manual save needed!',
+          content: 'Click the button again or press <kbd>Cmd+Space</kbd> to stop. Your session is automatically saved - no manual save needed!',
           position: 'bottom'
         }
       ]

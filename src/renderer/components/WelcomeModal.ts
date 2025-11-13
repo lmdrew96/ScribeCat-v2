@@ -52,7 +52,7 @@ export class WelcomeModal {
       content: `
         <p>Getting started is easy!</p>
         <div style="text-align: left; margin: 16px 0; line-height: 1.8;">
-          <p><strong>1. Click the red record button</strong> or press <kbd style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">Cmd+R</kbd></p>
+          <p><strong>1. Click the red record button</strong> or press <kbd style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">Cmd+Space</kbd></p>
           <p><strong>2. Your audio is transcribed in real-time</strong> - watch the words appear!</p>
           <p><strong>3. Take notes</strong> in the editor while recording</p>
           <p><strong>4. Click stop</strong> when you're done - your session is auto-saved</p>

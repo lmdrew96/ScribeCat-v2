@@ -43,6 +43,8 @@ import { BreakReminders, initializeBreakReminders } from './components/BreakRemi
 // Editor Enhancements: Professional icon system
 import { initToolbarUpgrades } from './components/editor/ToolbarIconUpgrader.js';
 import { initEmojiPicker } from './components/editor/EmojiPicker.js';
+// Keyboard Shortcuts: Centralized registry and validation
+import { initializeShortcutValidation } from './managers/ShortcutRegistry.js';
 
 // ===== Managers =====
 let audioManager: AudioManager;
@@ -105,6 +107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   themeManager = new ThemeManager();
   await themeManager.initialize();
 
+  // Validate keyboard shortcuts (catch conflicts early in dev mode)
+  initializeShortcutValidation();
+
   // Initialize professional toolbar icons (upgrade emoji to SVG)
   initToolbarUpgrades();
 
@@ -146,6 +151,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize notes auto-save manager
   notesAutoSaveManager = new NotesAutoSaveManager(editorManager);
   notesAutoSaveManager.initialize();
+
+  // Expose notesAutoSaveManager globally for keyboard shortcuts
+  (window as any).notesAutoSaveManager = notesAutoSaveManager;
 
   // Initialize recording manager (coordinates everything)
   recordingManager = new RecordingManager(
