@@ -182,10 +182,26 @@ export class DetailViewEventHandler {
     });
 
     // Timestamp click handlers - seek audio to segment time
+    this.attachTranscriptionSegmentClickHandlers();
+  }
+
+  /**
+   * Attach click handlers to transcription segments for audio seeking
+   * Handles both data-start-time and data-start attributes for compatibility
+   */
+  private static attachTranscriptionSegmentClickHandlers(): void {
+    const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
+    if (!audioElement) return;
+
     const segments = document.querySelectorAll('.transcription-segment');
     segments.forEach(segment => {
       segment.addEventListener('click', () => {
-        const startTime = parseFloat((segment as HTMLElement).dataset.startTime || '0');
+        // Check both data-start-time (single session) and data-start (multi-session) attributes
+        const startTime = parseFloat(
+          (segment as HTMLElement).dataset.startTime ||
+          (segment as HTMLElement).dataset.start ||
+          '0'
+        );
         if (audioElement && !isNaN(startTime)) {
           audioElement.currentTime = startTime;
           if (audioElement.paused) {
@@ -463,6 +479,10 @@ export class DetailViewEventHandler {
     // Setup audio player for active session
     const activeSession = childSessions[activeTabIndex];
     this.setupAudioPlayer(activeSession, sessionPlaybackManager, sessionDetailContainer);
+
+    // Attach timestamp click handlers for multi-session transcription segments
+    // This ensures click handlers work even if segments use different data attributes
+    this.attachTranscriptionSegmentClickHandlers();
 
     // Scroll to top button
     this.attachScrollToTopHandler();
