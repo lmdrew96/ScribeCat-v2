@@ -257,7 +257,6 @@
 
 /* Study Set title styling in timeline view */
 .timeline-session-title.study-set-title {
-  color: #764ba2;
   font-weight: 700;
 }
 
@@ -315,7 +314,6 @@
 
 /* Study Set title styling in grid view */
 .grid-card-title.study-set-title {
-  color: #764ba2;
   font-weight: 700;
 }
 
@@ -431,7 +429,6 @@
 
 /* Study Set title styling in list view */
 .list-title.study-set-title {
-  color: #764ba2;
   font-weight: 700;
 }
 
@@ -604,7 +601,6 @@
 
 /* Study Set title styling in board view */
 .board-card-title.study-set-title {
-  color: #764ba2;
   font-weight: 700;
 }
 
