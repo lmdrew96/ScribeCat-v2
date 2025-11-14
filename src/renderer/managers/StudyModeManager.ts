@@ -474,13 +474,18 @@ export class StudyModeManager {
    * Update sessions (called when sessions are loaded/updated)
    */
   private updateSessions(sessions: Session[]): void {
-    logger.info(`Updating with ${sessions.length} sessions`);
+    logger.info(`Updating with ${sessions.length} sessions (before filtering)`);
+
+    // Filter out child sessions that belong to study sets
+    // Child sessions should only be visible inside the study set detail view
+    const filteredSessions = this.filterOutChildSessions(sessions);
+    logger.info(`Filtered out ${sessions.length - filteredSessions.length} child sessions`);
 
     // Store sessions internally (already done by loadSessions)
-    this.sessions = sessions;
+    this.sessions = filteredSessions;
 
     // Update search manager
-    this.searchManager.setSessions(sessions);
+    this.searchManager.setSessions(filteredSessions);
 
     // Always render when sessions are updated (search will be maintained if active)
     const searchState = this.searchManager.getState();
@@ -538,6 +543,24 @@ export class StudyModeManager {
 
     // Return all sessions when no search is active
     return this.sessions;
+  }
+
+  /**
+   * Filter out child sessions that belong to study sets
+   * Child sessions should not appear in the main session list - only the parent study set should be visible
+   */
+  private filterOutChildSessions(sessions: Session[]): Session[] {
+    // Build a Set of all child session IDs across all study sets
+    const childSessionIds = new Set<string>();
+
+    sessions.forEach(session => {
+      if (session.isMultiSessionStudySet() && session.childSessionIds) {
+        session.childSessionIds.forEach(id => childSessionIds.add(id));
+      }
+    });
+
+    // Return only sessions that are NOT children of any study set
+    return sessions.filter(session => !childSessionIds.has(session.id));
   }
 
   /**
@@ -726,10 +749,9 @@ export class StudyModeManager {
       ],
 
       // Callback-based events
-      callbacks: [
-        { register: (handler) => this.sessionListManager.onBulkExport(handler), handler: (sessionIds) => this.handleBulkExport(sessionIds) },
-        { register: (handler) => this.sessionListManager.onBulkDelete(handler), handler: (sessionIds) => this.handleBulkDelete(sessionIds) }
-      ]
+      // NOTE: Bulk action callbacks removed - now handled by BulkSelectionManager (lines 454-460)
+      // This fixes the bug where select-all + deselect would delete all sessions
+      callbacks: []
     });
   }
 
@@ -917,7 +939,6 @@ export class StudyModeManager {
       await this.loadSessions();
 
       // Clear selections AFTER rendering to ensure proper cleanup
-      this.sessionListManager.clearSelection();
       this.bulkSelectionManager.clearSelection();
     });
   }
@@ -946,7 +967,6 @@ export class StudyModeManager {
         await this.loadSessions();
 
         // Clear selections AFTER rendering to ensure proper cleanup
-        this.sessionListManager.clearSelection();
         this.bulkSelectionManager.clearSelection();
       }
     );
@@ -1195,7 +1215,7 @@ export class StudyModeManager {
       bulkExportBtn,
       {
         onBulkExportComplete: () => {
-          this.sessionListManager.clearSelection();
+          this.bulkSelectionManager.clearSelection();
         }
       }
     );
@@ -1207,7 +1227,6 @@ export class StudyModeManager {
   private async handleBulkDelete(sessionIds: Set<string>): Promise<void> {
     await this.sessionDeletionManager.handleBulkDelete(sessionIds, async () => {
       // Clear selection and refresh after bulk deletion
-      this.sessionListManager.clearSelection();
       this.bulkSelectionManager.clearSelection();
       await this.loadSessions(); // Automatically renders with fresh data
     });
@@ -1244,7 +1263,7 @@ export class StudyModeManager {
       await this.loadSessions(); // Phase3Integration will handle rendering
 
       // Clear selection after creating study set
-      this.sessionListManager.clearSelection();
+      this.bulkSelectionManager.clearSelection();
 
       // Optionally, open the newly created study set
       await this.openSessionDetail(newSessionId);

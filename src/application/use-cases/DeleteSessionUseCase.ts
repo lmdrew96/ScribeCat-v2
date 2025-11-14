@@ -41,6 +41,22 @@ export class DeleteSessionUseCase {
         throw new Error(`Session with ID ${sessionId} not found`);
       }
 
+      // Check if this session is part of any study set
+      // If it is, prevent deletion and warn the user
+      const allSessions = await this.sessionRepository.findAll();
+      const parentStudySets = allSessions.filter(s =>
+        s.isMultiSessionStudySet() &&
+        s.childSessionIds?.includes(sessionId)
+      );
+
+      if (parentStudySets.length > 0) {
+        const studySetTitles = parentStudySets.map(s => `"${s.title}"`).join(', ');
+        throw new Error(
+          `Cannot delete this session because it's part of ${parentStudySets.length} study set(s): ${studySetTitles}. ` +
+          `Please delete the study set(s) first, or this session will remain accessible through them.`
+        );
+      }
+
       // NOTE: We do NOT delete audio files during soft delete
       // Audio files will be kept until the session is permanently deleted (after 30 days in trash)
 

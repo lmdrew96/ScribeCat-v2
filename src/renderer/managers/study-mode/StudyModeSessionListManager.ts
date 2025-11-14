@@ -25,8 +25,7 @@ export class StudyModeSessionListManager {
   private courseFilter: HTMLSelectElement | null = null;
   private sortSelect: HTMLSelectElement | null = null;
 
-  // Bulk action state
-  private selectedSessionIds: Set<string> = new Set();
+  // Bulk action state (managed by BulkSelectionManager in Phase 3)
   private bulkActionsBar: HTMLElement | null = null;
   private selectAllCheckbox: HTMLInputElement | null = null;
   private selectedCountSpan: HTMLElement | null = null;
@@ -187,122 +186,15 @@ export class StudyModeSessionListManager {
 
 
   // Phase 2 event handlers removed - Phase3 views handle their own events
-
-
-  /**
-   * Handle session selection
-   */
-  private handleSessionSelection(sessionId: string, isSelected: boolean): void {
-    if (isSelected) {
-      this.selectedSessionIds.add(sessionId);
-    } else {
-      this.selectedSessionIds.delete(sessionId);
-    }
-
-    this.updateBulkActionsBar();
-    this.updateSessionCardSelection(sessionId, isSelected);
-  }
+  // Phase 3: All selection management moved to BulkSelectionManager
+  // Legacy selection methods removed to fix bug where select-all + deselect would delete all sessions
 
   /**
-   * Handle select all checkbox
-   */
-  private handleSelectAll(isChecked: boolean): void {
-    if (isChecked) {
-      // Select all filtered sessions
-      this.filteredSessions.forEach(session => {
-        this.selectedSessionIds.add(session.id);
-      });
-    } else {
-      // Deselect all
-      this.selectedSessionIds.clear();
-    }
-
-    this.updateBulkActionsBar();
-    // Note: Don't call render() here - Phase3Integration handles all rendering
-    // Selection state is maintained through Phase3 BulkSelectionManager
-  }
-
-  /**
-   * Update bulk actions bar visibility and state
-   */
-  private updateBulkActionsBar(): void {
-    const count = this.selectedSessionIds.size;
-
-    if (!this.bulkActionsBar || !this.selectedCountSpan ||
-        !this.bulkExportBtn || !this.bulkDeleteBtn || !this.selectAllCheckbox) {
-      return;
-    }
-
-    // Show/hide bulk actions bar
-    if (count > 0) {
-      this.bulkActionsBar.classList.remove('hidden');
-    } else {
-      this.bulkActionsBar.classList.add('hidden');
-    }
-
-    // Update count text
-    this.selectedCountSpan.textContent = `${count} selected`;
-
-    // Update select all checkbox state
-    const allSelected = this.filteredSessions.length > 0 &&
-                       count === this.filteredSessions.length;
-    this.selectAllCheckbox.checked = allSelected;
-    this.selectAllCheckbox.indeterminate = count > 0 && !allSelected;
-
-    // Enable/disable action buttons
-    this.bulkExportBtn.disabled = count === 0;
-    this.bulkDeleteBtn.disabled = count === 0;
-  }
-
-  /**
-   * Update session card selection state
-   */
-  private updateSessionCardSelection(sessionId: string, isSelected: boolean): void {
-    const card = document.querySelector(`.session-card[data-session-id="${sessionId}"]`);
-    if (card) {
-      if (isSelected) {
-        card.classList.add('selected');
-      } else {
-        card.classList.remove('selected');
-      }
-    }
-  }
-
-  /**
-   * Get selected session IDs
-   */
-  getSelectedSessionIds(): Set<string> {
-    return this.selectedSessionIds;
-  }
-
-  /**
-   * Clear selected sessions
+   * Clear selected sessions (delegates to BulkSelectionManager via StudyModeManager)
    */
   clearSelection(): void {
-    this.selectedSessionIds.clear();
-    this.updateBulkActionsBar();
-    // Note: Don't call render() here - Phase3Integration handles all rendering
-  }
-
-  /**
-   * Register bulk export handler
-   */
-  onBulkExport(handler: (sessionIds: Set<string>) => void): void {
-    if (this.bulkExportBtn) {
-      this.bulkExportBtn.addEventListener('click', () => {
-        handler(this.selectedSessionIds);
-      });
-    }
-  }
-
-  /**
-   * Register bulk delete handler
-   */
-  onBulkDelete(handler: (sessionIds: Set<string>) => void): void {
-    if (this.bulkDeleteBtn) {
-      this.bulkDeleteBtn.addEventListener('click', () => {
-        handler(this.selectedSessionIds);
-      });
-    }
+    // Note: This is now a no-op placeholder
+    // StudyModeManager handles clearing via bulkSelectionManager.clearSelection()
+    // Kept for backward compatibility but does nothing
   }
 }
