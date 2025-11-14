@@ -11,6 +11,7 @@ import { escapeHtml } from '../../utils/formatting.js';
 export class ListView {
   private container: HTMLElement;
   private onSessionClick: ((session: Session) => void) | null = null;
+  private allSessions: Session[] = [];
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -20,6 +21,8 @@ export class ListView {
    * Render list view
    */
   render(sessions: Session[]): void {
+    // Store all sessions for parent study set lookup
+    this.allSessions = sessions;
     if (sessions.length === 0) {
       this.container.innerHTML = `
         <div class="list-view-empty">
@@ -64,6 +67,18 @@ export class ListView {
   }
 
   /**
+   * Find parent study sets that include this session
+   */
+  private findParentStudySets(sessionId: string): Session[] {
+    return this.allSessions.filter(s =>
+      s.isMultiSessionStudySet &&
+      s.isMultiSessionStudySet() &&
+      s.childSessionIds &&
+      s.childSessionIds.includes(sessionId)
+    );
+  }
+
+  /**
    * Render a table row
    */
   private renderRow(session: Session): string {
@@ -81,6 +96,10 @@ export class ListView {
     const hasTranscription = session.hasTranscription();
     const hasNotes = session.notes && session.notes.trim().length > 0;
     const hasSummary = session.summary && session.summary.trim().length > 0;
+
+    // Check if this session is part of any study sets
+    const parentStudySets = this.findParentStudySets(session.id);
+    const isPartOfStudySet = parentStudySets.length > 0;
 
     // Check if session can be selected (not a shared non-owner session)
     const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
@@ -116,6 +135,7 @@ export class ListView {
             ${hasTranscription ? '<span class="list-indicator" title="Transcribed">T</span>' : ''}
             ${hasNotes ? '<span class="list-indicator" title="Has notes">N</span>' : ''}
             ${hasSummary ? '<span class="list-indicator" title="Summarized">S</span>' : ''}
+            ${isPartOfStudySet ? `<span class="list-indicator study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">📚</span>` : ''}
           </div>
         </td>
       </tr>

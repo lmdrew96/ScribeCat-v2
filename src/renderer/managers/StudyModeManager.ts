@@ -474,18 +474,13 @@ export class StudyModeManager {
    * Update sessions (called when sessions are loaded/updated)
    */
   private updateSessions(sessions: Session[]): void {
-    logger.info(`Updating with ${sessions.length} sessions (before filtering)`);
-
-    // Filter out child sessions that belong to study sets
-    // Child sessions should only be visible inside the study set detail view
-    const filteredSessions = this.filterOutChildSessions(sessions);
-    logger.info(`Filtered out ${sessions.length - filteredSessions.length} child sessions`);
+    logger.info(`Updating with ${sessions.length} sessions`);
 
     // Store sessions internally (already done by loadSessions)
-    this.sessions = filteredSessions;
+    this.sessions = sessions;
 
     // Update search manager
-    this.searchManager.setSessions(filteredSessions);
+    this.searchManager.setSessions(sessions);
 
     // Always render when sessions are updated (search will be maintained if active)
     const searchState = this.searchManager.getState();
@@ -547,21 +542,24 @@ export class StudyModeManager {
 
   /**
    * Filter out child sessions that belong to study sets
-   * Child sessions should not appear in the main session list - only the parent study set should be visible
+   * DISABLED: Child sessions now appear alongside their parent study sets in the main list
+   *
+   * This method is kept for reference but no longer used.
+   * To re-enable filtering, call this method in updateSessions() before setting this.sessions
    */
-  private filterOutChildSessions(sessions: Session[]): Session[] {
-    // Build a Set of all child session IDs across all study sets
-    const childSessionIds = new Set<string>();
+  // private filterOutChildSessions(sessions: Session[]): Session[] {
+  //   // Build a Set of all child session IDs across all study sets
+  //   const childSessionIds = new Set<string>();
 
-    sessions.forEach(session => {
-      if (session.isMultiSessionStudySet() && session.childSessionIds) {
-        session.childSessionIds.forEach(id => childSessionIds.add(id));
-      }
-    });
+  //   sessions.forEach(session => {
+  //     if (session.isMultiSessionStudySet() && session.childSessionIds) {
+  //       session.childSessionIds.forEach(id => childSessionIds.add(id));
+  //     }
+  //   });
 
-    // Return only sessions that are NOT children of any study set
-    return sessions.filter(session => !childSessionIds.has(session.id));
-  }
+  //   // Return only sessions that are NOT children of any study set
+  //   return sessions.filter(session => !childSessionIds.has(session.id));
+  // }
 
   /**
    * Render current view mode

@@ -282,6 +282,18 @@ export class TimelineView {
   }
 
   /**
+   * Find parent study sets that include this session
+   */
+  private findParentStudySets(sessionId: string): Session[] {
+    return this.sessions.filter(s =>
+      s.isMultiSessionStudySet &&
+      s.isMultiSessionStudySet() &&
+      s.childSessionIds &&
+      s.childSessionIds.includes(sessionId)
+    );
+  }
+
+  /**
    * Render a session item in the timeline list
    */
   private renderSessionItem(session: Session): string {
@@ -290,6 +302,10 @@ export class TimelineView {
       hour: 'numeric',
       minute: '2-digit'
     });
+
+    // Check if this session is part of any study sets
+    const parentStudySets = this.findParentStudySets(session.id);
+    const isPartOfStudySet = parentStudySets.length > 0;
 
     // Check if session can be selected (not a shared non-owner session)
     const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
@@ -307,6 +323,7 @@ export class TimelineView {
             ${duration} min
             ${session.hasTranscription() ? ' • Transcribed' : ''}
             ${session.notes ? ' • Has notes' : ''}
+            ${isPartOfStudySet ? ` • <span class="study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">📚 In Study Set</span>` : ''}
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { escapeHtml } from '../../utils/formatting.js';
 export class GridView {
   private container: HTMLElement;
   private onSessionClick: ((session: Session) => void) | null = null;
+  private allSessions: Session[] = [];
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -20,6 +21,8 @@ export class GridView {
    * Render grid view
    */
   render(sessions: Session[]): void {
+    // Store all sessions for parent study set lookup
+    this.allSessions = sessions;
     if (sessions.length === 0) {
       this.container.innerHTML = `
         <div class="grid-view-empty">
@@ -55,6 +58,18 @@ export class GridView {
   }
 
   /**
+   * Find parent study sets that include this session
+   */
+  private findParentStudySets(sessionId: string): Session[] {
+    return this.allSessions.filter(s =>
+      s.isMultiSessionStudySet &&
+      s.isMultiSessionStudySet() &&
+      s.childSessionIds &&
+      s.childSessionIds.includes(sessionId)
+    );
+  }
+
+  /**
    * Render a session card
    */
   private renderCard(session: Session): string {
@@ -68,6 +83,10 @@ export class GridView {
     const hasTranscription = session.hasTranscription();
     const hasNotes = session.notes && session.notes.trim().length > 0;
     const hasSummary = session.summary && session.summary.trim().length > 0;
+
+    // Check if this session is part of any study sets
+    const parentStudySets = this.findParentStudySets(session.id);
+    const isPartOfStudySet = parentStudySets.length > 0;
 
     // Check if session can be selected (not a shared non-owner session)
     const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
@@ -96,6 +115,7 @@ export class GridView {
           ${hasNotes ? '<span class="indicator" title="Has notes">✍️</span>' : ''}
           ${hasSummary ? '<span class="indicator" title="Has AI summary">🤖</span>' : ''}
           ${session.tags.length > 0 ? '<span class="indicator" title="Has tags">🏷️</span>' : ''}
+          ${isPartOfStudySet ? `<span class="indicator study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">📚</span>` : ''}
         </div>
 
         ${session.tags.length > 0 ? `

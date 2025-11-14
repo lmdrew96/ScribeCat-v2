@@ -23,6 +23,7 @@ const UNCATEGORIZED_COLUMN = 'uncategorized';
 export class BoardView {
   private container: HTMLElement;
   private onSessionClick: ((session: Session) => void) | null = null;
+  private allSessions: Session[] = [];
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -32,6 +33,8 @@ export class BoardView {
    * Render board view
    */
   render(sessions: Session[]): void {
+    // Store all sessions for parent study set lookup
+    this.allSessions = sessions;
     // Categorize sessions by course
     const { columns, categorized } = this.categorizeSessions(sessions);
 
@@ -133,6 +136,18 @@ export class BoardView {
   }
 
   /**
+   * Find parent study sets that include this session
+   */
+  private findParentStudySets(sessionId: string): Session[] {
+    return this.allSessions.filter(s =>
+      s.isMultiSessionStudySet &&
+      s.isMultiSessionStudySet() &&
+      s.childSessionIds &&
+      s.childSessionIds.includes(sessionId)
+    );
+  }
+
+  /**
    * Render a session card
    */
   private renderCard(session: Session): string {
@@ -141,6 +156,10 @@ export class BoardView {
       month: 'short',
       day: 'numeric'
     });
+
+    // Check if this session is part of any study sets
+    const parentStudySets = this.findParentStudySets(session.id);
+    const isPartOfStudySet = parentStudySets.length > 0;
 
     // Check if session can be selected (not a shared non-owner session)
     const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
@@ -159,6 +178,7 @@ export class BoardView {
           ${session.hasTranscription() ? '<span title="Transcribed">📝</span>' : ''}
           ${session.notes ? '<span title="Has notes">✍️</span>' : ''}
           ${session.summary ? '<span title="Summarized">🤖</span>' : ''}
+          ${isPartOfStudySet ? `<span class="study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">📚</span>` : ''}
         </div>
 
         ${session.tags.length > 0 ? `
