@@ -464,6 +464,9 @@ export class DetailViewEventHandler {
       sessionDetailContainer.dispatchEvent(new CustomEvent('backToList'));
     });
 
+    // Action buttons (Delete button for study sets)
+    this.attachActionButtons(session, sessionDetailContainer);
+
     // Tab click handlers
     const tabs = document.querySelectorAll('.session-tab');
     tabs.forEach((tab) => {
