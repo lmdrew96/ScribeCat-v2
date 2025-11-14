@@ -30,7 +30,6 @@ export class StudyModeSessionListManager {
   private bulkActionsBar: HTMLElement | null = null;
   private selectAllCheckbox: HTMLInputElement | null = null;
   private selectedCountSpan: HTMLElement | null = null;
-  private createStudySetBtn: HTMLButtonElement | null = null;
   private bulkExportBtn: HTMLButtonElement | null = null;
   private bulkDeleteBtn: HTMLButtonElement | null = null;
 
@@ -52,7 +51,6 @@ export class StudyModeSessionListManager {
     this.bulkActionsBar = document.getElementById('bulk-actions-bar') as HTMLElement;
     this.selectAllCheckbox = document.getElementById('select-all-sessions') as HTMLInputElement;
     this.selectedCountSpan = document.getElementById('selected-count') as HTMLElement;
-    this.createStudySetBtn = document.getElementById('create-study-set-btn') as HTMLButtonElement;
     this.bulkExportBtn = document.getElementById('bulk-export-btn') as HTMLButtonElement;
     this.bulkDeleteBtn = document.getElementById('bulk-delete-btn') as HTMLButtonElement;
 
@@ -93,13 +91,6 @@ export class StudyModeSessionListManager {
     if (this.selectAllCheckbox) {
       this.selectAllCheckbox.addEventListener('change', (e) => {
         this.handleSelectAll((e.target as HTMLInputElement).checked);
-      });
-    }
-
-    // Create Study Set button handler
-    if (this.createStudySetBtn) {
-      this.createStudySetBtn.addEventListener('click', () => {
-        this.handleCreateStudySet();
       });
     }
   }
@@ -232,40 +223,13 @@ export class StudyModeSessionListManager {
   }
 
   /**
-   * Handle create study set button click
-   */
-  private async handleCreateStudySet(): Promise<void> {
-    if (this.selectedSessionIds.size < 2) {
-      alert('Please select at least 2 sessions to create a study set');
-      return;
-    }
-
-    const selectedSessions = Array.from(this.selectedSessionIds)
-      .map(id => this.sessions.find(s => s.id === id))
-      .filter((s): s is Session => s !== undefined);
-
-    const courseIds = selectedSessions.map(s => s.courseId);
-    const uniqueCourseIds = new Set(courseIds);
-
-    if (uniqueCourseIds.size > 1) {
-      alert('Cannot create study set: all sessions must be from the same course');
-      return;
-    }
-
-    this.sessionListContainer.dispatchEvent(
-      new CustomEvent('openReorderModal', { detail: { sessions: selectedSessions } })
-    );
-  }
-
-  /**
    * Update bulk actions bar visibility and state
    */
   private updateBulkActionsBar(): void {
     const count = this.selectedSessionIds.size;
 
     if (!this.bulkActionsBar || !this.selectedCountSpan ||
-        !this.bulkExportBtn || !this.bulkDeleteBtn || !this.selectAllCheckbox ||
-        !this.createStudySetBtn) {
+        !this.bulkExportBtn || !this.bulkDeleteBtn || !this.selectAllCheckbox) {
       return;
     }
 
@@ -286,7 +250,6 @@ export class StudyModeSessionListManager {
     this.selectAllCheckbox.indeterminate = count > 0 && !allSelected;
 
     // Enable/disable action buttons
-    this.createStudySetBtn.disabled = count < 2; // Need at least 2 sessions for a study set
     this.bulkExportBtn.disabled = count === 0;
     this.bulkDeleteBtn.disabled = count === 0;
   }
