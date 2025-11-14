@@ -146,4 +146,28 @@ export class ViewManager {
   clearSessionInfo(): void {
     this.sessionInfo.textContent = '';
   }
+
+  /**
+   * Reset session UI elements for new session
+   * Clears session title, course selection, and elapsed time
+   */
+  resetSessionUI(): void {
+    // Reset session title input
+    const sessionTitleInput = document.getElementById('session-title-input') as HTMLInputElement;
+    if (sessionTitleInput) {
+      sessionTitleInput.value = '';
+    }
+
+    // Reset course selection to default
+    const courseSelect = document.getElementById('course-select') as HTMLSelectElement;
+    if (courseSelect) {
+      courseSelect.value = '';
+    }
+
+    // Reset elapsed time display
+    this.updateElapsedTime(0);
+
+    // Clear session info message
+    this.clearSessionInfo();
+  }
 }

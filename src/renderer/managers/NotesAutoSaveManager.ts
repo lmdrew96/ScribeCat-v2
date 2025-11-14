@@ -247,6 +247,42 @@ export class NotesAutoSaveManager {
   }
 
   /**
+   * Save notes now (public alias for saveImmediately)
+   * Used by SessionResetManager for "New Session" functionality
+   */
+  async saveNow(): Promise<void> {
+    await this.saveImmediately();
+  }
+
+  /**
+   * Reset auto-save manager state for new session
+   * Clears session tracking but preserves timers
+   */
+  reset(): void {
+    logger.info('Resetting auto-save manager state');
+
+    // Clear session tracking
+    this.currentSessionId = null;
+    this.isDraftSession = false;
+
+    // Reset last save time
+    this.lastSaveTime = 0;
+
+    // Clear any pending timers
+    if (this.autoSaveTimer !== null) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
+
+    if (this.maxIntervalTimer !== null) {
+      clearTimeout(this.maxIntervalTimer);
+      this.maxIntervalTimer = null;
+    }
+
+    logger.debug('Auto-save manager state reset complete');
+  }
+
+  /**
    * Get current session ID
    */
   getCurrentSessionId(): string | null {

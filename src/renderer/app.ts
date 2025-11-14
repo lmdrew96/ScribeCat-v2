@@ -18,6 +18,7 @@ import { CourseManager } from './managers/CourseManager.js';
 import { ThemeManager } from './themes/ThemeManager.js';
 import { StudyModeManager } from './managers/StudyModeManager.js';
 import { NotesAutoSaveManager } from './managers/NotesAutoSaveManager.js';
+import { SessionResetManager } from './managers/SessionResetManager.js';
 import { AuthManager } from './managers/AuthManager.js';
 import { AuthScreen } from './components/AuthScreen.js';
 import { UserProfileMenu } from './components/UserProfileMenu.js';
@@ -60,6 +61,7 @@ let deviceManager: DeviceManager;
 let courseManager: CourseManager;
 let studyModeManager: StudyModeManager;
 let notesAutoSaveManager: NotesAutoSaveManager;
+let sessionResetManager: SessionResetManager;
 let authManager: AuthManager;
 let authScreen: AuthScreen;
 let userProfileMenu: UserProfileMenu;
@@ -168,6 +170,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
   recordingManager.initialize();
 
+  // Initialize session reset manager (coordinates session state reset)
+  sessionResetManager = new SessionResetManager(
+    editorManager,
+    transcriptionManager,
+    notesAutoSaveManager,
+    viewManager,
+    recordingManager
+  );
+
   // Initialize editor
   editorManager.initialize();
 
@@ -177,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Set up periodic button state updates
-  setInterval(updateClearButtonStates, 1000);
+  setInterval(updateNewSessionButtonState, 1000);
 
   // Load microphone devices
   await deviceManager.loadDevices();
@@ -326,15 +337,12 @@ function setupEventListeners(): void {
   // Pause button
   const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
   pauseBtn.addEventListener('click', handlePauseToggle);
-  
-  // Clear buttons
-  const clearNotesBtn = document.getElementById('clear-notes-btn') as HTMLButtonElement;
-  const clearTranscriptionBtn = document.getElementById('clear-transcription-btn') as HTMLButtonElement;
-  const clearBothBtn = document.getElementById('clear-both-btn') as HTMLButtonElement;
-  
-  clearNotesBtn.addEventListener('click', handleClearNotes);
-  clearTranscriptionBtn.addEventListener('click', handleClearTranscription);
-  clearBothBtn.addEventListener('click', handleClearBoth);
+
+  // New Session button
+  const newSessionBtn = document.getElementById('new-session-btn') as HTMLButtonElement;
+  if (newSessionBtn) {
+    newSessionBtn.addEventListener('click', handleNewSession);
+  }
 
   // Trash button
   const trashBtn = document.getElementById('trash-btn') as HTMLButtonElement;
@@ -384,7 +392,7 @@ function setupEventListeners(): void {
   });
 
   // Update button states on content changes
-  updateClearButtonStates();
+  updateNewSessionButtonState();
 }
 
 /**
@@ -466,79 +474,75 @@ async function resumeRecording(): Promise<void> {
 }
 
 /**
- * Handle clear notes button
+ * Handle new session button
+ * Saves current work and resets session state
  */
-function handleClearNotes(): void {
-  const hasContent = editorManager.getNotesText().trim().length > 0;
-  
-  if (!hasContent) {
+async function handleNewSession(): Promise<void> {
+  // Check if we can reset
+  if (!sessionResetManager.canReset()) {
+    const reason = sessionResetManager.getDisabledReason();
+    toastManager.warning(`Cannot start new session: ${reason}`, {
+      duration: 3000,
+      position: 'bottom-right'
+    });
     return;
   }
-  
-  const confirmed = confirm('Clear all notes? This cannot be undone.');
-  
-  if (confirmed) {
-    editorManager.clearNotes();
-    updateClearButtonStates();
+
+  // Show confirmation dialog
+  const confirmed = confirm('Start a new session? Your current work will be saved automatically.');
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    // Reset session
+    const result = await sessionResetManager.resetSession();
+
+    if (result.success) {
+      // Show success toast
+      toastManager.success('✓ New session ready!', {
+        duration: 2000,
+        position: 'bottom-right'
+      });
+    } else {
+      // Show error toast
+      toastManager.error(result.error || 'Failed to reset session', {
+        duration: 3000,
+        position: 'bottom-right'
+      });
+    }
+  } catch (error) {
+    console.error('Error during new session reset:', error);
+    toastManager.error('Failed to start new session', {
+      duration: 3000,
+      position: 'bottom-right'
+    });
   }
 }
 
 /**
- * Handle clear transcription button
+ * Update new session button enabled/disabled state
+ * Disables button during active recording or when paused
  */
-function handleClearTranscription(): void {
-  const hasContent = transcriptionManager.getText().trim().length > 0;
-  
-  if (!hasContent) {
-    return;
-  }
-  
-  const confirmed = confirm('Clear transcription? This cannot be undone.');
-  
-  if (confirmed) {
-    transcriptionManager.clear();
-    updateClearButtonStates();
-  }
-}
+function updateNewSessionButtonState(): void {
+  const newSessionBtn = document.getElementById('new-session-btn') as HTMLButtonElement;
 
-/**
- * Handle clear both button
- */
-function handleClearBoth(): void {
-  const hasNotesContent = editorManager.getNotesText().trim().length > 0;
-  const hasTranscriptionContent = transcriptionManager.getText().trim().length > 0;
-  
-  if (!hasNotesContent && !hasTranscriptionContent) {
+  if (!newSessionBtn) {
     return;
   }
-  
-  const confirmed = confirm('Clear BOTH notes and transcription? This cannot be undone.');
-  
-  if (confirmed) {
-    editorManager.clearNotes();
-    transcriptionManager.clear();
-    updateClearButtonStates();
-  }
-}
 
-/**
- * Update clear button enabled/disabled states based on content
- */
-function updateClearButtonStates(): void {
-  const clearNotesBtn = document.getElementById('clear-notes-btn') as HTMLButtonElement;
-  const clearTranscriptionBtn = document.getElementById('clear-transcription-btn') as HTMLButtonElement;
-  const clearBothBtn = document.getElementById('clear-both-btn') as HTMLButtonElement;
-  
-  if (!clearNotesBtn || !clearTranscriptionBtn || !clearBothBtn) {
-    return;
+  // Enable button only when not recording and not paused
+  const canReset = sessionResetManager.canReset();
+  newSessionBtn.disabled = !canReset;
+
+  // Update tooltip with reason if disabled
+  if (!canReset) {
+    const reason = sessionResetManager.getDisabledReason();
+    newSessionBtn.title = `New Session (${reason})`;
+  } else {
+    newSessionBtn.title = 'Start a new session (saves current work)';
   }
-  
-  const hasNotesContent = editorManager.getNotesText().trim().length > 0;
-  const hasTranscriptionContent = transcriptionManager.getText().trim().length > 0;
-  
-  clearNotesBtn.disabled = !hasNotesContent;
-  clearTranscriptionBtn.disabled = !hasTranscriptionContent;
-  clearBothBtn.disabled = !hasNotesContent && !hasTranscriptionContent;
 }
 
 /**

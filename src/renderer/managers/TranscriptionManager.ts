@@ -3,6 +3,8 @@
  * Handles transcription display and updates
  */
 
+import { getRandomCatFact } from '../utils/cat-facts.js';
+
 export class TranscriptionManager {
   private transcriptionContainer: HTMLElement;
   private lastPartialText: string = '';
@@ -17,7 +19,7 @@ export class TranscriptionManager {
   }
 
   /**
-   * Clear transcription panel
+   * Clear transcription panel and restore placeholder with cat fact
    */
   clear(): void {
     this.transcriptionContainer.innerHTML = '';
@@ -27,6 +29,13 @@ export class TranscriptionManager {
     this.totalPausedTime = 0;
     this.pauseStartTime = 0;
     this.isPaused = false;
+
+    // Restore placeholder with random cat fact
+    const placeholder = document.createElement('div');
+    placeholder.className = 'transcription-placeholder';
+    placeholder.id = 'transcription-placeholder';
+    placeholder.textContent = getRandomCatFact();
+    this.transcriptionContainer.appendChild(placeholder);
   }
 
   /**
