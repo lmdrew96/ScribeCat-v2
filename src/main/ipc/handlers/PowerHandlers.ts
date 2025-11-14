@@ -22,9 +22,10 @@ export class PowerHandlers extends BaseHandler {
         return { success: true, blockerId: this.powerSaveBlockerId };
       }
 
-      // Use 'prevent-app-suspension' to prevent the app from being suspended
-      // This prevents system sleep while allowing display sleep
-      this.powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+      // Use 'prevent-display-sleep' for stronger protection against throttling
+      // This prevents both system sleep and display sleep during recording
+      // Ensures MediaRecorder and audio capture continue running in background
+      this.powerSaveBlockerId = powerSaveBlocker.start('prevent-display-sleep');
       console.log('✅ Sleep prevention enabled:', this.powerSaveBlockerId);
 
       return { success: true, blockerId: this.powerSaveBlockerId };

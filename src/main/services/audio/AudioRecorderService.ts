@@ -85,6 +85,26 @@ export class AudioRecorderService {
       // Get audio stream
       this.audioStream = await navigator.mediaDevices.getUserMedia(constraints);
 
+      // Monitor MediaStream tracks to detect if microphone becomes inactive
+      const audioTracks = this.audioStream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        const track = audioTracks[0];
+
+        console.log(`Audio track initialized: ${track.label} (state: ${track.readyState})`);
+
+        track.onended = () => {
+          console.error('❌ Audio track ended unexpectedly - microphone may have been disconnected or blocked');
+        };
+
+        track.onmute = () => {
+          console.warn('⚠️ Audio track muted - microphone input is muted');
+        };
+
+        track.onunmute = () => {
+          console.log('✅ Audio track unmuted');
+        };
+      }
+
       // Create MediaRecorder with optimized bitrate for speech
       const mimeType = this.getSupportedMimeType();
       this.mediaRecorder = new MediaRecorder(this.audioStream, {
@@ -99,6 +119,27 @@ export class AudioRecorderService {
       this.mediaRecorder.ondataavailable = (event: BlobEvent) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data);
+        }
+      };
+
+      // Monitor MediaRecorder state changes to detect unexpected pauses/errors
+      this.mediaRecorder.onpause = () => {
+        // Only warn if this wasn't a user-initiated pause
+        if (this.pauseStartTime === 0) {
+          console.warn('⚠️ MediaRecorder paused unexpectedly - may be caused by window losing focus');
+        }
+      };
+
+      this.mediaRecorder.onresume = () => {
+        console.log('✅ MediaRecorder resumed');
+      };
+
+      this.mediaRecorder.onerror = (event: Event) => {
+        console.error('❌ MediaRecorder error:', event);
+        // Cast to MediaRecorderErrorEvent to access error property
+        const errorEvent = event as any;
+        if (errorEvent.error) {
+          console.error('Error details:', errorEvent.error);
         }
       };
 

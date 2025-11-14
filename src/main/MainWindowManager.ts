@@ -40,7 +40,8 @@ export class MainWindowManager {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        preload: path.join(__dirname, '../preload/preload.js')
+        preload: path.join(__dirname, '../preload/preload.js'),
+        backgroundThrottling: false // Prevent MediaRecorder throttling when window loses focus
       },
       titleBarStyle: 'hiddenInset',
       show: false
