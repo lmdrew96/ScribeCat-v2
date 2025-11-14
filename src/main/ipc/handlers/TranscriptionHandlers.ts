@@ -119,7 +119,7 @@ export class TranscriptionHandlers extends BaseHandler {
         // Step 2: Submit transcription request
         console.log('🎙️ Submitting transcription request');
 
-        // Note: AssemblyAI automatically includes sentences in the response
+        // Submit transcription request
         const transcriptId = await new Promise<string>((resolve, reject) => {
           const postData = JSON.stringify({
             audio_url: audioUrl,
@@ -216,13 +216,47 @@ export class TranscriptionHandlers extends BaseHandler {
           poll();
         });
 
-        // Step 4: Format and return transcription
+        // Step 4: Fetch sentence-level timestamps
+        console.log('📝 Fetching sentence-level timestamps...');
+        const sentences = await new Promise<any[]>((resolve, reject) => {
+          const options = {
+            hostname: 'api.assemblyai.com',
+            path: `/v2/transcript/${transcriptId}/sentences`,
+            method: 'GET',
+            headers: {
+              'Authorization': apiKey
+            }
+          };
+
+          const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const response = JSON.parse(data);
+                console.log(`✅ Retrieved ${response.sentences?.length || 0} sentences`);
+                resolve(response.sentences || []);
+              } catch (error) {
+                console.warn('⚠️ Failed to parse sentences, will use word-level fallback');
+                resolve([]);
+              }
+            });
+          });
+
+          req.on('error', (error) => {
+            console.warn('⚠️ Failed to fetch sentences, will use word-level fallback:', error);
+            resolve([]);
+          });
+          req.end();
+        });
+
+        // Step 5: Format and return transcription
         return {
           success: true,
           transcription: {
             text: result.text || '',
             words: result.words || [],
-            sentences: result.sentences || [],
+            sentences: sentences,
             utterances: result.utterances || [],
             confidence: result.confidence,
             audio_duration: result.audio_duration

@@ -1091,12 +1091,40 @@ export class StudyModeManager {
       // Update the session with new transcription
       const transcriptionData = result.transcription;
 
+      // Diagnostic logging to verify sentence-level timestamps
+      console.log('📊 Re-transcription data received:', {
+        hasSentences: !!transcriptionData.sentences,
+        sentenceCount: transcriptionData.sentences?.length || 0,
+        hasWords: !!transcriptionData.words,
+        wordCount: transcriptionData.words?.length || 0
+      });
+
       // Format timestamped entries from AssemblyAI sentences
-      const timestampedEntries = transcriptionData.sentences?.map((sentence: any) => ({
+      let timestampedEntries = transcriptionData.sentences?.map((sentence: any) => ({
         startTime: sentence.start / 1000, // Convert ms to seconds
         endTime: sentence.end / 1000,
         text: sentence.text
       })) || [];
+
+      // Fallback: If sentences are not available, use words to create sentence-like segments
+      if (timestampedEntries.length === 0 && transcriptionData.words?.length > 0) {
+        console.warn('⚠️ Sentences not available, falling back to word-level timestamps');
+
+        // Group words into ~10-word segments for reasonable timestamp granularity
+        const words = transcriptionData.words;
+        const wordsPerSegment = 10;
+
+        for (let i = 0; i < words.length; i += wordsPerSegment) {
+          const segmentWords = words.slice(i, i + wordsPerSegment);
+          const startTime = segmentWords[0].start / 1000;
+          const endTime = segmentWords[segmentWords.length - 1].end / 1000;
+          const text = segmentWords.map((w: any) => w.text).join(' ');
+
+          timestampedEntries.push({ startTime, endTime, text });
+        }
+
+        console.log(`✅ Created ${timestampedEntries.length} segments from word-level data`);
+      }
 
       // Update session transcription
       await (window as any).scribeCat.session.updateTranscription(
