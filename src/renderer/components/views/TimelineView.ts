@@ -310,12 +310,15 @@ export class TimelineView {
     // Check if session can be selected (not a shared non-owner session)
     const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
 
+    // Check if this is a study set
+    const isStudySet = session.isMultiSessionStudySet && session.isMultiSessionStudySet();
+
     return `
       <div class="timeline-session-item" data-session-id="${session.id}">
         <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         <div class="timeline-session-time">${time}</div>
         <div class="timeline-session-details">
-          <div class="timeline-session-title">${escapeHtml(session.title)}</div>
+          <div class="timeline-session-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? '📚 ' : ''}${escapeHtml(session.title)}</div>
           ${session.courseTitle ? `
             <div class="timeline-session-course">${escapeHtml(session.courseTitle)}</div>
           ` : ''}

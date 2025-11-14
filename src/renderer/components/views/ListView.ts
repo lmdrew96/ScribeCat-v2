@@ -104,13 +104,16 @@ export class ListView {
     // Check if session can be selected (not a shared non-owner session)
     const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
 
+    // Check if this is a study set
+    const isStudySet = session.isMultiSessionStudySet && session.isMultiSessionStudySet();
+
     return `
       <tr class="list-row" data-session-id="${session.id}">
         <td class="list-col-checkbox">
           <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         </td>
         <td class="list-col-title">
-          <div class="list-title">${escapeHtml(session.title)}</div>
+          <div class="list-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? '📚 ' : ''}${escapeHtml(session.title)}</div>
           ${session.tags.length > 0 ? `
             <div class="list-tags">
               ${session.tags.slice(0, 2).map(tag => `

@@ -164,10 +164,13 @@ export class BoardView {
     // Check if session can be selected (not a shared non-owner session)
     const canSelect = session.permissionLevel === undefined || session.permissionLevel === 'owner';
 
+    // Check if this is a study set
+    const isStudySet = session.isMultiSessionStudySet && session.isMultiSessionStudySet();
+
     return `
       <div class="board-card" data-session-id="${session.id}">
         <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
-        <div class="board-card-title">${escapeHtml(session.title)}</div>
+        <div class="board-card-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? '📚 ' : ''}${escapeHtml(session.title)}</div>
 
         <div class="board-card-meta">
           <span>${date}</span>
