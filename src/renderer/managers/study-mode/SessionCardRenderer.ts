@@ -62,7 +62,9 @@ export class SessionCardRenderer {
       <div class="session-card ${isSelected ? 'selected' : ''}" data-session-id="${session.id}">
         <input type="checkbox" class="session-card-checkbox" data-session-id="${session.id}" ${isSelected ? 'checked' : ''}>
         <div class="session-card-header">
-          <h3 class="session-title" data-session-id="${session.id}">${escapeHtml(session.title)}</h3>
+          <h3 class="session-title ${isStudySet ? 'study-set-title' : ''}" data-session-id="${session.id}">
+            ${isStudySet ? '📚 ' : ''}${escapeHtml(session.title)}
+          </h3>
           <button class="edit-title-btn" data-session-id="${session.id}" title="Edit title">✏️</button>
         </div>
 
