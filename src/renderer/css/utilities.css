@@ -89,6 +89,8 @@
   user-select: none;
   transition: background-color 0.2s ease;
   width: 100%;
+  max-height: 28px;
+  box-sizing: border-box;
 }
 
 .ticker-notification:hover {
