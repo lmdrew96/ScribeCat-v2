@@ -31,6 +31,7 @@ import { NotesEditCoordinator } from './study-mode/NotesEditCoordinator.js';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard.js';
 import { SearchManager } from './SearchManager.js';
 import { ViewModeManager, type ViewMode } from './ViewModeManager.js';
+import { FilterSortManager } from './study-mode/FilterSortManager.js';
 import { BulkSelectionManager } from './study-mode/BulkSelectionManager.js';
 import { KeyboardShortcutHandler } from './KeyboardShortcutHandler.js';
 import { SearchBar } from '../components/SearchBar.js';
@@ -68,6 +69,7 @@ export class StudyModeManager {
   // Advanced search and view managers
   private searchManager: SearchManager;
   private viewModeManager: ViewModeManager;
+  private filterSortManager: FilterSortManager;
   private bulkSelectionManager: BulkSelectionManager;
   private keyboardShortcutHandler: KeyboardShortcutHandler;
   private searchBar: SearchBar | null = null;
@@ -157,6 +159,7 @@ export class StudyModeManager {
     // Initialize advanced search and view managers
     this.searchManager = new SearchManager();
     this.viewModeManager = new ViewModeManager('session-list');
+    this.filterSortManager = new FilterSortManager();
     this.bulkSelectionManager = new BulkSelectionManager();
     this.keyboardShortcutHandler = this.createKeyboardShortcutHandler();
 
@@ -280,10 +283,13 @@ export class StudyModeManager {
       // 1. Initialize SearchBar
       this.initializeSearchBar();
 
-      // 2. Initialize ViewModeManager UI
+      // 2. Initialize FilterSortManager UI
+      this.initializeFilterSortControls();
+
+      // 3. Initialize ViewModeManager UI
       this.initializeViewModeSwitcher();
 
-      // 3. Initialize view components
+      // 4. Initialize view components
       this.initializeViews();
 
       // 4. Initialize keyboard shortcuts
@@ -322,6 +328,18 @@ export class StudyModeManager {
       logger.info('SearchBar initialized');
     } catch (error) {
       logger.error('Failed to initialize SearchBar', error);
+    }
+  }
+
+  /**
+   * Initialize filter/sort controls
+   */
+  private initializeFilterSortControls(): void {
+    try {
+      this.filterSortManager.createControls('filter-sort-container');
+      logger.info('FilterSortControls initialized');
+    } catch (error) {
+      logger.error('Failed to initialize FilterSortControls', error);
     }
   }
 
@@ -440,6 +458,26 @@ export class StudyModeManager {
       logger.info(`View mode changed to: ${mode}`);
 
       // Get current sessions (either search results or all sessions)
+      const sessions = this.getCurrentSessions();
+      this.renderCurrentView(sessions);
+    });
+
+    // Filter change
+    this.filterSortManager.onFilter((filter) => {
+      logger.info('Filter changed, applying to search');
+      this.searchManager.setFilter(filter);
+
+      // If no active search, re-render with current sessions
+      const searchState = this.searchManager.getState();
+      if (!searchState.query.trim()) {
+        const sessions = this.getCurrentSessions();
+        this.renderCurrentView(sessions);
+      }
+    });
+
+    // Sort change
+    this.filterSortManager.onSort((sort) => {
+      logger.info(`Sort changed to: ${sort}`);
       const sessions = this.getCurrentSessions();
       this.renderCurrentView(sessions);
     });
@@ -567,20 +605,23 @@ export class StudyModeManager {
   private renderCurrentView(sessions: Session[]): void {
     const currentMode = this.viewModeManager.getCurrentMode();
 
-    logger.info(`Rendering ${currentMode} view with ${sessions.length} sessions`);
+    // Apply sorting
+    const sortedSessions = this.filterSortManager.sortSessions(sessions);
+
+    logger.info(`Rendering ${currentMode} view with ${sortedSessions.length} sessions`);
 
     switch (currentMode) {
       case 'timeline':
-        this.timelineView?.render(sessions);
+        this.timelineView?.render(sortedSessions);
         break;
       case 'grid':
-        this.gridView?.render(sessions);
+        this.gridView?.render(sortedSessions);
         break;
       case 'list':
-        this.listView?.render(sessions);
+        this.listView?.render(sortedSessions);
         break;
       case 'board':
-        this.boardView?.render(sessions);
+        this.boardView?.render(sortedSessions);
         break;
     }
 
