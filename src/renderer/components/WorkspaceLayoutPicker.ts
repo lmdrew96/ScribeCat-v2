@@ -305,12 +305,10 @@ export class WorkspaceLayoutPicker {
     this.layoutManager.deleteCustomLayout(presetId);
     this.renderPresets(); // Re-render to remove deleted layout
 
-    // Show toast
-    const toastManager = (window as any).toastManager;
-    if (toastManager) {
-      toastManager.info('Custom layout deleted', {
-        duration: 2000
-      });
+    // Show notification
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      notificationTicker.info('Custom layout deleted', 2000);
     }
   }
 }

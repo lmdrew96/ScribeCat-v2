@@ -90,15 +90,11 @@ export class ViewModeManager {
       this.onModeChange(mode);
     }
 
-    // Show toast notification
-    const toastManager = (window as any).toastManager;
-    if (toastManager) {
+    // Show notification
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
       const config = VIEW_MODES[mode];
-      toastManager.info(`View: ${config.label}`, {
-        icon: config.icon,
-        duration: 2000,
-        position: 'bottom-center'
-      });
+      notificationTicker.info(`${config.icon} View: ${config.label}`, 2000);
     }
   }
 

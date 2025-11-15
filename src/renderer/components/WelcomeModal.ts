@@ -351,31 +351,11 @@ export class WelcomeModal {
       (window as any).confetti.achievement();
     }
 
-    // Show toast notification
-    const toast = document.createElement('div');
-    toast.className = 'toast success';
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: var(--success);
-      color: white;
-      padding: 16px 24px;
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-lg);
-      z-index: 10001;
-      animation: slide-in-right 0.3s ease-out;
-    `;
-    toast.innerHTML = `
-      <strong>🎉 You're all set!</strong>
-      <p style="margin: 4px 0 0 0; font-size: 13px;">Ready to start recording and taking notes.</p>
-    `;
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.animation = 'fade-out 0.3s ease-out';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
+    // Show notification
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      notificationTicker.success("🎉 You're all set! Ready to start recording and taking notes.", 4000);
+    }
   }
 
   /**

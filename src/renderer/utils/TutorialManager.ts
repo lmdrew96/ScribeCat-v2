@@ -799,30 +799,11 @@ export class TutorialManager {
       TutorialManager.markCompleted(this.currentTutorial.id);
       FocusManager.announce(`Tutorial "${this.currentTutorial.name}" completed`, 'polite');
 
-      // Show completion message
-      const toast = document.createElement('div');
-      toast.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background: var(--success);
-        color: white;
-        padding: 16px 24px;
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-lg);
-        z-index: 10001;
-        animation: slide-in-right 0.3s ease-out;
-      `;
-      toast.innerHTML = `
-        <strong>✅ Tutorial Complete!</strong>
-        <p style="margin: 4px 0 0 0; font-size: 13px;">${this.currentTutorial.name}</p>
-      `;
-      document.body.appendChild(toast);
-
-      setTimeout(() => {
-        toast.style.animation = 'fade-out 0.3s ease-out';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+      // Show completion notification
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success(`✅ Tutorial Complete! ${this.currentTutorial.name}`, 3000);
+      }
     }
 
     this.cleanup();

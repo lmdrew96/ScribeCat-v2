@@ -10,7 +10,6 @@ import type { Theme } from './themes/types.js';
 import { DriveSettingsManager } from './settings/DriveSettingsManager.js';
 import { CanvasSettingsManager } from './settings/CanvasSettingsManager.js';
 import { SettingsUIManager } from './settings/SettingsUIManager.js';
-import { NotificationToast } from './components/shared/NotificationToast.js';
 import { AuthManager } from './managers/AuthManager.js';
 import { AccountSettingsModal } from './components/AccountSettingsModal.js';
 import { unlockTheme, isThemeUnlocked } from './themes/easter-egg-themes.js';
@@ -174,7 +173,10 @@ export class SettingsManager {
 
     // Check if already unlocked
     if (isThemeUnlocked(darkThemeId) && isThemeUnlocked(lightThemeId)) {
-      NotificationToast.show('🌈 Nyan Cat themes are already unlocked!', 'info');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.info('🌈 Nyan Cat themes are already unlocked!');
+      }
       return;
     }
 
@@ -182,10 +184,10 @@ export class SettingsManager {
     unlockTheme(darkThemeId);
     unlockTheme(lightThemeId);
 
-    // Show success notification with rainbow styling
-    const toast = NotificationToast.show('🌈 Secret themes unlocked: Nyan Cat (Dark & Light)!', 'success', 4000);
-    if (toast) {
-      toast.classList.add('theme-unlock-toast');
+    // Show success notification
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      notificationTicker.success('🌈 Secret themes unlocked: Nyan Cat (Dark & Light)!', 4000);
     }
 
     // Refresh the theme grid to show the newly unlocked themes
@@ -339,11 +341,17 @@ export class SettingsManager {
         }
       }
 
-      NotificationToast.success('Settings saved successfully!');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success('Settings saved successfully!');
+      }
       this.closeSettings();
     } catch (error) {
       console.error('Failed to save settings:', error);
-      NotificationToast.error('Failed to save settings');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error('Failed to save settings');
+      }
     }
   }
 
@@ -526,7 +534,10 @@ export class SettingsManager {
       const success = await this.themeManager.loadTheme(themeId);
 
       if (!success) {
-        NotificationToast.error('Failed to load theme');
+        const notificationTicker = (window as any).notificationTicker;
+        if (notificationTicker) {
+          notificationTicker.error('Failed to load theme');
+        }
         return;
       }
 
@@ -545,10 +556,16 @@ export class SettingsManager {
         });
       }
 
-      NotificationToast.success('Theme applied successfully!');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success('Theme applied successfully!');
+      }
     } catch (error) {
       console.error('Failed to select theme:', error);
-      NotificationToast.error('Failed to apply theme');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error('Failed to apply theme');
+      }
     }
   }
 }

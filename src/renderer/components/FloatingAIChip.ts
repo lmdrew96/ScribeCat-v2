@@ -161,27 +161,16 @@ export class LiveSuggestionsPanel {
   }
 
   /**
-   * Show brief confirmation toast
+   * Show brief confirmation notification
    */
   private showConfirmation(suggestion: SuggestionTrigger): void {
     const icon = this.getActionIcon(suggestion.suggestedAction);
     const label = this.getActionLabel(suggestion.suggestedAction);
 
-    const toast = document.createElement('div');
-    toast.className = 'chip-confirmation-toast';
-    toast.innerHTML = `<span>${icon}</span> ${label}`;
-    document.body.appendChild(toast);
-
-    // Animate in
-    requestAnimationFrame(() => {
-      toast.classList.add('show');
-    });
-
-    // Remove after 2 seconds
-    setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
-    }, 2000);
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      notificationTicker.info(`${icon} ${label}`, 2000);
+    }
   }
 
   /**

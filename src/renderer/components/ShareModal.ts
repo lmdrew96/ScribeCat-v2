@@ -6,7 +6,6 @@
  */
 
 import { SessionSharingManager } from '../managers/SessionSharingManager.js';
-import { ToastManager } from '../managers/ToastManager.js';
 import { escapeHtml } from '../utils/formatting.js';
 
 export class ShareModal {
@@ -15,12 +14,10 @@ export class ShareModal {
   private shares: any[] = [];
   private invitations: any[] = [];
   private sessionSharingManager: SessionSharingManager;
-  private toastManager: ToastManager;
 
   constructor() {
     // Modal will be created in initialize()
     this.sessionSharingManager = new SessionSharingManager();
-    this.toastManager = new ToastManager();
   }
 
   /**
@@ -394,11 +391,14 @@ export class ShareModal {
    * Show a message to the user
    */
   private showMessage(text: string, type: 'success' | 'error'): void {
-    // Use toast notifications for better UX
-    if (type === 'success') {
-      this.toastManager.success(text);
-    } else {
-      this.toastManager.error(text);
+    // Use ticker notifications for better UX
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      if (type === 'success') {
+        notificationTicker.success(text);
+      } else {
+        notificationTicker.error(text);
+      }
     }
   }
 

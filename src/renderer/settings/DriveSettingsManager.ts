@@ -5,7 +5,6 @@
  * authentication, connection status, and UI updates.
  */
 
-import { NotificationToast } from '../components/shared/NotificationToast.js';
 import { ModalDialog } from '../components/shared/ModalDialog.js';
 import { AuthManager } from '../managers/AuthManager.js';
 
@@ -109,7 +108,10 @@ export class DriveSettingsManager {
       );
 
       if (!code) {
-        NotificationToast.error('Connection cancelled');
+        const notificationTicker = (window as any).notificationTicker;
+        if (notificationTicker) {
+          notificationTicker.error('Connection cancelled');
+        }
         return;
       }
 
@@ -126,13 +128,19 @@ export class DriveSettingsManager {
 
       this.driveConnected = true;
       this.updateUI();
-      NotificationToast.success('Google Drive connected successfully!');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success('Google Drive connected successfully!');
+      }
 
     } catch (error) {
       console.error('Google Drive connection failed:', error);
-      NotificationToast.error(
-        `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error(
+          `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     }
   }
 
@@ -149,11 +157,17 @@ export class DriveSettingsManager {
       this.driveConnected = false;
       this.driveUserEmail = '';
       this.updateUI();
-      NotificationToast.success('Google Drive disconnected');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success('Google Drive disconnected');
+      }
 
     } catch (error) {
       console.error('Failed to disconnect Google Drive:', error);
-      NotificationToast.error('Failed to disconnect');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error('Failed to disconnect');
+      }
     }
   }
 
@@ -178,7 +192,10 @@ export class DriveSettingsManager {
     window.scribeCat.drive.onAutoReconnected(async () => {
       await this.checkConnection();
       this.updateUI();
-      NotificationToast.success('Google Drive auto-reconnected!');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success('Google Drive auto-reconnected!');
+      }
     });
   }
 

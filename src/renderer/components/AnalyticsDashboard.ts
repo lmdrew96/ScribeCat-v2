@@ -52,12 +52,12 @@ export class AnalyticsDashboard {
         this.stats.longestStreak
       );
 
-      // Show toast for newly unlocked achievements
+      // Show notification for newly unlocked achievements
       if (newlyUnlocked.length > 0) {
-        const toastManager = (window as any).toastManager;
-        if (toastManager) {
+        const notificationTicker = (window as any).notificationTicker;
+        if (notificationTicker) {
           newlyUnlocked.forEach(achievement => {
-            toastManager.success(`🏆 Achievement Unlocked: ${achievement.title}`, { duration: 5000 });
+            notificationTicker.success(`🏆 Achievement Unlocked: ${achievement.title}`, 5000);
           });
         }
       }
@@ -417,9 +417,9 @@ export class AnalyticsDashboard {
 
     const minutes = parseInt(input.value);
     if (isNaN(minutes) || minutes < 1) {
-      const toastManager = (window as any).toastManager;
-      if (toastManager) {
-        toastManager.error('Please enter a valid number of minutes');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error('Please enter a valid number of minutes');
       }
       return;
     }
@@ -440,10 +440,10 @@ export class AnalyticsDashboard {
       dashboardContainer.innerHTML = this.render();
     }
 
-    const toastManager = (window as any).toastManager;
-    if (toastManager) {
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
       const goalType = type === 'daily' ? 'Daily' : 'Weekly';
-      toastManager.success(`${goalType} goal ${existingGoal ? 'updated' : 'set'}! Target: ${this.goalsManager.formatMinutes(minutes)}`, { duration: 3000 });
+      notificationTicker.success(`${goalType} goal ${existingGoal ? 'updated' : 'set'}! Target: ${this.goalsManager.formatMinutes(minutes)}`, 3000);
     }
 
     logger.info(`Goal ${existingGoal ? 'updated' : 'created'}: ${type} - ${minutes} minutes`);
@@ -467,10 +467,10 @@ export class AnalyticsDashboard {
       dashboardContainer.innerHTML = this.render();
     }
 
-    const toastManager = (window as any).toastManager;
-    if (toastManager) {
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
       const goalType = type === 'daily' ? 'Daily' : 'Weekly';
-      toastManager.success(`${goalType} goal deleted`, { duration: 3000 });
+      notificationTicker.success(`${goalType} goal deleted`, 3000);
     }
 
     logger.info(`Goal deleted: ${type}`);
@@ -921,9 +921,9 @@ export class AnalyticsDashboard {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    const toastManager = (window as any).toastManager;
-    if (toastManager) {
-      toastManager.success('Analytics exported to CSV!', { duration: 3000 });
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      notificationTicker.success('Analytics exported to CSV!', 3000);
     }
   }
 

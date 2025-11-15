@@ -7,7 +7,6 @@
 import { AssemblyAITranscriptionService, TranscriptionSettings, TranscriptionError } from '../assemblyai-transcription-service.js';
 import { AudioManager } from '../audio-manager.js';
 import { TranscriptionManager } from '../managers/TranscriptionManager.js';
-import { NotificationToast } from '../components/shared/NotificationToast.js';
 
 export type TranscriptionMode = 'assemblyai';
 
@@ -271,10 +270,13 @@ export class TranscriptionModeService {
     }
 
     // Display notification to user
-    if (notificationType === 'error') {
-      NotificationToast.error(userMessage, 10000); // 10 second duration for errors
-    } else {
-      NotificationToast.warning(userMessage, 8000); // 8 second duration for warnings
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      if (notificationType === 'error') {
+        notificationTicker.error(userMessage, 10000); // 10 second duration for errors
+      } else {
+        notificationTicker.warning(userMessage, 8000); // 8 second duration for warnings
+      }
     }
   }
 

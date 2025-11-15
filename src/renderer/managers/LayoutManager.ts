@@ -261,14 +261,10 @@ export class LayoutManager {
     this.applyLayout(preset.layout);
     this.saveLayoutToStorage();
 
-    // Show toast notification
-    const toastManager = (window as any).toastManager;
-    if (toastManager) {
-      toastManager.success(`Layout: ${preset.name}`, {
-        icon: preset.icon,
-        duration: 2000,
-        position: 'bottom-center'
-      });
+    // Show notification
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      notificationTicker.success(`${preset.icon} Layout: ${preset.name}`, 2000);
     }
   }
 
@@ -288,13 +284,10 @@ export class LayoutManager {
     this.customLayouts.set(id, preset);
     this.saveCustomLayoutsToStorage();
 
-    // Show success toast
-    const toastManager = (window as any).toastManager;
-    if (toastManager) {
-      toastManager.success(`Saved layout: ${name}`, {
-        icon: '💾',
-        duration: 2000
-      });
+    // Show success notification
+    const notificationTicker = (window as any).notificationTicker;
+    if (notificationTicker) {
+      notificationTicker.success(`💾 Saved layout: ${name}`, 2000);
     }
   }
 

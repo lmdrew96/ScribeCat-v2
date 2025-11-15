@@ -152,26 +152,20 @@ export class NotesAutoSaveManager {
         // Show error indicator
         this.indicator.showError('Save failed');
 
-        // Also show error toast for critical failures
-        const toastManager = (window as any).toastManager;
-        if (toastManager) {
-          toastManager.error('Failed to save notes', {
-            duration: 3000,
-            position: 'bottom-right'
-          });
+        // Also show error notification for critical failures
+        const notificationTicker = (window as any).notificationTicker;
+        if (notificationTicker) {
+          notificationTicker.error('Failed to save notes', 3000);
         }
       }
     } catch (error) {
       logger.error('Error saving notes', error);
       this.indicator.showError('Save error');
 
-      // Show error toast for exceptions
-      const toastManager = (window as any).toastManager;
-      if (toastManager) {
-        toastManager.error('Failed to save notes', {
-          duration: 3000,
-          position: 'bottom-right'
-        });
+      // Show error notification for exceptions
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error('Failed to save notes', 3000);
       }
     } finally {
       this.isSaving = false;

@@ -5,7 +5,6 @@
  * connection, course imports, and extension help.
  */
 
-import { NotificationToast } from '../components/shared/NotificationToast.js';
 import { ModalDialog } from '../components/shared/ModalDialog.js';
 
 export class CanvasSettingsManager {
@@ -88,7 +87,10 @@ export class CanvasSettingsManager {
   private async testConnection(): Promise<void> {
     try {
       if (!this.canvasUrl || !this.canvasToken) {
-        NotificationToast.error('Please enter Canvas URL and API token');
+        const notificationTicker = (window as any).notificationTicker;
+        if (notificationTicker) {
+          notificationTicker.error('Please enter Canvas URL and API token');
+        }
         return;
       }
 
@@ -104,13 +106,19 @@ export class CanvasSettingsManager {
 
       this.canvasConfigured = true;
       this.updateUI();
-      NotificationToast.success('Canvas connected successfully!');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success('Canvas connected successfully!');
+      }
 
     } catch (error) {
       console.error('Canvas connection failed:', error);
-      NotificationToast.error(
-        `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error(
+          `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     }
   }
 
@@ -135,11 +143,17 @@ export class CanvasSettingsManager {
       if (tokenInput) tokenInput.value = '';
 
       this.updateUI();
-      NotificationToast.success('Canvas disconnected');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success('Canvas disconnected');
+      }
 
     } catch (error) {
       console.error('Failed to disconnect Canvas:', error);
-      NotificationToast.error('Failed to disconnect');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error('Failed to disconnect');
+      }
     }
   }
 
@@ -185,7 +199,10 @@ export class CanvasSettingsManager {
 
       const jsonData = jsonTextarea.value.trim();
       if (!jsonData) {
-        NotificationToast.error('Please paste JSON data from the browser extension');
+        const notificationTicker = (window as any).notificationTicker;
+        if (notificationTicker) {
+          notificationTicker.error('Please paste JSON data from the browser extension');
+        }
         return;
       }
 
@@ -207,15 +224,21 @@ export class CanvasSettingsManager {
         await window.courseManager.refresh();
       }
 
-      NotificationToast.success(
-        `Successfully imported ${result.data?.imported || 0} courses`
-      );
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success(
+          `Successfully imported ${result.data?.imported || 0} courses`
+        );
+      }
 
     } catch (error) {
       console.error('Failed to import courses:', error);
-      NotificationToast.error(
-        `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error(
+          `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     }
   }
 
@@ -305,11 +328,17 @@ export class CanvasSettingsManager {
 
       await window.scribeCat.canvas.deleteImportedCourse(courseId);
       await this.loadImportedCourses();
-      NotificationToast.success('Course deleted');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.success('Course deleted');
+      }
 
     } catch (error) {
       console.error('Failed to delete course:', error);
-      NotificationToast.error('Failed to delete course');
+      const notificationTicker = (window as any).notificationTicker;
+      if (notificationTicker) {
+        notificationTicker.error('Failed to delete course');
+      }
     }
   }
 

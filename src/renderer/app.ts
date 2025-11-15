@@ -31,7 +31,7 @@ import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
 import { LayoutManager } from './managers/LayoutManager.js';
 import { WorkspaceLayoutPicker } from './components/WorkspaceLayoutPicker.js';
-import { ToastManager } from './managers/ToastManager.js';
+import { notificationTicker } from './managers/NotificationTicker.js';
 import { ConfettiManager } from './utils/confetti.js';
 import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
 import { getRandomCatFact } from './utils/cat-facts.js';
@@ -74,7 +74,6 @@ let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
 let layoutManager: LayoutManager;
 let layoutPicker: WorkspaceLayoutPicker;
-let toastManager: ToastManager;
 let confettiManager: ConfettiManager;
 
 // ===== Initialization =====
@@ -266,11 +265,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   (window as any).aiSuggestionChip = aiSuggestionChip;
 
   // Initialize visual feedback managers
-  toastManager = new ToastManager();
+  notificationTicker.initialize();
   confettiManager = new ConfettiManager();
 
   // Expose globally for easy access
-  (window as any).toastManager = toastManager;
+  (window as any).notificationTicker = notificationTicker;
   (window as any).confettiManager = confettiManager;
 
   // Initialize workspace layout manager
@@ -481,10 +480,7 @@ async function handleNewSession(): Promise<void> {
   // Check if we can reset
   if (!sessionResetManager.canReset()) {
     const reason = sessionResetManager.getDisabledReason();
-    toastManager.warning(`Cannot start new session: ${reason}`, {
-      duration: 3000,
-      position: 'bottom-right'
-    });
+    notificationTicker.warning(`Cannot start new session: ${reason}`, 3000);
     return;
   }
 
@@ -501,23 +497,14 @@ async function handleNewSession(): Promise<void> {
 
     if (result.success) {
       // Show success toast
-      toastManager.success('✓ New session ready!', {
-        duration: 2000,
-        position: 'bottom-right'
-      });
+      notificationTicker.success('✓ New session ready!', 2000);
     } else {
       // Show error toast
-      toastManager.error(result.error || 'Failed to reset session', {
-        duration: 3000,
-        position: 'bottom-right'
-      });
+      notificationTicker.error(result.error || 'Failed to reset session', 3000);
     }
   } catch (error) {
     console.error('Error during new session reset:', error);
-    toastManager.error('Failed to start new session', {
-      duration: 3000,
-      position: 'bottom-right'
-    });
+    notificationTicker.error('Failed to start new session', 3000);
   }
 }
 
