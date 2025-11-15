@@ -53,19 +53,19 @@ export class TiptapEditorManager {
     // Set up toolbar
     this.toolbarManager.setupToolbarListeners();
 
-    // Initialize floating toolbar
-    const editor = this.editorCore.getEditor();
-    if (editor) {
-      this.floatingToolbar.initialize(editor);
-      this.setupFloatingToolbarActions();
-
-      // Set callback to check if floating toolbar should show
-      // Don't show if full toolbar is visible
-      this.floatingToolbar.setShouldShowCallback(() => {
-        const fullToolbar = document.querySelector('.formatting-toolbar');
-        return !fullToolbar?.classList.contains('visible');
-      });
-    }
+    // Floating toolbar disabled - regular toolbar is always visible
+    // const editor = this.editorCore.getEditor();
+    // if (editor) {
+    //   this.floatingToolbar.initialize(editor);
+    //   this.setupFloatingToolbarActions();
+    //
+    //   // Set callback to check if floating toolbar should show
+    //   // Don't show if full toolbar is visible
+    //   this.floatingToolbar.setShouldShowCallback(() => {
+    //     const fullToolbar = document.querySelector('.formatting-toolbar');
+    //     return !fullToolbar?.classList.contains('visible');
+    //   });
+    // }
 
     // Initial stats update
     this.contentManager.updateStats();

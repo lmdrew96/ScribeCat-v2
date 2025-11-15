@@ -102,15 +102,28 @@ export class TiptapEditorCore {
           spellcheck: 'true',
         },
         handleKeyDown: (view, event) => {
-          // Handle Tab for list indentation
+          // Handle Tab key
           if (event.key === 'Tab') {
             event.preventDefault();
-            if (event.shiftKey) {
-              // Shift+Tab: outdent (lift) list item
-              return this.editor?.commands.liftListItem('listItem') || false;
+
+            // Check if we're in a list item
+            const { state } = view;
+            const { $from } = state.selection;
+            const isInList = $from.node(-1)?.type.name === 'listItem';
+
+            if (isInList) {
+              // In lists: use list-specific indentation
+              if (event.shiftKey) {
+                return this.editor?.commands.liftListItem('listItem') || false;
+              } else {
+                return this.editor?.commands.sinkListItem('listItem') || false;
+              }
             } else {
-              // Tab: indent (sink) list item
-              return this.editor?.commands.sinkListItem('listItem') || false;
+              // In regular text: insert tab spaces
+              if (!event.shiftKey) {
+                this.editor?.commands.insertContent('    '); // 4 spaces
+                return true;
+              }
             }
           }
           return false;

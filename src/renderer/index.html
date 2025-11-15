@@ -46,9 +46,10 @@
                         <span class="auto-save-text">Saved</span>
                     </div>
                     <div class="panel-actions">
-                        <button id="toggle-toolbar-btn" class="action-btn action-btn-icon" title="Show advanced formatting toolbar">
+                        <!-- Toolbar toggle button hidden - toolbar is always visible now -->
+                        <!-- <button id="toggle-toolbar-btn" class="action-btn action-btn-icon" title="Show advanced formatting toolbar">
                             🎨
-                        </button>
+                        </button> -->
                         <select id="course-select" class="course-select-dropdown" title="Select Course (Optional)">
                             <option value="">No Course Selected</option>
                         </select>
@@ -333,6 +334,9 @@
                     <span id="char-count" class="count-display">0 characters</span>
                     <span class="count-separator">•</span>
                     <span id="word-count" class="count-display">0 words</span>
+                    <button id="scroll-to-top-btn" class="scroll-to-top-btn" title="Return to top" style="display: none;">
+                        ↑ Top
+                    </button>
                 </div>
             </div>
             
