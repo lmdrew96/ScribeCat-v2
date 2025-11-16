@@ -26,7 +26,6 @@
 @import './css/auth.css';          /* Authentication UI */
 @import './css/share-modal.css';   /* Session sharing modal */
 @import './css/trash.css';         /* Trash modal */
-@import './css/toast.css';         /* Toast notifications */
 
 /* Features */
 @import './css/search.css';        /* Advanced search, filters, results highlighting */
