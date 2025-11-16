@@ -175,8 +175,15 @@ export class StudyModeAIToolsManager {
   /**
    * Handle sending a message
    */
-  private handleSendMessage(message: string): void {
+  private async handleSendMessage(message: string): Promise<void> {
     if (!message.trim() || !this.currentSession) return;
+
+    // Track chat message
+    try {
+      await (window as any).electronAPI.incrementAIChatMessages(this.currentSession.id, 1);
+    } catch (error) {
+      logger.error('Failed to track chat message:', error);
+    }
 
     // Parse command
     const suggestion = this.suggestionEngine.parseNaturalLanguageCommand(message);
@@ -260,11 +267,18 @@ export class StudyModeAIToolsManager {
   /**
    * Handle AI tool action from inline chat
    */
-  private handleToolAction(action: SuggestionAction, session: Session): void {
+  private async handleToolAction(action: SuggestionAction, session: Session): Promise<void> {
     const activeContentArea = this.getActiveContentArea();
     if (!activeContentArea) return;
 
     logger.info(`Executing AI tool action: ${action}`);
+
+    // Track AI tool usage
+    try {
+      await (window as any).electronAPI.incrementAIToolUsage(session.id);
+    } catch (error) {
+      logger.error('Failed to track AI tool usage:', error);
+    }
 
     // Map actions to AI tool methods
     switch (action) {

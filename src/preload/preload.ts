@@ -175,6 +175,12 @@ const electronAPI = {
         ipcRenderer.invoke('session:updateSummary', sessionId, summary),
       createDraft: () =>
         ipcRenderer.invoke('session:createDraft'),
+      addStudyModeTime: (sessionId: string, seconds: number) =>
+        ipcRenderer.invoke('session:addStudyModeTime', sessionId, seconds),
+      incrementAIToolUsage: (sessionId: string) =>
+        ipcRenderer.invoke('session:incrementAIToolUsage', sessionId),
+      incrementAIChatMessages: (sessionId: string, count: number) =>
+        ipcRenderer.invoke('session:incrementAIChatMessages', sessionId, count),
       getAvailableFormats: () =>
         ipcRenderer.invoke('export:getAvailableFormats'),
       // Trash-related methods

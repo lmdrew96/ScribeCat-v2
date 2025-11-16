@@ -76,7 +76,12 @@ export class Session {
     // AI-generated summary
     public summary?: string,
     // AI tool results storage
-    public aiToolResults: Record<string, AIToolResult> = {}
+    public aiToolResults: Record<string, AIToolResult> = {},
+    // Study mode analytics
+    public studyModeTime: number = 0, // Total playback time in seconds
+    public aiToolUsageCount: number = 0, // Count of AI tool executions
+    public aiChatMessageCount: number = 0, // Count of AI chat messages sent
+    public lastStudyModeActivity?: Date // Timestamp of last study mode activity
   ) {}
 
   /**
@@ -289,6 +294,33 @@ export class Session {
   }
 
   /**
+   * Increment study mode time (accumulated playback time)
+   */
+  addStudyModeTime(seconds: number): void {
+    this.studyModeTime += seconds;
+    this.lastStudyModeActivity = new Date();
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Increment AI tool usage count
+   */
+  incrementAIToolUsage(): void {
+    this.aiToolUsageCount++;
+    this.lastStudyModeActivity = new Date();
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Increment AI chat message count
+   */
+  incrementAIChatMessages(count: number = 1): void {
+    this.aiChatMessageCount += count;
+    this.lastStudyModeActivity = new Date();
+    this.updatedAt = new Date();
+  }
+
+  /**
    * Convert to plain object for serialization
    */
   toJSON(): SessionData {
@@ -316,7 +348,11 @@ export class Session {
       childSessionIds: this.childSessionIds,
       sessionOrder: this.sessionOrder,
       summary: this.summary,
-      aiToolResults: this.aiToolResults
+      aiToolResults: this.aiToolResults,
+      studyModeTime: this.studyModeTime,
+      aiToolUsageCount: this.aiToolUsageCount,
+      aiChatMessageCount: this.aiChatMessageCount,
+      lastStudyModeActivity: this.lastStudyModeActivity
     };
   }
 
@@ -348,7 +384,11 @@ export class Session {
       data.childSessionIds,
       data.sessionOrder,
       data.summary,
-      data.aiToolResults || {}
+      data.aiToolResults || {},
+      data.studyModeTime || 0,
+      data.aiToolUsageCount || 0,
+      data.aiChatMessageCount || 0,
+      data.lastStudyModeActivity ? new Date(data.lastStudyModeActivity) : undefined
     );
   }
 }
@@ -387,4 +427,9 @@ export interface SessionData {
   summary?: string;
   // AI tool results
   aiToolResults?: Record<string, AIToolResult>;
+  // Study mode analytics
+  studyModeTime?: number;
+  aiToolUsageCount?: number;
+  aiChatMessageCount?: number;
+  lastStudyModeActivity?: Date;
 }

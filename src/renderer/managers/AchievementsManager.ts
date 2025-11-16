@@ -2,7 +2,7 @@
  * AchievementsManager
  *
  * Manages achievement badges and milestones for study activity.
- * Tracks and unlocks badges based on recording time, sessions, streaks, and more.
+ * Tracks and unlocks badges based on study time, sessions, streaks, and more.
  */
 
 import { createLogger } from '../../shared/logger.js';
@@ -42,12 +42,12 @@ export class AchievementsManager {
    */
   private initializeAchievements(): void {
     this.achievements = [
-      // Recording Time Milestones
-      { id: 'time-1h', category: 'time', tier: 'bronze', title: 'First Hour', description: 'Record for 1 hour total', icon: '⏱️', requirement: 60, unlocked: false, progress: 0 },
-      { id: 'time-10h', category: 'time', tier: 'silver', title: 'Time Tracker', description: 'Record for 10 hours total', icon: '⏰', requirement: 600, unlocked: false, progress: 0 },
-      { id: 'time-50h', category: 'time', tier: 'gold', title: 'Dedicated Learner', description: 'Record for 50 hours total', icon: '🕐', requirement: 3000, unlocked: false, progress: 0 },
-      { id: 'time-100h', category: 'time', tier: 'platinum', title: 'Century Club', description: 'Record for 100 hours total', icon: '💯', requirement: 6000, unlocked: false, progress: 0 },
-      { id: 'time-500h', category: 'time', tier: 'diamond', title: 'Master of Time', description: 'Record for 500 hours total', icon: '💎', requirement: 30000, unlocked: false, progress: 0 },
+      // Study Time Milestones
+      { id: 'time-1h', category: 'time', tier: 'bronze', title: 'First Hour', description: 'Study for 1 hour total', icon: '⏱️', requirement: 60, unlocked: false, progress: 0 },
+      { id: 'time-10h', category: 'time', tier: 'silver', title: 'Time Tracker', description: 'Study for 10 hours total', icon: '⏰', requirement: 600, unlocked: false, progress: 0 },
+      { id: 'time-50h', category: 'time', tier: 'gold', title: 'Dedicated Learner', description: 'Study for 50 hours total', icon: '🕐', requirement: 3000, unlocked: false, progress: 0 },
+      { id: 'time-100h', category: 'time', tier: 'platinum', title: 'Century Club', description: 'Study for 100 hours total', icon: '💯', requirement: 6000, unlocked: false, progress: 0 },
+      { id: 'time-500h', category: 'time', tier: 'diamond', title: 'Master of Time', description: 'Study for 500 hours total', icon: '💎', requirement: 30000, unlocked: false, progress: 0 },
 
       // Session Count Milestones
       { id: 'sessions-10', category: 'sessions', tier: 'bronze', title: 'Getting Started', description: 'Complete 10 recording sessions', icon: '📚', requirement: 10, unlocked: false, progress: 0 },
@@ -63,18 +63,18 @@ export class AchievementsManager {
       { id: 'streak-30', category: 'streaks', tier: 'platinum', title: 'Monthly Master', description: 'Maintain a 30-day recording streak', icon: '🎯', requirement: 30, unlocked: false, progress: 0 },
       { id: 'streak-100', category: 'streaks', tier: 'diamond', title: 'Unstoppable', description: 'Maintain a 100-day recording streak', icon: '⚡', requirement: 100, unlocked: false, progress: 0 },
 
-      // Marathon Sessions
-      { id: 'marathon-30m', category: 'marathon', tier: 'bronze', title: 'Sprint Session', description: 'Record for 30 minutes in one session', icon: '🏃', requirement: 30, unlocked: false, progress: 0 },
-      { id: 'marathon-1h', category: 'marathon', tier: 'silver', title: 'Hour Power', description: 'Record for 1 hour in one session', icon: '💪', requirement: 60, unlocked: false, progress: 0 },
-      { id: 'marathon-2h', category: 'marathon', tier: 'gold', title: 'Double Down', description: 'Record for 2 hours in one session', icon: '🚀', requirement: 120, unlocked: false, progress: 0 },
-      { id: 'marathon-4h', category: 'marathon', tier: 'platinum', title: 'Marathon Runner', description: 'Record for 4 hours in one session', icon: '🏅', requirement: 240, unlocked: false, progress: 0 },
-      { id: 'marathon-6h', category: 'marathon', tier: 'diamond', title: 'Ultra Endurance', description: 'Record for 6 hours in one session', icon: '🦸', requirement: 360, unlocked: false, progress: 0 },
+      // Marathon Sessions (based on study mode time: playback + AI tools + chat)
+      { id: 'marathon-15m', category: 'marathon', tier: 'bronze', title: 'Quick Study', description: 'Study for 15 minutes in one session', icon: '🏃', requirement: 15, unlocked: false, progress: 0 },
+      { id: 'marathon-30m', category: 'marathon', tier: 'silver', title: 'Half Hour Hero', description: 'Study for 30 minutes in one session', icon: '💪', requirement: 30, unlocked: false, progress: 0 },
+      { id: 'marathon-1h', category: 'marathon', tier: 'gold', title: 'Hour Power', description: 'Study for 1 hour in one session', icon: '🚀', requirement: 60, unlocked: false, progress: 0 },
+      { id: 'marathon-2h', category: 'marathon', tier: 'platinum', title: 'Double Down', description: 'Study for 2 hours in one session', icon: '🏅', requirement: 120, unlocked: false, progress: 0 },
+      { id: 'marathon-3h', category: 'marathon', tier: 'diamond', title: 'Marathon Master', description: 'Study for 3 hours in one session', icon: '🦸', requirement: 180, unlocked: false, progress: 0 },
 
       // Special Achievements
       { id: 'first-session', category: 'special', tier: 'bronze', title: 'First Steps', description: 'Complete your first recording session', icon: '🌱', requirement: 1, unlocked: false, progress: 0 },
       { id: 'early-bird', category: 'special', tier: 'silver', title: 'Early Bird', description: 'Record before 6 AM', icon: '🌅', requirement: 1, unlocked: false, progress: 0 },
       { id: 'night-owl', category: 'special', tier: 'silver', title: 'Night Owl', description: 'Record after 10 PM', icon: '🦉', requirement: 1, unlocked: false, progress: 0 },
-      { id: 'weekend-warrior', category: 'special', tier: 'gold', title: 'Weekend Warrior', description: 'Record on 10 different weekends', icon: '🌄', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'weekend-warrior', category: 'special', tier: 'gold', title: 'Weekend Warrior', description: 'Use study mode on 10 different weekends', icon: '🌄', requirement: 10, unlocked: false, progress: 0 },
       { id: 'course-dedication', category: 'special', tier: 'gold', title: 'Course Dedication', description: 'Complete 20 sessions in one course', icon: '🎓', requirement: 20, unlocked: false, progress: 0 },
     ];
   }
@@ -124,10 +124,12 @@ export class AchievementsManager {
     const newlyUnlocked: Achievement[] = [];
 
     // Calculate stats
-    const totalMinutes = sessions.reduce((sum, s) => sum + Math.floor(s.duration / 60), 0);
+    // Time achievements now use study mode time instead of recording duration
+    const totalMinutes = sessions.reduce((sum, s) => sum + Math.floor((s.studyModeTime || 0) / 60), 0);
     const totalSessions = sessions.length;
-    const longestSessionMinutes = sessions.length > 0
-      ? Math.max(...sessions.map(s => Math.floor(s.duration / 60)))
+    // Marathon achievements also use study mode time
+    const longestStudyMinutes = sessions.length > 0
+      ? Math.max(...sessions.map(s => Math.floor((s.studyModeTime || 0) / 60)))
       : 0;
 
     // Time achievements
@@ -151,12 +153,12 @@ export class AchievementsManager {
     this.updateAchievement('streak-30', longestStreak, newlyUnlocked);
     this.updateAchievement('streak-100', longestStreak, newlyUnlocked);
 
-    // Marathon achievements
-    this.updateAchievement('marathon-30m', longestSessionMinutes, newlyUnlocked);
-    this.updateAchievement('marathon-1h', longestSessionMinutes, newlyUnlocked);
-    this.updateAchievement('marathon-2h', longestSessionMinutes, newlyUnlocked);
-    this.updateAchievement('marathon-4h', longestSessionMinutes, newlyUnlocked);
-    this.updateAchievement('marathon-6h', longestSessionMinutes, newlyUnlocked);
+    // Marathon achievements (based on study mode time)
+    this.updateAchievement('marathon-15m', longestStudyMinutes, newlyUnlocked);
+    this.updateAchievement('marathon-30m', longestStudyMinutes, newlyUnlocked);
+    this.updateAchievement('marathon-1h', longestStudyMinutes, newlyUnlocked);
+    this.updateAchievement('marathon-2h', longestStudyMinutes, newlyUnlocked);
+    this.updateAchievement('marathon-3h', longestStudyMinutes, newlyUnlocked);
 
     // Special achievements
     this.updateAchievement('first-session', totalSessions, newlyUnlocked);
@@ -175,10 +177,18 @@ export class AchievementsManager {
     }).length;
     this.updateAchievement('night-owl', nightOwlCount, newlyUnlocked);
 
-    // Weekend warrior (unique weekends)
+    // Weekend warrior (unique weekends with study mode activity)
     const weekends = new Set<string>();
     sessions.forEach(s => {
-      const date = new Date(s.createdAt);
+      // Check if session has any study mode activity
+      const hasStudyActivity = (s.studyModeTime || 0) > 0 ||
+                                (s.aiToolUsageCount || 0) > 0 ||
+                                (s.aiChatMessageCount || 0) > 0;
+
+      if (!hasStudyActivity) return;
+
+      // Use last study mode activity date if available, otherwise use creation date
+      const date = s.lastStudyModeActivity ? new Date(s.lastStudyModeActivity) : new Date(s.createdAt);
       const day = date.getDay();
       if (day === 0 || day === 6) { // Sunday or Saturday
         const weekKey = `${date.getFullYear()}-W${Math.floor(date.getDate() / 7)}`;

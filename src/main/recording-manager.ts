@@ -8,6 +8,9 @@ import { UpdateSessionNotesUseCase } from '../application/use-cases/UpdateSessio
 import { UpdateSessionTranscriptionUseCase } from '../application/use-cases/UpdateSessionTranscriptionUseCase.js';
 import { UpdateSessionSummaryUseCase } from '../application/use-cases/UpdateSessionSummaryUseCase.js';
 import { CreateDraftSessionUseCase } from '../application/use-cases/CreateDraftSessionUseCase.js';
+import { AddStudyModeTimeUseCase } from '../application/use-cases/AddStudyModeTimeUseCase.js';
+import { IncrementAIToolUsageUseCase } from '../application/use-cases/IncrementAIToolUsageUseCase.js';
+import { IncrementAIChatMessagesUseCase } from '../application/use-cases/IncrementAIChatMessagesUseCase.js';
 import { FileAudioRepository } from '../infrastructure/repositories/FileAudioRepository.js';
 import { FileSessionRepository } from '../infrastructure/repositories/FileSessionRepository.js';
 import type { ISessionRepository } from '../domain/repositories/ISessionRepository.js';
@@ -29,6 +32,9 @@ export class RecordingManager {
   private updateSessionTranscriptionUseCase: UpdateSessionTranscriptionUseCase;
   private updateSessionSummaryUseCase: UpdateSessionSummaryUseCase;
   private createDraftSessionUseCase: CreateDraftSessionUseCase;
+  private addStudyModeTimeUseCase: AddStudyModeTimeUseCase;
+  private incrementAIToolUsageUseCase: IncrementAIToolUsageUseCase;
+  private incrementAIChatMessagesUseCase: IncrementAIChatMessagesUseCase;
 
   // Optional callback for post-save actions (e.g., cloud sync)
   private onRecordingSaved?: (sessionId: string) => Promise<void>;
@@ -62,6 +68,18 @@ export class RecordingManager {
     );
     this.createDraftSessionUseCase = new CreateDraftSessionUseCase(
       sessionRepository
+    );
+    this.addStudyModeTimeUseCase = new AddStudyModeTimeUseCase(
+      sessionRepository,
+      supabaseSessionRepository
+    );
+    this.incrementAIToolUsageUseCase = new IncrementAIToolUsageUseCase(
+      sessionRepository,
+      supabaseSessionRepository
+    );
+    this.incrementAIChatMessagesUseCase = new IncrementAIChatMessagesUseCase(
+      sessionRepository,
+      supabaseSessionRepository
     );
 
     // Set up IPC handlers
@@ -257,6 +275,66 @@ export class RecordingManager {
           success: true,
           sessionId: result.sessionId
         };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    electron.ipcMain.handle('session:addStudyModeTime', async (event, sessionId: string, seconds: number) => {
+      try {
+        const success = await this.addStudyModeTimeUseCase.execute(sessionId, seconds);
+
+        if (!success) {
+          return {
+            success: false,
+            error: 'Session not found'
+          };
+        }
+
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    electron.ipcMain.handle('session:incrementAIToolUsage', async (event, sessionId: string) => {
+      try {
+        const success = await this.incrementAIToolUsageUseCase.execute(sessionId);
+
+        if (!success) {
+          return {
+            success: false,
+            error: 'Session not found'
+          };
+        }
+
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+
+    electron.ipcMain.handle('session:incrementAIChatMessages', async (event, sessionId: string, count: number) => {
+      try {
+        const success = await this.incrementAIChatMessagesUseCase.execute(sessionId, count);
+
+        if (!success) {
+          return {
+            success: false,
+            error: 'Session not found'
+          };
+        }
+
+        return { success: true };
       } catch (error) {
         return {
           success: false,

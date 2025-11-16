@@ -11,6 +11,10 @@ import { formatDuration } from '../utils/formatting.js';
 export class SessionPlaybackManager {
   private isDragging: boolean = false;
   private cleanupFunctions: (() => void)[] = [];
+  private playbackTimer: NodeJS.Timeout | null = null;
+  private accumulatedPlaybackTime: number = 0; // Seconds accumulated in current session
+  private lastSaveTime: number = 0; // Last time we saved to backend
+  private currentSessionId: string | null = null;
 
   /**
    * Initialize custom audio controls for a session
@@ -18,8 +22,13 @@ export class SessionPlaybackManager {
   async initialize(
     audioElement: HTMLAudioElement,
     sessionDuration: number,
-    isDetailViewVisible: () => boolean
+    isDetailViewVisible: () => boolean,
+    sessionId?: string
   ): Promise<void> {
+    // Store session ID for tracking
+    this.currentSessionId = sessionId || null;
+    this.accumulatedPlaybackTime = 0;
+    this.lastSaveTime = 0;
     // Get control elements
     const playPauseBtn = document.getElementById('play-pause-btn');
     const volumeBtn = document.getElementById('volume-btn');
@@ -62,6 +71,9 @@ export class SessionPlaybackManager {
       const icon = playPauseBtn.querySelector('.play-icon');
       if (icon) icon.textContent = '⏸';
       playPauseBtn.classList.add('playing');
+
+      // Start tracking playback time
+      this.startPlaybackTracking();
     };
     audioElement.addEventListener('play', playHandler);
     this.cleanupFunctions.push(() => audioElement.removeEventListener('play', playHandler));
@@ -70,6 +82,9 @@ export class SessionPlaybackManager {
       const icon = playPauseBtn.querySelector('.play-icon');
       if (icon) icon.textContent = '▶';
       playPauseBtn.classList.remove('playing');
+
+      // Stop tracking and save playback time
+      this.stopPlaybackTracking();
     };
     audioElement.addEventListener('pause', pauseHandler);
     this.cleanupFunctions.push(() => audioElement.removeEventListener('pause', pauseHandler));
@@ -261,11 +276,73 @@ export class SessionPlaybackManager {
   }
 
   /**
+   * Start tracking playback time
+   */
+  private startPlaybackTracking(): void {
+    if (this.playbackTimer || !this.currentSessionId) return;
+
+    // Track playback every second
+    this.playbackTimer = setInterval(() => {
+      this.accumulatedPlaybackTime++;
+
+      // Save to backend every 10 seconds
+      if (this.accumulatedPlaybackTime - this.lastSaveTime >= 10) {
+        this.savePlaybackTime();
+      }
+    }, 1000);
+  }
+
+  /**
+   * Stop tracking playback time
+   */
+  private stopPlaybackTracking(): void {
+    if (this.playbackTimer) {
+      clearInterval(this.playbackTimer);
+      this.playbackTimer = null;
+    }
+
+    // Save any remaining time
+    if (this.accumulatedPlaybackTime > this.lastSaveTime) {
+      this.savePlaybackTime();
+    }
+  }
+
+  /**
+   * Save accumulated playback time to session
+   */
+  private async savePlaybackTime(): Promise<void> {
+    if (!this.currentSessionId || this.accumulatedPlaybackTime === this.lastSaveTime) {
+      return;
+    }
+
+    const timeToSave = this.accumulatedPlaybackTime - this.lastSaveTime;
+
+    try {
+      // Add study mode time via IPC
+      await (window as any).electronAPI.addStudyModeTime(
+        this.currentSessionId,
+        timeToSave
+      );
+
+      this.lastSaveTime = this.accumulatedPlaybackTime;
+      console.log(`📊 Saved ${timeToSave}s of playback time for session ${this.currentSessionId}`);
+    } catch (error) {
+      console.error('Failed to save playback time:', error);
+    }
+  }
+
+  /**
    * Clean up event listeners and resources
    */
   cleanup(): void {
+    // Stop tracking and save final playback time
+    this.stopPlaybackTracking();
+
     this.cleanupFunctions.forEach(fn => fn());
     this.cleanupFunctions = [];
     this.isDragging = false;
+    this.currentSessionId = null;
+    this.accumulatedPlaybackTime = 0;
+    this.lastSaveTime = 0;
   }
 }

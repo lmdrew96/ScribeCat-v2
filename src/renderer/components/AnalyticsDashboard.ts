@@ -70,9 +70,9 @@ export class AnalyticsDashboard {
    * Calculate all statistics from sessions
    */
   private calculateStats(sessions: Session[]): StudyStats {
-    // Total study time (convert seconds to minutes)
+    // Total study time (convert seconds to minutes) - uses studyModeTime instead of recording duration
     const totalStudyTime = Math.floor(
-      sessions.reduce((sum, s) => sum + s.duration, 0) / 60
+      sessions.reduce((sum, s) => sum + (s.studyModeTime || 0), 0) / 60
     );
 
     // Total sessions
@@ -83,14 +83,14 @@ export class AnalyticsDashboard {
       ? Math.floor(totalStudyTime / totalSessions)
       : 0;
 
-    // Course breakdown
+    // Course breakdown (using study mode time)
     const coursesBreakdown = new Map<string, { count: number; totalTime: number }>();
     sessions.forEach(session => {
       const course = session.courseTitle || 'Uncategorized';
       const existing = coursesBreakdown.get(course) || { count: 0, totalTime: 0 };
       coursesBreakdown.set(course, {
         count: existing.count + 1,
-        totalTime: existing.totalTime + Math.floor(session.duration / 60)
+        totalTime: existing.totalTime + Math.floor((session.studyModeTime || 0) / 60)
       });
     });
 
@@ -209,7 +209,7 @@ export class AnalyticsDashboard {
           <h3 class="analytics-section-title">Study Goals</h3>
           <div class="goals-empty">
             <div class="goals-empty-icon">🎯</div>
-            <div class="goals-empty-text">Set a recording time goal to track your progress!</div>
+            <div class="goals-empty-text">Set a study time goal to track your progress!</div>
             <div class="goals-actions">
               <button class="goal-setup-btn" onclick="window.analyticsDashboard?.showGoalModal('daily')">
                 Set Daily Goal
@@ -322,8 +322,8 @@ export class AnalyticsDashboard {
     const existingGoal = this.goalsManager.getActiveGoal(type);
     const title = type === 'daily' ? 'Daily Goal' : 'Weekly Goal';
     const subtitle = type === 'daily'
-      ? 'How many minutes do you want to record each day?'
-      : 'How many minutes do you want to record each week?';
+      ? 'How many minutes do you want to study each day?'
+      : 'How many minutes do you want to study each week?';
 
     const presets = type === 'daily'
       ? [15, 30, 45, 60, 90, 120]
@@ -487,7 +487,7 @@ export class AnalyticsDashboard {
 
     // Group achievements by category
     const categories: { name: string; achievements: Achievement[] }[] = [
-      { name: 'Recording Time', achievements: this.achievementsManager.getAchievementsByCategory('time') },
+      { name: 'Study Time', achievements: this.achievementsManager.getAchievementsByCategory('time') },
       { name: 'Session Count', achievements: this.achievementsManager.getAchievementsByCategory('sessions') },
       { name: 'Consistency', achievements: this.achievementsManager.getAchievementsByCategory('streaks') },
       { name: 'Marathon Sessions', achievements: this.achievementsManager.getAchievementsByCategory('marathon') },
@@ -613,7 +613,7 @@ export class AnalyticsDashboard {
               <div class="stat-icon">⏱️</div>
               <div class="stat-content">
                 <div class="stat-value">${this.formatTime(totalStudyTime)}</div>
-                <div class="stat-label">Total Recording Time</div>
+                <div class="stat-label">Total Study Time</div>
               </div>
             </div>
 
@@ -730,12 +730,12 @@ export class AnalyticsDashboard {
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - (12 * 7)); // 12 weeks back
 
-    // Create map of study dates
+    // Create map of study dates (using study mode time)
     const studyDateMap = new Map<string, number>();
     this.sessions.forEach(session => {
       const dateKey = this.normalizeDate(session.createdAt).toISOString().split('T')[0];
       const existing = studyDateMap.get(dateKey) || 0;
-      studyDateMap.set(dateKey, existing + Math.floor(session.duration / 60)); // minutes
+      studyDateMap.set(dateKey, existing + Math.floor((session.studyModeTime || 0) / 60)); // minutes
     });
 
     // Generate weeks array
@@ -837,7 +837,7 @@ export class AnalyticsDashboard {
           const sessionDate = this.normalizeDate(s.createdAt).toISOString().split('T')[0];
           return sessionDate === dateKey;
         })
-        .reduce((sum, s) => sum + Math.floor(s.duration / 60), 0);
+        .reduce((sum, s) => sum + Math.floor((s.studyModeTime || 0) / 60), 0);
 
       const label = i === 0 ? 'Today' :
                     i === 1 ? 'Yesterday' :
@@ -884,7 +884,7 @@ export class AnalyticsDashboard {
     let csv = 'ScribeCat Analytics Export\n\n';
     csv += 'Overview\n';
     csv += 'Metric,Value\n';
-    csv += `Total Recording Time,${this.formatTime(totalStudyTime)}\n`;
+    csv += `Total Study Time,${this.formatTime(totalStudyTime)}\n`;
     csv += `Total Sessions,${totalSessions}\n`;
     csv += `Average Duration,${this.formatTime(averageDuration)}\n`;
     csv += `Current Streak,${currentStreak} days\n`;
@@ -906,7 +906,7 @@ export class AnalyticsDashboard {
         const date = session.createdAt.toLocaleDateString('en-US');
         const title = session.title.replace(/"/g, '""');
         const course = (session.courseTitle || 'Uncategorized').replace(/"/g, '""');
-        const duration = Math.floor(session.duration / 60);
+        const duration = Math.floor((session.studyModeTime || 0) / 60);
         csv += `${date},"${title}","${course}",${duration}\n`;
       });
 

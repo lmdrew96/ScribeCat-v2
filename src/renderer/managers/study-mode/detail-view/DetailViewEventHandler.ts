@@ -161,11 +161,12 @@ export class DetailViewEventHandler {
       logger.info(`Loaded local audio from: ${recordingPath}`);
     }
 
-    // Initialize custom audio controls
+    // Initialize custom audio controls with session ID for tracking
     sessionPlaybackManager.initialize(
       audioElement,
       session.duration,
-      () => !sessionDetailContainer.classList.contains('hidden')
+      () => !sessionDetailContainer.classList.contains('hidden'),
+      session.id
     );
 
     // Speed controls

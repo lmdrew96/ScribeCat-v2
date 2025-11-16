@@ -84,6 +84,9 @@ declare global {
         updateNotes: (sessionId: string, notes: string) => Promise<IPCResponse<void>>;
         updateSummary: (sessionId: string, summary: string) => Promise<IPCResponse<void>>;
         createDraft: () => Promise<IPCResponse<{ sessionId: string }>>;
+        addStudyModeTime: (sessionId: string, seconds: number) => Promise<IPCResponse<void>>;
+        incrementAIToolUsage: (sessionId: string) => Promise<IPCResponse<void>>;
+        incrementAIChatMessages: (sessionId: string, count: number) => Promise<IPCResponse<void>>;
         getAvailableFormats: () => Promise<IPCResponse<ExportFormat[]>>;
       };
       drive: {

@@ -1,7 +1,7 @@
 /**
  * GoalsManager
  *
- * Manages study goals and tracks progress toward recording time targets.
+ * Manages study goals and tracks progress toward study time targets.
  * Supports daily and weekly goals with localStorage persistence.
  */
 
@@ -182,12 +182,14 @@ export class GoalsManager {
   }
 
   /**
-   * Calculate recording minutes for a time period
+   * Calculate study mode minutes for a time period
+   * Uses studyModeTime (playback + AI tools + chat) instead of recording duration
    */
   private calculateRecordingMinutes(type: GoalType, sessions: Session[], now: Date): number {
     const filtered = this.filterSessionsByPeriod(type, sessions, now);
     return filtered.reduce((sum, session) => {
-      return sum + Math.floor(session.duration / 60); // Convert seconds to minutes
+      // Use study mode time instead of recording duration
+      return sum + Math.floor((session.studyModeTime || 0) / 60); // Convert seconds to minutes
     }, 0);
   }
 
@@ -276,7 +278,7 @@ export class GoalsManager {
     }
 
     return type === 'daily'
-      ? "📚 Ready to start today's recording session?"
+      ? "📚 Ready to start today's study session?"
       : "🎯 Let's make progress on this week's goal!";
   }
 
