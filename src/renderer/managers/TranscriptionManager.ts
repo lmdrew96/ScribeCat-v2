@@ -79,6 +79,14 @@ export class TranscriptionManager {
   }
 
   /**
+   * Get current timestamp for bookmarks (public accessor)
+   * Returns the active recording time in seconds, excluding paused time
+   */
+  public getCurrentTimestamp(): number {
+    return this.getActiveRecordingTime();
+  }
+
+  /**
    * Update flowing transcription with partial/final results
    */
   updateFlowing(text: string, isFinal: boolean, providedStartTime?: number, providedEndTime?: number): void {

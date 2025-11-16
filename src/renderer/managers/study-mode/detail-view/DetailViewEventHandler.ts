@@ -183,6 +183,9 @@ export class DetailViewEventHandler {
 
     // Timestamp click handlers - seek audio to segment time
     this.attachTranscriptionSegmentClickHandlers();
+
+    // Bookmark click handlers - seek audio to bookmark timestamp
+    this.attachBookmarkClickHandlers();
   }
 
   /**
@@ -207,6 +210,30 @@ export class DetailViewEventHandler {
           if (audioElement.paused) {
             audioElement.play().catch(err => logger.error('Playback failed:', err));
           }
+        }
+      });
+    });
+  }
+
+  /**
+   * Attach click handlers to bookmark links for audio seeking
+   */
+  private static attachBookmarkClickHandlers(): void {
+    const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
+    if (!audioElement) return;
+
+    const bookmarks = document.querySelectorAll('.audio-bookmark');
+    bookmarks.forEach(bookmark => {
+      bookmark.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent default link behavior
+
+        const timestamp = parseFloat((bookmark as HTMLElement).dataset.timestamp || '0');
+        if (audioElement && !isNaN(timestamp)) {
+          audioElement.currentTime = timestamp;
+          if (audioElement.paused) {
+            audioElement.play().catch(err => logger.error('Playback failed:', err));
+          }
+          logger.info('Jumped to bookmark at:', timestamp);
         }
       });
     });

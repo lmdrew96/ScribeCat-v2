@@ -169,6 +169,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
   recordingManager.initialize();
 
+  // Expose recordingManager globally for bookmark insertion
+  (window as any).recordingManager = recordingManager;
+
   // Initialize session reset manager (coordinates session state reset)
   sessionResetManager = new SessionResetManager(
     editorManager,

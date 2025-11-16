@@ -1539,3 +1539,44 @@
   border-color: rgba(244, 67, 54, 0.4);
   color: #C62828;
 }
+
+/* ===== Audio Bookmarks ===== */
+.audio-bookmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  background-color: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+  color: #A78BFA;
+  text-decoration: none;
+  font-size: 0.9em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.audio-bookmark:hover {
+  background-color: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #C4B5FD;
+  transform: translateY(-1px);
+}
+
+.audio-bookmark:active {
+  transform: translateY(0);
+}
+
+/* Light theme adjustments for bookmarks */
+[data-theme*="light"] .audio-bookmark {
+  background-color: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #7C3AED;
+}
+
+[data-theme*="light"] .audio-bookmark:hover {
+  background-color: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #6D28D9;
+}

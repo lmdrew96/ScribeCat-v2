@@ -386,6 +386,14 @@ export class RecordingManager {
   }
 
   /**
+   * Get current recording timestamp for bookmarks
+   * Returns the active recording time in seconds (excluding paused time)
+   */
+  getCurrentRecordingTimestamp(): number {
+    return this.transcriptionManager.getCurrentTimestamp();
+  }
+
+  /**
    * Clean up recording resources
    */
   async cleanup(): Promise<void> {

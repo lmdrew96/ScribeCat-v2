@@ -41,6 +41,7 @@ export class TiptapToolbarManager {
   private dividerBtn: HTMLButtonElement;
   private emojiBtn: HTMLButtonElement;
   private linkBtn: HTMLButtonElement;
+  private bookmarkBtn: HTMLButtonElement;
   private imageBtn: HTMLButtonElement;
   private imageInput: HTMLInputElement;
   private textboxBtn: HTMLButtonElement;
@@ -103,6 +104,7 @@ export class TiptapToolbarManager {
     this.dividerBtn = document.getElementById('divider-btn') as HTMLButtonElement;
     this.emojiBtn = document.getElementById('emoji-btn') as HTMLButtonElement;
     this.linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
+    this.bookmarkBtn = document.getElementById('bookmark-btn') as HTMLButtonElement;
     this.imageBtn = document.getElementById('image-btn') as HTMLButtonElement;
     this.imageInput = document.getElementById('image-input') as HTMLInputElement;
     this.textboxBtn = document.getElementById('textbox-btn') as HTMLButtonElement;
@@ -337,6 +339,10 @@ export class TiptapToolbarManager {
 
     this.linkBtn.addEventListener('click', () => {
       this.toggleLink();
+    });
+
+    this.bookmarkBtn.addEventListener('click', () => {
+      this.insertBookmark();
     });
 
     this.imageBtn.addEventListener('click', () => {
@@ -591,6 +597,45 @@ export class TiptapToolbarManager {
       }
     }
   }
+
+  /**
+   * Insert bookmark at current recording timestamp
+   */
+  private insertBookmark(): void {
+    const editor = this.editorCore.getEditor();
+    if (!editor) return;
+
+    // Access recordingManager from window (exposed globally in app.ts)
+    const recordingManager = (window as any).recordingManager;
+
+    if (!recordingManager) {
+      logger.warn('RecordingManager not available');
+      return;
+    }
+
+    // Check if currently recording
+    if (!recordingManager.getIsRecording()) {
+      window.alert('Bookmarks can only be inserted during active recording.');
+      return;
+    }
+
+    // Get current recording timestamp (in seconds)
+    const timestampSeconds = recordingManager.getCurrentRecordingTimestamp();
+
+    // Format timestamp as MM:SS
+    const minutes = Math.floor(timestampSeconds / 60);
+    const seconds = Math.floor(timestampSeconds % 60);
+    const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    // Create bookmark HTML
+    const bookmarkHTML = `<a href="#" class="audio-bookmark" data-timestamp="${timestampSeconds}" title="Jump to ${formattedTime}">🔖 ${formattedTime}</a>`;
+
+    // Insert bookmark at cursor position
+    editor.chain().focus().insertContent(bookmarkHTML + ' ').run();
+
+    logger.info('Bookmark inserted at timestamp:', formattedTime);
+  }
+
   /** Insert table */
   private async insertTable(): Promise<void> {
     const rowsStr = await this.showInputPrompt('Insert Table', 'Number of rows:', '3');
