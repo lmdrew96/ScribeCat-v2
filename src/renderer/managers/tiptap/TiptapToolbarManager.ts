@@ -470,9 +470,6 @@ export class TiptapToolbarManager {
     this.clearFormatBtn.addEventListener('click', () => {
       this.editorCore.chain()?.focus().clearNodes().unsetAllMarks().run();
     });
-
-    // Setup scroll-to-top button
-    this.setupScrollToTopButton();
   }
   /** Set up color palette swatches */
   private setupColorPalette(): void {
@@ -1029,32 +1026,5 @@ export class TiptapToolbarManager {
     }
 
     logger.info('Toolbar manager destroyed');
-  }
-
-  /**
-   * Setup scroll-to-top button behavior
-   */
-  private setupScrollToTopButton(): void {
-    const scrollBtn = document.getElementById('scroll-to-top-btn');
-    const editorContainer = document.getElementById('tiptap-editor');
-
-    if (!scrollBtn || !editorContainer) return;
-
-    // Show/hide button based on scroll position
-    editorContainer.addEventListener('scroll', () => {
-      if (editorContainer.scrollTop > 200) {
-        scrollBtn.style.display = 'block';
-      } else {
-        scrollBtn.style.display = 'none';
-      }
-    });
-
-    // Scroll to top when clicked
-    scrollBtn.addEventListener('click', () => {
-      editorContainer.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
   }
 }

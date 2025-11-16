@@ -82,17 +82,17 @@
 .study-editor-toolbar {
   background: var(--editor-toolbar-bg);
   border-bottom: 1px solid var(--editor-toolbar-border);
-  padding: var(--editor-gap) var(--editor-gap-large);
+  padding: 4px 8px;
   display: flex;
   align-items: center;
-  gap: var(--editor-gap-small);
+  gap: 1px;
   flex-wrap: wrap;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .toolbar-btn {
-  min-width: 36px;
-  height: 36px;
+  min-width: 26px;
+  height: 26px;
   padding: 0;
   border-radius: var(--editor-btn-radius);
   border: none;
@@ -162,8 +162,8 @@
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: var(--editor-gap-small);
-  padding: var(--editor-gap-small);
+  gap: 0px;
+  padding: 2px;
   border-radius: var(--editor-btn-radius);
   transition: background var(--editor-transition-fast);
 }

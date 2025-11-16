@@ -1345,35 +1345,10 @@
   gap: 10px;
   font-size: 12px;
   color: var(--text-secondary);
-  position: relative;
 }
 
 .count-separator {
   color: var(--text-tertiary);
-}
-
-.scroll-to-top-btn {
-  margin-left: auto;
-  padding: 6px 12px;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  opacity: 0.9;
-}
-
-.scroll-to-top-btn:hover {
-  opacity: 1;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.scroll-to-top-btn:active {
-  transform: translateY(0);
 }
 
 /* Right Panel: Transcription */
