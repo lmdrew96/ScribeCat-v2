@@ -22,6 +22,8 @@ interface ChatOptions {
   maxTokens?: number;
   systemPrompt?: string;
   stream?: boolean;
+  transcriptionContext?: string;
+  notesContext?: string;
 }
 
 interface ExportOptions {
