@@ -28,6 +28,10 @@ import { HelpModal } from './components/HelpModal.js';
 import { TrashModal } from './components/TrashModal.js';
 import { FriendsManager } from './managers/social/FriendsManager.js';
 import { FriendsModal } from './components/FriendsModal.js';
+import { StudyRoomsManager } from './managers/social/StudyRoomsManager.js';
+import { CreateRoomModal } from './components/CreateRoomModal.js';
+import { BrowseRoomsModal } from './components/BrowseRoomsModal.js';
+import { StudyRoomView } from './components/StudyRoomView.js';
 import { CommandPalette } from './components/CommandPalette.js';
 import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
@@ -73,6 +77,10 @@ let helpModal: HelpModal;
 let trashModal: TrashModal;
 let friendsManager: FriendsManager;
 let friendsModal: FriendsModal;
+let studyRoomsManager: StudyRoomsManager;
+let createRoomModal: CreateRoomModal;
+let browseRoomsModal: BrowseRoomsModal;
+let studyRoomView: StudyRoomView;
 let commandPalette: CommandPalette;
 let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
@@ -236,6 +244,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Expose friendsManager globally
   window.friendsManager = friendsManager;
 
+  // Initialize study rooms system
+  studyRoomsManager = new StudyRoomsManager();
+  createRoomModal = new CreateRoomModal(studyRoomsManager);
+  createRoomModal.initialize();
+  browseRoomsModal = new BrowseRoomsModal(studyRoomsManager);
+  browseRoomsModal.initialize();
+  studyRoomView = new StudyRoomView(studyRoomsManager, friendsManager);
+  studyRoomView.initialize();
+
+  // Expose studyRoomsManager globally
+  window.studyRoomsManager = studyRoomsManager;
+
+  // Wire up study rooms UI events
+  window.addEventListener('show-create-room-modal', () => {
+    createRoomModal.show((roomId) => {
+      // After creating room, open browse modal and join the room
+      studyRoomView.show(roomId, () => {
+        // After exiting room, show browse modal
+        browseRoomsModal.show((nextRoomId) => studyRoomView.show(nextRoomId));
+      });
+    });
+  });
+
   // Set up auth UI (show/hide signin button)
   setupAuthUI();
 
@@ -389,6 +420,22 @@ function setupEventListeners(): void {
       const currentUser = authManager.getCurrentUser();
       if (currentUser) {
         friendsModal.open(currentUser.id);
+      }
+    });
+  }
+
+  // Study Rooms button
+  const studyRoomsBtn = document.getElementById('study-rooms-btn') as HTMLButtonElement;
+  if (studyRoomsBtn) {
+    studyRoomsBtn.addEventListener('click', () => {
+      const currentUser = authManager.getCurrentUser();
+      if (currentUser) {
+        browseRoomsModal.show((roomId) => {
+          studyRoomView.show(roomId, () => {
+            // After exiting room, show browse modal again
+            browseRoomsModal.show((nextRoomId) => studyRoomView.show(nextRoomId));
+          });
+        });
       }
     });
   }
@@ -698,18 +745,49 @@ function setupToolbarToggle(): void {
 function setupAuthUI(): void {
   const signinBtn = document.getElementById('signin-btn');
   const friendsBtn = document.getElementById('friends-btn');
+  const studyRoomsBtn = document.getElementById('study-rooms-btn');
 
   // Listen for auth state changes
   authManager.onAuthStateChange(async (user) => {
     if (user) {
-      // User is authenticated - hide signin button, show friends button
+      // User is authenticated - hide signin button, show friends and study rooms buttons
       signinBtn?.classList.add('hidden');
       if (friendsBtn) {
         friendsBtn.style.display = 'block';
       }
+      if (studyRoomsBtn) {
+        studyRoomsBtn.style.display = 'block';
+      }
 
       // Initialize friends manager for this user
       await friendsManager.initialize(user.id);
+
+      // Initialize study rooms manager for this user
+      await studyRoomsManager.initialize(user.id);
+
+      // Set current user ID for study rooms UI components
+      browseRoomsModal.setCurrentUserId(user.id);
+      studyRoomView.setCurrentUserId(user.id);
+
+      // Update study rooms badge with pending invitations count
+      const invitationsCount = studyRoomsManager.getPendingInvitationsCount();
+      const roomsBadge = document.getElementById('rooms-badge');
+      if (roomsBadge) {
+        roomsBadge.textContent = invitationsCount.toString();
+        roomsBadge.style.display = invitationsCount > 0 ? 'inline-block' : 'none';
+      }
+
+      // Listen for invitations changes to update badge
+      studyRoomsManager.addInvitationsListener((invitations) => {
+        const pendingCount = invitations.filter(inv =>
+          inv.status === 'pending' && inv.inviteeId === user.id
+        ).length;
+        const badge = document.getElementById('rooms-badge');
+        if (badge) {
+          badge.textContent = pendingCount.toString();
+          badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+        }
+      });
 
       // Update friends badge with pending requests count
       const requestsCount = friendsManager.getIncomingRequestsCount();
@@ -731,14 +809,24 @@ function setupAuthUI(): void {
         }
       });
     } else {
-      // User is not authenticated - show signin button, hide friends button
+      // User is not authenticated - show signin button, hide friends and study rooms buttons
       signinBtn?.classList.remove('hidden');
       if (friendsBtn) {
         friendsBtn.style.display = 'none';
       }
+      if (studyRoomsBtn) {
+        studyRoomsBtn.style.display = 'none';
+      }
 
       // Clear friends manager
       friendsManager.clear();
+
+      // Clear study rooms manager
+      studyRoomsManager.clear();
+
+      // Clear user ID from study rooms UI components
+      browseRoomsModal.setCurrentUserId(null);
+      studyRoomView.setCurrentUserId(null);
     }
   });
 

@@ -6,7 +6,7 @@
  */
 
 import { IpcMain } from 'electron';
-import { BaseHandler } from './BaseHandler.js';
+import { BaseHandler } from '../BaseHandler.js';
 import { SupabaseStudyRoomsRepository } from '../../../infrastructure/services/supabase/SupabaseStudyRoomsRepository.js';
 
 export class StudyRoomsHandlers extends BaseHandler {
