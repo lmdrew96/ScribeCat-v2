@@ -75,4 +75,6 @@ body {
   width: 133.33vw;
   transform: scale(0.75);
   transform-origin: top left;
+  position: relative;
+  z-index: 1; /* Explicit stacking context below overlays like study-room-view (10200) */
 }

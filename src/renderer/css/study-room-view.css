@@ -9,9 +9,11 @@
   width: 100vw;
   height: 100vh;
   background-color: var(--bg-primary);
-  z-index: 9999;
+  z-index: 10200; /* Above modals (10100) */
+  display: flex;
   flex-direction: column;
   overflow: hidden;
+  -webkit-app-region: no-drag; /* Override parent drag regions */
 }
 
 /* Header */
@@ -23,15 +25,10 @@
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  position: relative;
-}
-
-.study-room-header .room-info {
-  display: flex;
-  align-items: center;
+  position: sticky;
+  top: 0;
   gap: 12px;
-  position: relative;
-  pointer-events: none; /* Let clicks pass through to button */
+  z-index: 1000; /* High z-index to stay above sidebar/content */
 }
 
 .study-room-header .back-btn {
@@ -43,10 +40,9 @@
   padding: 8px;
   border-radius: 6px;
   transition: background-color 0.2s;
-  position: relative;
-  z-index: 100;
-  pointer-events: auto !important; /* Force clickable */
   flex-shrink: 0;
+  position: relative;
+  z-index: 101;
 }
 
 .study-room-header .back-btn:hover {
@@ -58,9 +54,6 @@
   flex-direction: column;
   min-width: 0;
   flex: 1;
-  position: relative;
-  z-index: 1;
-  pointer-events: none; /* Keep text non-interactive */
 }
 
 .room-title-info h2 {
@@ -92,6 +85,8 @@
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  position: relative;
+  z-index: -1; /* Negative to force ALL children below header */
 }
 
 /* Left Sidebar - Participants */
@@ -102,6 +97,8 @@
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   flex-shrink: 0;
+  position: relative;
+  z-index: 0; /* Explicitly below header */
 }
 
 .sidebar-header {
@@ -203,6 +200,8 @@
   flex-direction: column;
   min-width: 0;
   background: var(--bg-primary);
+  position: relative;
+  z-index: 0; /* Explicitly below header */
 }
 
 .content-header {
@@ -311,6 +310,8 @@
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
   flex-shrink: 0;
+  position: relative;
+  z-index: 0; /* Explicitly below header */
 }
 
 .chat-header {

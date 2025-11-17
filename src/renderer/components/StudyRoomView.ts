@@ -60,14 +60,12 @@ export class StudyRoomView {
       <div id="study-room-view" class="study-room-view" style="display: none;">
         <!-- Header -->
         <div class="study-room-header">
-          <div class="room-info">
-            <button class="btn-icon back-btn" id="exit-room-btn" title="Exit Room">
-              ←
-            </button>
-            <div class="room-title-info">
-              <h2 id="room-title">Study Room</h2>
-              <p id="room-subtitle">Loading...</p>
-            </div>
+          <button class="btn-icon back-btn" id="exit-room-btn" title="Exit Room">
+            ←
+          </button>
+          <div class="room-title-info">
+            <h2 id="room-title">Study Room</h2>
+            <p id="room-subtitle">Loading...</p>
           </div>
           <div class="room-actions">
             <button class="btn-secondary btn-sm" id="invite-friends-btn">
@@ -148,18 +146,80 @@ export class StudyRoomView {
   private attachEventListeners(): void {
     if (!this.container) return;
 
-    // Exit room button
+    // Exit room button - multiple approaches for maximum reliability
     const exitBtn = document.getElementById('exit-room-btn');
     console.log('Exit button found?', !!exitBtn, exitBtn);
+
     if (exitBtn) {
-      exitBtn.addEventListener('click', () => {
-        console.log('EXIT BUTTON CLICKED!');
+      // Approach 1: Direct click listener
+      exitBtn.addEventListener('click', (e) => {
+        console.log('EXIT BUTTON CLICKED (direct)!', e);
+        e.stopPropagation();
         this.exitRoom();
       });
-      console.log('Exit button listener attached');
+
+      // Approach 2: Click with capture
+      exitBtn.addEventListener('click', (e) => {
+        console.log('EXIT BUTTON CLICKED (capture)!', e);
+        this.exitRoom();
+      }, { capture: true });
+
+      // Approach 3: Mousedown for debugging with capture
+      exitBtn.addEventListener('mousedown', (e) => {
+        console.log('EXIT BUTTON MOUSEDOWN! Button:', e.button);
+        console.log('LEFT CLICK DETECTED ON BUTTON!', e);
+        if (e.button === 0) {
+          console.log('⚠️ LEFT CLICK ON EXIT BUTTON - calling exitRoom()');
+          this.exitRoom();
+        }
+      }, { capture: true });
+
+      console.log('Exit button listeners attached (3 methods)');
     } else {
       console.error('Exit button not found!');
     }
+
+    // Approach 4: Event delegation from header
+    const header = document.querySelector('.study-room-header');
+    if (header) {
+      header.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        console.log('Header clicked, target:', target.id, target.className);
+        if (target.id === 'exit-room-btn' || target.closest('#exit-room-btn')) {
+          console.log('EXIT via delegation!');
+          this.exitRoom();
+        }
+      });
+      console.log('Header delegation listener attached');
+    }
+
+    // DEBUG: Window-level mousedown to catch ALL clicks first
+    const windowMousedownHandler = (e: MouseEvent) => {
+      console.log('🌍 WINDOW MOUSEDOWN - Button:', e.button, 'Target:', (e.target as HTMLElement)?.id || (e.target as HTMLElement)?.className);
+      if (e.button === 0) {
+        const exitBtn = document.getElementById('exit-room-btn');
+        if (exitBtn && exitBtn.contains(e.target as Node)) {
+          console.log('🌍 LEFT CLICK ON EXIT BUTTON DETECTED AT WINDOW LEVEL!');
+        }
+      }
+    };
+    window.addEventListener('mousedown', windowMousedownHandler, true);
+    console.log('🌍 Window-level mousedown listener attached');
+
+    // DEBUG: Global click listener to see what's covering the button
+    const debugClickHandler = (e: MouseEvent) => {
+      const x = e.clientX;
+      const y = e.clientY;
+      const elementAtPoint = document.elementFromPoint(x, y);
+      console.log('🔍 CLICK DEBUG - Position:', { x, y });
+      console.log('🔍 Element at click point:', elementAtPoint);
+      console.log('🔍 Element tag:', elementAtPoint?.tagName);
+      console.log('🔍 Element id:', (elementAtPoint as HTMLElement)?.id);
+      console.log('🔍 Element class:', (elementAtPoint as HTMLElement)?.className);
+      console.log('🔍 Element z-index:', window.getComputedStyle(elementAtPoint as Element).zIndex);
+    };
+    document.addEventListener('click', debugClickHandler, true);
+    console.log('🔍 Global debug click listener attached');
 
     // Invite friends button
     const inviteBtn = document.getElementById('invite-friends-btn');
