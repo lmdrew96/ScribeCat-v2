@@ -150,7 +150,16 @@ export class StudyRoomView {
 
     // Exit room button
     const exitBtn = document.getElementById('exit-room-btn');
-    exitBtn?.addEventListener('click', () => this.exitRoom());
+    console.log('Exit button found?', !!exitBtn, exitBtn);
+    if (exitBtn) {
+      exitBtn.addEventListener('click', () => {
+        console.log('EXIT BUTTON CLICKED!');
+        this.exitRoom();
+      });
+      console.log('Exit button listener attached');
+    } else {
+      console.error('Exit button not found!');
+    }
 
     // Invite friends button
     const inviteBtn = document.getElementById('invite-friends-btn');
@@ -521,12 +530,24 @@ export class StudyRoomView {
    * Exit room
    */
   private async exitRoom(): Promise<void> {
-    if (!this.currentRoomId || !this.currentUserId) return;
+    console.log('exitRoom() called');
+    console.log('  currentRoomId:', this.currentRoomId);
+    console.log('  currentUserId:', this.currentUserId);
+
+    if (!this.currentRoomId || !this.currentUserId) {
+      console.error('Cannot exit - missing roomId or userId');
+      return;
+    }
 
     const room = this.studyRoomsManager.getRoomById(this.currentRoomId);
-    if (!room) return;
+    console.log('  room:', room);
+    if (!room) {
+      console.error('Cannot exit - room not found');
+      return;
+    }
 
     const isHost = room.hostId === this.currentUserId;
+    console.log('  isHost:', isHost);
 
     if (isHost) {
       const confirmClose = confirm(
