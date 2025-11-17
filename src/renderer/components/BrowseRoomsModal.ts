@@ -31,7 +31,9 @@ export class BrowseRoomsModal {
    * Initialize the browse rooms modal
    */
   public initialize(): void {
+    console.log('BrowseRoomsModal.initialize() called');
     this.createModal();
+    console.log('BrowseRoomsModal.initialize() complete');
   }
 
   /**
@@ -45,6 +47,7 @@ export class BrowseRoomsModal {
    * Create the modal structure
    */
   private createModal(): void {
+    console.log('BrowseRoomsModal.createModal() called');
     const modalHTML = `
       <div id="browse-rooms-modal" class="modal" style="display: none;">
         <div class="modal-overlay" data-close-modal></div>
@@ -108,17 +111,24 @@ export class BrowseRoomsModal {
       </div>
     `;
 
+    console.log('BrowseRoomsModal: Inserting HTML into body');
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     this.modal = document.getElementById('browse-rooms-modal');
+    console.log('BrowseRoomsModal: Modal element:', this.modal);
 
     this.attachEventListeners();
+    console.log('BrowseRoomsModal.createModal() complete');
   }
 
   /**
    * Attach event listeners
    */
   private attachEventListeners(): void {
-    if (!this.modal) return;
+    console.log('BrowseRoomsModal.attachEventListeners() called, modal:', this.modal);
+    if (!this.modal) {
+      console.error('BrowseRoomsModal: No modal element, returning early');
+      return;
+    }
 
     // Close modal
     this.modal.querySelectorAll('[data-close-modal]').forEach(el => {
@@ -136,11 +146,28 @@ export class BrowseRoomsModal {
 
     // Create room button
     const createBtn = document.getElementById('create-room-btn');
-    createBtn?.addEventListener('click', () => {
-      this.close();
-      // Trigger create room modal (will be wired up by app.ts)
-      window.dispatchEvent(new CustomEvent('show-create-room-modal'));
-    });
+    if (createBtn) {
+      console.log('Create room button found, attaching listener');
+      console.log('Button element:', createBtn);
+      console.log('Button computed style display:', window.getComputedStyle(createBtn).display);
+      console.log('Button computed style pointer-events:', window.getComputedStyle(createBtn).pointerEvents);
+
+      // Test if ANY events reach the button
+      createBtn.addEventListener('mousedown', (e) => {
+        console.log('MOUSEDOWN event on create button!', e);
+      });
+
+      createBtn.addEventListener('click', (e) => {
+        console.log('CLICK event on create button!', e);
+        console.log('Event target:', e.target);
+        console.log('Event currentTarget:', e.currentTarget);
+        this.close();
+        // Trigger create room modal (will be wired up by app.ts)
+        window.dispatchEvent(new CustomEvent('show-create-room-modal'));
+      });
+    } else {
+      console.error('Create room button not found!');
+    }
   }
 
   /**

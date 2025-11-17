@@ -258,7 +258,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Wire up study rooms UI events
   window.addEventListener('show-create-room-modal', () => {
+    console.log('show-create-room-modal event received!');
     createRoomModal.show((roomId) => {
+      console.log('Room created, showing room view:', roomId);
       // After creating room, open browse modal and join the room
       studyRoomView.show(roomId, () => {
         // After exiting room, show browse modal
@@ -266,6 +268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
   });
+  console.log('Registered show-create-room-modal event listener');
 
   // Set up auth UI (show/hide signin button)
   setupAuthUI();
