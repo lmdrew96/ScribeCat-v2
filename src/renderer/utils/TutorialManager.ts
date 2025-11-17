@@ -39,6 +39,8 @@ export interface TutorialStep {
     text: string;
     onClick: () => void | Promise<void>;
   };
+  /** If true, automatically skip this step if the target element is not found */
+  optional?: boolean;
 }
 
 export interface Tutorial {
@@ -97,7 +99,7 @@ export class TutorialManager {
           position: 'bottom'
         },
         {
-          target: '.transcription-container',
+          target: '#transcription-container',
           title: 'Real-Time Transcription',
           content: 'Watch your words appear here as you speak! Powered by AssemblyAI, the transcription streams in real-time with high accuracy.',
           position: 'right'
@@ -147,24 +149,61 @@ export class TutorialManager {
           }
         },
         {
-          target: '#ai-suggestion-chip',
-          title: 'Proactive Suggestions',
-          content: 'See this pulsing chip? The AI automatically suggests helpful actions based on your content. Click it to see suggestions!',
-          position: 'bottom',
-          beforeShow: async () => {
-            // Check if AI suggestion chip exists (it's dynamically created)
-            const chip = document.getElementById('ai-suggestion-chip');
-            if (!chip) {
-              console.warn('AI suggestion chip not yet initialized - tutorial will show error if not found');
-            }
-            await new Promise(resolve => setTimeout(resolve, 100)); // Brief wait for chip to appear
-          }
-        },
-        {
-          target: '.ai-tools-panel',
+          target: '.session-detail-right .ai-study-tools',
           title: 'AI Tool Library',
-          content: 'Access AI tools in Study Mode to generate flashcards, create quizzes, get summaries, and more! All tools are context-aware and based on your session content.',
-          position: 'left'
+          content: 'Here are all the AI study tools! Generate flashcards, create quizzes, get summaries, and more. All tools are context-aware and work with your session content.',
+          position: 'left',
+          beforeShow: async () => {
+            // Close AI chat drawer if it's open
+            const chatDrawer = document.getElementById('ai-chat-drawer');
+            if (chatDrawer && !chatDrawer.classList.contains('hidden')) {
+              const chatBtn = document.querySelector('#floating-chat-btn') as HTMLElement;
+              if (chatBtn) chatBtn.click();
+              await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
+            // Navigate to Study Mode if not already there
+            const studyModeBtn = document.getElementById('study-mode-btn');
+            const studyModeActive = studyModeBtn?.classList.contains('active');
+
+            if (studyModeBtn && !studyModeActive) {
+              console.log('Opening Study Mode for AI tools tutorial');
+              studyModeBtn.click();
+              await new Promise(resolve => setTimeout(resolve, 800)); // Initial wait for Study Mode to start loading
+            }
+
+            // Poll for sessions to appear (sessions load asynchronously)
+            const waitForSessions = async (maxAttempts = 10): Promise<NodeListOf<Element> | null> => {
+              for (let i = 0; i < maxAttempts; i++) {
+                // Check for sessions in all view modes: grid (.session-card), list (.list-row), timeline, board
+                const sessionCards = document.querySelectorAll('.session-card, .list-row, .session-list-item');
+                if (sessionCards.length > 0) {
+                  console.log(`Found ${sessionCards.length} sessions after ${i + 1} attempts`);
+                  return sessionCards;
+                }
+                console.log(`Waiting for sessions to load... attempt ${i + 1}/${maxAttempts}`);
+                await new Promise(resolve => setTimeout(resolve, 300));
+              }
+              return null;
+            };
+
+            // Open first session if not already viewing one
+            const sessionDetailView = document.querySelector('.session-detail-view');
+            if (!sessionDetailView) {
+              const sessionCards = await waitForSessions();
+              if (sessionCards && sessionCards.length > 0) {
+                console.log('Opening first session for AI tools tutorial');
+                (sessionCards[0] as HTMLElement).click();
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for session detail to render
+              } else {
+                console.warn('No sessions available for AI tools tutorial - user needs to create a session first');
+              }
+            } else {
+              console.log('Session detail already open');
+              // Session detail already open, wait for AI tools to render
+              await new Promise(resolve => setTimeout(resolve, 400));
+            }
+          }
         }
       ]
     },
@@ -384,16 +423,23 @@ export class TutorialManager {
     // Highlight target element
     const elementFound = this.highlightElement(step.target);
 
-    // If element not found after beforeShow hook, this is a real problem
+    // If element not found after beforeShow hook
     if (!elementFound) {
+      // If this step is marked as optional, skip it automatically
+      if (step.optional) {
+        console.log(`Tutorial step ${index + 1} skipped - optional element "${step.target}" not found`);
+        FocusManager.announce(`Skipping optional step: ${step.title}`, 'polite');
+
+        // Automatically move to next step
+        await this.showStep(index + 1);
+        return;
+      }
+
+      // For required steps, show error
       console.error(`Tutorial step ${index + 1} failed: Element "${step.target}" not found`);
 
-      // Show error message to user
-      const errorMsg = `
-        <p><strong>Tutorial Error</strong></p>
-        <p>The element "${step.target}" couldn't be found.</p>
-        <p>This tutorial step requires the element to be visible. Please ensure you're in the correct view.</p>
-      `;
+      // Generate helpful, context-aware error message
+      const errorMsg = this.getContextualErrorMessage(step, this.currentTutorial!.id);
 
       // Create error tooltip
       this.showErrorTooltip(errorMsg);
@@ -433,6 +479,52 @@ export class TutorialManager {
       opacity: 0;
     `;
     document.body.appendChild(this.overlay);
+  }
+
+  /**
+   * Get context-aware error message for missing tutorial elements
+   */
+  private getContextualErrorMessage(step: TutorialStep, tutorialId: string): string {
+    // Provide helpful, specific guidance based on the missing element
+    const errorMessages: Record<string, string> = {
+      '.session-detail-right .ai-study-tools': `
+        <p><strong>No Session Open</strong></p>
+        <p>To see AI study tools, you need to have a recorded session first.</p>
+        <p><strong>What to do:</strong></p>
+        <ul style="text-align: left; margin: 12px 0; padding-left: 20px;">
+          <li>Record your first session using the Record button</li>
+          <li>Then open Study Mode and select the session</li>
+          <li>Restart this tutorial to see AI tools in action!</li>
+        </ul>
+      `,
+      '#ai-suggestion-chip': `
+        <p><strong>AI Suggestions Not Available</strong></p>
+        <p>The AI suggestion chip appears when ScribeCat has smart recommendations for you.</p>
+        <p><strong>What to do:</strong></p>
+        <ul style="text-align: left; margin: 12px 0; padding-left: 20px;">
+          <li>Record a session with some content</li>
+          <li>The AI will automatically suggest helpful actions</li>
+          <li>For now, you can skip to the next step</li>
+        </ul>
+      `,
+      '#session-list': `
+        <p><strong>No Sessions Yet</strong></p>
+        <p>Study Mode shows all your recorded sessions, but you haven't created any yet!</p>
+        <p><strong>What to do:</strong></p>
+        <ul style="text-align: left; margin: 12px 0; padding-left: 20px;">
+          <li>Exit this tutorial and record your first session</li>
+          <li>Then come back to explore Study Mode features</li>
+        </ul>
+      `
+    };
+
+    // Return specific message if available, otherwise generic
+    return errorMessages[step.target] || `
+      <p><strong>Tutorial Step Unavailable</strong></p>
+      <p>This tutorial step requires "${step.title}" to be visible, but it's not available right now.</p>
+      <p><strong>What to do:</strong></p>
+      <p style="text-align: left; margin: 12px 0;">Try skipping this step or restarting the tutorial after you've used the app a bit more.</p>
+    `;
   }
 
   /**
