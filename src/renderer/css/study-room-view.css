@@ -23,6 +23,7 @@
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  position: relative;
 }
 
 .study-room-header .room-info {
@@ -30,7 +31,7 @@
   align-items: center;
   gap: 12px;
   position: relative;
-  z-index: 1;
+  pointer-events: none; /* Let clicks pass through to button */
 }
 
 .study-room-header .back-btn {
@@ -44,7 +45,7 @@
   transition: background-color 0.2s;
   position: relative;
   z-index: 100;
-  pointer-events: auto;
+  pointer-events: auto !important; /* Force clickable */
   flex-shrink: 0;
 }
 
@@ -59,7 +60,7 @@
   flex: 1;
   position: relative;
   z-index: 1;
-  pointer-events: none;
+  pointer-events: none; /* Keep text non-interactive */
 }
 
 .room-title-info h2 {
@@ -78,6 +79,11 @@
 .room-actions {
   display: flex;
   gap: 8px;
+  pointer-events: auto; /* Ensure action buttons are clickable */
+}
+
+.room-actions button {
+  pointer-events: auto !important; /* Force all action buttons clickable */
 }
 
 /* Main Content Layout - Three Column */
