@@ -1,0 +1,185 @@
+ScribeCat v2: Social Study Features Implementation Plan
+Overview
+Add friend system, group study rooms with multiplayer games (quiz battles, Jeopardy, bingo, collaborative flashcards), real-time chat, and collaborative notes.
+Phase 1: Friend System (Foundation)
+Goal: Users can add friends, send/accept requests, view friend list
+1.1 Database Layer
+	•	Create migration 010_friends_system.sql:
+	◦	friend_requests table (sender_id, recipient_id, status, created_at)
+	◦	friendships table (user_id, friend_id, created_at)
+	◦	RLS policies for privacy
+	◦	Helper functions (are_friends, get_mutual_friends)
+1.2 Domain Layer
+	•	Create Friend.ts entity
+	•	Create FriendRequest.ts entity
+	•	Add friend-related methods to User.ts
+1.3 Infrastructure Layer
+	•	Create SupabaseFriendsRepository.ts
+	•	Add friend methods to Supabase service
+1.4 Presentation Layer
+	•	Create FriendsManager.ts in src/renderer/managers/social/
+	•	Create FriendsModal.ts component:
+	◦	Friends list tab
+	◦	Pending requests tab
+	◦	Find friends (search by email)
+	◦	Accept/decline buttons
+	•	Add "Friends" button to main UI
+	•	IPC handlers for friend operations
+
+Phase 2: Group Study Rooms (Core)
+Goal: Host creates room, invites friends, everyone joins same session
+2.1 Database Layer
+	•	Create migration 011_group_study_rooms.sql:
+	◦	group_study_rooms table (id, host_id, session_id, title, max_participants, status, created_at)
+	◦	room_participants table (room_id, user_id, joined_at, is_host)
+	◦	room_invitations table (room_id, inviter_id, invitee_id, status)
+	◦	RLS policies
+2.2 Domain Layer
+	•	Create GroupStudyRoom.ts entity
+	•	Create RoomParticipant.ts entity
+	•	Create RoomInvitation.ts entity
+2.3 Infrastructure Layer
+	•	Create SupabaseGroupStudyRepository.ts
+	•	Extend SupabaseRealtimeService.ts for room channels (group-room:${roomId})
+2.4 Presentation Layer
+	•	Create GroupStudyManager.ts
+	•	Create CreateRoomModal.ts:
+	◦	Choose existing session OR create blank collaborative note
+	◦	Select friends to invite
+	◦	Set room title
+	•	Create RoomLobbyModal.ts:
+	◦	Show participants
+	◦	Ready status
+	◦	Start button (host only)
+	•	Add "Create Study Room" button to study mode
+	•	Add "Room Invitations" notification indicator
+
+Phase 3: Real-time Chat
+Goal: Participants can chat in group study room
+3.1 Database Layer
+	•	Create migration 012_chat_system.sql:
+	◦	chat_messages table (room_id, user_id, message, created_at)
+	◦	RLS policies
+	◦	Auto-delete old messages (>30 days)
+3.2 Domain Layer
+	•	Create ChatMessage.ts entity
+3.3 Infrastructure Layer
+	•	Create SupabaseChatRepository.ts
+	•	Use existing realtime service for message broadcasting
+3.4 Presentation Layer
+	•	Create ChatManager.ts
+	•	Create ChatPanel.ts component:
+	◦	Message list (scrollable)
+	◦	User avatars + names
+	◦	Input field
+	◦	Typing indicators
+	•	Integrate chat panel into study mode UI (collapsible sidebar)
+
+Phase 4: Multiplayer Games
+Goal: 4 game types using AI-generated content from session notes
+4.1 Game Infrastructure
+	•	Create migration 013_multiplayer_games.sql:
+	◦	game_sessions table (room_id, game_type, status, config, started_at, ended_at)
+	◦	game_scores table (game_session_id, user_id, score, answers)
+	◦	game_questions table (game_session_id, question_data, correct_answer)
+4.2 Domain Layer
+	•	Create GameSession.ts entity
+	•	Create GameQuestion.ts entity
+	•	Create PlayerScore.ts entity
+4.3 Game 1: Quiz Battle (Competitive)
+	•	Generate 10-20 multiple choice questions from session content (via Claude API)
+	•	Race format: First to answer gets points, faster = more points
+	•	Real-time leaderboard updates
+	•	Create QuizBattleGame.ts component
+4.4 Game 2: Jeopardy (Team/Competitive)
+	•	Generate categories from session topics
+	•	Point values: 100, 200, 300, 400, 500
+	•	Daily Double mechanics
+	•	Create JeopardyGame.ts component
+4.5 Game 3: Study Bingo (Collaborative)
+	•	Generate 5x5 bingo card with concepts from notes
+	•	Players mark off squares as concepts are discussed/explained
+	•	First to get bingo OR full blackout
+	•	Create BingoGame.ts component
+4.6 Game 4: Collaborative Flashcards (Cooperative)
+	•	Generate flashcards from session
+	•	Take turns answering
+	•	Group progress tracking
+	•	Difficulty voting (too easy/hard)
+	•	Create CollaborativeFlashcardsGame.ts component
+4.7 Presentation Layer
+	•	Create MultiplayerGamesManager.ts
+	•	Create GameSelectionModal.ts (host picks game)
+	•	Create base MultiplayerGame.ts abstract class
+	•	Add "Start Game" button to study room UI
+
+Phase 5: User Presence & Status
+Goal: See which friends are online, what they're doing
+5.1 Database Layer
+	•	Create migration 014_user_presence.sql:
+	◦	user_presence table (user_id, status, activity, last_seen, updated_at)
+	◦	Auto-update triggers
+5.2 Infrastructure Layer
+	•	Extend SupabaseRealtimeService.ts with user presence tracking
+	•	Heartbeat mechanism (update every 30s)
+5.3 Presentation Layer
+	•	Update FriendsManager.ts to show online/offline status
+	•	Add green dot indicators in friends list
+	•	Show "Studying [course name]" activity status
+
+Phase 6: Social Achievements & Leaderboards
+Goal: Competitive achievements, friend leaderboards
+6.1 Database Layer
+	•	Create migration 015_social_achievements.sql:
+	◦	group_achievements table (room_id, achievement_type, unlocked_at, participants)
+	◦	leaderboard_entries table (user_id, period, study_time, games_won, rank)
+6.2 Domain Layer
+	•	Create GroupAchievement.ts entity
+	•	Create LeaderboardEntry.ts entity
+6.3 Presentation Layer
+	•	Extend AchievementsManager.ts with group achievements:
+	◦	Study marathon (group studies 3+ hours together)
+	◦	Quiz champion (win 10 quiz battles)
+	◦	Bingo master (complete 5 bingo games)
+	◦	Study streak (study with friends 7 days in a row)
+	•	Create LeaderboardModal.ts:
+	◦	Weekly/monthly/all-time tabs
+	◦	Friends-only leaderboard
+	◦	Stats: study time, games played, achievements
+
+Implementation Order (Recommended)
+Week 1-2: Phase 1 (Friend System)
+	•	Get social foundation working first
+	•	Users need friends before group features matter
+Week 3-4: Phase 2 (Group Study Rooms) + Phase 3 (Chat)
+	•	Core multiplayer infrastructure
+	•	Test with 2-8 users
+Week 5-6: Phase 4.3 (Quiz Battle only)
+	•	Build one game completely to establish pattern
+	•	Test game mechanics, AI question generation
+Week 7-8: Phase 4.4-4.6 (Other 3 games)
+	•	Follow quiz battle pattern
+	•	Faster now that infrastructure exists
+Week 9: Phase 5 (Presence)
+	•	Polish, makes friends list feel alive
+Week 10: Phase 6 (Achievements)
+	•	Final engagement layer
+
+Key Technical Decisions
+	1	Real-time: Use existing Supabase Realtime (already proven for collaborative editing)
+	2	Game state sync: Broadcast game events via realtime channels, store authoritative state in database
+	3	AI question generation: Extend existing AI study tools service (reuse Claude API patterns)
+	4	UI pattern: Follow existing ModalDialog + Manager pattern (vanilla TypeScript)
+	5	Testing: Each phase gets integration tests before moving to next phase
+	6	Version bumps: Each phase = minor version (1.47.0, 1.48.0, etc.)
+
+Potential Challenges & Solutions
+Challenge 1: Real-time sync with 8 users
+	•	Solution: Test early with load simulation, use Supabase Realtime's broadcast (not database triggers) for game updates
+Challenge 2: AI question generation cost
+	•	Solution: Cache generated questions per session, reuse across multiple game sessions
+Challenge 3: Game state conflicts
+	•	Solution: Host is authoritative source, validates all answers server-side (Supabase Edge Functions)
+Challenge 4: Users dropping mid-game
+	•	Solution: Pause game if host disconnects, continue if participant disconnects (mark as inactive)
+

@@ -141,6 +141,13 @@ export class CreateRoomModal {
     const form = document.getElementById('create-room-form') as HTMLFormElement;
     form?.reset();
 
+    // Reset create button
+    const createBtn = document.getElementById('create-room-btn') as HTMLButtonElement;
+    if (createBtn) {
+      createBtn.disabled = false;
+      createBtn.textContent = 'Create Room';
+    }
+
     // Reset slider value display
     const valueDisplay = document.getElementById('max-participants-value');
     if (valueDisplay) {

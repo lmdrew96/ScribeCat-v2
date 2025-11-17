@@ -611,7 +611,7 @@ export class StudyRoomView {
 
     if (isHost) {
       const confirmClose = confirm(
-        'You are the host. Do you want to close the room for everyone, or just leave?'
+        'You are the host. Close the room for everyone?\n\n(OK = Close room for all | Cancel = Leave room open and exit)'
       );
 
       if (confirmClose === null) return; // Cancelled
