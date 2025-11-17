@@ -177,7 +177,7 @@ export class CreateRoomModal {
 
       // Fetch sessions
       const result = await window.scribeCat.session.list();
-      this.sessions = result || [];
+      this.sessions = result?.sessions || [];
 
       // Populate dropdown
       if (this.sessions.length === 0) {
