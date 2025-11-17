@@ -224,7 +224,7 @@ export class ChatUI {
       } else if (isConfigured) {
         this.chatInput.placeholder = 'Type your message here...';
       } else {
-        this.chatInput.placeholder = 'Configure Claude API key in settings to use AI chat';
+        this.chatInput.placeholder = 'Configure Claude API key in settings to use Nugget';
       }
     }
 
@@ -240,7 +240,7 @@ export class ChatUI {
     if (this.chatMessages) {
       this.chatMessages.innerHTML = `
         <div class="chat-welcome">
-          <p>👋 Hi! I'm your AI assistant. I can help you understand your transcription and notes better.</p>
+          <p>👋 Hi! I'm Nugget, your AI study companion. I can help you understand your transcription and notes better.</p>
           <p>Ask me anything about the content!</p>
         </div>
       `;
@@ -278,7 +278,7 @@ export class ChatUI {
     
     const roleSpan = document.createElement('span');
     roleSpan.className = 'message-role';
-    roleSpan.textContent = role === 'user' ? 'You' : 'AI Assistant';
+    roleSpan.textContent = role === 'user' ? 'You' : 'Nugget';
     
     const timeSpan = document.createElement('span');
     timeSpan.className = 'message-timestamp';

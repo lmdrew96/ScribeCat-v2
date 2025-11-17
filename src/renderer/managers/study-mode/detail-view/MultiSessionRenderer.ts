@@ -69,11 +69,11 @@ export class MultiSessionRenderer {
           <!-- Right Column: AI Study Tools -->
           <div class="session-detail-right">
             <div class="ai-study-tools">
-              <h3 class="study-tools-title">🤖 AI Study Tools</h3>
+              <h3 class="study-tools-title">🤖 Nugget Study Tools</h3>
 
               <!-- AI Study Tools Grid (3x3) -->
               <div class="study-tool-section">
-                <h4>AI Study Tools</h4>
+                <h4>Nugget Study Tools</h4>
                 <div class="study-tool-buttons">
                   <!-- Row 1: Content Analysis -->
                   <button class="study-tool-btn" id="generate-summary-btn">

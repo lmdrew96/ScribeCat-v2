@@ -217,7 +217,7 @@ export class HelpModal {
       <h2>Credits & Acknowledgments</h2>
       <ul>
         <li><strong>Transcription:</strong> AssemblyAI</li>
-        <li><strong>AI Assistant:</strong> Anthropic Claude</li>
+        <li><strong>Nugget (AI Assistant):</strong> Anthropic Claude</li>
         <li><strong>Rich Text Editor:</strong> Tiptap</li>
         <li><strong>Built with:</strong> Electron, TypeScript, Vite</li>
       </ul>
@@ -245,7 +245,7 @@ export class HelpModal {
           🎙️ Recording Basics
         </button>
         <button class="tutorial-launch-btn primary-btn" data-tutorial="ai-tools-intro" style="padding: 12px 16px; cursor: pointer;">
-          🤖 AI Tools Introduction
+          🤖 Nugget Tools Introduction
         </button>
         <button class="tutorial-launch-btn primary-btn" data-tutorial="study-mode" style="padding: 12px 16px; cursor: pointer;">
           📚 Study Mode Tour

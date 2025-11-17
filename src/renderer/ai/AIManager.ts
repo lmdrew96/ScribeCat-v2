@@ -333,9 +333,9 @@ export class AIManager {
     };
 
     if (isMultiSession && sessionMetadata) {
-      console.log(`AI Chat: Multi-session study mode context set with ${sessionMetadata.length} sessions`);
+      console.log(`Nugget: Multi-session study mode context set with ${sessionMetadata.length} sessions`);
     } else {
-      console.log('AI Chat: Study mode context set');
+      console.log('Nugget: Study mode context set');
     }
   }
 
@@ -344,7 +344,7 @@ export class AIManager {
    */
   public clearStudyModeContext(): void {
     this.studyModeContext = null;
-    console.log('AI Chat: Study mode context cleared');
+    console.log('Nugget: Study mode context cleared');
   }
 
   /**

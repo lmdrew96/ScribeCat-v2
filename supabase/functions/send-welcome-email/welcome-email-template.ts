@@ -77,7 +77,7 @@ export function generateWelcomeEmail(params: WelcomeEmailParams): string {
                   <strong>Take rich notes:</strong> Use our powerful editor to create formatted notes, add images, and organize your thoughts
                 </li>
                 <li style="margin-bottom: 8px;">
-                  <strong>AI assistance:</strong> Chat with AI to summarize, analyze, and extract insights from your content
+                  <strong>Nugget (AI assistance):</strong> Chat with Nugget to summarize, analyze, and extract insights from your content
                 </li>
                 <li>
                   <strong>Study mode:</strong> Create flashcards, track goals, and earn achievements to boost your learning
@@ -94,7 +94,7 @@ export function generateWelcomeEmail(params: WelcomeEmailParams): string {
                   💡 Pro Tip
                 </p>
                 <p style="margin: 0; font-size: 14px; color: #555555; line-height: 1.6;">
-                  Use the AI chat feature in Study Mode to generate summaries and quiz questions from your transcriptions. It's a game-changer for exam prep!
+                  Use Nugget in Study Mode to generate summaries and quiz questions from your transcriptions. It's a game-changer for exam prep!
                 </p>
               </div>
             </td>
@@ -155,10 +155,10 @@ Getting Started:
 • Record audio: Start capturing lectures, meetings, or conversations with high-quality audio recording
 • Auto-transcribe: Let AI transcribe your recordings with industry-leading accuracy
 • Take rich notes: Use our powerful editor to create formatted notes, add images, and organize your thoughts
-• AI assistance: Chat with AI to summarize, analyze, and extract insights from your content
+• Nugget (AI assistance): Chat with Nugget to summarize, analyze, and extract insights from your content
 • Study mode: Create flashcards, track goals, and earn achievements to boost your learning
 
-Pro Tip: Use the AI chat feature in Study Mode to generate summaries and quiz questions from your transcriptions. It's a game-changer for exam prep!
+Pro Tip: Use Nugget in Study Mode to generate summaries and quiz questions from your transcriptions. It's a game-changer for exam prep!
 
 Have questions or need help getting started? We're here to help!
 

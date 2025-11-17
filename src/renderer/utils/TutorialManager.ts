@@ -120,13 +120,13 @@ export class TutorialManager {
     },
     {
       id: 'ai-tools-intro',
-      name: 'AI Tools Introduction',
-      description: 'Discover how AI can supercharge your studying',
+      name: 'Nugget Tools Introduction',
+      description: 'Discover how Nugget can supercharge your studying',
       steps: [
         {
           target: '#floating-chat-btn',
-          title: 'AI Assistant',
-          content: 'Click here to open the AI chat. Ask questions about your content, get explanations, or request summaries.',
+          title: 'Meet Nugget',
+          content: 'Click here to open Nugget chat. Ask questions about your content, get explanations, or request summaries.',
           position: 'left',
           beforeShow: async () => {
             // Ensure we have a session selected
@@ -139,7 +139,7 @@ export class TutorialManager {
         {
           target: '#ai-chat-drawer',
           title: 'Chat with Your Content',
-          content: 'The AI can access your session content (you can choose what to include). Try asking "What are the main topics?" or "Explain this concept".',
+          content: 'Nugget can access your session content (you can choose what to include). Try asking "What are the main topics?" or "Explain this concept".',
           position: 'left',
           beforeShow: async () => {
             // Open AI chat drawer
@@ -150,8 +150,8 @@ export class TutorialManager {
         },
         {
           target: '.session-detail-right .ai-study-tools',
-          title: 'AI Tool Library',
-          content: 'Here are all the AI study tools! Generate flashcards, create quizzes, get summaries, and more. All tools are context-aware and work with your session content.',
+          title: 'Nugget Tool Library',
+          content: 'Here are all the Nugget study tools! Generate flashcards, create quizzes, get summaries, and more. All tools are context-aware and work with your session content.',
           position: 'left',
           beforeShow: async () => {
             // Close AI chat drawer if it's open

@@ -107,7 +107,7 @@ export class StudyModeAIToolsManager {
           <input
             type="text"
             class="chat-input"
-            placeholder="Ask AI anything... (e.g., 'create flashcards', 'quiz me', 'summarize')"
+            placeholder="Ask Nugget anything... (e.g., 'create flashcards', 'quiz me', 'summarize')"
             autocomplete="off"
           />
           <button class="chat-send-btn" title="Send message">
@@ -237,7 +237,7 @@ export class StudyModeAIToolsManager {
       'highlight': { icon: '⭐', label: 'Highlight' },
       'note_prompt': { icon: '📝', label: 'Note' }
     };
-    return metadata[action] || { icon: '🤖', label: 'AI Tool' };
+    return metadata[action] || { icon: '🤖', label: 'Nugget Tool' };
   }
 
   /**

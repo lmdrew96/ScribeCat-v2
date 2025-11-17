@@ -467,11 +467,11 @@ export class CommandRegistry {
     const commands: Command[] = [
       {
         id: 'ai.chat',
-        title: 'Open AI Chat',
-        description: 'Ask AI about your content',
-        category: 'AI Assistant',
+        title: 'Open Nugget',
+        description: 'Ask Nugget about your content',
+        category: 'Nugget',
         icon: '🤖',
-        keywords: ['ai', 'chat', 'assistant', 'ask'],
+        keywords: ['nugget', 'ai', 'chat', 'assistant', 'ask'],
         action: () => {
           const chatBtn = document.getElementById('floating-chat-btn') as HTMLButtonElement;
           chatBtn?.click();

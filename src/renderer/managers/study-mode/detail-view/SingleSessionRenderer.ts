@@ -176,7 +176,7 @@ export class SingleSessionRenderer {
             <div class="session-content-tabs">
               <button class="content-tab active" data-tab="transcription">📝 Transcription</button>
               <button class="content-tab" data-tab="notes">✍️ Notes</button>
-              <button class="content-tab ai-tools-tab" data-tab="ai-tools">🤖 AI Tools</button>
+              <button class="content-tab ai-tools-tab" data-tab="ai-tools">🤖 Nugget Tools</button>
             </div>
 
             <!-- Transcription Content -->
@@ -217,7 +217,7 @@ export class SingleSessionRenderer {
             <!-- AI Tools Panel (visible in small window mode as a tab) -->
             <div class="session-content-panel ai-tools-panel" data-panel="ai-tools">
               <div class="ai-study-tools-tab-content">
-                <h3 class="study-tools-title">🤖 AI Study Tools</h3>
+                <h3 class="study-tools-title">🤖 Nugget Study Tools</h3>
 
                 <!-- AI Tools container for small screens - will be populated by StudyModeAIToolsManager -->
                 <div class="study-tool-section study-tool-section-tab">
@@ -241,11 +241,11 @@ export class SingleSessionRenderer {
           <!-- Right Column: AI Study Tools (managed by StudyModeAIToolsManager) -->
           <div class="session-detail-right">
             <div class="ai-study-tools">
-              <h3 class="study-tools-title">🤖 AI Study Tools</h3>
+              <h3 class="study-tools-title">🤖 Nugget Study Tools</h3>
 
               <!-- AI Study Tools Grid (3x3) -->
               <div class="study-tool-section">
-                <h4>AI Study Tools</h4>
+                <h4>Nugget Study Tools</h4>
                 <div class="study-tool-buttons">
                   <!-- Row 1: Content Analysis -->
                   <button class="study-tool-btn" id="generate-summary-btn" data-session-id="${session.id}">

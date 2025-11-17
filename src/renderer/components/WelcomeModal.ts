@@ -66,11 +66,11 @@ export class WelcomeModal {
       icon: '🎙️'
     },
     {
-      title: 'Supercharge Your Learning with AI',
+      title: 'Supercharge Your Learning with Nugget',
       content: `
-        <p>Our AI assistant helps you study smarter, not harder!</p>
+        <p>Nugget, your AI study companion, helps you study smarter, not harder!</p>
         <div style="text-align: left; margin: 16px 0; line-height: 1.8;">
-          <p><strong>💬 Ask Questions</strong> - Chat with AI about your content</p>
+          <p><strong>💬 Ask Questions</strong> - Chat with Nugget about your content</p>
           <p><strong>🎴 Generate Flashcards</strong> - Automatic spaced repetition cards</p>
           <p><strong>📝 Create Quizzes</strong> - Test your understanding</p>
           <p><strong>📚 Get Summaries</strong> - Quick overviews of long sessions</p>
@@ -78,7 +78,7 @@ export class WelcomeModal {
         </div>
         <div style="background: var(--accent); color: white; padding: 12px; border-radius: 8px; margin-top: 16px;">
           <p style="margin: 0; font-size: 13px;">
-            ✨ AI suggestions appear automatically as you work - no need to ask!
+            ✨ Nugget's suggestions appear automatically as you work - no need to ask!
           </p>
         </div>
       `,
