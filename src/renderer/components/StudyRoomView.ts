@@ -9,12 +9,16 @@ import type { StudyRoomsManager } from '../managers/social/StudyRoomsManager.js'
 import type { FriendsManager } from '../managers/social/FriendsManager.js';
 import type { StudyRoomData } from '../../domain/entities/StudyRoom.js';
 import type { RoomParticipantData } from '../../domain/entities/RoomParticipant.js';
+import { ChatManager } from '../managers/social/ChatManager.js';
+import { ChatPanel } from './ChatPanel.js';
 import { escapeHtml } from '../utils/formatting.js';
 
 export class StudyRoomView {
   private container: HTMLElement | null = null;
   private studyRoomsManager: StudyRoomsManager;
   private friendsManager: FriendsManager;
+  private chatManager: ChatManager;
+  private chatPanel: ChatPanel | null = null;
   private currentRoomId: string | null = null;
   private currentUserId: string | null = null;
   private onExit?: () => void;
@@ -22,6 +26,7 @@ export class StudyRoomView {
   constructor(studyRoomsManager: StudyRoomsManager, friendsManager: FriendsManager) {
     this.studyRoomsManager = studyRoomsManager;
     this.friendsManager = friendsManager;
+    this.chatManager = new ChatManager();
 
     // Listen for participant changes
     this.studyRoomsManager.addParticipantsListener((roomId) => {
@@ -50,6 +55,9 @@ export class StudyRoomView {
    */
   public setCurrentUserId(userId: string | null): void {
     this.currentUserId = userId;
+    if (userId) {
+      this.chatManager.initialize(userId);
+    }
   }
 
   /**
@@ -118,17 +126,8 @@ export class StudyRoomView {
           </div>
 
           <!-- Chat Panel (Phase 3 - Placeholder) -->
-          <div class="study-room-chat">
-            <div class="chat-header">
-              <h3>Chat</h3>
-              <span class="badge-coming-soon">Phase 3</span>
-            </div>
-            <div class="chat-body">
-              <p class="empty-state">
-                Real-time chat coming in Phase 3!<br>
-                For now, use your session notes to collaborate.
-              </p>
-            </div>
+          <div class="study-room-chat" id="study-room-chat-container">
+            <!-- Chat panel will be initialized here -->
           </div>
         </div>
       </div>
@@ -291,6 +290,13 @@ export class StudyRoomView {
    */
   public hide(): void {
     if (!this.container) return;
+
+    // Cleanup chat panel
+    if (this.chatPanel) {
+      this.chatPanel.destroy();
+      this.chatPanel = null;
+    }
+
     this.container.style.display = 'none';
     this.currentRoomId = null;
   }
@@ -299,7 +305,7 @@ export class StudyRoomView {
    * Load room data
    */
   private async loadRoomData(): Promise<void> {
-    if (!this.currentRoomId) return;
+    if (!this.currentRoomId || !this.currentUserId) return;
 
     try {
       // Render header and participants
@@ -308,6 +314,9 @@ export class StudyRoomView {
 
       // Load session content
       await this.loadSessionContent();
+
+      // Initialize chat panel
+      await this.initializeChatPanel();
     } catch (error) {
       console.error('Failed to load room data:', error);
     }
@@ -420,6 +429,56 @@ export class StudyRoomView {
 
     const room = this.studyRoomsManager.getRoomById(this.currentRoomId);
     return room?.hostId === this.currentUserId; // Only host can kick
+  }
+
+  /**
+   * Initialize chat panel
+   */
+  private async initializeChatPanel(): Promise<void> {
+    if (!this.currentRoomId || !this.currentUserId) return;
+
+    const chatContainer = document.getElementById('study-room-chat-container');
+    if (!chatContainer) {
+      console.error('Chat container not found');
+      return;
+    }
+
+    try {
+      // Get participants for chat
+      const participants = this.studyRoomsManager.getRoomParticipants(this.currentRoomId);
+      const participantsWithNames = await Promise.all(
+        participants.map(async (p) => ({
+          userId: p.userId,
+          userName: await this.getUserName(p.userId),
+        }))
+      );
+
+      // Initialize chat panel
+      this.chatPanel = new ChatPanel(this.chatManager);
+      await this.chatPanel.init(
+        chatContainer,
+        this.currentRoomId,
+        this.currentUserId,
+        participantsWithNames
+      );
+
+      console.log('Chat panel initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize chat panel:', error);
+    }
+  }
+
+  /**
+   * Update chat panel with current participants
+   */
+  private async updateChatParticipants(): Promise<void> {
+    if (!this.chatPanel || !this.currentRoomId) return;
+
+    const participants = this.studyRoomsManager.getRoomParticipants(this.currentRoomId);
+    for (const p of participants) {
+      const userName = await this.getUserName(p.userId);
+      this.chatPanel.addParticipant(p.userId, userName);
+    }
   }
 
   /**

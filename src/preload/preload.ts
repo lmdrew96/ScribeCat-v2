@@ -356,6 +356,30 @@ const electronAPI = {
     cancelInvitation: (invitationId: string) =>
       ipcRenderer.invoke('rooms:cancelInvitation', invitationId)
   },
+  chat: {
+    sendMessage: (params: { roomId: string; userId: string; message: string }) =>
+      ipcRenderer.invoke('chat:sendMessage', params),
+    getRoomMessages: (roomId: string, limit?: number) =>
+      ipcRenderer.invoke('chat:getRoomMessages', roomId, limit),
+    deleteMessage: (messageId: string, userId: string) =>
+      ipcRenderer.invoke('chat:deleteMessage', messageId, userId),
+    subscribeToRoom: (roomId: string, callback: (messageData: any) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { roomId: string; message: any }) => {
+        if (data.roomId === roomId) {
+          callback(data.message);
+        }
+      };
+      ipcRenderer.on('chat:newMessage', handler);
+      ipcRenderer.invoke('chat:subscribeToRoom', roomId);
+
+      // Return unsubscribe function
+      return () => {
+        ipcRenderer.removeListener('chat:newMessage', handler);
+      };
+    },
+    unsubscribeAll: () =>
+      ipcRenderer.invoke('chat:unsubscribeAll')
+  },
   power: {
     preventSleep: () => ipcRenderer.invoke('power:preventSleep'),
     allowSleep: () => ipcRenderer.invoke('power:allowSleep'),
