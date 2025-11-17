@@ -373,32 +373,29 @@ export class StudyRoomView {
       const room = this.studyRoomsManager.getRoomById(this.currentRoomId);
       if (!room) return;
 
-      // Get session data via IPC
-      const session = await window.scribeCat.session.get(room.sessionId);
-
-      // Render notes
       const notesContainer = document.getElementById('session-notes');
-      if (notesContainer) {
-        if (session.notes) {
-          // TODO: Render with TipTap in Phase 3 for collaborative editing
-          notesContainer.innerHTML = `<div class="session-notes-view">${session.notes}</div>`;
-        } else {
-          notesContainer.innerHTML = '<p class="empty-state">No notes yet</p>';
+      const transcriptContainer = document.getElementById('session-transcript');
+
+      // Check if room has a session
+      if (!room.sessionId) {
+        // No session attached - show empty state
+        if (notesContainer) {
+          notesContainer.innerHTML = '<p class="empty-state">No session attached to this room.<br>Use the chat to collaborate!</p>';
         }
+        if (transcriptContainer) {
+          transcriptContainer.innerHTML = '<p class="empty-state">No session attached</p>';
+        }
+        return;
       }
 
-      // Render transcript
-      const transcriptContainer = document.getElementById('session-transcript');
+      // Load session data (TODO: Replace with Supabase session in Phase 3)
+      // For now, this won't work because local sessions aren't in Supabase
+      // This will be implemented when we add session copying
+      if (notesContainer) {
+        notesContainer.innerHTML = '<p class="empty-state">Session content will be available in Phase 3<br>Use the chat to collaborate!</p>';
+      }
       if (transcriptContainer) {
-        if (session.transcription) {
-          transcriptContainer.innerHTML = `
-            <div class="session-transcript-view">
-              ${escapeHtml(session.transcription).replace(/\n/g, '<br>')}
-            </div>
-          `;
-        } else {
-          transcriptContainer.innerHTML = '<p class="empty-state">No transcript available</p>';
-        }
+        transcriptContainer.innerHTML = '<p class="empty-state">Session content coming in Phase 3</p>';
       }
     } catch (error) {
       console.error('Failed to load session content:', error);
