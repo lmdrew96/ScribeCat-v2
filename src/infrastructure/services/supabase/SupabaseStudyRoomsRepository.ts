@@ -78,6 +78,21 @@ export class SupabaseStudyRoomsRepository {
 
       const hostProfile = Array.isArray(data.host_profile) ? data.host_profile[0] : data.host_profile;
 
+      // Automatically add the host as a participant
+      const { error: participantError } = await this.getClient()
+        .from('room_participants')
+        .insert({
+          room_id: data.id,
+          user_id: params.hostId,
+          joined_at: new Date().toISOString(),
+          is_active: true,
+        });
+
+      if (participantError) {
+        console.error('Error adding host as participant:', participantError);
+        // Don't throw - room was created successfully, just log the error
+      }
+
       return StudyRoom.fromDatabase({
         id: data.id,
         name: data.name,
