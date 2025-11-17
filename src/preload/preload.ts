@@ -285,6 +285,38 @@ const electronAPI = {
     acceptInvitation: (token: string) =>
       ipcRenderer.invoke('share:acceptInvitation', token)
   },
+  friends: {
+    getFriends: () =>
+      ipcRenderer.invoke('friends:getFriends'),
+    getFriendsCount: () =>
+      ipcRenderer.invoke('friends:getFriendsCount'),
+    removeFriend: (friendId: string) =>
+      ipcRenderer.invoke('friends:removeFriend', friendId),
+    areFriends: (userId: string) =>
+      ipcRenderer.invoke('friends:areFriends', userId),
+    getMutualFriendsCount: (userId: string) =>
+      ipcRenderer.invoke('friends:getMutualFriendsCount', userId),
+    getFriendRequests: () =>
+      ipcRenderer.invoke('friends:getFriendRequests'),
+    getIncomingRequests: () =>
+      ipcRenderer.invoke('friends:getIncomingRequests'),
+    getOutgoingRequests: () =>
+      ipcRenderer.invoke('friends:getOutgoingRequests'),
+    getIncomingRequestsCount: () =>
+      ipcRenderer.invoke('friends:getIncomingRequestsCount'),
+    sendRequest: (recipientId: string) =>
+      ipcRenderer.invoke('friends:sendRequest', recipientId),
+    acceptRequest: (requestId: string) =>
+      ipcRenderer.invoke('friends:acceptRequest', requestId),
+    rejectRequest: (requestId: string) =>
+      ipcRenderer.invoke('friends:rejectRequest', requestId),
+    cancelRequest: (requestId: string) =>
+      ipcRenderer.invoke('friends:cancelRequest', requestId),
+    searchUsers: (searchEmail: string, limit?: number) =>
+      ipcRenderer.invoke('friends:searchUsers', searchEmail, limit),
+    getUserProfile: (userId: string) =>
+      ipcRenderer.invoke('friends:getUserProfile', userId)
+  },
   power: {
     preventSleep: () => ipcRenderer.invoke('power:preventSleep'),
     allowSleep: () => ipcRenderer.invoke('power:allowSleep'),

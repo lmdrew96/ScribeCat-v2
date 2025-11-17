@@ -246,6 +246,24 @@
 
 .signin-icon,
 .study-icon,
-.help-icon {
+.help-icon,
+.friends-icon {
   font-size: 30px;
+}
+
+/* Friends Badge */
+.friends-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--danger, #dc3545);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
 }

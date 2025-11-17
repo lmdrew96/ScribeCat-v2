@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:* https://api.assemblyai.com wss://api.assemblyai.com wss://streaming.assemblyai.com https://api.anthropic.com https://djlvwxmakxaffdqbuwkv.supabase.co https://cdn.jsdelivr.net data: blob:; font-src 'self' data:; worker-src 'self' blob: data:; media-src 'self' https://djlvwxmakxaffdqbuwkv.supabase.co blob: data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com; connect-src 'self' http://localhost:* ws://localhost:* https://api.assemblyai.com wss://api.assemblyai.com wss://streaming.assemblyai.com https://api.anthropic.com https://djlvwxmakxaffdqbuwkv.supabase.co https://cdn.jsdelivr.net data: blob:; font-src 'self' data:; worker-src 'self' blob: data:; media-src 'self' https://djlvwxmakxaffdqbuwkv.supabase.co blob: data:;">
     <title>ScribeCat</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -19,6 +19,11 @@
             <div class="header-actions">
                 <button id="signin-btn" class="icon-btn signin-btn" title="Sign In">
                     <span class="signin-icon">👤</span>
+                </button>
+
+                <button id="friends-btn" class="icon-btn" title="Friends" style="display: none;">
+                    <span class="friends-icon">👥</span>
+                    <span class="friends-badge" id="friends-badge" style="display: none;">0</span>
                 </button>
 
                 <button id="study-mode-btn" class="icon-btn" title="Study Mode">

@@ -23,6 +23,7 @@ import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
 import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
 import { ShareHandlers } from './ipc/handlers/ShareHandlers.js';
 import { PowerHandlers } from './ipc/handlers/PowerHandlers.js';
+import { FriendsHandlers } from './ipc/handlers/FriendsHandlers.js';
 import { GoogleDriveService } from '../infrastructure/services/drive/GoogleDriveService.js';
 import type { GoogleDriveConfig } from '../shared/types.js';
 import type { Services } from './ServiceBootstrapper.js';
@@ -48,6 +49,7 @@ export class IPCCoordinator {
   private sessionHandlers: SessionHandlers | null = null;
   private driveHandlers: DriveHandlers | null = null;
   private shareHandlers: ShareHandlers | null = null;
+  private friendsHandlers: FriendsHandlers | null = null;
 
   constructor(deps: IPCCoordinatorDependencies) {
     this.services = deps.services;
@@ -117,6 +119,10 @@ export class IPCCoordinator {
       );
       registry.add(this.shareHandlers);
     }
+
+    // Add friends handlers
+    this.friendsHandlers = new FriendsHandlers();
+    registry.add(this.friendsHandlers);
 
     // Register all handlers with ipcMain
     registry.registerAll(ipcMain);
@@ -203,6 +209,12 @@ export class IPCCoordinator {
         if (this.driveHandlers) {
           this.driveHandlers.setCurrentUserId(data.userId);
           console.log('Updated DriveHandlers with user ID');
+        }
+
+        // Update FriendsHandlers with user ID
+        if (this.friendsHandlers) {
+          this.friendsHandlers.setCurrentUserId(data.userId);
+          console.log('Updated FriendsHandlers with user ID');
         }
 
         // Set session on SupabaseClient for authenticated requests

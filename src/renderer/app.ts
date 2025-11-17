@@ -26,6 +26,8 @@ import { ShareModal } from './components/ShareModal.js';
 import { AccountSettingsModal } from './components/AccountSettingsModal.js';
 import { HelpModal } from './components/HelpModal.js';
 import { TrashModal } from './components/TrashModal.js';
+import { FriendsManager } from './managers/social/FriendsManager.js';
+import { FriendsModal } from './components/FriendsModal.js';
 import { CommandPalette } from './components/CommandPalette.js';
 import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
@@ -69,6 +71,8 @@ let shareModal: ShareModal;
 let accountSettingsModal: AccountSettingsModal;
 let helpModal: HelpModal;
 let trashModal: TrashModal;
+let friendsManager: FriendsManager;
+let friendsModal: FriendsModal;
 let commandPalette: CommandPalette;
 let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
@@ -224,6 +228,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Expose shareModal globally after initialization
   window.shareModal = shareModal;
 
+  // Initialize friends system
+  friendsManager = new FriendsManager();
+  friendsModal = new FriendsModal(friendsManager);
+  friendsModal.initialize();
+
+  // Expose friendsManager globally
+  window.friendsManager = friendsManager;
+
   // Set up auth UI (show/hide signin button)
   setupAuthUI();
 
@@ -367,6 +379,17 @@ function setupEventListeners(): void {
 
     trashModal.onEmptyTrash(() => {
       // Optionally refresh or do nothing
+    });
+  }
+
+  // Friends button
+  const friendsBtn = document.getElementById('friends-btn') as HTMLButtonElement;
+  if (friendsBtn) {
+    friendsBtn.addEventListener('click', () => {
+      const currentUser = authManager.getCurrentUser();
+      if (currentUser) {
+        friendsModal.open(currentUser.id);
+      }
     });
   }
 
@@ -674,15 +697,48 @@ function setupToolbarToggle(): void {
  */
 function setupAuthUI(): void {
   const signinBtn = document.getElementById('signin-btn');
+  const friendsBtn = document.getElementById('friends-btn');
 
   // Listen for auth state changes
-  authManager.onAuthStateChange((user) => {
+  authManager.onAuthStateChange(async (user) => {
     if (user) {
-      // User is authenticated - hide signin button
+      // User is authenticated - hide signin button, show friends button
       signinBtn?.classList.add('hidden');
+      if (friendsBtn) {
+        friendsBtn.style.display = 'block';
+      }
+
+      // Initialize friends manager for this user
+      await friendsManager.initialize(user.id);
+
+      // Update friends badge with pending requests count
+      const requestsCount = friendsManager.getIncomingRequestsCount();
+      const friendsBadge = document.getElementById('friends-badge');
+      if (friendsBadge) {
+        friendsBadge.textContent = requestsCount.toString();
+        friendsBadge.style.display = requestsCount > 0 ? 'inline-block' : 'none';
+      }
+
+      // Listen for requests changes to update badge
+      friendsManager.addRequestsListener((requests) => {
+        const incomingCount = requests.filter(r =>
+          r.status === 'pending' && r.recipientId === user.id
+        ).length;
+        const badge = document.getElementById('friends-badge');
+        if (badge) {
+          badge.textContent = incomingCount.toString();
+          badge.style.display = incomingCount > 0 ? 'inline-block' : 'none';
+        }
+      });
     } else {
-      // User is not authenticated - show signin button
+      // User is not authenticated - show signin button, hide friends button
       signinBtn?.classList.remove('hidden');
+      if (friendsBtn) {
+        friendsBtn.style.display = 'none';
+      }
+
+      // Clear friends manager
+      friendsManager.clear();
     }
   });
 

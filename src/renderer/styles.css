@@ -25,6 +25,7 @@
 @import './css/export.css';        /* Export modal */
 @import './css/auth.css';          /* Authentication UI */
 @import './css/share-modal.css';   /* Session sharing modal */
+@import './css/friends-modal.css'; /* Friends management modal */
 @import './css/trash.css';         /* Trash modal */
 
 /* Features */

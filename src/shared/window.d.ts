@@ -141,6 +141,23 @@ declare global {
         getSharedWithMe: () => Promise<IPCResponse<any[]>>;
         acceptInvitation: (token: string) => Promise<IPCResponse<any>>;
       };
+      friends: {
+        getFriends: () => Promise<IPCResponse<any[]>>;
+        getFriendsCount: () => Promise<IPCResponse<number>>;
+        removeFriend: (friendId: string) => Promise<IPCResponse<void>>;
+        areFriends: (userId: string) => Promise<IPCResponse<boolean>>;
+        getMutualFriendsCount: (userId: string) => Promise<IPCResponse<number>>;
+        getFriendRequests: () => Promise<IPCResponse<any[]>>;
+        getIncomingRequests: () => Promise<IPCResponse<any[]>>;
+        getOutgoingRequests: () => Promise<IPCResponse<any[]>>;
+        getIncomingRequestsCount: () => Promise<IPCResponse<number>>;
+        sendRequest: (recipientId: string) => Promise<IPCResponse<any>>;
+        acceptRequest: (requestId: string) => Promise<IPCResponse<void>>;
+        rejectRequest: (requestId: string) => Promise<IPCResponse<void>>;
+        cancelRequest: (requestId: string) => Promise<IPCResponse<void>>;
+        searchUsers: (searchEmail: string, limit?: number) => Promise<IPCResponse<any[]>>;
+        getUserProfile: (userId: string) => Promise<IPCResponse<any>>;
+      };
       sharing: {
         checkAccess: (sessionId: string) => Promise<IPCResponse<any>>;
         shareSession: (params: { sessionId: string; sharedWithEmail: string; permissionLevel: 'viewer' | 'editor' }) => Promise<IPCResponse<any>>;
@@ -159,6 +176,7 @@ declare global {
     aiManager?: import('../renderer/managers/AIManager').AIManager;
     authManager?: import('../renderer/managers/AuthManager').AuthManager;
     studyModeManager?: import('../renderer/managers/StudyModeManager').StudyModeManager;
+    friendsManager?: import('../renderer/managers/social/FriendsManager').FriendsManager;
     TutorialManager?: typeof import('../renderer/utils/TutorialManager').TutorialManager;
     FocusManager?: any;
     WelcomeModal?: any;
