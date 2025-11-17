@@ -135,7 +135,7 @@ export class StudyRoomsManager {
    */
   async createRoom(params: {
     name: string;
-    sessionId: string;
+    sessionId: string | null;
     maxParticipants: number;
   }): Promise<StudyRoomData> {
     try {

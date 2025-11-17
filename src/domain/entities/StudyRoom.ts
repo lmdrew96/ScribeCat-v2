@@ -12,7 +12,7 @@ export interface StudyRoomData {
   readonly hostEmail: string;
   readonly hostFullName?: string;
   readonly hostAvatarUrl?: string;
-  readonly sessionId: string;
+  readonly sessionId: string | null;
   readonly sessionTitle?: string;
   readonly maxParticipants: number;
   readonly isActive: boolean;
@@ -35,7 +35,7 @@ export class StudyRoom {
     id: string;
     name: string;
     host_id: string;
-    session_id: string;
+    session_id: string | null;
     max_participants: number;
     is_active: boolean;
     created_at: string | Date;
@@ -92,7 +92,7 @@ export class StudyRoom {
     return this.data.hostId;
   }
 
-  get sessionId(): string {
+  get sessionId(): string | null {
     return this.data.sessionId;
   }
 

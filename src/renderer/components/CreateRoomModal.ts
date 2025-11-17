@@ -53,11 +53,11 @@ export class CreateRoomModal {
               </div>
 
               <div class="form-group">
-                <label for="room-session">Session to Share *</label>
-                <select id="room-session" required>
-                  <option value="">Loading sessions...</option>
+                <label for="room-session">Session to Share (Optional)</label>
+                <select id="room-session">
+                  <option value="">No session (just chat and collaborate)</option>
                 </select>
-                <small>Friends will get a copy of this session to study together</small>
+                <small>Optional: Share a session for friends to study together</small>
               </div>
 
               <div class="form-group">
@@ -179,20 +179,23 @@ export class CreateRoomModal {
       const result = await window.scribeCat.session.list();
       this.sessions = result?.sessions || [];
 
-      // Populate dropdown
+      // Populate dropdown with "No session" option + available sessions
+      const noSessionOption = '<option value="">No session (just chat and collaborate)</option>';
+
       if (this.sessions.length === 0) {
-        sessionSelect.innerHTML = '<option value="">No sessions available</option>';
+        sessionSelect.innerHTML = noSessionOption;
         return;
       }
 
-      sessionSelect.innerHTML = '<option value="">Select a session...</option>' +
-        this.sessions.map(session => {
-          const title = escapeHtml(session.title || 'Untitled Session');
-          const courseCode = session.course_code ? escapeHtml(session.course_code) : '';
-          const date = new Date(session.recorded_at).toLocaleDateString();
+      const sessionOptions = this.sessions.map(session => {
+        const title = escapeHtml(session.title || 'Untitled Session');
+        const courseCode = session.course_code ? escapeHtml(session.course_code) : '';
+        const date = new Date(session.recorded_at).toLocaleDateString();
 
-          return `<option value="${session.id}">${courseCode ? `[${courseCode}] ` : ''}${title} (${date})</option>`;
-        }).join('');
+        return `<option value="${session.id}">${courseCode ? `[${courseCode}] ` : ''}${title} (${date})</option>`;
+      }).join('');
+
+      sessionSelect.innerHTML = noSessionOption + sessionOptions;
     } catch (error) {
       console.error('Failed to load sessions:', error);
       this.showMessage('Failed to load sessions. Please try again.', 'error');
@@ -221,24 +224,20 @@ export class CreateRoomModal {
       return;
     }
 
-    if (!sessionId) {
-      this.showMessage('Please select a session to share', 'error');
-      sessionSelect.focus();
-      return;
-    }
+    // Session is now optional - can create room without a session
 
     // Disable button
     createBtn.disabled = true;
     createBtn.textContent = 'Creating...';
 
     try {
-      // TODO: In the future, we'll need to copy the session first
-      // For now, we'll use the original session ID directly
-      // The backend expects a copied session, so this is a temporary limitation
+      // Create room with optional session
+      // TODO: In Phase 3, implement session copying to Supabase
+      // For now, session_id is nullable - rooms can be created without sessions
 
       const room = await this.studyRoomsManager.createRoom({
         name: roomName,
-        sessionId: sessionId,
+        sessionId: sessionId || null, // null if no session selected
         maxParticipants: maxParticipants,
       });
 
