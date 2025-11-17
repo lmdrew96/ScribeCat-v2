@@ -174,17 +174,28 @@ export class StudyRoomView {
    * Show the study room view
    */
   public async show(roomId: string, onExit?: () => void): Promise<void> {
-    if (!this.container) return;
+    console.log('StudyRoomView.show() called with roomId:', roomId);
+    console.log('Container exists?', !!this.container);
+
+    if (!this.container) {
+      console.error('StudyRoomView: No container, returning early');
+      return;
+    }
 
     this.currentRoomId = roomId;
     this.onExit = onExit;
 
     // Check if user is in room
+    console.log('Checking if user is in room...');
     const isInRoom = await this.studyRoomsManager.isUserInRoom(roomId);
+    console.log('Is user in room?', isInRoom);
+
     if (!isInRoom) {
       // User is not in room, join first
+      console.log('User not in room, attempting to join...');
       try {
         await this.studyRoomsManager.joinRoom(roomId);
+        console.log('Successfully joined room');
       } catch (error) {
         console.error('Failed to join room:', error);
         alert('Failed to join room. Please try again.');
@@ -194,10 +205,16 @@ export class StudyRoomView {
     }
 
     // Show view
+    console.log('Setting container display to flex');
+    console.log('Container before:', this.container.style.display);
     this.container.style.display = 'flex';
+    console.log('Container after:', this.container.style.display);
+    console.log('Container element:', this.container);
 
     // Load room data
+    console.log('Loading room data...');
     await this.loadRoomData();
+    console.log('StudyRoomView.show() complete');
   }
 
   /**

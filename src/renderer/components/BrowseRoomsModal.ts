@@ -398,12 +398,28 @@ export class BrowseRoomsModal {
    */
   private attachRoomCardListeners(): void {
     // Enter room
-    document.querySelectorAll('[data-action="enter"]').forEach(btn => {
+    const enterButtons = document.querySelectorAll('[data-action="enter"]');
+    console.log('Found enter room buttons:', enterButtons.length);
+
+    enterButtons.forEach((btn, index) => {
+      const roomId = (btn as HTMLElement).dataset.roomId;
+      console.log(`Attaching listener to enter button ${index}, roomId:`, roomId);
+
       btn.addEventListener('click', async (e) => {
-        const roomId = (e.target as HTMLElement).dataset.roomId;
-        if (roomId && this.onJoinRoom) {
+        console.log('ENTER ROOM CLICKED!', e);
+        const clickedRoomId = (e.target as HTMLElement).dataset.roomId;
+        console.log('Room ID from click:', clickedRoomId);
+        console.log('onJoinRoom callback exists?', !!this.onJoinRoom);
+
+        if (clickedRoomId && this.onJoinRoom) {
+          console.log('Closing modal and calling onJoinRoom with:', clickedRoomId);
           this.close();
-          this.onJoinRoom(roomId);
+          this.onJoinRoom(clickedRoomId);
+        } else {
+          console.error('Cannot enter room - missing roomId or callback', {
+            roomId: clickedRoomId,
+            hasCallback: !!this.onJoinRoom
+          });
         }
       });
     });

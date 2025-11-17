@@ -27,6 +27,7 @@
 @import './css/share-modal.css';   /* Session sharing modal */
 @import './css/friends-modal.css'; /* Friends management modal */
 @import './css/browse-rooms-modal.css'; /* Study rooms browsing modal */
+@import './css/study-room-view.css'; /* Study room view (full-screen collaborative room) */
 @import './css/trash.css';         /* Trash modal */
 
 /* Features */
