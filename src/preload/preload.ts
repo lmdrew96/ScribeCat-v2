@@ -317,6 +317,45 @@ const electronAPI = {
     getUserProfile: (userId: string) =>
       ipcRenderer.invoke('friends:getUserProfile', userId)
   },
+  studyRooms: {
+    // Room operations
+    createRoom: (params: { name: string; sessionId: string; maxParticipants: number }) =>
+      ipcRenderer.invoke('rooms:createRoom', params),
+    getUserRooms: () =>
+      ipcRenderer.invoke('rooms:getUserRooms'),
+    getRoomById: (roomId: string) =>
+      ipcRenderer.invoke('rooms:getRoomById', roomId),
+    closeRoom: (roomId: string) =>
+      ipcRenderer.invoke('rooms:closeRoom', roomId),
+    updateRoom: (params: { roomId: string; name?: string; maxParticipants?: number }) =>
+      ipcRenderer.invoke('rooms:updateRoom', params),
+    // Participant operations
+    getRoomParticipants: (roomId: string) =>
+      ipcRenderer.invoke('rooms:getRoomParticipants', roomId),
+    getParticipantCount: (roomId: string) =>
+      ipcRenderer.invoke('rooms:getParticipantCount', roomId),
+    joinRoom: (roomId: string) =>
+      ipcRenderer.invoke('rooms:joinRoom', roomId),
+    leaveRoom: (roomId: string) =>
+      ipcRenderer.invoke('rooms:leaveRoom', roomId),
+    removeParticipant: (params: { roomId: string; participantId: string }) =>
+      ipcRenderer.invoke('rooms:removeParticipant', params),
+    isUserInRoom: (roomId: string) =>
+      ipcRenderer.invoke('rooms:isUserInRoom', roomId),
+    // Invitation operations
+    sendInvitation: (params: { roomId: string; inviteeId: string }) =>
+      ipcRenderer.invoke('rooms:sendInvitation', params),
+    getUserInvitations: () =>
+      ipcRenderer.invoke('rooms:getUserInvitations'),
+    getPendingInvitations: () =>
+      ipcRenderer.invoke('rooms:getPendingInvitations'),
+    acceptInvitation: (invitationId: string) =>
+      ipcRenderer.invoke('rooms:acceptInvitation', invitationId),
+    declineInvitation: (invitationId: string) =>
+      ipcRenderer.invoke('rooms:declineInvitation', invitationId),
+    cancelInvitation: (invitationId: string) =>
+      ipcRenderer.invoke('rooms:cancelInvitation', invitationId)
+  },
   power: {
     preventSleep: () => ipcRenderer.invoke('power:preventSleep'),
     allowSleep: () => ipcRenderer.invoke('power:allowSleep'),

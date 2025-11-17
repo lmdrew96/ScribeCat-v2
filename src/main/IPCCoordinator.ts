@@ -24,6 +24,7 @@ import { CanvasHandlers } from './ipc/handlers/CanvasHandlers.js';
 import { ShareHandlers } from './ipc/handlers/ShareHandlers.js';
 import { PowerHandlers } from './ipc/handlers/PowerHandlers.js';
 import { FriendsHandlers } from './ipc/handlers/FriendsHandlers.js';
+import { StudyRoomsHandlers } from './ipc/handlers/StudyRoomsHandlers.js';
 import { GoogleDriveService } from '../infrastructure/services/drive/GoogleDriveService.js';
 import type { GoogleDriveConfig } from '../shared/types.js';
 import type { Services } from './ServiceBootstrapper.js';
@@ -50,6 +51,7 @@ export class IPCCoordinator {
   private driveHandlers: DriveHandlers | null = null;
   private shareHandlers: ShareHandlers | null = null;
   private friendsHandlers: FriendsHandlers | null = null;
+  private studyRoomsHandlers: StudyRoomsHandlers | null = null;
 
   constructor(deps: IPCCoordinatorDependencies) {
     this.services = deps.services;
@@ -123,6 +125,10 @@ export class IPCCoordinator {
     // Add friends handlers
     this.friendsHandlers = new FriendsHandlers();
     registry.add(this.friendsHandlers);
+
+    // Add study rooms handlers
+    this.studyRoomsHandlers = new StudyRoomsHandlers();
+    registry.add(this.studyRoomsHandlers);
 
     // Register all handlers with ipcMain
     registry.registerAll(ipcMain);
@@ -215,6 +221,12 @@ export class IPCCoordinator {
         if (this.friendsHandlers) {
           this.friendsHandlers.setCurrentUserId(data.userId);
           console.log('Updated FriendsHandlers with user ID');
+        }
+
+        // Update StudyRoomsHandlers with user ID
+        if (this.studyRoomsHandlers) {
+          this.studyRoomsHandlers.setCurrentUserId(data.userId);
+          console.log('Updated StudyRoomsHandlers with user ID');
         }
 
         // Set session on SupabaseClient for authenticated requests

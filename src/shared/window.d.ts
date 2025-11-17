@@ -158,6 +158,28 @@ declare global {
         searchUsers: (searchEmail: string, limit?: number) => Promise<IPCResponse<any[]>>;
         getUserProfile: (userId: string) => Promise<IPCResponse<any>>;
       };
+      studyRooms: {
+        // Room operations
+        createRoom: (params: { name: string; sessionId: string; maxParticipants: number }) => Promise<IPCResponse<any>>;
+        getUserRooms: () => Promise<IPCResponse<any[]>>;
+        getRoomById: (roomId: string) => Promise<IPCResponse<any>>;
+        closeRoom: (roomId: string) => Promise<IPCResponse<void>>;
+        updateRoom: (params: { roomId: string; name?: string; maxParticipants?: number }) => Promise<IPCResponse<void>>;
+        // Participant operations
+        getRoomParticipants: (roomId: string) => Promise<IPCResponse<any[]>>;
+        getParticipantCount: (roomId: string) => Promise<IPCResponse<number>>;
+        joinRoom: (roomId: string) => Promise<IPCResponse<any>>;
+        leaveRoom: (roomId: string) => Promise<IPCResponse<void>>;
+        removeParticipant: (params: { roomId: string; participantId: string }) => Promise<IPCResponse<void>>;
+        isUserInRoom: (roomId: string) => Promise<IPCResponse<boolean>>;
+        // Invitation operations
+        sendInvitation: (params: { roomId: string; inviteeId: string }) => Promise<IPCResponse<any>>;
+        getUserInvitations: () => Promise<IPCResponse<any[]>>;
+        getPendingInvitations: () => Promise<IPCResponse<any[]>>;
+        acceptInvitation: (invitationId: string) => Promise<IPCResponse<void>>;
+        declineInvitation: (invitationId: string) => Promise<IPCResponse<void>>;
+        cancelInvitation: (invitationId: string) => Promise<IPCResponse<void>>;
+      };
       sharing: {
         checkAccess: (sessionId: string) => Promise<IPCResponse<any>>;
         shareSession: (params: { sessionId: string; sharedWithEmail: string; permissionLevel: 'viewer' | 'editor' }) => Promise<IPCResponse<any>>;
@@ -177,6 +199,7 @@ declare global {
     authManager?: import('../renderer/managers/AuthManager').AuthManager;
     studyModeManager?: import('../renderer/managers/StudyModeManager').StudyModeManager;
     friendsManager?: import('../renderer/managers/social/FriendsManager').FriendsManager;
+    studyRoomsManager?: import('../renderer/managers/social/StudyRoomsManager').StudyRoomsManager;
     TutorialManager?: typeof import('../renderer/utils/TutorialManager').TutorialManager;
     FocusManager?: any;
     WelcomeModal?: any;
