@@ -311,10 +311,27 @@ export class SupabaseYjsProvider {
       }
 
       if (data?.state_vector) {
-        // Apply saved state to document
-        const stateVector = new Uint8Array(data.state_vector);
-        Y.applyUpdate(this.doc, stateVector, this);
-        console.log('✅ Loaded Yjs state from database');
+        try {
+          // Validate state vector before applying
+          const stateVector = new Uint8Array(data.state_vector);
+
+          if (stateVector.length === 0) {
+            console.warn('Empty Yjs state vector found - starting with empty document');
+            return;
+          }
+
+          // Apply saved state to document
+          Y.applyUpdate(this.doc, stateVector, this);
+          console.log('✅ Loaded Yjs state from database');
+        } catch (decodeError) {
+          // Corrupted state - delete it and start fresh
+          console.warn('Corrupted Yjs state detected - deleting and starting fresh:', decodeError);
+          await client
+            .from('yjs_state')
+            .delete()
+            .eq('session_id', this.options.sessionId);
+          // Continue with empty document
+        }
       }
     } catch (error) {
       console.error('Error loading initial state:', error);
