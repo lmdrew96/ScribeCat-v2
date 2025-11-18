@@ -108,6 +108,12 @@ export class ChatUI {
         // TODO: Handle suggestion actions (bookmark, note_prompt, etc.)
       }
     });
+
+    // Render initial placeholder state
+    if (this.liveSuggestions && this.liveSuggestionsPanel) {
+      const html = this.liveSuggestions.renderPanelHTML();
+      this.liveSuggestionsPanel.innerHTML = html;
+    }
   }
 
   /**
@@ -144,17 +150,23 @@ export class ChatUI {
    */
   open(isConfigured: boolean): void {
     if (!this.chatDrawer) return;
-    
+
     this.chatDrawer.classList.remove('hidden');
     this.isChatOpen = true;
-    
+
     // Focus input if configured
     if (isConfigured && this.chatInput) {
       setTimeout(() => {
         this.chatInput?.focus();
       }, 300);
     }
-    
+
+    // Ensure Live AI panel has initial content (in case DOM wasn't ready during init)
+    if (this.liveSuggestions && this.liveSuggestionsPanel && !this.liveSuggestionsPanel.innerHTML) {
+      const html = this.liveSuggestions.renderPanelHTML();
+      this.liveSuggestionsPanel.innerHTML = html;
+    }
+
     this.trapFocus();
   }
 

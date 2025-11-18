@@ -798,6 +798,13 @@
   line-height: 1.4;
 }
 
+.chip-empty-subtitle {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 8px !important;
+  opacity: 0.8;
+}
+
 .chip-suggestions-list {
   display: flex;
   flex-direction: column;

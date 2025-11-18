@@ -83,7 +83,25 @@ export class LiveSuggestionsPanel {
    * Render suggestions panel HTML for chat drawer
    */
   public renderPanelHTML(): string {
+    // Show different empty states based on recording status
     if (this.currentSuggestions.length === 0) {
+      // Not recording - show placeholder
+      if (!this.isRecording) {
+        return `
+          <div class="chip-panel-header">
+            <div class="chip-panel-title">✨ Live AI</div>
+          </div>
+          <div class="chip-panel-content">
+            <div class="chip-empty-state">
+              <div class="chip-empty-icon">🎤</div>
+              <p><strong>Start recording to activate Live AI</strong></p>
+              <p class="chip-empty-subtitle">I'll analyze your content in real-time and suggest helpful actions like bookmarking important moments, adding notes, and more.</p>
+            </div>
+          </div>
+        `;
+      }
+
+      // Recording but no suggestions yet
       return `
         <div class="chip-panel-header">
           <div class="chip-panel-title">✨ Live AI</div>
