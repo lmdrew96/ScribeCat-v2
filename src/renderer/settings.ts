@@ -110,6 +110,54 @@ export class SettingsManager {
       e.stopPropagation();
     });
 
+    // Event delegation for theme category section collapse/expand
+    // IMPORTANT: Attach to modal-content, not settingsModal, because modal-content calls stopPropagation()
+    modalContent?.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const header = target.closest('.theme-category-header');
+
+      if (header) {
+        const section = header.closest('.theme-category-section');
+        const content = section?.querySelector('.theme-category-content') as HTMLElement;
+
+        if (!section || !content) return;
+
+        const isCollapsed = section.classList.contains('collapsed');
+
+        if (isCollapsed) {
+          // Expand this section
+          section.classList.remove('collapsed');
+          content.style.maxHeight = '5000px';
+          content.style.opacity = '1';
+          content.style.paddingTop = '15px';
+          content.style.paddingBottom = '15px';
+          content.style.overflow = 'visible';
+        } else {
+          // Collapse this section
+          section.classList.add('collapsed');
+          content.style.maxHeight = '0';
+          content.style.opacity = '0';
+          content.style.paddingTop = '0';
+          content.style.paddingBottom = '0';
+          content.style.overflow = 'hidden';
+        }
+      }
+    });
+
+    // Event delegation for theme card selection
+    // IMPORTANT: Attach to modal-content, not settingsModal, because modal-content calls stopPropagation()
+    modalContent?.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const card = target.closest('.theme-card');
+
+      if (card) {
+        const themeId = card.getAttribute('data-theme-id');
+        if (themeId) {
+          this.selectTheme(themeId);
+        }
+      }
+    });
+
     // Transcription mode change
     const modeRadios = document.querySelectorAll('input[name="transcription-mode"]');
     modeRadios.forEach(radio => {
@@ -423,15 +471,7 @@ export class SettingsManager {
         `;
       }).join('');
 
-      // Add click handlers to theme cards
-      themeGrid.querySelectorAll('.theme-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const themeId = card.getAttribute('data-theme-id');
-          if (themeId) {
-            this.selectTheme(themeId);
-          }
-        });
-      });
+      // Note: Click handlers are now managed via event delegation in initializeEventListeners()
     });
 
     // Initialize collapsible category sections
@@ -469,28 +509,7 @@ export class SettingsManager {
         content.style.overflow = 'visible';
       }
 
-      // Add click handler to toggle
-      header.addEventListener('click', () => {
-        const isCollapsed = section.classList.contains('collapsed');
-
-        if (isCollapsed) {
-          // Expand this section
-          section.classList.remove('collapsed');
-          content.style.maxHeight = '5000px';
-          content.style.opacity = '1';
-          content.style.paddingTop = '15px';
-          content.style.paddingBottom = '15px';
-          content.style.overflow = 'visible';
-        } else {
-          // Collapse this section
-          section.classList.add('collapsed');
-          content.style.maxHeight = '0';
-          content.style.opacity = '0';
-          content.style.paddingTop = '0';
-          content.style.paddingBottom = '0';
-          content.style.overflow = 'hidden';
-        }
-      });
+      // Note: Click handlers are now managed via event delegation in initializeEventListeners()
     });
   }
 
