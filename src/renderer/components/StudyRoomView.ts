@@ -11,6 +11,7 @@ import type { StudyRoomData } from '../../domain/entities/StudyRoom.js';
 import type { RoomParticipantData } from '../../domain/entities/RoomParticipant.js';
 import { ChatManager } from '../managers/social/ChatManager.js';
 import { ChatPanel } from './ChatPanel.js';
+import { InviteFriendsModal } from './InviteFriendsModal.js';
 import { escapeHtml } from '../utils/formatting.js';
 
 export class StudyRoomView {
@@ -19,6 +20,7 @@ export class StudyRoomView {
   private friendsManager: FriendsManager;
   private chatManager: ChatManager;
   private chatPanel: ChatPanel | null = null;
+  private inviteFriendsModal: InviteFriendsModal;
   private currentRoomId: string | null = null;
   private currentUserId: string | null = null;
   private onExit?: () => void;
@@ -27,6 +29,7 @@ export class StudyRoomView {
     this.studyRoomsManager = studyRoomsManager;
     this.friendsManager = friendsManager;
     this.chatManager = new ChatManager();
+    this.inviteFriendsModal = new InviteFriendsModal(friendsManager, studyRoomsManager);
 
     // Listen for participant changes
     this.studyRoomsManager.addParticipantsListener((roomId) => {
@@ -590,29 +593,8 @@ export class StudyRoomView {
       return;
     }
 
-    // Get friends list
-    const friends = this.friendsManager.getFriends();
-
-    if (friends.length === 0) {
-      alert('You don\'t have any friends to invite yet. Add some friends first!');
-      return;
-    }
-
-    // Simple prompt for now (TODO: Build proper InviteFriendsModal in Phase 3)
-    const friendsList = friends.map((f, i) => `${i + 1}. ${f.friendFullName || f.friendEmail}`).join('\n');
-    const selection = prompt(`Select a friend to invite (enter number):\n\n${friendsList}`);
-
-    if (selection) {
-      const index = parseInt(selection, 10) - 1;
-      if (index >= 0 && index < friends.length) {
-        try {
-          await this.studyRoomsManager.sendInvitation(this.currentRoomId, friends[index].friendId);
-          alert('Invitation sent!');
-        } catch (error) {
-          alert('Failed to send invitation. Please try again.');
-        }
-      }
-    }
+    // Show invite friends modal
+    this.inviteFriendsModal.show(this.currentRoomId);
   }
 
   /**
