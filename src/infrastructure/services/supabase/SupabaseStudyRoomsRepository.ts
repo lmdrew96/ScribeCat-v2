@@ -559,6 +559,13 @@ export class SupabaseStudyRoomsRepository {
     inviteeId: string;
   }): Promise<RoomInvitation> {
     try {
+      // First, fetch the room name to include in invitation
+      const { data: roomData } = await this.getClient()
+        .from('study_rooms')
+        .select('name')
+        .eq('id', params.roomId)
+        .single();
+
       const { data, error } = await this.getClient()
         .from('room_invitations')
         .insert({
@@ -566,6 +573,7 @@ export class SupabaseStudyRoomsRepository {
           inviter_id: params.inviterId,
           invitee_id: params.inviteeId,
           status: 'pending',
+          room_name: roomData?.name || null,
         })
         .select(`
           id,
@@ -575,9 +583,7 @@ export class SupabaseStudyRoomsRepository {
           status,
           created_at,
           updated_at,
-          room:study_rooms!room_invitations_room_id_fkey (
-            name
-          ),
+          room_name,
           inviter_profile:user_profiles!room_invitations_inviter_id_fkey (
             email,
             full_name,
@@ -600,7 +606,6 @@ export class SupabaseStudyRoomsRepository {
         throw new Error('No data returned after sending invitation');
       }
 
-      const room = Array.isArray(data.room) ? data.room[0] : data.room;
       const inviterProfile = Array.isArray(data.inviter_profile) ? data.inviter_profile[0] : data.inviter_profile;
       const inviteeProfile = Array.isArray(data.invitee_profile) ? data.invitee_profile[0] : data.invitee_profile;
 
@@ -612,7 +617,7 @@ export class SupabaseStudyRoomsRepository {
         status: data.status,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        room_name: room?.name,
+        room_name: data.room_name,
         inviter_email: inviterProfile?.email,
         inviter_full_name: inviterProfile?.full_name,
         inviter_avatar_url: inviterProfile?.avatar_url,
@@ -631,7 +636,7 @@ export class SupabaseStudyRoomsRepository {
    */
   async getUserInvitations(userId: string): Promise<RoomInvitation[]> {
     try {
-      // Query invitations without room join to avoid circular RLS
+      // Query invitations WITH room_name column (now stored denormalized)
       const { data, error } = await this.getClient()
         .from('room_invitations')
         .select(`
@@ -642,6 +647,7 @@ export class SupabaseStudyRoomsRepository {
           status,
           created_at,
           updated_at,
+          room_name,
           inviter_profile:user_profiles!room_invitations_inviter_id_fkey (
             email,
             full_name,
@@ -665,29 +671,12 @@ export class SupabaseStudyRoomsRepository {
         return [];
       }
 
-      // Fetch room names separately to avoid RLS circular dependency
-      const invitations: RoomInvitation[] = [];
-      for (const row of data) {
-        let roomName: string | undefined;
-
-        // Try to get room name (will only work if user is host due to simplified RLS)
-        try {
-          const { data: roomData } = await this.getClient()
-            .from('study_rooms')
-            .select('name')
-            .eq('id', row.room_id)
-            .single();
-
-          roomName = roomData?.name;
-        } catch {
-          // Ignore error - user might not have permission to view room yet
-          roomName = undefined;
-        }
-
+      // Map database rows to domain entities
+      const invitations: RoomInvitation[] = data.map((row) => {
         const inviterProfile = Array.isArray(row.inviter_profile) ? row.inviter_profile[0] : row.inviter_profile;
         const inviteeProfile = Array.isArray(row.invitee_profile) ? row.invitee_profile[0] : row.invitee_profile;
 
-        invitations.push(RoomInvitation.fromDatabase({
+        return RoomInvitation.fromDatabase({
           id: row.id,
           room_id: row.room_id,
           inviter_id: row.inviter_id,
@@ -695,15 +684,15 @@ export class SupabaseStudyRoomsRepository {
           status: row.status,
           created_at: row.created_at,
           updated_at: row.updated_at,
-          room_name: roomName,
+          room_name: row.room_name,
           inviter_email: inviterProfile?.email,
           inviter_full_name: inviterProfile?.full_name,
           inviter_avatar_url: inviterProfile?.avatar_url,
           invitee_email: inviteeProfile?.email,
           invitee_full_name: inviteeProfile?.full_name,
           invitee_avatar_url: inviteeProfile?.avatar_url,
-        }));
-      }
+        });
+      });
 
       return invitations;
     } catch (error) {
