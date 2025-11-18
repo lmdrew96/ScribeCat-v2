@@ -111,7 +111,9 @@ export class ChatPanel {
    * Render messages
    */
   private renderMessages(messages: ChatMessage[]): void {
-    const messagesContainer = document.getElementById('chat-messages');
+    if (!this.container) return;
+
+    const messagesContainer = this.container.querySelector('#chat-messages') as HTMLElement;
     if (!messagesContainer) return;
 
     if (messages.length === 0) {
@@ -136,7 +138,9 @@ export class ChatPanel {
    * Add message to UI
    */
   private addMessageToUI(message: ChatMessage): void {
-    const messagesContainer = document.getElementById('chat-messages');
+    if (!this.container) return;
+
+    const messagesContainer = this.container.querySelector('#chat-messages') as HTMLElement;
     if (!messagesContainer) return;
 
     // Remove empty state if it exists
@@ -176,8 +180,12 @@ export class ChatPanel {
    * Attach event listeners
    */
   private attachEventListeners(): void {
-    const sendBtn = document.getElementById('chat-send-btn');
-    const input = document.getElementById('chat-input') as HTMLTextAreaElement;
+    if (!this.container) return;
+
+    // Scope queries to this.container to avoid ID collisions with AI chat
+    const sendBtn = this.container.querySelector('#chat-send-btn') as HTMLButtonElement;
+    const input = this.container.querySelector('#chat-input') as HTMLTextAreaElement;
+    const messagesContainer = this.container.querySelector('#chat-messages') as HTMLElement;
 
     if (sendBtn) {
       sendBtn.addEventListener('click', () => this.sendMessage());
@@ -200,7 +208,6 @@ export class ChatPanel {
     }
 
     // Delete message handler
-    const messagesContainer = document.getElementById('chat-messages');
     if (messagesContainer) {
       messagesContainer.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
@@ -218,13 +225,15 @@ export class ChatPanel {
    * Send a message
    */
   private async sendMessage(): Promise<void> {
-    const input = document.getElementById('chat-input') as HTMLTextAreaElement;
-    if (!input || !this.currentRoomId) return;
+    if (!this.container || !this.currentRoomId) return;
+
+    const input = this.container.querySelector('#chat-input') as HTMLTextAreaElement;
+    if (!input) return;
 
     const message = input.value.trim();
     if (!message) return;
 
-    const sendBtn = document.getElementById('chat-send-btn') as HTMLButtonElement;
+    const sendBtn = this.container.querySelector('#chat-send-btn') as HTMLButtonElement;
     if (sendBtn) sendBtn.disabled = true;
 
     try {
@@ -250,19 +259,19 @@ export class ChatPanel {
    * Delete a message
    */
   private async deleteMessage(messageId: string): Promise<void> {
-    if (!confirm('Delete this message?')) return;
+    if (!this.container || !confirm('Delete this message?')) return;
 
     try {
       await this.chatManager.deleteMessage(messageId);
 
       // Remove from UI
-      const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+      const messageEl = this.container.querySelector(`[data-message-id="${messageId}"]`);
       if (messageEl) {
         messageEl.remove();
       }
 
       // Check if messages is empty now
-      const messagesContainer = document.getElementById('chat-messages');
+      const messagesContainer = this.container.querySelector('#chat-messages') as HTMLElement;
       if (messagesContainer && messagesContainer.children.length === 0) {
         messagesContainer.innerHTML = `
           <div class="chat-empty-state">
@@ -281,7 +290,9 @@ export class ChatPanel {
    * Scroll to bottom of messages
    */
   private scrollToBottom(): void {
-    const messagesContainer = document.getElementById('chat-messages');
+    if (!this.container) return;
+
+    const messagesContainer = this.container.querySelector('#chat-messages') as HTMLElement;
     if (messagesContainer) {
       setTimeout(() => {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -293,7 +304,9 @@ export class ChatPanel {
    * Show error message
    */
   private showError(message: string): void {
-    const messagesContainer = document.getElementById('chat-messages');
+    if (!this.container) return;
+
+    const messagesContainer = this.container.querySelector('#chat-messages') as HTMLElement;
     if (!messagesContainer) return;
 
     const errorEl = document.createElement('div');
