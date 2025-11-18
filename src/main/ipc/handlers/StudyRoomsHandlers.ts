@@ -8,14 +8,17 @@
 import { IpcMain } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import { SupabaseStudyRoomsRepository } from '../../../infrastructure/services/supabase/SupabaseStudyRoomsRepository.js';
+import { SupabaseSessionRepository } from '../../../infrastructure/repositories/SupabaseSessionRepository.js';
 
 export class StudyRoomsHandlers extends BaseHandler {
   private currentUserId: string | null = null;
   private repository: SupabaseStudyRoomsRepository;
+  private sessionRepository: SupabaseSessionRepository;
 
   constructor() {
     super();
     this.repository = new SupabaseStudyRoomsRepository();
+    this.sessionRepository = new SupabaseSessionRepository();
   }
 
   /**
@@ -23,6 +26,7 @@ export class StudyRoomsHandlers extends BaseHandler {
    */
   setCurrentUserId(userId: string | null): void {
     this.currentUserId = userId;
+    this.sessionRepository.setUserId(userId);
   }
 
   /**
@@ -35,7 +39,7 @@ export class StudyRoomsHandlers extends BaseHandler {
 
     this.handle(ipcMain, 'rooms:createRoom', async (_event, params: {
       name: string;
-      sessionId: string;
+      sessionId: string | null;
       maxParticipants: number;
     }) => {
       if (!this.currentUserId) {
@@ -43,10 +47,33 @@ export class StudyRoomsHandlers extends BaseHandler {
       }
 
       try {
+        // If a session is provided, create a copy for the room
+        let sessionIdForRoom: string | null = null;
+
+        if (params.sessionId) {
+          console.log(`Creating session copy for room: ${params.sessionId}`);
+
+          try {
+            sessionIdForRoom = await this.sessionRepository.copySessionForRoom(
+              params.sessionId,
+              this.currentUserId,
+              '[Room] '
+            );
+
+            console.log(`Session copied successfully: ${params.sessionId} -> ${sessionIdForRoom}`);
+          } catch (copyError) {
+            console.error('Error copying session for room:', copyError);
+            return {
+              success: false,
+              error: `Failed to copy session: ${copyError instanceof Error ? copyError.message : 'Unknown error'}`,
+            };
+          }
+        }
+
         const room = await this.repository.createRoom({
           name: params.name,
           hostId: this.currentUserId,
-          sessionId: params.sessionId,
+          sessionId: sessionIdForRoom || params.sessionId,
           maxParticipants: params.maxParticipants,
         });
 

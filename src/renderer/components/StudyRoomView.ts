@@ -13,6 +13,7 @@ import { ChatManager } from '../managers/social/ChatManager.js';
 import { ChatPanel } from './ChatPanel.js';
 import { InviteFriendsModal } from './InviteFriendsModal.js';
 import { escapeHtml } from '../utils/formatting.js';
+import { SupabaseClient } from '../../infrastructure/services/supabase/SupabaseClient.js';
 
 export class StudyRoomView {
   private container: HTMLElement | null = null;
@@ -512,7 +513,7 @@ export class StudyRoomView {
   }
 
   /**
-   * Load session content
+   * Load session content from Supabase
    */
   private async loadSessionContent(): Promise<void> {
     if (!this.currentRoomId) return;
@@ -536,18 +537,93 @@ export class StudyRoomView {
         return;
       }
 
-      // Load session data (TODO: Replace with Supabase session in Phase 3)
-      // For now, this won't work because local sessions aren't in Supabase
-      // This will be implemented when we add session copying
+      // Load session from Supabase
+      console.log(`Loading session ${room.sessionId} for room ${this.currentRoomId}`);
+
+      const supabase = SupabaseClient.getInstance().getClient();
+      const { data: sessionData, error } = await supabase
+        .from('sessions')
+        .select('id, title, notes, transcription_text')
+        .eq('id', room.sessionId)
+        .single();
+
+      if (error) {
+        console.error('Failed to load session from Supabase:', error);
+        if (notesContainer) {
+          notesContainer.innerHTML = '<p class="empty-state error">Failed to load session content</p>';
+        }
+        if (transcriptContainer) {
+          transcriptContainer.innerHTML = '<p class="empty-state error">Failed to load session content</p>';
+        }
+        return;
+      }
+
+      if (!sessionData) {
+        console.warn('Session not found:', room.sessionId);
+        if (notesContainer) {
+          notesContainer.innerHTML = '<p class="empty-state">Session not found</p>';
+        }
+        if (transcriptContainer) {
+          transcriptContainer.innerHTML = '<p class="empty-state">Session not found</p>';
+        }
+        return;
+      }
+
+      // Display notes with basic textarea (collaborative editing in next task)
       if (notesContainer) {
-        notesContainer.innerHTML = '<p class="empty-state">Session content will be available in Phase 3<br>Use the chat to collaborate!</p>';
+        const notes = sessionData.notes || '';
+        notesContainer.innerHTML = `
+          <div class="session-editor">
+            <textarea
+              id="session-notes-editor"
+              class="session-textarea"
+              placeholder="Start taking notes..."
+              readonly
+            >${escapeHtml(notes)}</textarea>
+            <p class="editor-hint">Collaborative editing coming soon!</p>
+          </div>
+        `;
       }
+
+      // Display transcript
       if (transcriptContainer) {
-        transcriptContainer.innerHTML = '<p class="empty-state">Session content coming in Phase 3</p>';
+        if (sessionData.transcription_text) {
+          try {
+            const transcription = JSON.parse(sessionData.transcription_text);
+            if (transcription && transcription.segments && Array.isArray(transcription.segments)) {
+              const segments = transcription.segments
+                .map((segment: any) => {
+                  const timestamp = this.formatTimestamp(segment.start || 0);
+                  const text = escapeHtml(segment.text || '');
+                  return `<div class="transcript-segment"><span class="timestamp">${timestamp}</span> ${text}</div>`;
+                })
+                .join('');
+              transcriptContainer.innerHTML = `<div class="transcript-content">${segments}</div>`;
+            } else {
+              transcriptContainer.innerHTML = '<p class="empty-state">No transcript available</p>';
+            }
+          } catch (parseError) {
+            console.error('Failed to parse transcription:', parseError);
+            transcriptContainer.innerHTML = '<p class="empty-state">Transcription format error</p>';
+          }
+        } else {
+          transcriptContainer.innerHTML = '<p class="empty-state">No transcription available</p>';
+        }
       }
+
+      console.log('Session content loaded successfully');
     } catch (error) {
       console.error('Failed to load session content:', error);
     }
+  }
+
+  /**
+   * Format timestamp (seconds to MM:SS)
+   */
+  private formatTimestamp(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
   /**

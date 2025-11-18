@@ -593,4 +593,113 @@ export class SupabaseSessionRepository implements ISessionRepository {
       throw error;
     }
   }
+
+  /**
+   * Copy a session for study room sharing
+   * Creates a new session with copied content but references the same audio file
+   * @param originalSessionId - ID of the session to copy
+   * @param newOwnerId - User ID who will own the copied session (typically room host)
+   * @param titlePrefix - Optional prefix for the copied session title (e.g., "[Room] ")
+   * @returns The ID of the newly created session copy
+   */
+  async copySessionForRoom(
+    originalSessionId: string,
+    newOwnerId: string,
+    titlePrefix: string = '[Shared] '
+  ): Promise<string> {
+    try {
+      if (!this.userId) {
+        throw new Error('User ID not set. Call setUserId() before copySessionForRoom()');
+      }
+
+      const client = SupabaseClient.getInstance().getClient();
+
+      // Load the original session
+      const originalSession = await this.findById(originalSessionId);
+      if (!originalSession) {
+        throw new Error(`Original session ${originalSessionId} not found`);
+      }
+
+      // Generate new ID for the copy
+      const newSessionId = crypto.randomUUID();
+
+      logger.info(`Copying session ${originalSessionId} to ${newSessionId} for room sharing`);
+
+      // DUAL STORAGE: Handle transcription copying
+      let storageUploadSuccess = false;
+      let transcriptionJson: string | null = null;
+      const MAX_DB_SIZE = 7 * 1024 * 1024; // 7MB safety margin
+
+      if (originalSession.transcription) {
+        // Compress transcription to check size
+        const compressionResult = compressJSON(originalSession.transcription.toJSON());
+        const compressedSize = compressionResult.compressedSize;
+
+        logger.info(
+          `Copying transcription for session ${newSessionId}: ${(compressedSize / 1024 / 1024).toFixed(2)}MB`
+        );
+
+        const requiresStorage = compressedSize >= MAX_DB_SIZE;
+
+        // Upload to Storage with new session ID
+        const uploadResult = await this.storageService.uploadTranscriptionFile({
+          sessionId: newSessionId,
+          userId: newOwnerId,
+          transcriptionData: originalSession.transcription.toJSON()
+        });
+
+        if (uploadResult.success) {
+          storageUploadSuccess = true;
+        } else if (requiresStorage) {
+          throw new Error(
+            `Failed to upload transcription to storage for copied session: ${uploadResult.error}`
+          );
+        }
+
+        // Store in database if small enough
+        if (!requiresStorage) {
+          transcriptionJson = JSON.stringify(originalSession.transcription.toJSON());
+        }
+      }
+
+      // Create the new session row
+      const newSessionRow: Partial<SessionRow> = {
+        id: newSessionId,
+        user_id: newOwnerId,
+        title: titlePrefix + originalSession.title,
+        notes: originalSession.notes,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        duration: originalSession.duration,
+        transcription_text: transcriptionJson,
+        has_transcription: storageUploadSuccess,
+        transcription_provider: originalSession.transcription?.provider,
+        transcription_language: originalSession.transcription?.language,
+        transcription_confidence: originalSession.transcription?.averageConfidence,
+        transcription_timestamp: originalSession.transcription?.createdAt?.toISOString(),
+        tags: originalSession.tags,
+        course_id: originalSession.courseId,
+        course_title: originalSession.courseTitle,
+        course_number: originalSession.courseNumber,
+        type: originalSession.type,
+        summary: originalSession.summary
+      };
+
+      // Insert the copied session
+      const { error: insertError } = await client
+        .from(this.tableName)
+        .insert(newSessionRow);
+
+      if (insertError) {
+        throw new Error(`Failed to insert copied session: ${insertError.message}`);
+      }
+
+      logger.info(`Successfully copied session ${originalSessionId} to ${newSessionId}`);
+
+      return newSessionId;
+    } catch (error) {
+      logger.error('Error copying session for room:', error);
+      throw error;
+    }
+  }
 }
