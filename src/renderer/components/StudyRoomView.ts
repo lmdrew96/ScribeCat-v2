@@ -14,6 +14,9 @@ import { ChatPanel } from './ChatPanel.js';
 import { InviteFriendsModal } from './InviteFriendsModal.js';
 import { escapeHtml } from '../utils/formatting.js';
 import { SupabaseClient } from '../../infrastructure/services/supabase/SupabaseClient.js';
+import { Editor } from '@tiptap/core';
+import { CollaborationAdapter } from '../tiptap/CollaborationAdapter.js';
+import { EditorConfigService } from '../tiptap/EditorConfigService.js';
 
 export class StudyRoomView {
   private container: HTMLElement | null = null;
@@ -24,13 +27,20 @@ export class StudyRoomView {
   private inviteFriendsModal: InviteFriendsModal;
   private currentRoomId: string | null = null;
   private currentUserId: string | null = null;
+  private currentUserEmail: string | null = null;
+  private currentUserName: string | null = null;
   private onExit?: () => void;
+
+  // Collaborative editor
+  private notesEditor: Editor | null = null;
+  private collaborationAdapter: CollaborationAdapter;
 
   constructor(studyRoomsManager: StudyRoomsManager, friendsManager: FriendsManager) {
     this.studyRoomsManager = studyRoomsManager;
     this.friendsManager = friendsManager;
     this.chatManager = new ChatManager();
     this.inviteFriendsModal = new InviteFriendsModal(friendsManager, studyRoomsManager);
+    this.collaborationAdapter = new CollaborationAdapter();
 
     // Listen for participant changes
     this.studyRoomsManager.addParticipantsListener((roomId) => {
@@ -55,13 +65,23 @@ export class StudyRoomView {
   }
 
   /**
-   * Set current user ID
+   * Set current user info for collaboration
    */
   public setCurrentUserId(userId: string | null): void {
     this.currentUserId = userId;
     if (userId) {
       this.chatManager.initialize(userId);
     }
+  }
+
+  /**
+   * Set current user info (needed for collaboration)
+   */
+  public setCurrentUserInfo(userId: string, email: string, name: string): void {
+    this.currentUserId = userId;
+    this.currentUserEmail = email;
+    this.currentUserName = name;
+    this.chatManager.initialize(userId);
   }
 
   /**
@@ -300,6 +320,14 @@ export class StudyRoomView {
       this.chatPanel.destroy();
       this.chatPanel = null;
     }
+
+    // Cleanup editor and collaboration
+    if (this.notesEditor) {
+      this.notesEditor.destroy();
+      this.notesEditor = null;
+    }
+
+    this.collaborationAdapter.disable();
 
     this.container.style.display = 'none';
     this.currentRoomId = null;
@@ -569,26 +597,9 @@ export class StudyRoomView {
         return;
       }
 
-      // Display notes - render HTML content from TipTap editor
+      // Initialize collaborative editor
       if (notesContainer) {
-        const notes = sessionData.notes || '';
-        if (notes && notes.trim()) {
-          // Render the HTML content (TipTap stores notes as HTML)
-          notesContainer.innerHTML = `
-            <div class="session-editor">
-              <div class="tiptap-content" id="session-notes-viewer">
-                ${notes}
-              </div>
-              <p class="editor-hint">Collaborative editing coming soon!</p>
-            </div>
-          `;
-        } else {
-          notesContainer.innerHTML = `
-            <div class="session-editor">
-              <p class="empty-state">No notes yet. Start taking notes in the chat!</p>
-            </div>
-          `;
-        }
+        await this.initializeCollaborativeEditor(notesContainer, room.sessionId, sessionData.notes || '');
       }
 
       // Display transcript
@@ -620,6 +631,65 @@ export class StudyRoomView {
       console.log('Session content loaded successfully');
     } catch (error) {
       console.error('Failed to load session content:', error);
+    }
+  }
+
+  /**
+   * Initialize collaborative editor for session notes
+   */
+  private async initializeCollaborativeEditor(
+    container: HTMLElement,
+    sessionId: string,
+    initialContent: string
+  ): Promise<void> {
+    try {
+      if (!this.currentUserId || !this.currentUserEmail) {
+        console.error('Cannot initialize collaborative editor: missing user info');
+        container.innerHTML = '<p class="empty-state error">Unable to load editor (missing user info)</p>';
+        return;
+      }
+
+      // Create editor container
+      container.innerHTML = `
+        <div class="session-editor">
+          <div class="tiptap-container">
+            <div id="room-notes-editor" class="tiptap-content"></div>
+          </div>
+          <p class="editor-hint">✨ Collaborative editing enabled - changes sync in real-time!</p>
+        </div>
+      `;
+
+      const editorElement = document.getElementById('room-notes-editor');
+      if (!editorElement) {
+        console.error('Editor element not found');
+        return;
+      }
+
+      // Enable collaboration and create editor
+      const userName = this.currentUserName || this.currentUserEmail.split('@')[0];
+
+      console.log(`Initializing collaborative editor for session ${sessionId}`);
+
+      this.notesEditor = await this.collaborationAdapter.enable(
+        {
+          sessionId,
+          userId: this.currentUserId,
+          userName,
+          userEmail: this.currentUserEmail,
+        },
+        this.notesEditor,
+        editorElement as HTMLElement
+      );
+
+      console.log('Collaborative editor initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize collaborative editor:', error);
+      container.innerHTML = `
+        <div class="session-editor">
+          <p class="empty-state error">Failed to initialize collaborative editor</p>
+          <p class="empty-state">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+        </div>
+      `;
     }
   }
 

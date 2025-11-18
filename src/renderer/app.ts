@@ -770,7 +770,7 @@ function setupAuthUI(): void {
 
       // Set current user ID for study rooms UI components
       browseRoomsModal.setCurrentUserId(user.id);
-      studyRoomView.setCurrentUserId(user.id);
+      studyRoomView.setCurrentUserInfo(user.id, user.email, user.fullName || user.email);
 
       // Update study rooms badge with pending invitations count
       const invitationsCount = studyRoomsManager.getPendingInvitationsCount();
