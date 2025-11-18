@@ -36,7 +36,8 @@ export class CollaborationAdapter {
     config: CollaborationUserConfig,
     currentEditor: Editor | null,
     editorElement: HTMLElement,
-    onEditorRecreated?: EditorRecreateCallback
+    onEditorRecreated?: EditorRecreateCallback,
+    initialContent?: string
   ): Promise<Editor> {
     try {
       logger.info('Enabling collaboration for session:', config.sessionId);
@@ -46,7 +47,7 @@ export class CollaborationAdapter {
         this.collaborationManager = new CollaborationManager();
       }
 
-      // Start collaboration - this will create the Yjs doc
+      // Start collaboration - this will create the Yjs doc and load saved state
       this.yjsDoc = await this.collaborationManager.startCollaboration({
         sessionId: config.sessionId,
         userId: config.userId,
@@ -59,8 +60,8 @@ export class CollaborationAdapter {
 
       this.isCollaborating = true;
 
-      // Save current content if editor exists
-      const currentContent = currentEditor?.getHTML() || '';
+      // Determine content to use
+      const currentContent = currentEditor?.getHTML() || initialContent || '';
 
       // Recreate editor with collaboration extensions
       if (currentEditor) {
@@ -75,10 +76,33 @@ export class CollaborationAdapter {
         },
       });
 
+      // Check if Yjs doc is empty (no saved state)
+      const yjsXmlFragment = this.yjsDoc.getXmlFragment('default');
+      const isYjsDocEmpty = yjsXmlFragment.length === 0;
+
+      // If Yjs doc is empty but we have initial content, populate it
+      if (isYjsDocEmpty && currentContent) {
+        logger.info('Initializing empty Yjs doc with existing content');
+
+        // Create temporary editor to populate Yjs doc with initial content
+        const tempContainer = document.createElement('div');
+        const tempEditor = new Editor({
+          element: tempContainer,
+          extensions: editorConfig.extensions,
+          content: currentContent,
+          editorProps: EditorConfigService.getEditorProps(),
+        });
+
+        // Destroy temp editor immediately (content is now in Yjs doc)
+        tempEditor.destroy();
+        tempContainer.remove();
+      }
+
+      // Create the actual collaborative editor
       const newEditor = new Editor({
         element: editorElement,
         extensions: editorConfig.extensions,
-        content: currentContent,
+        // Don't pass content - it comes from Yjs doc
         editorProps: EditorConfigService.getEditorProps(),
       });
 

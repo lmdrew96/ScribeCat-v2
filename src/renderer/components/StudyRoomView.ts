@@ -676,7 +676,9 @@ export class StudyRoomView {
           userEmail: this.currentUserEmail,
         },
         this.notesEditor,
-        editorElement as HTMLElement
+        editorElement as HTMLElement,
+        undefined, // onEditorRecreated callback
+        initialContent // Pass the initial notes content from database
       );
 
       console.log('Collaborative editor initialized successfully');
