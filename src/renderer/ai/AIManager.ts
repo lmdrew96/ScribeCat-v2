@@ -503,6 +503,13 @@ export class AIManager {
   }
 
   /**
+   * Get ChatUI instance (for RecordingManager integration)
+   */
+  public getChatUI(): ChatUI {
+    return this.chatUI;
+  }
+
+  /**
    * Get suggestion statistics
    */
   public getSuggestionStats() {

@@ -26,12 +26,13 @@ export class AudioAnalyzerService {
   private audioContext: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
-  private scriptProcessor: ScriptProcessorNode | null = null;
+  private audioWorkletNode: AudioWorkletNode | null = null;
   private gainNode: GainNode | null = null;
   private updateIntervalId: number | null = null;
   private isAnalyzing: boolean = false;
   private currentLevel: number = 0;
   private audioDataCallback: ((data: Float32Array) => void) | null = null;
+  private isWorkletLoaded: boolean = false;
 
   /**
    * Initialize analyzer with audio stream
@@ -169,39 +170,64 @@ export class AudioAnalyzerService {
   /**
    * Set callback for raw audio data streaming
    * Used for sending audio to transcription services
+   * Uses modern AudioWorkletNode (replaces deprecated ScriptProcessorNode)
    */
-  onAudioData(callback: (data: Float32Array) => void): void {
+  async onAudioData(callback: (data: Float32Array) => void): Promise<void> {
     if (!this.isAnalyzing || !this.audioContext || !this.sourceNode) {
       throw new Error('Analyzer not initialized. Call initialize() first.');
     }
 
     this.audioDataCallback = callback;
 
-    // Create script processor if not already created
-    if (!this.scriptProcessor) {
-      this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
-      
-      this.scriptProcessor.onaudioprocess = (event) => {
-        if (this.audioDataCallback) {
-          const audioData = event.inputBuffer.getChannelData(0);
-          this.audioDataCallback(new Float32Array(audioData));
+    // Create AudioWorklet node if not already created
+    if (!this.audioWorkletNode) {
+      try {
+        // Load the AudioWorklet processor module (only once)
+        if (!this.isWorkletLoaded) {
+          // Path is relative to the renderer HTML file location
+          // Use absolute URL to ensure proper loading
+          const moduleUrl = new URL('audio-stream-processor.js', window.location.href).href;
+          console.log('Loading AudioWorklet module from:', moduleUrl);
+          await this.audioContext.audioWorklet.addModule(moduleUrl);
+          this.isWorkletLoaded = true;
+          console.log('AudioWorklet module loaded successfully');
         }
-      };
 
-      // Create a gain node set to 0 to prevent audio playback (no feedback)
-      // ScriptProcessor requires connection to destination to process audio
-      this.gainNode = this.audioContext.createGain();
-      this.gainNode.gain.value = 0; // Mute output to prevent feedback loop
+        // Create the AudioWorkletNode
+        this.audioWorkletNode = new AudioWorkletNode(
+          this.audioContext,
+          'audio-stream-processor'
+        );
 
-      // Connect: source -> analyzer -> scriptProcessor -> gain (muted) -> destination
-      if (this.analyserNode) {
-        this.analyserNode.connect(this.scriptProcessor);
-        this.scriptProcessor.connect(this.gainNode);
-        this.gainNode.connect(this.audioContext.destination);
+        // Handle messages from the AudioWorklet processor
+        this.audioWorkletNode.port.onmessage = (event) => {
+          if (event.data.type === 'audiodata' && this.audioDataCallback) {
+            // Convert transferred ArrayBuffer back to Float32Array
+            const audioData = new Float32Array(event.data.data);
+            this.audioDataCallback(audioData);
+          }
+        };
+
+        // Create a gain node set to 0 to prevent audio playback (no feedback)
+        // AudioWorklet requires connection to destination to process audio
+        this.gainNode = this.audioContext.createGain();
+        this.gainNode.gain.value = 0; // Mute output to prevent feedback loop
+
+        // Connect: source -> analyzer -> audioWorklet -> gain (muted) -> destination
+        if (this.analyserNode) {
+          this.analyserNode.connect(this.audioWorkletNode);
+          this.audioWorkletNode.connect(this.gainNode);
+          this.gainNode.connect(this.audioContext.destination);
+        }
+
+        console.log('Audio data streaming enabled (using AudioWorkletNode)');
+      } catch (error) {
+        console.error('Failed to initialize AudioWorklet:', error);
+        throw new Error(`Failed to set up audio streaming: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
+    } else {
+      console.log('Audio data streaming already enabled');
     }
-
-    console.log('Audio data streaming enabled');
   }
 
   /**
@@ -209,15 +235,16 @@ export class AudioAnalyzerService {
    */
   removeAudioDataCallback(): void {
     this.audioDataCallback = null;
-    
+
     if (this.gainNode) {
       this.gainNode.disconnect();
       this.gainNode = null;
     }
-    
-    if (this.scriptProcessor) {
-      this.scriptProcessor.disconnect();
-      this.scriptProcessor = null;
+
+    if (this.audioWorkletNode) {
+      this.audioWorkletNode.disconnect();
+      this.audioWorkletNode.port.onmessage = null; // Clean up message handler
+      this.audioWorkletNode = null;
       console.log('Audio data streaming disabled');
     }
   }
@@ -264,6 +291,9 @@ export class AudioAnalyzerService {
       });
       this.audioContext = null;
     }
+
+    // Reset worklet loaded flag - when AudioContext is closed, the module becomes invalid
+    this.isWorkletLoaded = false;
 
     this.isAnalyzing = false;
     this.currentLevel = 0;

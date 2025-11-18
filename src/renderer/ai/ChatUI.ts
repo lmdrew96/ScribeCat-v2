@@ -22,14 +22,23 @@ export class ChatUI {
   private chatBadge: HTMLElement | null = null;
   private liveSuggestionsPanel: HTMLElement | null = null;
 
+  // Tab elements
+  private chatTabBtn: HTMLButtonElement | null = null;
+  private suggestionsTabBtn: HTMLButtonElement | null = null;
+  private chatTabContent: HTMLElement | null = null;
+  private suggestionsTabContent: HTMLElement | null = null;
+  private suggestionsBadge: HTMLElement | null = null;
+
   private isChatOpen: boolean = false;
   private liveSuggestions: LiveSuggestionsPanel | null = null;
   private contentAnalyzer: ContentAnalyzer;
+  private currentTab: 'chat' | 'suggestions' = 'chat';
 
   constructor(contentAnalyzer: ContentAnalyzer) {
     this.contentAnalyzer = contentAnalyzer;
     this.setupUIElements();
     this.initializeLiveSuggestions();
+    this.setupTabListeners();
   }
 
   /**
@@ -47,6 +56,41 @@ export class ChatUI {
     this.includeNotesCheckbox = document.getElementById('include-notes') as HTMLInputElement;
     this.chatBadge = document.getElementById('chat-badge');
     this.liveSuggestionsPanel = document.getElementById('live-suggestions-panel');
+
+    // Tab elements
+    this.chatTabBtn = document.getElementById('chat-tab-btn') as HTMLButtonElement;
+    this.suggestionsTabBtn = document.getElementById('suggestions-tab-btn') as HTMLButtonElement;
+    this.chatTabContent = document.getElementById('chat-tab-content');
+    this.suggestionsTabContent = document.getElementById('suggestions-tab-content');
+    this.suggestionsBadge = document.getElementById('suggestions-badge');
+  }
+
+  /**
+   * Set up tab switching listeners
+   */
+  private setupTabListeners(): void {
+    this.chatTabBtn?.addEventListener('click', () => this.switchTab('chat'));
+    this.suggestionsTabBtn?.addEventListener('click', () => this.switchTab('suggestions'));
+  }
+
+  /**
+   * Switch between chat and suggestions tabs
+   */
+  private switchTab(tab: 'chat' | 'suggestions'): void {
+    this.currentTab = tab;
+
+    // Update tab buttons
+    if (tab === 'chat') {
+      this.chatTabBtn?.classList.add('active');
+      this.suggestionsTabBtn?.classList.remove('active');
+      this.chatTabContent?.classList.add('active');
+      this.suggestionsTabContent?.classList.remove('active');
+    } else {
+      this.chatTabBtn?.classList.remove('active');
+      this.suggestionsTabBtn?.classList.add('active');
+      this.chatTabContent?.classList.remove('active');
+      this.suggestionsTabContent?.classList.add('active');
+    }
   }
 
   /**
@@ -350,15 +394,26 @@ export class ChatUI {
    * Update badge count and visibility
    */
   private updateBadge(count: number): void {
-    if (!this.chatBadge) return;
+    // Update main chat badge (on floating button)
+    if (this.chatBadge) {
+      if (count > 0) {
+        this.chatBadge.textContent = count.toString();
+        this.chatBadge.hidden = false;
+        this.chatBadge.classList.add('pulse');
+      } else {
+        this.chatBadge.hidden = true;
+        this.chatBadge.classList.remove('pulse');
+      }
+    }
 
-    if (count > 0) {
-      this.chatBadge.textContent = count.toString();
-      this.chatBadge.hidden = false;
-      this.chatBadge.classList.add('pulse');
-    } else {
-      this.chatBadge.hidden = true;
-      this.chatBadge.classList.remove('pulse');
+    // Update suggestions tab badge
+    if (this.suggestionsBadge) {
+      if (count > 0) {
+        this.suggestionsBadge.textContent = count.toString();
+        this.suggestionsBadge.hidden = false;
+      } else {
+        this.suggestionsBadge.hidden = true;
+      }
     }
   }
 
@@ -368,12 +423,14 @@ export class ChatUI {
   public startRecording(): void {
     this.liveSuggestions?.startRecording();
 
-    // Show panel immediately with empty state
+    // Render initial empty state
     if (this.liveSuggestions && this.liveSuggestionsPanel) {
       const html = this.liveSuggestions.renderPanelHTML();
       this.liveSuggestionsPanel.innerHTML = html;
-      this.liveSuggestionsPanel.hidden = false;
     }
+
+    // Auto-switch to suggestions tab when recording starts
+    this.switchTab('suggestions');
   }
 
   /**
@@ -382,9 +439,11 @@ export class ChatUI {
   public stopRecording(): void {
     this.liveSuggestions?.stopRecording();
 
-    // Hide live suggestions panel
-    if (this.liveSuggestionsPanel) {
-      this.liveSuggestionsPanel.hidden = true;
+    // Keep suggestions visible - they remain accessible in the tab
+    // Just update the panel with final state
+    if (this.liveSuggestions && this.liveSuggestionsPanel) {
+      const html = this.liveSuggestions.renderPanelHTML();
+      this.liveSuggestionsPanel.innerHTML = html;
     }
   }
 
@@ -400,7 +459,6 @@ export class ChatUI {
     // Render panel HTML
     const html = this.liveSuggestions.renderPanelHTML();
     this.liveSuggestionsPanel.innerHTML = html;
-    this.liveSuggestionsPanel.hidden = false;
 
     // Attach event listeners
     this.liveSuggestions.attachSuggestionListeners(this.liveSuggestionsPanel);

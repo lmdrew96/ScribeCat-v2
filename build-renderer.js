@@ -30,6 +30,7 @@ const buildConfig = {
 function copyStaticFiles() {
   copyFileSync('src/renderer/index.html', 'dist/renderer/index.html');
   copyFileSync('src/renderer/styles.css', 'dist/renderer/styles.css');
+  copyFileSync('src/renderer/audio-stream-processor.js', 'dist/renderer/audio-stream-processor.js');
 
   // Copy CSS modules directory
   if (!existsSync('dist/renderer/css')) {
@@ -64,6 +65,11 @@ if (isWatch) {
   watch('src/renderer/styles.css', () => {
     copyFileSync('src/renderer/styles.css', 'dist/renderer/styles.css');
     console.log('✓ Copied styles.css');
+  });
+
+  watch('src/renderer/audio-stream-processor.js', () => {
+    copyFileSync('src/renderer/audio-stream-processor.js', 'dist/renderer/audio-stream-processor.js');
+    console.log('✓ Copied audio-stream-processor.js');
   });
 
   // Watch CSS modules directory

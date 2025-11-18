@@ -128,11 +128,11 @@ export class AudioManager {
    * Set callback for raw audio data streaming
    * Used for sending audio to transcription services
    */
-  onAudioData(callback: (data: Float32Array) => void): void {
+  async onAudioData(callback: (data: Float32Array) => void): Promise<void> {
     if (!this.isInitialized) {
       throw new Error('Recording not started. Call startRecording() first.');
     }
-    this.analyzer.onAudioData(callback);
+    await this.analyzer.onAudioData(callback);
   }
 
   /**

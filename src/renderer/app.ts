@@ -151,8 +151,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
   await aiManager.initialize();
 
-  // Initialize ChatUI
-  chatUI = new ChatUI();
+  // Get ChatUI instance from AIManager (already initialized with ContentAnalyzer)
+  chatUI = aiManager.getChatUI();
 
   // Initialize course manager
   courseManager = new CourseManager();

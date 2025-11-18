@@ -132,7 +132,7 @@ export class TranscriptionModeService {
     this.sessionId = await this.assemblyAIService.start();
 
     // Start audio streaming
-    this.startAssemblyAIAudioStreaming();
+    await this.startAssemblyAIAudioStreaming();
 
     console.log('AssemblyAI transcription started');
   }
@@ -143,11 +143,11 @@ export class TranscriptionModeService {
    * ROOT CAUSE FIX: Now also monitors audio levels and passes them to the transcription service
    * for intelligent stalled detection (silence vs actual stall).
    */
-  private startAssemblyAIAudioStreaming(): void {
+  private async startAssemblyAIAudioStreaming(): Promise<void> {
     const CHUNK_INTERVAL = 100;
     let audioBuffer: Float32Array[] = [];
 
-    this.audioManager.onAudioData((audioData: Float32Array) => {
+    await this.audioManager.onAudioData((audioData: Float32Array) => {
       if (this.currentMode !== 'assemblyai') return;
       audioBuffer.push(new Float32Array(audioData));
     });
