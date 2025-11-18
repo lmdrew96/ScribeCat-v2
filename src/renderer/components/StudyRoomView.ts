@@ -126,25 +126,25 @@ export class StudyRoomView {
           <div class="study-room-content">
             <div class="content-header">
               <h3>Shared Session</h3>
-              <div class="content-tabs">
-                <button class="content-tab active" data-tab="notes">Notes</button>
-                <button class="content-tab" data-tab="transcript">Transcript</button>
+            </div>
+
+            <!-- Content Tabs (same structure as individual session view) -->
+            <div class="session-content-tabs">
+              <button class="content-tab active" data-tab="notes">✍️ Notes</button>
+              <button class="content-tab" data-tab="transcription">📝 Transcription</button>
+            </div>
+
+            <!-- Notes Panel -->
+            <div class="session-content-panel active" data-panel="notes">
+              <div class="content-panel-inner" id="session-notes">
+                <p class="empty-state">Loading session notes...</p>
               </div>
             </div>
 
-            <div class="content-body">
-              <!-- Notes Tab -->
-              <div class="content-tab-panel active" data-panel="notes">
-                <div id="session-notes" class="session-content">
-                  <p class="empty-state">Loading session notes...</p>
-                </div>
-              </div>
-
-              <!-- Transcript Tab -->
-              <div class="content-tab-panel" data-panel="transcript" style="display: none;">
-                <div id="session-transcript" class="session-content">
-                  <p class="empty-state">Loading transcript...</p>
-                </div>
+            <!-- Transcription Panel -->
+            <div class="session-content-panel" data-panel="transcription">
+              <div class="content-panel-inner" id="session-transcript">
+                <p class="empty-state">Loading transcript...</p>
               </div>
             </div>
           </div>
@@ -649,14 +649,12 @@ export class StudyRoomView {
         return;
       }
 
-      // Create editor container
+      // Create editor container (inside content-panel-inner structure)
       container.innerHTML = `
-        <div class="session-editor">
-          <div class="tiptap-container">
-            <div id="room-notes-editor" class="tiptap-content"></div>
-          </div>
-          <p class="editor-hint">✨ Collaborative editing enabled - changes sync in real-time!</p>
-        </div>
+        <div id="room-notes-editor" class="tiptap-content"></div>
+        <p class="editor-hint" style="margin-top: 12px; font-size: 0.9em; color: var(--text-secondary);">
+          ✨ Collaborative editing enabled - changes sync in real-time!
+        </p>
       `;
 
       const editorElement = document.getElementById('room-notes-editor');
@@ -685,10 +683,8 @@ export class StudyRoomView {
     } catch (error) {
       console.error('Failed to initialize collaborative editor:', error);
       container.innerHTML = `
-        <div class="session-editor">
-          <p class="empty-state error">Failed to initialize collaborative editor</p>
-          <p class="empty-state">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
-        </div>
+        <p class="empty-state error">Failed to initialize collaborative editor</p>
+        <p class="empty-state">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
       `;
     }
   }
@@ -703,7 +699,7 @@ export class StudyRoomView {
   }
 
   /**
-   * Switch content tabs
+   * Switch content tabs (matches individual session view pattern)
    */
   private switchContentTab(tabName: string): void {
     if (!this.container) return;
@@ -717,14 +713,12 @@ export class StudyRoomView {
       }
     });
 
-    // Update tab panels
-    this.container.querySelectorAll('.content-tab-panel').forEach(panel => {
+    // Update content panels (use session-content-panel to match study mode)
+    this.container.querySelectorAll('.session-content-panel').forEach(panel => {
       const panelTab = panel.getAttribute('data-panel');
       if (panelTab === tabName) {
-        (panel as HTMLElement).style.display = 'block';
         panel.classList.add('active');
       } else {
-        (panel as HTMLElement).style.display = 'none';
         panel.classList.remove('active');
       }
     });
