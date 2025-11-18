@@ -237,6 +237,49 @@
   background: var(--bg-primary);
   position: relative;
   z-index: 0; /* Explicitly below header */
+  overflow: hidden; /* Prevent overflow at container level */
+}
+
+/* Session content panels - match individual session details */
+.study-room-content .session-content-panel {
+  flex: 1;
+  overflow-y: auto;
+  margin: 16px 20px;
+}
+
+.study-room-content .session-content-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.study-room-content .session-content-panel::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.study-room-content .session-content-panel::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+/* Transcription content scrolling */
+.study-room-content .transcript-content {
+  max-height: calc(100vh - 300px); /* Allow long transcripts to scroll */
+}
+
+.study-room-content .transcription-segment {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.study-room-content .timestamp {
+  color: var(--accent-primary);
+  font-weight: 500;
+  margin-right: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.study-room-content .timestamp:hover {
+  text-decoration: underline;
 }
 
 .content-header {

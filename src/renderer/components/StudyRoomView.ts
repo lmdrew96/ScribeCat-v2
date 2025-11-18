@@ -12,7 +12,7 @@ import type { RoomParticipantData } from '../../domain/entities/RoomParticipant.
 import { ChatManager } from '../managers/social/ChatManager.js';
 import { ChatPanel } from './ChatPanel.js';
 import { InviteFriendsModal } from './InviteFriendsModal.js';
-import { escapeHtml } from '../utils/formatting.js';
+import { escapeHtml, formatTimestamp } from '../utils/formatting.js';
 import { SupabaseClient } from '../../infrastructure/services/supabase/SupabaseClient.js';
 import { Editor } from '@tiptap/core';
 import { CollaborationAdapter } from '../tiptap/CollaborationAdapter.js';
@@ -602,7 +602,7 @@ export class StudyRoomView {
         await this.initializeCollaborativeEditor(notesContainer, room.sessionId, sessionData.notes || '');
       }
 
-      // Display transcript
+      // Display transcript (match TranscriptionRenderer format)
       if (transcriptContainer) {
         if (sessionData.transcription_text) {
           try {
@@ -610,9 +610,9 @@ export class StudyRoomView {
             if (transcription && transcription.segments && Array.isArray(transcription.segments)) {
               const segments = transcription.segments
                 .map((segment: any) => {
-                  const timestamp = this.formatTimestamp(segment.start || 0);
+                  const timestamp = formatTimestamp(segment.startTime || 0);
                   const text = escapeHtml(segment.text || '');
-                  return `<div class="transcript-segment"><span class="timestamp">${timestamp}</span> ${text}</div>`;
+                  return `<p class="transcription-segment" data-start="${segment.startTime}"><span class="timestamp clickable">[${timestamp}]</span> ${text}</p>`;
                 })
                 .join('');
               transcriptContainer.innerHTML = `<div class="transcript-content">${segments}</div>`;
@@ -687,15 +687,6 @@ export class StudyRoomView {
         <p class="empty-state">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
       `;
     }
-  }
-
-  /**
-   * Format timestamp (seconds to MM:SS)
-   */
-  private formatTimestamp(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
   /**
