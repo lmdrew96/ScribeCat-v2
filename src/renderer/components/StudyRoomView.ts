@@ -737,4 +737,20 @@ export class StudyRoomView {
     }
     return name.substring(0, 2).toUpperCase();
   }
+
+  /**
+   * Get user name from user ID
+   */
+  private async getUserName(userId: string): Promise<string> {
+    if (!this.currentRoomId) return 'Unknown User';
+
+    const participants = this.studyRoomsManager.getRoomParticipants(this.currentRoomId);
+    const participant = participants.find(p => p.userId === userId);
+
+    if (participant) {
+      return participant.userFullName || participant.userEmail;
+    }
+
+    return 'Unknown User';
+  }
 }
