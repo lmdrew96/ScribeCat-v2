@@ -44,7 +44,7 @@ export class InviteFriendsModal {
    */
   private createModal(): void {
     const modalHTML = `
-      <div class="modal-overlay" id="invite-friends-modal">
+      <div class="modal-overlay" id="invite-friends-modal" style="display: flex !important; align-items: center; justify-content: center; position: fixed !important; z-index: 10300 !important;">
         <div class="modal-content invite-modal">
           <div class="modal-header">
             <h2>Invite Friends to Study Room</h2>
