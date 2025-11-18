@@ -8,7 +8,9 @@
     "dist/**/*",
     "assets/**/*",
     "build/icon.*",
-    "node_modules/**/*"
+    "node_modules/**/*",
+    "oauth-waiting.html",
+    "oauth-callback.html"
   ],
   "icon": "assets/nugget-logo.PNG",
   "mac": {
