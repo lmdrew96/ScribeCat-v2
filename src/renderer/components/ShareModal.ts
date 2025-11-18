@@ -77,7 +77,7 @@ export class ShareModal {
             <!-- Pending Invitations -->
             <div class="invitations-list" id="invitations-section" style="display: none;">
               <h3>Pending invitations</h3>
-              <div id="invitations-container" class="invitations-container"></div>
+              <div id="share-invitations-container" class="invitations-container"></div>
             </div>
           </div>
         </div>
@@ -151,7 +151,7 @@ export class ShareModal {
     if (!this.sessionId) return;
 
     const sharesContainer = document.getElementById('shares-container');
-    const invitationsContainer = document.getElementById('invitations-container');
+    const invitationsContainer = document.getElementById('share-invitations-container');
     const invitationsSection = document.getElementById('invitations-section');
 
     if (!sharesContainer) return;
