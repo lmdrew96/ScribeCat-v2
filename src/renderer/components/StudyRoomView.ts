@@ -569,20 +569,26 @@ export class StudyRoomView {
         return;
       }
 
-      // Display notes with basic textarea (collaborative editing in next task)
+      // Display notes - render HTML content from TipTap editor
       if (notesContainer) {
         const notes = sessionData.notes || '';
-        notesContainer.innerHTML = `
-          <div class="session-editor">
-            <textarea
-              id="session-notes-editor"
-              class="session-textarea"
-              placeholder="Start taking notes..."
-              readonly
-            >${escapeHtml(notes)}</textarea>
-            <p class="editor-hint">Collaborative editing coming soon!</p>
-          </div>
-        `;
+        if (notes && notes.trim()) {
+          // Render the HTML content (TipTap stores notes as HTML)
+          notesContainer.innerHTML = `
+            <div class="session-editor">
+              <div class="tiptap-content" id="session-notes-viewer">
+                ${notes}
+              </div>
+              <p class="editor-hint">Collaborative editing coming soon!</p>
+            </div>
+          `;
+        } else {
+          notesContainer.innerHTML = `
+            <div class="session-editor">
+              <p class="empty-state">No notes yet. Start taking notes in the chat!</p>
+            </div>
+          `;
+        }
       }
 
       // Display transcript
