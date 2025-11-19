@@ -827,40 +827,27 @@ export class SupabaseStudyRoomsRepository {
 
   /**
    * Accept invitation
+   * Uses database stored procedure for atomic operation
    */
   async acceptInvitation(invitationId: string, userId: string): Promise<void> {
     try {
-      // First, get the invitation to retrieve the room_id
-      const { data: invitation, error: fetchError } = await this.getClient()
-        .from('room_invitations')
-        .select('room_id')
-        .eq('id', invitationId)
-        .eq('invitee_id', userId)
-        .single();
+      // Call the accept_room_invitation stored procedure
+      // This handles invitation update + participant insert atomically
+      const { data, error } = await this.getClient()
+        .rpc('accept_room_invitation', {
+          p_invitation_id: invitationId,
+        });
 
-      if (fetchError) {
-        console.error('Error fetching invitation:', fetchError);
-        throw new Error(`Failed to fetch invitation: ${fetchError.message}`);
+      if (error) {
+        console.error('Error accepting invitation via RPC:', error);
+        throw new Error(`Failed to accept invitation: ${error.message}`);
       }
 
-      if (!invitation) {
-        throw new Error('Invitation not found');
+      if (!data || data.length === 0) {
+        throw new Error('Failed to join room: no participant record returned');
       }
 
-      // Update invitation status to accepted
-      const { error: updateError } = await this.getClient()
-        .from('room_invitations')
-        .update({ status: 'accepted' })
-        .eq('id', invitationId)
-        .eq('invitee_id', userId);
-
-      if (updateError) {
-        console.error('Error accepting invitation:', updateError);
-        throw new Error(`Failed to accept invitation: ${updateError.message}`);
-      }
-
-      // Add user as participant to the room
-      await this.joinRoom(invitation.room_id, userId);
+      console.log('Successfully accepted invitation and joined room:', data[0]);
     } catch (error) {
       console.error('Exception in acceptInvitation:', error);
       throw error;
