@@ -162,7 +162,6 @@ class DraggableTextBoxNodeView implements NodeView {
   }
 
   private onResizeStart(e: MouseEvent, direction: string) {
-    console.log('🟢 TextBox resize start triggered, direction:', direction);
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
@@ -182,7 +181,6 @@ class DraggableTextBoxNodeView implements NodeView {
 
   private onResizeMove = (e: MouseEvent) => {
     if (!this.isResizing || !this.resizeDirection) {
-      console.log('⚠️ Resize move called but not resizing:', { isResizing: this.isResizing, direction: this.resizeDirection });
       return;
     }
 
@@ -202,8 +200,6 @@ class DraggableTextBoxNodeView implements NodeView {
     newWidth = Math.max(100, newWidth);
     newHeight = Math.max(50, newHeight);
 
-    console.log('📏 Resizing to:', { newWidth, newHeight, deltaX, deltaY });
-
     // Update size
     this.contentDOM.style.width = `${newWidth}px`;
     this.contentDOM.style.height = `${newHeight}px`;
@@ -214,8 +210,6 @@ class DraggableTextBoxNodeView implements NodeView {
   private onResizeEnd = (e: MouseEvent) => {
     if (!this.isResizing) return;
 
-    console.log('🟢 TextBox resize end triggered');
-
     document.removeEventListener('mousemove', this.onResizeMove);
     document.removeEventListener('mouseup', this.onResizeEnd);
 
@@ -225,7 +219,6 @@ class DraggableTextBoxNodeView implements NodeView {
       const rect = this.contentDOM.getBoundingClientRect();
       const finalWidth = Math.round(rect.width);
       const finalHeight = Math.round(rect.height);
-      console.log('💾 Saving resize:', { finalWidth, finalHeight });
 
       const tr = this.view.state.tr;
       tr.setNodeMarkup(pos, undefined, {
@@ -238,14 +231,11 @@ class DraggableTextBoxNodeView implements NodeView {
 
     this.isResizing = false;
     this.resizeDirection = null;
-    console.log('✅ Resize complete, flag reset');
   };
 
   private onDragStart(e: DragEvent) {
-    console.log('🔵 TextBox drag start triggered');
     const pos = this.getPos();
     if (pos === undefined) {
-      console.log('⚠️ TextBox drag start: pos is undefined');
       return;
     }
 
@@ -263,11 +253,9 @@ class DraggableTextBoxNodeView implements NodeView {
     (this.view as any).draggingAnchorType = this.node.attrs.anchorType || 'paragraph';
 
     this.dom.style.opacity = '0.5';
-    console.log('✅ TextBox drag start complete, pos:', pos);
   }
 
   private onDragEnd() {
-    console.log('🔵 TextBox drag end triggered');
     this.isDragging = false;
     this.dom.style.opacity = '1';
     delete (this.view as any).draggingNodePos;
@@ -279,11 +267,9 @@ class DraggableTextBoxNodeView implements NodeView {
 
     // Don't update during resize or drag to prevent interruption
     if (this.isResizing) {
-      console.log('⚠️ Blocking update during resize');
       return true;
     }
     if (this.isDragging) {
-      console.log('⚠️ Blocking update during drag');
       return true;
     }
 
@@ -470,23 +456,17 @@ export const DraggableTextBox = Node.create({
         props: {
           handleDOMEvents: {
             drop: (view, event) => {
-              console.log('🎯 Drop event triggered');
               const draggingPos = (view as any).draggingNodePos;
               const draggingNode = (view as any).draggingNode;
               const draggingAnchorType = (view as any).draggingAnchorType;
 
-              console.log('Drop data:', { draggingPos, nodeType: draggingNode?.type.name, anchorType: draggingAnchorType });
-
               if (draggingPos === undefined || !draggingNode) {
-                console.log('❌ Drop rejected: no dragging node');
                 return false;
               }
               if (draggingNode.type.name !== 'draggableTextBox') {
-                console.log('❌ Drop rejected: not a text box, is:', draggingNode.type.name);
                 return false;
               }
 
-              console.log('✅ Processing text box drop');
               event.preventDefault();
               event.stopPropagation();
 
@@ -515,17 +495,14 @@ export const DraggableTextBox = Node.create({
               }
 
               // Handle paragraph-anchored text boxes
-              console.log('📄 Handling paragraph-anchored text box');
               const coords = view.posAtCoords({
                 left: event.clientX,
                 top: event.clientY,
               });
 
               if (!coords) {
-                console.log('❌ No coords found for drop position');
                 return false;
               }
-              console.log('Target coords:', coords);
 
               const $pos = view.state.doc.resolve(coords.pos);
               let targetPos = coords.pos;
@@ -550,14 +527,10 @@ export const DraggableTextBox = Node.create({
                 targetPos -= draggingNode.nodeSize;
               }
 
-              console.log('🔄 Moving text box from', draggingPos, 'to', targetPos);
-
               const tr = view.state.tr;
               tr.delete(draggingPos, draggingPos + draggingNode.nodeSize);
               tr.insert(targetPos, draggingNode);
               view.dispatch(tr);
-
-              console.log('✅ Text box moved successfully');
 
               delete (view as any).draggingNodePos;
               delete (view as any).draggingNode;
@@ -568,7 +541,6 @@ export const DraggableTextBox = Node.create({
 
             dragenter: (view, event) => {
               const isDraggingTextBox = (view as any).draggingNode?.type.name === 'draggableTextBox';
-              console.log('🟠 Dragenter fired, isDraggingTextBox:', isDraggingTextBox);
               if (isDraggingTextBox) {
                 event.preventDefault();
               }

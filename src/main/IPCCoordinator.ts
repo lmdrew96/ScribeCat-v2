@@ -156,7 +156,6 @@ export class IPCCoordinator {
   private registerAIHandlers(): void {
     // API keys are now hardcoded from environment, not user-configurable
     ipcMain.handle('ai:setApiKey', async (event, apiKey: string) => {
-      console.log('⚠️ ai:setApiKey called but API keys are now configured via environment');
       return { success: true };
     });
   }
@@ -186,77 +185,62 @@ export class IPCCoordinator {
     // Auth state handler - receives user session from renderer when auth state changes
     ipcMain.handle('auth:sessionChanged', async (event, data: { userId: string | null; accessToken?: string; refreshToken?: string }) => {
       try {
-        console.log('Received auth state change from renderer:', data.userId ? `User ID: ${data.userId}` : 'No user');
-
         // Store current user ID for session claiming
         this.currentUserId = data.userId;
 
         // Update local repository (FileSessionRepository) to filter by user ID
         if ('setUserId' in this.services.sessionRepository) {
           (this.services.sessionRepository as any).setUserId(data.userId);
-          console.log('Updated FileSessionRepository with user ID');
         }
 
         // Update SessionHandlers with user ID for auto-claiming orphaned sessions
         if (this.sessionHandlers) {
           this.sessionHandlers.setCurrentUserId(data.userId);
-          console.log('Updated SessionHandlers with user ID');
         }
 
         // Update SyncManager with user ID (which also updates SupabaseSessionRepository)
         if (this.services.syncManager) {
           this.services.syncManager.setCurrentUserId(data.userId);
-          console.log('Updated SyncManager with user ID');
         }
 
         // Update ShareHandlers with user ID
         if (this.shareHandlers) {
           this.shareHandlers.setCurrentUserId(data.userId);
-          console.log('Updated ShareHandlers with user ID');
         }
 
         // Update DriveHandlers with user ID
         if (this.driveHandlers) {
           this.driveHandlers.setCurrentUserId(data.userId);
-          console.log('Updated DriveHandlers with user ID');
         }
 
         // Update FriendsHandlers with user ID
         if (this.friendsHandlers) {
           this.friendsHandlers.setCurrentUserId(data.userId);
-          console.log('Updated FriendsHandlers with user ID');
         }
 
         // Update StudyRoomsHandlers with user ID
         if (this.studyRoomsHandlers) {
           this.studyRoomsHandlers.setCurrentUserId(data.userId);
-          console.log('Updated StudyRoomsHandlers with user ID');
         }
 
         // Set session on SupabaseClient for authenticated requests
         if (data.userId && data.accessToken && data.refreshToken && this.services.supabaseClient) {
           await this.services.supabaseClient.setSession(data.accessToken, data.refreshToken);
-          console.log('Set Supabase session in main process');
 
           // Auto-restore Google Drive credentials from cloud if user just signed in
           setTimeout(async () => {
             try {
               if (this.driveHandlers) {
-                console.log('Attempting to restore Google Drive credentials from cloud...');
                 const restoreResult = await this.driveHandlers.restoreFromCloud();
 
                 if (restoreResult.success && restoreResult.data?.restored) {
-                  console.log('✓ Google Drive credentials auto-restored from cloud on sign-in');
-
                   // Notify renderer that Drive was reconnected
                   const mainWindow = this.getMainWindow();
                   if (mainWindow) {
                     mainWindow.webContents.send('drive:auto-reconnected');
                   }
-                } else if (restoreResult.success && !restoreResult.data?.restored) {
-                  console.log('ℹ️  No Google Drive credentials found in cloud (user hasn\'t connected Drive yet)');
-                } else {
-                  console.warn('⚠️  Failed to restore Drive credentials:', restoreResult.error);
+                } else if (!restoreResult.success) {
+                  console.warn('Failed to restore Drive credentials:', restoreResult.error);
                 }
               }
             } catch (error) {
@@ -265,7 +249,6 @@ export class IPCCoordinator {
           }, 1000); // Small delay to ensure everything is initialized
         } else if (!data.userId && this.services.supabaseClient) {
           await this.services.supabaseClient.clearSession();
-          console.log('Cleared Supabase session in main process');
         }
 
         return { success: true };
@@ -346,7 +329,6 @@ export class IPCCoordinator {
             for (const session of sessions) {
               await this.services.supabaseSessionRepository.delete(session.id);
             }
-            console.log(`Deleted ${sessions.length} sessions from cloud`);
           } catch (error) {
             console.error('Error deleting user sessions:', error);
             // Continue with account deletion even if session deletion fails

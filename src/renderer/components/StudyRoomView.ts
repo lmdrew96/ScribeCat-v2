@@ -237,80 +237,16 @@ export class StudyRoomView {
   private attachEventListeners(): void {
     if (!this.container) return;
 
-    // Exit room button - multiple approaches for maximum reliability
+    // Exit room button
     const exitBtn = document.getElementById('exit-room-btn');
-    console.log('Exit button found?', !!exitBtn, exitBtn);
-
     if (exitBtn) {
-      // Approach 1: Direct click listener
       exitBtn.addEventListener('click', (e) => {
-        console.log('EXIT BUTTON CLICKED (direct)!', e);
         e.stopPropagation();
         this.exitRoom();
       });
-
-      // Approach 2: Click with capture
-      exitBtn.addEventListener('click', (e) => {
-        console.log('EXIT BUTTON CLICKED (capture)!', e);
-        this.exitRoom();
-      }, { capture: true });
-
-      // Approach 3: Mousedown for debugging with capture
-      exitBtn.addEventListener('mousedown', (e) => {
-        console.log('EXIT BUTTON MOUSEDOWN! Button:', e.button);
-        console.log('LEFT CLICK DETECTED ON BUTTON!', e);
-        if (e.button === 0) {
-          console.log('⚠️ LEFT CLICK ON EXIT BUTTON - calling exitRoom()');
-          this.exitRoom();
-        }
-      }, { capture: true });
-
-      console.log('Exit button listeners attached (3 methods)');
     } else {
-      console.error('Exit button not found!');
+      console.error('Exit button not found');
     }
-
-    // Approach 4: Event delegation from header
-    const header = document.querySelector('.study-room-header');
-    if (header) {
-      header.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        console.log('Header clicked, target:', target.id, target.className);
-        if (target.id === 'exit-room-btn' || target.closest('#exit-room-btn')) {
-          console.log('EXIT via delegation!');
-          this.exitRoom();
-        }
-      });
-      console.log('Header delegation listener attached');
-    }
-
-    // DEBUG: Window-level mousedown to catch ALL clicks first
-    const windowMousedownHandler = (e: MouseEvent) => {
-      console.log('🌍 WINDOW MOUSEDOWN - Button:', e.button, 'Target:', (e.target as HTMLElement)?.id || (e.target as HTMLElement)?.className);
-      if (e.button === 0) {
-        const exitBtn = document.getElementById('exit-room-btn');
-        if (exitBtn && exitBtn.contains(e.target as Node)) {
-          console.log('🌍 LEFT CLICK ON EXIT BUTTON DETECTED AT WINDOW LEVEL!');
-        }
-      }
-    };
-    window.addEventListener('mousedown', windowMousedownHandler, true);
-    console.log('🌍 Window-level mousedown listener attached');
-
-    // DEBUG: Global click listener to see what's covering the button
-    const debugClickHandler = (e: MouseEvent) => {
-      const x = e.clientX;
-      const y = e.clientY;
-      const elementAtPoint = document.elementFromPoint(x, y);
-      console.log('🔍 CLICK DEBUG - Position:', { x, y });
-      console.log('🔍 Element at click point:', elementAtPoint);
-      console.log('🔍 Element tag:', elementAtPoint?.tagName);
-      console.log('🔍 Element id:', (elementAtPoint as HTMLElement)?.id);
-      console.log('🔍 Element class:', (elementAtPoint as HTMLElement)?.className);
-      console.log('🔍 Element z-index:', window.getComputedStyle(elementAtPoint as Element).zIndex);
-    };
-    document.addEventListener('click', debugClickHandler, true);
-    console.log('🔍 Global debug click listener attached');
 
     // Invite friends button
     const inviteBtn = document.getElementById('invite-friends-btn');
@@ -334,11 +270,8 @@ export class StudyRoomView {
    * Show the study room view
    */
   public async show(roomId: string, onExit?: () => void): Promise<void> {
-    console.log('StudyRoomView.show() called with roomId:', roomId);
-    console.log('Container exists?', !!this.container);
-
     if (!this.container) {
-      console.error('StudyRoomView: No container, returning early');
+      console.error('StudyRoomView: No container');
       return;
     }
 
@@ -346,16 +279,12 @@ export class StudyRoomView {
     this.onExit = onExit;
 
     // Check if user is in room
-    console.log('Checking if user is in room...');
     const isInRoom = await this.studyRoomsManager.isUserInRoom(roomId);
-    console.log('Is user in room?', isInRoom);
 
     if (!isInRoom) {
       // User is not in room, join first
-      console.log('User not in room, attempting to join...');
       try {
         await this.studyRoomsManager.joinRoom(roomId);
-        console.log('Successfully joined room');
       } catch (error) {
         console.error('Failed to join room:', error);
         alert('Failed to join room. Please try again.');
@@ -365,16 +294,10 @@ export class StudyRoomView {
     }
 
     // Show view
-    console.log('Setting container display to flex');
-    console.log('Container before:', this.container.style.display);
     this.container.style.display = 'flex';
-    console.log('Container after:', this.container.style.display);
-    console.log('Container element:', this.container);
 
     // Load room data
-    console.log('Loading room data...');
     await this.loadRoomData();
-    console.log('StudyRoomView.show() complete');
   }
 
   /**
@@ -566,8 +489,6 @@ export class StudyRoomView {
         this.currentUserId,
         participantsWithNames
       );
-
-      console.log('Chat panel initialized successfully');
     } catch (error) {
       console.error('Failed to initialize chat panel:', error);
     }
@@ -639,8 +560,6 @@ export class StudyRoomView {
       }
 
       // Load session from Supabase
-      console.log(`Loading session ${room.sessionId} for room ${this.currentRoomId}`);
-
       const supabase = SupabaseClient.getInstance().getClient();
       const { data: sessionData, error } = await supabase
         .from('sessions')
@@ -669,14 +588,6 @@ export class StudyRoomView {
         }
         return;
       }
-
-      console.log('Session data loaded:', {
-        sessionId: sessionData.id,
-        title: sessionData.title,
-        hasNotes: !!sessionData.notes,
-        notesLength: sessionData.notes?.length || 0,
-        notesPreview: sessionData.notes?.substring(0, 100) || '(empty)'
-      });
 
       // Initialize collaborative editor
       if (notesContainer) {
@@ -720,11 +631,8 @@ export class StudyRoomView {
 
       if (audioUserId && audioSessionId) {
         const recordingPath = `cloud://${audioUserId}/${audioSessionId}/audio.webm`;
-        console.log(`Constructing audio path: ${recordingPath}`);
         await this.setupAudioPlayer(sessionData, recordingPath);
       }
-
-      console.log('Session content loaded successfully');
     } catch (error) {
       console.error('Failed to load session content:', error);
     }
@@ -806,23 +714,18 @@ export class StudyRoomView {
         const storagePath = recordingPath.replace('cloud://', '');
         const storageService = new SupabaseStorageService();
 
-        console.log(`Attempting to load audio from storage path: ${storagePath}`);
         const result = await storageService.getSignedUrl(storagePath, 7200);
 
         if (result.success && result.url) {
           audioElement.src = result.url;
-          console.log(`✓ Loaded cloud audio from signed URL: ${storagePath}`);
         } else {
-          console.warn(`⚠️ Audio file not found in storage: ${storagePath}`);
-          console.warn(`Error details:`, result.error);
-          // Don't hide the player - just show it's unavailable
+          console.warn('Audio file not found in storage:', storagePath, result.error);
           audioPlayerContainer.style.display = 'none';
           return;
         }
       } else if (recordingPath) {
         // Local recording
         audioElement.src = `file://${recordingPath}`;
-        console.log(`Loaded local audio from: ${recordingPath}`);
       }
 
       // Initialize custom audio controls with session ID for tracking
@@ -845,8 +748,6 @@ export class StudyRoomView {
           btn.classList.add('active');
         });
       });
-
-      console.log('Audio player initialized successfully');
     } catch (error) {
       console.error('Failed to setup audio player:', error);
       audioPlayerContainer.style.display = 'none';
@@ -885,8 +786,6 @@ export class StudyRoomView {
       // Enable collaboration and create editor
       const userName = this.currentUserName || this.currentUserEmail.split('@')[0];
 
-      console.log(`Initializing collaborative editor for session ${sessionId}`);
-
       this.notesEditor = await this.collaborationAdapter.enable(
         {
           sessionId,
@@ -904,8 +803,6 @@ export class StudyRoomView {
         },
         initialContent // Pass the initial notes content from database
       );
-
-      console.log('Collaborative editor initialized successfully');
     } catch (error) {
       console.error('Failed to initialize collaborative editor:', error);
       container.innerHTML = `
@@ -994,24 +891,18 @@ export class StudyRoomView {
    * Exit room
    */
   private async exitRoom(): Promise<void> {
-    console.log('exitRoom() called');
-    console.log('  currentRoomId:', this.currentRoomId);
-    console.log('  currentUserId:', this.currentUserId);
-
     if (!this.currentRoomId || !this.currentUserId) {
       console.error('Cannot exit - missing roomId or userId');
       return;
     }
 
     const room = this.studyRoomsManager.getRoomById(this.currentRoomId);
-    console.log('  room:', room);
     if (!room) {
       console.error('Cannot exit - room not found');
       return;
     }
 
     const isHost = room.hostId === this.currentUserId;
-    console.log('  isHost:', isHost);
 
     if (isHost) {
       const confirmClose = confirm(

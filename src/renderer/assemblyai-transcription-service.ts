@@ -72,12 +72,10 @@ export class AssemblyAITranscriptionService {
     if (settings) {
       this.settings = settings;
     }
-    console.log('AssemblyAI service initialized with settings:', this.settings);
   }
 
   updateSettings(settings: TranscriptionSettings): void {
     this.settings = settings;
-    console.log('AssemblyAI settings updated:', this.settings);
   }
 
   async start(): Promise<string> {
@@ -126,8 +124,6 @@ export class AssemblyAITranscriptionService {
     this.tokenRefreshTimer = setTimeout(() => {
       this.refreshToken();
     }, refreshDelay);
-
-    console.log('Token refresh scheduled for 8 minutes from now');
   }
 
   /**
@@ -162,20 +158,18 @@ export class AssemblyAITranscriptionService {
 
         if (isSilent) {
           // Audio is silent, so no transcription is expected - this is normal
-          console.log(`🔇 No transcription for ${Math.floor(timeSinceLastTranscription / 1000)}s, but audio is silent (level: ${this.currentAudioLevel.toFixed(3)}) - normal`);
           return;
         }
 
         // ROOT CAUSE FIX: Audio is NOT silent but no transcription received - this indicates a problem
-        console.warn(`⚠️ Audio detected (level: ${this.currentAudioLevel.toFixed(3)}) but no transcription for ${Math.floor(timeSinceLastTranscription / 1000)}s - possible issue`);
+        console.warn(`Audio detected but no transcription for ${Math.floor(timeSinceLastTranscription / 1000)}s - possible issue`);
 
         // Check if WebSocket is still connected
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-          console.error('❌ WebSocket disconnected, attempting recovery...');
+          console.error('WebSocket disconnected, attempting recovery');
           this.handleUnexpectedDisconnection();
         } else {
-          console.warn('⚠️ WebSocket connected but not transcribing audio - may be server processing delay or quality issue');
-          // Could add user notification here if this persists
+          console.warn('WebSocket connected but not transcribing audio - may be server processing delay');
         }
       }
     }, 15000); // Check every 15 seconds
@@ -199,15 +193,13 @@ export class AssemblyAITranscriptionService {
 
     // Schedule warning at 2h 45m (15 minutes before 3-hour limit)
     this.sessionDurationWarningTimer = setTimeout(() => {
-      console.warn('⚠️ Approaching 3-hour session limit! 15 minutes remaining before automatic disconnect.');
+      console.warn('Approaching 3-hour session limit! 15 minutes remaining before automatic disconnect.');
       this.handleError({
         type: 'UNKNOWN_ERROR',
         message: 'Approaching maximum session duration. Your session will automatically end in 15 minutes. Please save your work.',
         code: undefined
       });
     }, this.SESSION_WARNING_TIME);
-
-    console.log('📅 Session duration warning scheduled for 2h 45m from now');
   }
 
   private stopSessionDurationWarning(): void {
@@ -222,7 +214,6 @@ export class AssemblyAITranscriptionService {
       return;
     }
 
-    console.log('🔄 Refreshing AssemblyAI token...');
     this.isRefreshing = true;
 
     try {
@@ -234,9 +225,7 @@ export class AssemblyAITranscriptionService {
       const oldWs = this.ws;
 
       // Connect new WebSocket BEFORE closing old one (seamless handoff)
-      console.log('🔗 Establishing new WebSocket connection...');
       await this.connectWebSocket(newToken);
-      console.log('✅ New WebSocket connected, closing old connection...');
 
       // Now that new connection is established, close old one
       if (oldWs && oldWs !== this.ws) {
@@ -246,24 +235,21 @@ export class AssemblyAITranscriptionService {
       // Flush any buffered audio packets
       this.flushAudioBuffer();
 
-      console.log('✅ Token refreshed and reconnected successfully');
-
       // Reset reconnect attempts on successful refresh
       this.reconnectAttempts = 0;
 
       // Schedule next refresh
       this.scheduleTokenRefresh();
     } catch (error) {
-      console.error('❌ Failed to refresh token:', error);
+      console.error('Failed to refresh token:', error);
       this.reconnectAttempts++;
 
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
         // Exponential backoff: 5s, 10s, 20s
         const retryDelay = 5000 * Math.pow(2, this.reconnectAttempts - 1);
-        console.log(`⏳ Retry attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${retryDelay / 1000}s...`);
         setTimeout(() => this.refreshToken(), retryDelay);
       } else {
-        console.error('❌ Max reconnect attempts reached. Stopping session.');
+        console.error('Max reconnect attempts reached. Stopping session');
         // Clear buffer to prevent memory issues
         this.audioBuffer = [];
 
@@ -333,17 +319,14 @@ export class AssemblyAITranscriptionService {
 
         if (validKeyterms.length > 0) {
           params.append('keyterms_prompt', JSON.stringify(validKeyterms));
-          console.log(`✨ Keyterms prompting enabled with ${validKeyterms.length} terms:`, validKeyterms);
         }
       }
 
       const url = `wss://streaming.assemblyai.com/v3/ws?${params.toString()}`;
 
-      console.log('🔗 Connecting to AssemblyAI WebSocket with advanced settings:', this.settings);
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
-        console.log('✅ AssemblyAI WebSocket connected');
         // ROOT CAUSE FIX: Record success for circuit breaker
         this.errorHandler.recordSuccess();
         this.reconnectAttempts = 0; // Reset on successful connection
@@ -355,21 +338,13 @@ export class AssemblyAITranscriptionService {
       };
 
       this.ws.onerror = (error) => {
-        console.error('❌ AssemblyAI WebSocket error:', error);
+        console.error('AssemblyAI WebSocket error:', error);
         reject(error);
       };
 
       this.ws.onclose = (event) => {
-        console.log('AssemblyAI WebSocket closed:', event.code, event.reason);
-
         // ROOT CAUSE FIX: Use error handler to categorize and decide retry strategy
         const categorizedError = this.errorHandler.categorizeCloseEvent(event);
-
-        console.log(`📊 Error category: ${categorizedError.category}`, {
-          shouldRetry: categorizedError.shouldRetry,
-          retryDelay: categorizedError.retryDelayMs,
-          circuitState: this.errorHandler.getCircuitState()
-        });
 
         // Map to legacy error types for backward compatibility
         let errorType: TranscriptionError['type'] = 'UNKNOWN_ERROR';

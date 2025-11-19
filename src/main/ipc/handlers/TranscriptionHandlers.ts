@@ -37,24 +37,23 @@ export class TranscriptionHandlers extends BaseHandler {
             try {
               const response = JSON.parse(data);
               if (res.statusCode === 200 && response.token) {
-                console.log('✅ AssemblyAI token generated successfully');
                 resolve({ success: true, token: response.token });
               } else {
-                console.error('❌ AssemblyAI token error:', res.statusCode, response);
-                resolve({ 
-                  success: false, 
-                  error: `Failed to get token: ${res.statusCode} - ${response.error || JSON.stringify(response)}` 
+                console.error('AssemblyAI token error:', res.statusCode, response);
+                resolve({
+                  success: false,
+                  error: `Failed to get token: ${res.statusCode} - ${response.error || JSON.stringify(response)}`
                 });
               }
             } catch (error) {
-              console.error('❌ Failed to parse token response:', data);
+              console.error('Failed to parse token response:', data);
               resolve({ success: false, error: `Failed to parse token response: ${data}` });
             }
           });
         });
         
         req.on('error', (error) => {
-          console.error('❌ Token request error:', error);
+          console.error('Token request error:', error);
           resolve({ success: false, error: error.message });
         });
         
@@ -73,11 +72,9 @@ export class TranscriptionHandlers extends BaseHandler {
         // Determine if audioSource is a URL or file path
         if (audioSource.startsWith('http://') || audioSource.startsWith('https://')) {
           // It's already a URL (e.g., Supabase signed URL)
-          console.log('📤 Using provided audio URL:', audioSource);
           audioUrl = audioSource;
         } else {
           // It's a local file path - upload to AssemblyAI
-          console.log('📤 Uploading audio file to AssemblyAI:', audioSource);
 
           const fileBuffer = fs.readFileSync(audioSource);
           audioUrl = await new Promise<string>((resolve, reject) => {
@@ -99,7 +96,6 @@ export class TranscriptionHandlers extends BaseHandler {
                 try {
                   const response = JSON.parse(data);
                   if (res.statusCode === 200 && response.upload_url) {
-                    console.log('✅ Audio file uploaded successfully');
                     resolve(response.upload_url);
                   } else {
                     reject(new Error(`Upload failed: ${res.statusCode} - ${JSON.stringify(response)}`));
@@ -117,9 +113,6 @@ export class TranscriptionHandlers extends BaseHandler {
         }
 
         // Step 2: Submit transcription request
-        console.log('🎙️ Submitting transcription request');
-
-        // Submit transcription request
         const transcriptId = await new Promise<string>((resolve, reject) => {
           const postData = JSON.stringify({
             audio_url: audioUrl,
@@ -146,7 +139,6 @@ export class TranscriptionHandlers extends BaseHandler {
               try {
                 const response = JSON.parse(data);
                 if (res.statusCode === 200 && response.id) {
-                  console.log('✅ Transcription request submitted:', response.id);
                   resolve(response.id);
                 } else {
                   reject(new Error(`Transcription request failed: ${res.statusCode} - ${JSON.stringify(response)}`));
@@ -163,8 +155,6 @@ export class TranscriptionHandlers extends BaseHandler {
         });
 
         // Step 3: Poll for completion
-        console.log('⏳ Polling for transcription completion...');
-
         const result = await new Promise<any>((resolve, reject) => {
           const pollInterval = 3000; // Poll every 3 seconds
           const maxAttempts = 600; // 30 minutes max
@@ -194,13 +184,11 @@ export class TranscriptionHandlers extends BaseHandler {
                   const response = JSON.parse(data);
 
                   if (response.status === 'completed') {
-                    console.log('✅ Transcription completed successfully');
                     resolve(response);
                   } else if (response.status === 'error') {
                     reject(new Error(`Transcription error: ${response.error}`));
                   } else {
                     // Still processing, poll again
-                    console.log(`⏳ Status: ${response.status} (attempt ${attempts}/${maxAttempts})`);
                     setTimeout(poll, pollInterval);
                   }
                 } catch (error) {
@@ -217,7 +205,6 @@ export class TranscriptionHandlers extends BaseHandler {
         });
 
         // Step 4: Fetch sentence-level timestamps
-        console.log('📝 Fetching sentence-level timestamps...');
         const sentences = await new Promise<any[]>((resolve, reject) => {
           const options = {
             hostname: 'api.assemblyai.com',
@@ -234,17 +221,16 @@ export class TranscriptionHandlers extends BaseHandler {
             res.on('end', () => {
               try {
                 const response = JSON.parse(data);
-                console.log(`✅ Retrieved ${response.sentences?.length || 0} sentences`);
                 resolve(response.sentences || []);
               } catch (error) {
-                console.warn('⚠️ Failed to parse sentences, will use word-level fallback');
+                console.warn('Failed to parse sentences, will use word-level fallback');
                 resolve([]);
               }
             });
           });
 
           req.on('error', (error) => {
-            console.warn('⚠️ Failed to fetch sentences, will use word-level fallback:', error);
+            console.warn('Failed to fetch sentences, will use word-level fallback:', error);
             resolve([]);
           });
           req.end();
@@ -264,7 +250,7 @@ export class TranscriptionHandlers extends BaseHandler {
         };
 
       } catch (error) {
-        console.error('❌ Batch transcription failed:', error);
+        console.error('Batch transcription failed:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error'
