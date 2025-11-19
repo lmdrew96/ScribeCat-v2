@@ -88,7 +88,8 @@ export class SupabaseChatRepository implements IChatRepository {
    */
   public subscribeToRoom(
     roomId: string,
-    callback: (message: ChatMessage) => void
+    onMessage: (message: ChatMessage) => void,
+    onTyping?: (userId: string, userName: string, isTyping: boolean) => void
   ): () => void {
     // Create channel for this room
     const channelName = `room-chat:${roomId}`;
@@ -107,12 +108,25 @@ export class SupabaseChatRepository implements IChatRepository {
         (payload) => {
           console.log('New chat message received:', payload);
           const message = this.mapToDomain(payload.new as ChatMessageRow);
-          callback(message);
+          onMessage(message);
         }
-      )
-      .subscribe((status) => {
-        console.log(`Chat subscription status for room ${roomId}:`, status);
-      });
+      );
+
+    // Subscribe to typing status broadcasts if callback provided
+    if (onTyping) {
+      channel.on(
+        'broadcast',
+        { event: 'typing-status' },
+        (payload: any) => {
+          const { userId, userName, isTyping } = payload.payload;
+          onTyping(userId, userName, isTyping);
+        }
+      );
+    }
+
+    channel.subscribe((status) => {
+      console.log(`Chat subscription status for room ${roomId}:`, status);
+    });
 
     this.channels.set(channelName, channel);
 
@@ -122,6 +136,32 @@ export class SupabaseChatRepository implements IChatRepository {
       this.channels.delete(channelName);
       console.log(`Unsubscribed from chat in room ${roomId}`);
     };
+  }
+
+  /**
+   * Broadcast typing status to other users in the room
+   */
+  public async broadcastTypingStatus(
+    roomId: string,
+    userId: string,
+    userName: string,
+    isTyping: boolean
+  ): Promise<void> {
+    const channelName = `room-chat:${roomId}`;
+    let channel = this.channels.get(channelName);
+
+    // If channel doesn't exist, we can't broadcast
+    // (user must be subscribed to broadcast)
+    if (!channel) {
+      console.warn(`Cannot broadcast typing: not subscribed to room ${roomId}`);
+      return;
+    }
+
+    await channel.send({
+      type: 'broadcast',
+      event: 'typing-status',
+      payload: { userId, userName, isTyping },
+    });
   }
 
   /**

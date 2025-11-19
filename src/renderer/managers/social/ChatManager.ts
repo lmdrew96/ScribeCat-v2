@@ -17,13 +17,15 @@ export interface ChatMessageDisplay {
 export class ChatManager {
   private messages: Map<string, ChatMessage[]> = new Map();
   private currentUserId: string | null = null;
+  private currentUserName: string | null = null;
   private unsubscribeFn: (() => void) | null = null;
 
   /**
    * Initialize chat manager with current user
    */
-  public initialize(userId: string): void {
+  public initialize(userId: string, userName: string): void {
     this.currentUserId = userId;
+    this.currentUserName = userName;
   }
 
   /**
@@ -78,19 +80,26 @@ export class ChatManager {
    */
   public subscribeToRoom(
     roomId: string,
-    callback: (message: ChatMessage) => void
+    onMessage: (message: ChatMessage) => void,
+    onTyping?: (userId: string, userName: string, isTyping: boolean) => void
   ): void {
     // Unsubscribe from previous room if any
     this.unsubscribe();
 
-    // Subscribe to new messages
+    // Subscribe to new messages and typing events
     this.unsubscribeFn = window.scribeCat.chat.subscribeToRoom(
       roomId,
       (messageData) => {
         const message = ChatMessage.create(messageData);
         this.addMessage(roomId, message);
-        callback(message);
-      }
+        onMessage(message);
+      },
+      onTyping ? (userId, userName, isTyping) => {
+        // Don't show typing indicator for current user
+        if (userId !== this.currentUserId) {
+          onTyping(userId, userName, isTyping);
+        }
+      } : undefined
     );
   }
 
@@ -172,6 +181,22 @@ export class ChatManager {
       timestamp: message.createdAt,
       isOwnMessage: message.userId === this.currentUserId,
     };
+  }
+
+  /**
+   * Broadcast typing status to other users in the room
+   */
+  public async broadcastTyping(roomId: string, isTyping: boolean): Promise<void> {
+    if (!this.currentUserId || !this.currentUserName) {
+      throw new Error('Chat manager not initialized');
+    }
+
+    await window.scribeCat.chat.broadcastTyping(
+      roomId,
+      this.currentUserId,
+      this.currentUserName,
+      isTyping
+    );
   }
 
   /**

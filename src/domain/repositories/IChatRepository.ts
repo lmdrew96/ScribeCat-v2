@@ -32,8 +32,19 @@ export interface IChatRepository {
    */
   subscribeToRoom(
     roomId: string,
-    callback: (message: ChatMessage) => void
+    onMessage: (message: ChatMessage) => void,
+    onTyping?: (userId: string, userName: string, isTyping: boolean) => void
   ): () => void;
+
+  /**
+   * Broadcast typing status to other users in the room
+   */
+  broadcastTypingStatus(
+    roomId: string,
+    userId: string,
+    userName: string,
+    isTyping: boolean
+  ): Promise<void>;
 
   /**
    * Unsubscribe from all room subscriptions

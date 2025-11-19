@@ -363,20 +363,42 @@ const electronAPI = {
       ipcRenderer.invoke('chat:getRoomMessages', roomId, limit),
     deleteMessage: (messageId: string, userId: string) =>
       ipcRenderer.invoke('chat:deleteMessage', messageId, userId),
-    subscribeToRoom: (roomId: string, callback: (messageData: any) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, data: { roomId: string; message: any }) => {
+    subscribeToRoom: (
+      roomId: string,
+      onMessage: (messageData: any) => void,
+      onTyping?: (userId: string, userName: string, isTyping: boolean) => void
+    ) => {
+      const messageHandler = (_event: Electron.IpcRendererEvent, data: { roomId: string; message: any }) => {
         if (data.roomId === roomId) {
-          callback(data.message);
+          onMessage(data.message);
         }
       };
-      ipcRenderer.on('chat:newMessage', handler);
+
+      const typingHandler = (_event: Electron.IpcRendererEvent, data: {
+        roomId: string;
+        userId: string;
+        userName: string;
+        isTyping: boolean;
+      }) => {
+        if (data.roomId === roomId && onTyping) {
+          onTyping(data.userId, data.userName, data.isTyping);
+        }
+      };
+
+      ipcRenderer.on('chat:newMessage', messageHandler);
+      if (onTyping) {
+        ipcRenderer.on('chat:typingStatus', typingHandler);
+      }
       ipcRenderer.invoke('chat:subscribeToRoom', roomId);
 
       // Return unsubscribe function
       return () => {
-        ipcRenderer.removeListener('chat:newMessage', handler);
+        ipcRenderer.removeListener('chat:newMessage', messageHandler);
+        ipcRenderer.removeListener('chat:typingStatus', typingHandler);
       };
     },
+    broadcastTyping: (roomId: string, userId: string, userName: string, isTyping: boolean) =>
+      ipcRenderer.invoke('chat:broadcastTyping', { roomId, userId, userName, isTyping }),
     unsubscribeAll: () =>
       ipcRenderer.invoke('chat:unsubscribeAll')
   },

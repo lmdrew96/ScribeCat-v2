@@ -87,13 +87,24 @@ export class ChatHandlers extends BaseHandler {
 
     this.handle(ipcMain, 'chat:subscribeToRoom', async (event, roomId: string) => {
       try {
-        // Subscribe and send new messages to renderer
-        this.repository.subscribeToRoom(roomId, (message) => {
-          event.sender.send('chat:newMessage', {
-            roomId,
-            message: message.toJSON(),
-          });
-        });
+        // Subscribe and send new messages and typing events to renderer
+        this.repository.subscribeToRoom(
+          roomId,
+          (message) => {
+            event.sender.send('chat:newMessage', {
+              roomId,
+              message: message.toJSON(),
+            });
+          },
+          (userId, userName, isTyping) => {
+            event.sender.send('chat:typingStatus', {
+              roomId,
+              userId,
+              userName,
+              isTyping,
+            });
+          }
+        );
 
         return { success: true };
       } catch (error) {
@@ -101,6 +112,30 @@ export class ChatHandlers extends BaseHandler {
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to subscribe',
+        };
+      }
+    });
+
+    this.handle(ipcMain, 'chat:broadcastTyping', async (_event, params: {
+      roomId: string;
+      userId: string;
+      userName: string;
+      isTyping: boolean;
+    }) => {
+      try {
+        await this.repository.broadcastTypingStatus(
+          params.roomId,
+          params.userId,
+          params.userName,
+          params.isTyping
+        );
+
+        return { success: true };
+      } catch (error) {
+        console.error('[ChatHandlers] Failed to broadcast typing:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to broadcast typing',
         };
       }
     });

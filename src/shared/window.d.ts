@@ -180,6 +180,18 @@ declare global {
         declineInvitation: (invitationId: string) => Promise<IPCResponse<void>>;
         cancelInvitation: (invitationId: string) => Promise<IPCResponse<void>>;
       };
+      chat: {
+        sendMessage: (params: { roomId: string; userId: string; message: string }) => Promise<IPCResponse<any>>;
+        getRoomMessages: (roomId: string, limit?: number) => Promise<IPCResponse<any[]>>;
+        deleteMessage: (messageId: string, userId: string) => Promise<IPCResponse<void>>;
+        subscribeToRoom: (
+          roomId: string,
+          onMessage: (messageData: any) => void,
+          onTyping?: (userId: string, userName: string, isTyping: boolean) => void
+        ) => () => void;
+        broadcastTyping: (roomId: string, userId: string, userName: string, isTyping: boolean) => Promise<IPCResponse<void>>;
+        unsubscribeAll: () => Promise<IPCResponse<void>>;
+      };
       sharing: {
         checkAccess: (sessionId: string) => Promise<IPCResponse<any>>;
         shareSession: (params: { sessionId: string; sharedWithEmail: string; permissionLevel: 'viewer' | 'editor' }) => Promise<IPCResponse<any>>;

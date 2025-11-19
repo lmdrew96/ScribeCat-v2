@@ -77,8 +77,8 @@ export class StudyRoomView {
    */
   public setCurrentUserId(userId: string | null): void {
     this.currentUserId = userId;
-    if (userId) {
-      this.chatManager.initialize(userId);
+    if (userId && this.currentUserName) {
+      this.chatManager.initialize(userId, this.currentUserName);
     }
   }
 
@@ -89,7 +89,7 @@ export class StudyRoomView {
     this.currentUserId = userId;
     this.currentUserEmail = email;
     this.currentUserName = name;
-    this.chatManager.initialize(userId);
+    this.chatManager.initialize(userId, name);
   }
 
   /**

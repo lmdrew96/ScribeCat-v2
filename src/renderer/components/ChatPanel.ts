@@ -12,6 +12,9 @@ export class ChatPanel {
   private currentRoomId: string | null = null;
   private currentUserId: string | null = null;
   private userNames: Map<string, string> = new Map();
+  private isCollapsed: boolean = false;
+  private typingUsers: Set<string> = new Set();
+  private typingTimer: number | null = null;
 
   constructor(chatManager: ChatManager) {
     this.chatManager = chatManager;
@@ -46,6 +49,12 @@ export class ChatPanel {
 
     // Attach event listeners
     this.attachEventListeners();
+
+    // Restore saved collapse state
+    const savedState = localStorage.getItem('chat-collapsed');
+    if (savedState === 'true') {
+      this.toggleCollapse();
+    }
   }
 
   /**
@@ -56,12 +65,23 @@ export class ChatPanel {
 
     this.container.innerHTML = `
       <div class="chat-header">
+        <button class="chat-toggle-btn" id="chat-toggle-btn" title="Collapse Chat">
+          <span class="toggle-icon">◀</span>
+        </button>
         <h3>Chat</h3>
-        <span class="chat-badge">Phase 3</span>
       </div>
 
       <div class="chat-messages" id="chat-messages">
         <div class="chat-loading">Loading messages...</div>
+      </div>
+
+      <div class="chat-typing-indicator" id="chat-typing-indicator" style="display: none;">
+        <div class="typing-indicator-content">
+          <span class="typing-dots">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="typing-text" id="typing-users-text"></span>
+        </div>
       </div>
 
       <div class="chat-input-container">
@@ -100,11 +120,17 @@ export class ChatPanel {
   private subscribeToMessages(): void {
     if (!this.currentRoomId) return;
 
-    this.chatManager.subscribeToRoom(this.currentRoomId, (message) => {
-      console.log('New message received:', message);
-      this.addMessageToUI(message);
-      this.scrollToBottom();
-    });
+    this.chatManager.subscribeToRoom(
+      this.currentRoomId,
+      (message) => {
+        console.log('New message received:', message);
+        this.addMessageToUI(message);
+        this.scrollToBottom();
+      },
+      (userId, userName, isTyping) => {
+        this.updateTypingStatus(userId, userName, isTyping);
+      }
+    );
   }
 
   /**
@@ -196,6 +222,11 @@ export class ChatPanel {
       input.addEventListener('input', () => {
         input.style.height = 'auto';
         input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+
+        // Broadcast typing status (debounced)
+        if (input.value.trim().length > 0) {
+          this.broadcastTyping();
+        }
       });
 
       // Send on Enter (but allow Shift+Enter for new line)
@@ -218,6 +249,12 @@ export class ChatPanel {
           }
         }
       });
+    }
+
+    // Toggle collapse handler
+    const toggleBtn = this.container.querySelector('#chat-toggle-btn') as HTMLButtonElement;
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => this.toggleCollapse());
     }
   }
 
@@ -357,6 +394,91 @@ export class ChatPanel {
    */
   public removeParticipant(userId: string): void {
     this.userNames.delete(userId);
+  }
+
+  /**
+   * Handle typing status update from another user
+   */
+  public updateTypingStatus(userId: string, userName: string, isTyping: boolean): void {
+    if (isTyping) {
+      this.typingUsers.add(userName);
+    } else {
+      this.typingUsers.delete(userName);
+    }
+    this.updateTypingIndicator();
+  }
+
+  /**
+   * Update the typing indicator display
+   */
+  private updateTypingIndicator(): void {
+    if (!this.container) return;
+
+    const indicator = this.container.querySelector('#chat-typing-indicator') as HTMLElement;
+    const textEl = this.container.querySelector('#typing-users-text') as HTMLElement;
+
+    if (!indicator || !textEl) return;
+
+    if (this.typingUsers.size === 0) {
+      indicator.style.display = 'none';
+    } else {
+      const userArray = Array.from(this.typingUsers);
+      let text = '';
+
+      if (userArray.length === 1) {
+        text = `${userArray[0]} is typing...`;
+      } else if (userArray.length === 2) {
+        text = `${userArray[0]} and ${userArray[1]} are typing...`;
+      } else {
+        text = `${userArray.length} people are typing...`;
+      }
+
+      textEl.textContent = text;
+      indicator.style.display = 'flex';
+    }
+  }
+
+  /**
+   * Broadcast typing status to other users
+   */
+  private broadcastTyping(): void {
+    if (!this.currentRoomId) return;
+
+    // Clear existing timer
+    if (this.typingTimer !== null) {
+      clearTimeout(this.typingTimer);
+    }
+
+    // Broadcast that user is typing
+    this.chatManager.broadcastTyping(this.currentRoomId, true);
+
+    // Set timer to stop typing after 1.5 seconds of inactivity
+    this.typingTimer = window.setTimeout(() => {
+      this.chatManager.broadcastTyping(this.currentRoomId!, false);
+      this.typingTimer = null;
+    }, 1500);
+  }
+
+  /**
+   * Toggle chat panel collapse state
+   */
+  public toggleCollapse(): void {
+    this.isCollapsed = !this.isCollapsed;
+
+    // Find the parent study-room-chat container
+    const chatContainer = this.container?.closest('.study-room-chat');
+    if (chatContainer) {
+      chatContainer.classList.toggle('collapsed', this.isCollapsed);
+    }
+
+    // Update toggle button icon
+    const toggleBtn = this.container?.querySelector('#chat-toggle-btn .toggle-icon');
+    if (toggleBtn) {
+      toggleBtn.textContent = this.isCollapsed ? '▶' : '◀';
+    }
+
+    // Save preference to localStorage
+    localStorage.setItem('chat-collapsed', this.isCollapsed.toString());
   }
 
   /**
