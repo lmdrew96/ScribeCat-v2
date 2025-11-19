@@ -20,10 +20,18 @@ export class SupabaseChatRepository implements IChatRepository {
   private channels: Map<string, RealtimeChannel> = new Map();
 
   /**
-   * Get a fresh Supabase client with the current session
+   * Get a fresh Supabase client with the current session for REST calls
    */
   private getClient(): SupabaseClientType {
     return SupabaseClient.getInstance().getClient();
+  }
+
+  /**
+   * Get the base Supabase client for Realtime subscriptions
+   * This client has setSession() called on it for proper auth context
+   */
+  private getRealtimeClient(): SupabaseClientType {
+    return SupabaseClient.getInstance().getRealtimeClient();
   }
 
   /**
@@ -93,7 +101,10 @@ export class SupabaseChatRepository implements IChatRepository {
   ): () => void {
     // Create channel for this room
     const channelName = `room-chat:${roomId}`;
-    const client = this.getClient();
+    const client = this.getRealtimeClient();
+
+    console.log('📡 Creating Realtime chat subscription for room:', roomId);
+    console.log('🔑 Auth token present:', !!SupabaseClient.getInstance().getAccessToken());
 
     // Remove existing subscription if any (prevents duplicates)
     const existingChannel = this.channels.get(channelName);

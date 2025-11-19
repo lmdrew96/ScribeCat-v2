@@ -90,6 +90,14 @@ export class RendererSupabaseClient {
   }
 
   /**
+   * Get the Supabase client for Realtime subscriptions in renderer
+   * This client has proper auth context from localStorage
+   */
+  getClient() {
+    return this.client;
+  }
+
+  /**
    * Sign in with email and password
    */
   async signInWithEmail(email: string, password: string): Promise<AuthResult> {

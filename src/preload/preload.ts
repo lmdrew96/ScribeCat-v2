@@ -243,6 +243,7 @@ const electronAPI = {
     signOut: () => ipcRenderer.invoke('auth:signOut'),
     getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
     isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated'),
+    getAccessToken: () => ipcRenderer.invoke('auth:getAccessToken'),
     updateProfile: (updates: { fullName?: string }) => ipcRenderer.invoke('auth:updateProfile', updates),
     resetPassword: (email: string) => ipcRenderer.invoke('auth:resetPassword', email),
     deleteAccount: () => ipcRenderer.invoke('auth:deleteAccount'),

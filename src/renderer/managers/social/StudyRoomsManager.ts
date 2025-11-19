@@ -9,7 +9,7 @@ import { createLogger } from '../../../shared/logger.js';
 import type { StudyRoomData } from '../../../domain/entities/StudyRoom.js';
 import type { RoomParticipantData } from '../../../domain/entities/RoomParticipant.js';
 import type { RoomInvitationData } from '../../../domain/entities/RoomInvitation.js';
-import { SupabaseClient } from '../../../infrastructure/services/supabase/SupabaseClient.js';
+import { RendererSupabaseClient } from '../../services/RendererSupabaseClient.js';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const logger = createLogger('StudyRoomsManager');
@@ -48,7 +48,7 @@ export class StudyRoomsManager {
     this.currentUserId = userId;
     await this.loadRooms();
     await this.loadInvitations();
-    this.subscribeToParticipantChanges();
+    await this.subscribeToParticipantChanges();
     logger.info('StudyRoomsManager initialized for user:', userId);
   }
 
@@ -565,9 +565,20 @@ export class StudyRoomsManager {
   /**
    * Subscribe to real-time participant changes
    */
-  private subscribeToParticipantChanges(): void {
+  private async subscribeToParticipantChanges(): Promise<void> {
     try {
-      const supabase = SupabaseClient.getInstance().getClient();
+      const rendererClient = RendererSupabaseClient.getInstance();
+      const supabase = rendererClient.getClient();
+
+      // Wait for session to be ready
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.warn('⚠️ No session available for Realtime subscription, skipping participant subscription');
+        return;
+      }
+
+      console.log('📡 Creating Realtime participant subscription using RendererSupabaseClient with session');
 
       this.realtimeChannel = supabase
         .channel('room-participants-changes')

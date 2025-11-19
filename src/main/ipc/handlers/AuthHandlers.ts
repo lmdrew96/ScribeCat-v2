@@ -8,6 +8,7 @@ import {
   GetCurrentUserUseCase
 } from '../../../application/use-cases/auth/index.js';
 import { SignInWithEmailParams, SignUpWithEmailParams } from '../../../shared/types.js';
+import { SupabaseClient } from '../../../infrastructure/services/supabase/SupabaseClient.js';
 
 /**
  * Handles authentication-related IPC channels
@@ -68,6 +69,15 @@ export class AuthHandlers extends BaseHandler {
       return {
         success: true,
         isAuthenticated
+      };
+    });
+
+    // Get access token for Realtime subscriptions
+    this.handle(ipcMain, 'auth:getAccessToken', async () => {
+      const accessToken = SupabaseClient.getInstance().getAccessToken();
+      return {
+        success: true,
+        accessToken
       };
     });
   }

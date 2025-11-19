@@ -74,11 +74,14 @@ export class SupabaseClient {
   }
 
   /**
-   * Get the Supabase client instance
-   * If an access token is set, returns a client configured with that token
+   * Get the Supabase client instance for REST API calls
+   *
+   * Returns a client with auth token in headers (works in main process).
+   * For Realtime subscriptions, use getRealtimeClient() instead.
    */
   getClient(): SupabaseJSClient {
-    // If we have an access token, create a client with it in the headers
+    // If we have an access token, create a client with it in headers for REST calls
+    // This works in the main process which can't use localStorage for setSession
     if (this.accessToken) {
       return createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
         global: {
@@ -93,6 +96,24 @@ export class SupabaseClient {
   }
 
   /**
+   * Get the base Supabase client for Realtime subscriptions
+   *
+   * Returns the base client which has setSession() called on it.
+   * This ensures Realtime subscriptions have proper auth context for RLS.
+   */
+  getRealtimeClient(): SupabaseJSClient {
+    return this.client;
+  }
+
+  /**
+   * Get the current access token for manual auth (e.g., Realtime channels)
+   * Returns null if no session is set
+   */
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
+  /**
    * Get current configuration
    */
   getConfig(): { url: string; anonKey: string } {
@@ -101,16 +122,25 @@ export class SupabaseClient {
 
   /**
    * Set user session for authenticated requests
-   * This allows the main process to make authenticated requests to Supabase
-   * Stores the access token to be used with subsequent requests
+   *
+   * Sets the session on the base Supabase client using auth.setSession().
+   * This ensures:
+   * - REST API calls include the access token automatically
+   * - Realtime subscriptions have auth context for RLS evaluation
+   * - Token refresh is handled automatically
    */
   async setSession(accessToken: string, refreshToken: string): Promise<void> {
     this.accessToken = accessToken;
-    console.log('✅ SupabaseClient: Access token stored for authenticated requests');
-    await this.client.auth.setSession({
+    console.log('✅ SupabaseClient: Setting session for authenticated requests');
+    const { error } = await this.client.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken
     });
+
+    if (error) {
+      console.error('❌ SupabaseClient: Failed to set session:', error.message);
+      throw new Error(`Failed to set session: ${error.message}`);
+    }
   }
 
   /**
@@ -118,7 +148,7 @@ export class SupabaseClient {
    */
   async clearSession(): Promise<void> {
     this.accessToken = null;
-    console.log('✅ SupabaseClient: Access token cleared');
+    console.log('✅ SupabaseClient: Clearing session');
     await this.client.auth.signOut();
   }
 
