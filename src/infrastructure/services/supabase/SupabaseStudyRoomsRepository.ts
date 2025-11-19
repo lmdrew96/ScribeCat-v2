@@ -159,10 +159,28 @@ export class SupabaseStudyRoomsRepository {
         }
       }
 
-      // Query 2: Get rooms where user is a participant
+      // Query 2: Get rooms where user is a participant (but not host)
       const { data: participantRooms, error: participantError } = await this.getClient()
         .from('room_participants')
-        .select('room_id')
+        .select(`
+          room_id,
+          study_room:study_rooms!room_participants_room_id_fkey (
+            id,
+            name,
+            host_id,
+            session_id,
+            max_participants,
+            is_active,
+            created_at,
+            updated_at,
+            closed_at,
+            host_profile:user_profiles!study_rooms_host_id_fkey (
+              email,
+              full_name,
+              avatar_url
+            )
+          )
+        `)
         .eq('user_id', userId)
         .eq('is_active', true);
 
@@ -172,9 +190,12 @@ export class SupabaseStudyRoomsRepository {
       } else if (participantRooms) {
         for (const p of participantRooms) {
           if (!roomIds.has(p.room_id)) {
-            // Need to fetch this room's details using SECURITY DEFINER function
-            // For now, skip rooms user is not hosting (RLS limitation)
-            // TODO: Implement SECURITY DEFINER function to get room details
+            // Add room data from join
+            const roomData = Array.isArray(p.study_room) ? p.study_room[0] : p.study_room;
+            if (roomData && roomData.is_active) {
+              roomIds.add(p.room_id);
+              roomsMap.set(p.room_id, roomData);
+            }
           }
         }
       }
@@ -765,16 +786,37 @@ export class SupabaseStudyRoomsRepository {
    */
   async acceptInvitation(invitationId: string, userId: string): Promise<void> {
     try {
-      const { error } = await this.getClient()
+      // First, get the invitation to retrieve the room_id
+      const { data: invitation, error: fetchError } = await this.getClient()
+        .from('room_invitations')
+        .select('room_id')
+        .eq('id', invitationId)
+        .eq('invitee_id', userId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching invitation:', fetchError);
+        throw new Error(`Failed to fetch invitation: ${fetchError.message}`);
+      }
+
+      if (!invitation) {
+        throw new Error('Invitation not found');
+      }
+
+      // Update invitation status to accepted
+      const { error: updateError } = await this.getClient()
         .from('room_invitations')
         .update({ status: 'accepted' })
         .eq('id', invitationId)
         .eq('invitee_id', userId);
 
-      if (error) {
-        console.error('Error accepting invitation:', error);
-        throw new Error(`Failed to accept invitation: ${error.message}`);
+      if (updateError) {
+        console.error('Error accepting invitation:', updateError);
+        throw new Error(`Failed to accept invitation: ${updateError.message}`);
       }
+
+      // Add user as participant to the room
+      await this.joinRoom(invitation.room_id, userId);
     } catch (error) {
       console.error('Exception in acceptInvitation:', error);
       throw error;
