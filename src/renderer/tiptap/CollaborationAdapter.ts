@@ -62,6 +62,12 @@ export class CollaborationAdapter {
 
       // Determine content to use
       const currentContent = currentEditor?.getHTML() || initialContent || '';
+      logger.info('Content setup:', {
+        hasCurrentEditor: !!currentEditor,
+        hasInitialContent: !!initialContent,
+        initialContentLength: initialContent?.length || 0,
+        finalContentLength: currentContent.length
+      });
 
       // Recreate editor with collaboration extensions
       if (currentEditor) {
@@ -79,23 +85,72 @@ export class CollaborationAdapter {
       // Check if Yjs doc is empty (no saved state)
       const yjsXmlFragment = this.yjsDoc.getXmlFragment('default');
       const isYjsDocEmpty = yjsXmlFragment.length === 0;
+      logger.info('Yjs doc state:', {
+        isEmpty: isYjsDocEmpty,
+        fragmentLength: yjsXmlFragment.length,
+        hasContent: !!currentContent,
+        contentPreview: currentContent.substring(0, 100)
+      });
 
       // If Yjs doc is empty but we have initial content, populate it
       if (isYjsDocEmpty && currentContent) {
         logger.info('Initializing empty Yjs doc with existing content');
 
-        // Create temporary editor to populate Yjs doc with initial content
+        // Create temporary editor WITHOUT collaboration to parse HTML
         const tempContainer = document.createElement('div');
+        const nonCollabConfig = EditorConfigService.getConfig({
+          placeholder: 'Loading...',
+          // NO collaboration config - this lets the editor accept the content parameter
+        });
+
         const tempEditor = new Editor({
           element: tempContainer,
-          extensions: editorConfig.extensions,
+          extensions: nonCollabConfig.extensions,
           content: currentContent,
           editorProps: EditorConfigService.getEditorProps(),
         });
 
-        // Destroy temp editor immediately (content is now in Yjs doc)
+        // Verify temp editor has content
+        const tempEditorHTML = tempEditor.getHTML();
+        logger.info('Non-collab temp editor HTML length:', tempEditorHTML.length);
+        logger.info('Non-collab temp editor HTML preview:', tempEditorHTML.substring(0, 100));
+
+        // Get the ProseMirror document from the temp editor
+        const pmDoc = tempEditor.state.doc;
+        logger.info('ProseMirror doc size:', pmDoc.nodeSize);
+
+        // Now create a second temp editor WITH collaboration to populate Yjs doc
+        const collabTempContainer = document.createElement('div');
+        const collabTempEditor = new Editor({
+          element: collabTempContainer,
+          extensions: editorConfig.extensions, // This has Collaboration extension
+          editorProps: EditorConfigService.getEditorProps(),
+        });
+
+        // Wait a moment for collaboration to initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Set the content from the first editor
+        collabTempEditor.commands.setContent(tempEditorHTML);
+
+        // Wait for sync to Yjs doc
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Check if Yjs doc now has content
+        const yjsXmlFragmentAfter = this.yjsDoc.getXmlFragment('default');
+        logger.info('Yjs doc after populating - fragmentLength:', yjsXmlFragmentAfter.length);
+
+        // Destroy both temp editors
         tempEditor.destroy();
         tempContainer.remove();
+        collabTempEditor.destroy();
+        collabTempContainer.remove();
+
+        logger.info('Temp editors created and destroyed, Yjs doc populated');
+      } else if (!isYjsDocEmpty) {
+        logger.info('Yjs doc already has content, skipping initialization');
+      } else if (!currentContent) {
+        logger.warn('No initial content to populate Yjs doc with');
       }
 
       // Create the actual collaborative editor

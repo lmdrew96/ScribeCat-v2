@@ -17,6 +17,7 @@ import { SupabaseClient } from '../../infrastructure/services/supabase/SupabaseC
 import { Editor } from '@tiptap/core';
 import { CollaborationAdapter } from '../tiptap/CollaborationAdapter.js';
 import { EditorConfigService } from '../tiptap/EditorConfigService.js';
+import { StudyModeEditorToolbar } from '../tiptap/StudyModeEditorToolbar.js';
 
 export class StudyRoomView {
   private container: HTMLElement | null = null;
@@ -34,6 +35,7 @@ export class StudyRoomView {
   // Collaborative editor
   private notesEditor: Editor | null = null;
   private collaborationAdapter: CollaborationAdapter;
+  private editorToolbar: StudyModeEditorToolbar | null = null;
 
   constructor(studyRoomsManager: StudyRoomsManager, friendsManager: FriendsManager) {
     this.studyRoomsManager = studyRoomsManager;
@@ -322,6 +324,11 @@ export class StudyRoomView {
     }
 
     // Cleanup editor and collaboration
+    if (this.editorToolbar) {
+      this.editorToolbar.cleanup();
+      this.editorToolbar = null;
+    }
+
     if (this.notesEditor) {
       this.notesEditor.destroy();
       this.notesEditor = null;
@@ -597,6 +604,14 @@ export class StudyRoomView {
         return;
       }
 
+      console.log('Session data loaded:', {
+        sessionId: sessionData.id,
+        title: sessionData.title,
+        hasNotes: !!sessionData.notes,
+        notesLength: sessionData.notes?.length || 0,
+        notesPreview: sessionData.notes?.substring(0, 100) || '(empty)'
+      });
+
       // Initialize collaborative editor
       if (notesContainer) {
         await this.initializeCollaborativeEditor(notesContainer, room.sessionId, sessionData.notes || '');
@@ -649,15 +664,15 @@ export class StudyRoomView {
         return;
       }
 
-      // Create editor container (inside content-panel-inner structure)
-      container.innerHTML = `
-        <div id="room-notes-editor" class="tiptap-content"></div>
+      // Create toolbar + editor container
+      this.editorToolbar = new StudyModeEditorToolbar();
+      container.innerHTML = this.editorToolbar.getHTML() + `
         <p class="editor-hint" style="margin-top: 12px; font-size: 0.9em; color: var(--text-secondary);">
           ✨ Collaborative editing enabled - changes sync in real-time!
         </p>
       `;
 
-      const editorElement = document.getElementById('room-notes-editor');
+      const editorElement = document.getElementById('study-notes-editor');
       if (!editorElement) {
         console.error('Editor element not found');
         return;
@@ -677,7 +692,12 @@ export class StudyRoomView {
         },
         this.notesEditor,
         editorElement as HTMLElement,
-        undefined, // onEditorRecreated callback
+        (editor) => {
+          // Setup toolbar after editor is created
+          if (this.editorToolbar) {
+            this.editorToolbar.setup(editor);
+          }
+        },
         initialContent // Pass the initial notes content from database
       );
 

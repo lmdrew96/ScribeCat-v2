@@ -6,14 +6,16 @@
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 133.33vw;
+  height: 133.33vh;
   background-color: var(--bg-primary);
   z-index: 10200; /* Above modals (10100) */
   display: flex;
   flex-direction: column;
   overflow: hidden;
   -webkit-app-region: no-drag; /* Override parent drag regions */
+  transform: scale(0.75);
+  transform-origin: top left;
 }
 
 /* Header */
@@ -778,4 +780,238 @@
 
 .btn-error:hover {
   background: #dc2626;
+}
+
+/* ============================================================================
+   Study Room Editor Toolbar (compact styling to match study mode)
+   ============================================================================ */
+
+/* Use ID selector for maximum specificity */
+/* Note: Values scaled up by 1.333x to compensate for .study-room-view scale(0.75) */
+#session-notes .study-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px !important;
+  padding: 11px 16px !important;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
+}
+
+#session-notes .study-editor-toolbar .toolbar-btn {
+  min-width: 43px !important;
+  height: 43px !important;
+  padding: 5px 11px !important;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+#session-notes .study-editor-toolbar .toolbar-btn:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+#session-notes .study-editor-toolbar .toolbar-btn.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+#session-notes .study-editor-toolbar .toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#session-notes .study-editor-toolbar .toolbar-divider {
+  width: 1px;
+  height: 32px !important;
+  background-color: var(--border);
+  margin: 0 5px !important;
+}
+
+#session-notes .study-editor-toolbar .toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 3px !important;
+}
+
+/* Toolbar Dropdowns */
+#session-notes .study-editor-toolbar .toolbar-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+#session-notes .study-editor-toolbar .color-palette {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: none;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  z-index: 1000;
+}
+
+#session-notes .study-editor-toolbar .color-palette.show {
+  display: grid;
+}
+
+#session-notes .study-editor-toolbar .color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+#session-notes .study-editor-toolbar .color-swatch:hover {
+  transform: scale(1.1);
+  border-color: var(--accent);
+}
+
+/* Font Size Selector */
+#session-notes .study-font-size-select {
+  height: 43px !important;
+  padding: 5px 11px !important;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 17px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#session-notes .study-font-size-select:hover {
+  border-color: var(--accent);
+}
+
+#session-notes .study-font-size-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+/* Editor Container */
+.study-room-content .study-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.study-room-content .study-editor-wrapper {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+}
+
+.study-room-content .study-notes-editor {
+  min-height: 400px;
+  padding: 16px;
+  background-color: var(--bg-primary);
+}
+
+/* Button Icons */
+#session-notes .toolbar-btn .btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+}
+
+#session-notes .toolbar-btn .bold-icon {
+  font-weight: 700;
+}
+
+#session-notes .toolbar-btn .italic-icon {
+  font-style: italic;
+}
+
+#session-notes .toolbar-btn .underline-icon {
+  text-decoration: underline;
+}
+
+#session-notes .toolbar-btn .strike-icon {
+  text-decoration: line-through;
+}
+
+/* List icons */
+#session-notes .toolbar-btn .list-icon {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 16px;
+}
+
+#session-notes .toolbar-btn .list-bullet,
+#session-notes .toolbar-btn .list-number {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+#session-notes .toolbar-btn .list-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#session-notes .toolbar-btn .list-lines span {
+  width: 11px;
+  height: 3px;
+  background-color: currentColor;
+  border-radius: 1px;
+}
+
+/* Align icons */
+#session-notes .toolbar-btn .align-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+#session-notes .toolbar-btn .align-icon span {
+  height: 3px;
+  background-color: currentColor;
+  border-radius: 1px;
+}
+
+#session-notes .toolbar-btn .align-left span:nth-child(1) { width: 16px; }
+#session-notes .toolbar-btn .align-left span:nth-child(2) { width: 13px; }
+#session-notes .toolbar-btn .align-left span:nth-child(3) { width: 19px; }
+
+#session-notes .toolbar-btn .align-center {
+  align-items: center;
+}
+#session-notes .toolbar-btn .align-center span:nth-child(1) { width: 16px; }
+#session-notes .toolbar-btn .align-center span:nth-child(2) { width: 13px; }
+#session-notes .toolbar-btn .align-center span:nth-child(3) { width: 19px; }
+
+#session-notes .toolbar-btn .align-right {
+  align-items: flex-end;
+}
+#session-notes .toolbar-btn .align-right span:nth-child(1) { width: 16px; }
+#session-notes .toolbar-btn .align-right span:nth-child(2) { width: 13px; }
+#session-notes .toolbar-btn .align-right span:nth-child(3) { width: 19px; }
+
+#session-notes .toolbar-btn .align-justify span {
+  width: 19px;
 }
