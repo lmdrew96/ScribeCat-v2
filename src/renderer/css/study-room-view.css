@@ -935,8 +935,7 @@
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .study-room-sidebar,
-  .study-room-chat {
+  .study-room-sidebar {
     width: 250px;
   }
 }
