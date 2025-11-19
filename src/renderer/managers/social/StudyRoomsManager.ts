@@ -33,9 +33,11 @@ export class StudyRoomsManager {
 
   private realtimeChannel: RealtimeChannel | null = null;
 
-  // Debounce timer for loadRooms to prevent race conditions
+  // Debounce timers to prevent cascade reloads
   private loadRoomsDebounceTimer: NodeJS.Timeout | null = null;
+  private loadParticipantsDebounceTimers: Map<string, NodeJS.Timeout> = new Map();
   private readonly LOAD_ROOMS_DEBOUNCE_MS = 200;
+  private readonly LOAD_PARTICIPANTS_DEBOUNCE_MS = 500;
 
   constructor() {
     logger.info('StudyRoomsManager initialized');
@@ -620,6 +622,7 @@ export class StudyRoomsManager {
 
   /**
    * Handle real-time participant change events
+   * Debounced to prevent cascade reloads when multiple users join/leave simultaneously
    */
   private handleParticipantChange(payload: any): void {
     try {
@@ -632,12 +635,22 @@ export class StudyRoomsManager {
         return;
       }
 
-      // Reload participants for the affected room
-      this.loadRoomParticipants(roomId).catch((error) => {
-        logger.error('Failed to reload participants after real-time event:', error);
-      });
+      // Debounce participant reload for this specific room
+      const existingTimer = this.loadParticipantsDebounceTimers.get(roomId);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+      }
 
-      // Also reload rooms to update participant counts
+      const timer = setTimeout(() => {
+        this.loadRoomParticipants(roomId).catch((error) => {
+          logger.error('Failed to reload participants after real-time event:', error);
+        });
+        this.loadParticipantsDebounceTimers.delete(roomId);
+      }, this.LOAD_PARTICIPANTS_DEBOUNCE_MS);
+
+      this.loadParticipantsDebounceTimers.set(roomId, timer);
+
+      // Debounce rooms reload (already has built-in debouncing via loadRooms)
       this.loadRooms().catch((error) => {
         logger.error('Failed to reload rooms after real-time event:', error);
       });

@@ -34,7 +34,7 @@ export interface IChatRepository {
     roomId: string,
     onMessage: (message: ChatMessage) => void,
     onTyping?: (userId: string, userName: string, isTyping: boolean) => void
-  ): () => void;
+  ): () => Promise<void>;
 
   /**
    * Broadcast typing status to other users in the room
@@ -49,5 +49,5 @@ export interface IChatRepository {
   /**
    * Unsubscribe from all room subscriptions
    */
-  unsubscribeAll(): void;
+  unsubscribeAll(): Promise<void>;
 }

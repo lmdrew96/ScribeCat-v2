@@ -32,7 +32,6 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
     v_invitation RECORD;
-    v_existing_participant RECORD;
     v_result RECORD;
 BEGIN
     -- Step 1: Fetch and validate invitation
@@ -54,34 +53,22 @@ BEGIN
         updated_at = NOW()
     WHERE id = p_invitation_id;
 
-    -- Step 3: Check if user has ever been a participant in this room
-    SELECT rp.id, rp.is_active
-    INTO v_existing_participant
-    FROM public.room_participants rp
-    WHERE rp.room_id = v_invitation.room_id
-    AND rp.user_id = v_invitation.invitee_id;
-
-    -- Step 4: Insert or update participant record
-    IF v_existing_participant.id IS NOT NULL AND NOT v_existing_participant.is_active THEN
-        -- Reactivate existing participant (rejoining after leaving)
-        UPDATE public.room_participants rp
-        SET joined_at = NOW(),
-            left_at = NULL,
-            is_active = TRUE
-        WHERE rp.id = v_existing_participant.id
-        RETURNING rp.id, rp.room_id, rp.user_id, rp.joined_at, rp.is_active
-        INTO v_result;
-    ELSE
-        -- Create new participant record (first-time join)
-        INSERT INTO public.room_participants (room_id, user_id, is_active)
-        VALUES (v_invitation.room_id, v_invitation.invitee_id, TRUE)
-        RETURNING room_participants.id,
-                  room_participants.room_id,
-                  room_participants.user_id,
-                  room_participants.joined_at,
-                  room_participants.is_active
-        INTO v_result;
-    END IF;
+    -- Step 3 & 4: Atomically insert or update participant (fixes race condition)
+    -- Use INSERT ... ON CONFLICT to handle simultaneous acceptance without race conditions
+    INSERT INTO public.room_participants (room_id, user_id, is_active, joined_at)
+    VALUES (v_invitation.room_id, v_invitation.invitee_id, TRUE, NOW())
+    ON CONFLICT (room_id, user_id, is_active)
+    DO UPDATE SET
+        joined_at = NOW(),
+        left_at = NULL
+    WHERE room_participants.room_id = v_invitation.room_id
+    AND room_participants.user_id = v_invitation.invitee_id
+    RETURNING room_participants.id,
+              room_participants.room_id,
+              room_participants.user_id,
+              room_participants.joined_at,
+              room_participants.is_active
+    INTO v_result;
 
     -- Step 5: Return the participant record
     RETURN QUERY SELECT

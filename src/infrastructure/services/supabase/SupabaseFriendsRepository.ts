@@ -108,30 +108,19 @@ export class SupabaseFriendsRepository {
 
   /**
    * Remove a friend (unfriend)
-   * Deletes both directions of the friendship
+   * Uses atomic database function to delete both directions in a single transaction
    */
   async removeFriend(userId: string, friendId: string): Promise<void> {
     try {
-      // Delete both directions
-      const { error: error1 } = await this.getClient()
-        .from('friendships')
-        .delete()
-        .eq('user_id', userId)
-        .eq('friend_id', friendId);
+      // Use atomic unfriend function (deletes both directions in single transaction)
+      const { error } = await this.getClient()
+        .rpc('unfriend', {
+          p_user_id: userId,
+          p_friend_id: friendId,
+        });
 
-      if (error1) {
-        throw new Error(`Failed to remove friendship: ${error1.message}`);
-      }
-
-      const { error: error2 } = await this.getClient()
-        .from('friendships')
-        .delete()
-        .eq('user_id', friendId)
-        .eq('friend_id', userId);
-
-      if (error2) {
-        console.error('Error removing reverse friendship:', error2);
-        // Don't throw - the primary direction was deleted successfully
+      if (error) {
+        throw new Error(`Failed to remove friendship: ${error.message}`);
       }
     } catch (error) {
       console.error('Exception in removeFriend:', error);
@@ -477,21 +466,44 @@ export class SupabaseFriendsRepository {
         return [];
       }
 
-      // Get friend and request status for each user
-      const results: SearchUserResult[] = [];
-      for (const user of users) {
-        const isFriend = await this.areFriends(currentUserId, user.id);
-        const hasPendingRequest = await this.hasPendingRequest(currentUserId, user.id);
+      // Batch query: Get all friendship statuses in one query (fixes N+1 problem)
+      const userIds = users.map(u => u.id);
+      const { data: friendships } = await this.getClient()
+        .from('friendships')
+        .select('friend_id')
+        .eq('user_id', currentUserId)
+        .in('friend_id', userIds);
 
-        results.push({
-          id: user.id,
-          email: user.email,
-          fullName: user.full_name,
-          avatarUrl: user.avatar_url,
-          isFriend,
-          hasPendingRequest,
-        });
-      }
+      const friendIds = new Set(friendships?.map(f => f.friend_id) || []);
+
+      // Batch query: Get all pending friend requests in one query
+      const { data: pendingRequests } = await this.getClient()
+        .from('friend_requests')
+        .select('sender_id, recipient_id')
+        .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
+        .in('sender_id', [currentUserId, ...userIds])
+        .in('recipient_id', [currentUserId, ...userIds])
+        .eq('status', 'pending');
+
+      // Build set of user IDs with pending requests (sent or received)
+      const pendingRequestIds = new Set<string>();
+      pendingRequests?.forEach(req => {
+        if (req.sender_id === currentUserId) {
+          pendingRequestIds.add(req.recipient_id);
+        } else if (req.recipient_id === currentUserId) {
+          pendingRequestIds.add(req.sender_id);
+        }
+      });
+
+      // Map results using the batched data
+      const results: SearchUserResult[] = users.map(user => ({
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        avatarUrl: user.avatar_url,
+        isFriend: friendIds.has(user.id),
+        hasPendingRequest: pendingRequestIds.has(user.id),
+      }));
 
       return results;
     } catch (error) {

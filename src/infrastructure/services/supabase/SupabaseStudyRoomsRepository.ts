@@ -78,20 +78,8 @@ export class SupabaseStudyRoomsRepository {
 
       const hostProfile = Array.isArray(data.host_profile) ? data.host_profile[0] : data.host_profile;
 
-      // Automatically add the host as a participant
-      const { error: participantError } = await this.getClient()
-        .from('room_participants')
-        .insert({
-          room_id: data.id,
-          user_id: params.hostId,
-          joined_at: new Date().toISOString(),
-          is_active: true,
-        });
-
-      if (participantError) {
-        console.error('Error adding host as participant:', participantError);
-        // Don't throw - room was created successfully, just log the error
-      }
+      // Note: Host is automatically added as participant via database trigger
+      // (see trigger_add_host_as_participant in migration 011)
 
       return StudyRoom.fromDatabase({
         id: data.id,
@@ -193,15 +181,30 @@ export class SupabaseStudyRoomsRepository {
         }
       }
 
-      // Get participant counts for all rooms
+      // Get participant counts for all rooms in a single query (fixes N+1 problem)
+      const roomIdArray = Array.from(roomsMap.keys());
+      const { data: participantCounts, error: countError } = await this.getClient()
+        .from('room_participants')
+        .select('room_id')
+        .in('room_id', roomIdArray)
+        .eq('is_active', true);
+
+      if (countError) {
+        console.error('Error fetching participant counts:', countError);
+      }
+
+      // Build a map of room_id -> count
+      const countMap = new Map<string, number>();
+      if (participantCounts) {
+        participantCounts.forEach(row => {
+          const currentCount = countMap.get(row.room_id) || 0;
+          countMap.set(row.room_id, currentCount + 1);
+        });
+      }
+
+      // Build final room objects
       const rooms: StudyRoom[] = [];
       for (const [roomId, roomData] of roomsMap) {
-        const { count } = await this.getClient()
-          .from('room_participants')
-          .select('*', { count: 'exact', head: true })
-          .eq('room_id', roomId)
-          .eq('is_active', true);
-
         const hostProfile = Array.isArray(roomData.host_profile) ? roomData.host_profile[0] : roomData.host_profile;
 
         rooms.push(StudyRoom.fromDatabase({
@@ -217,7 +220,7 @@ export class SupabaseStudyRoomsRepository {
           host_email: hostProfile?.email,
           host_full_name: hostProfile?.full_name,
           host_avatar_url: hostProfile?.avatar_url,
-          participant_count: count || 0,
+          participant_count: countMap.get(roomId) || 0,
         }));
       }
 

@@ -89,6 +89,21 @@ class ScribeCatApp {
       }
     });
 
+    // Cleanup before app quits (allows async operations to complete)
+    app.on('before-quit', async (event) => {
+      event.preventDefault(); // Prevent quit until cleanup is done
+
+      console.log('[Main] App quitting - cleaning up resources');
+
+      // Cleanup IPC handlers (chat subscriptions, etc.)
+      if (this.ipcCoordinator) {
+        await this.ipcCoordinator.cleanup();
+      }
+
+      // Now allow the app to quit
+      app.exit(0);
+    });
+
     // Clean up OAuth resources on quit
     app.on('quit', () => {
       if (this.oauthManager) {

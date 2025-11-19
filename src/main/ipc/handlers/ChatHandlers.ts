@@ -130,7 +130,10 @@ export class ChatHandlers extends BaseHandler {
           const storedUnsubscribe = this.subscriptions.get(subscriptionKey);
           if (storedUnsubscribe) {
             console.log(`[ChatHandlers] Cleaning up subscription on window close: ${subscriptionKey}`);
-            storedUnsubscribe();
+            // Fire and forget - window is already destroyed so we can't await
+            storedUnsubscribe().catch(err =>
+              console.error(`[ChatHandlers] Error during cleanup: ${err}`)
+            );
             this.subscriptions.delete(subscriptionKey);
           }
         });
@@ -172,14 +175,15 @@ export class ChatHandlers extends BaseHandler {
     this.handle(ipcMain, 'chat:unsubscribeAll', async () => {
       try {
         // Call all stored unsubscribe functions
-        this.subscriptions.forEach((unsubscribe, key) => {
+        const unsubscribePromises = Array.from(this.subscriptions.entries()).map(([key, unsubscribe]) => {
           console.log(`[ChatHandlers] Unsubscribing: ${key}`);
-          unsubscribe();
+          return unsubscribe();
         });
+        await Promise.all(unsubscribePromises);
         this.subscriptions.clear();
 
         // Also call repository unsubscribeAll as a fallback
-        this.repository.unsubscribeAll();
+        await this.repository.unsubscribeAll();
 
         return { success: true };
       } catch (error) {
@@ -190,5 +194,24 @@ export class ChatHandlers extends BaseHandler {
         };
       }
     });
+  }
+
+  /**
+   * Cleanup all chat subscriptions (called on app quit)
+   */
+  public async cleanup(): Promise<void> {
+    console.log('[ChatHandlers] Cleaning up all subscriptions on app quit');
+
+    // Unsubscribe all active subscriptions
+    const unsubscribePromises = Array.from(this.subscriptions.values()).map(unsubscribe =>
+      unsubscribe()
+    );
+    await Promise.all(unsubscribePromises);
+    this.subscriptions.clear();
+
+    // Also cleanup repository channels
+    await this.repository.unsubscribeAll();
+
+    console.log('[ChatHandlers] All subscriptions cleaned up');
   }
 }

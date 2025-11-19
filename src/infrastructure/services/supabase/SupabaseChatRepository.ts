@@ -110,6 +110,10 @@ export class SupabaseChatRepository implements IChatRepository {
     const existingChannel = this.channels.get(channelName);
     if (existingChannel) {
       console.log(`Removing existing subscription for room ${roomId}`);
+      // Fire-and-forget unsubscribe (don't block subscription setup)
+      existingChannel.unsubscribe().catch(err =>
+        console.error('Error unsubscribing existing channel:', err)
+      );
       client.removeChannel(existingChannel);
       this.channels.delete(channelName);
     }
@@ -157,7 +161,8 @@ export class SupabaseChatRepository implements IChatRepository {
     this.channels.set(channelName, channel);
 
     // Return unsubscribe function
-    return () => {
+    return async () => {
+      await channel.unsubscribe(); // Must unsubscribe before removing
       client.removeChannel(channel);
       this.channels.delete(channelName);
       console.log(`Unsubscribed from chat in room ${roomId}`);
@@ -193,8 +198,13 @@ export class SupabaseChatRepository implements IChatRepository {
   /**
    * Unsubscribe from all room subscriptions
    */
-  public unsubscribeAll(): void {
+  public async unsubscribeAll(): Promise<void> {
     const client = this.getClient();
+    const unsubscribePromises = Array.from(this.channels.values()).map(channel =>
+      channel.unsubscribe()
+    );
+    await Promise.all(unsubscribePromises);
+
     this.channels.forEach((channel) => {
       client.removeChannel(channel);
     });

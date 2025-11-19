@@ -47,12 +47,13 @@ export class IPCCoordinator {
   private getMainWindow: () => BrowserWindow | null;
   private currentUserId: string | null = null;
 
-  // Handler references for setting user ID
+  // Handler references for setting user ID and cleanup
   private sessionHandlers: SessionHandlers | null = null;
   private driveHandlers: DriveHandlers | null = null;
   private shareHandlers: ShareHandlers | null = null;
   private friendsHandlers: FriendsHandlers | null = null;
   private studyRoomsHandlers: StudyRoomsHandlers | null = null;
+  private chatHandlers: ChatHandlers | null = null;
 
   constructor(deps: IPCCoordinatorDependencies) {
     this.services = deps.services;
@@ -132,7 +133,8 @@ export class IPCCoordinator {
     registry.add(this.studyRoomsHandlers);
 
     // Add chat handlers
-    registry.add(new ChatHandlers());
+    this.chatHandlers = new ChatHandlers();
+    registry.add(this.chatHandlers);
 
     // Register all handlers with ipcMain
     registry.registerAll(ipcMain);
@@ -460,5 +462,19 @@ export class IPCCoordinator {
         };
       }
     });
+  }
+
+  /**
+   * Cleanup all handlers on app quit
+   */
+  public async cleanup(): Promise<void> {
+    console.log('[IPCCoordinator] Cleaning up handlers on app quit');
+
+    // Cleanup chat subscriptions
+    if (this.chatHandlers) {
+      await this.chatHandlers.cleanup();
+    }
+
+    console.log('[IPCCoordinator] Cleanup complete');
   }
 }

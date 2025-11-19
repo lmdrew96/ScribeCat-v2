@@ -153,6 +153,7 @@ export class ChatManager {
 
   /**
    * Add message to local cache
+   * Messages are kept sorted by timestamp to handle out-of-order delivery
    */
   private addMessage(roomId: string, message: ChatMessage): void {
     const messages = this.messages.get(roomId) || [];
@@ -163,6 +164,10 @@ export class ChatManager {
     }
 
     messages.push(message);
+
+    // Sort by timestamp to handle out-of-order realtime delivery
+    messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
     this.messages.set(roomId, messages);
   }
 
