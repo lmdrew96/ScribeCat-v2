@@ -429,17 +429,16 @@ export class SupabaseStudyRoomsRepository {
 
   /**
    * Join a room (after accepting invitation)
-   * Uses UPSERT pattern to prevent duplicate active participant records
+   * Uses UPSERT pattern to reactivate inactive participants or create new ones
    */
   async joinRoom(roomId: string, userId: string): Promise<RoomParticipant> {
     try {
-      // First, check if an active participant record already exists
+      // Check if ANY participant record exists (active or inactive)
       const { data: existingRecord, error: checkError } = await this.getClient()
         .from('room_participants')
-        .select('id')
+        .select('id, is_active')
         .eq('room_id', roomId)
         .eq('user_id', userId)
-        .eq('is_active', true)
         .maybeSingle();
 
       if (checkError) {
@@ -451,7 +450,7 @@ export class SupabaseStudyRoomsRepository {
       let error;
 
       if (existingRecord) {
-        // Update existing active record (user rejoining)
+        // Update existing record to reactivate (user rejoining after leaving)
         const updateResult = await this.getClient()
           .from('room_participants')
           .update({
@@ -478,7 +477,7 @@ export class SupabaseStudyRoomsRepository {
         data = updateResult.data;
         error = updateResult.error;
       } else {
-        // Insert new participant record
+        // Insert new participant record (first time joining)
         const insertResult = await this.getClient()
           .from('room_participants')
           .insert({
@@ -631,36 +630,88 @@ export class SupabaseStudyRoomsRepository {
         .eq('id', params.roomId)
         .single();
 
-      const { data, error } = await this.getClient()
+      // Check if an invitation already exists (due to unique constraint on room_id + invitee_id)
+      const { data: existingInvitation } = await this.getClient()
         .from('room_invitations')
-        .insert({
-          room_id: params.roomId,
-          inviter_id: params.inviterId,
-          invitee_id: params.inviteeId,
-          status: 'pending',
-          room_name: roomData?.name || null,
-        })
-        .select(`
-          id,
-          room_id,
-          inviter_id,
-          invitee_id,
-          status,
-          created_at,
-          updated_at,
-          room_name,
-          inviter_profile:user_profiles!room_invitations_inviter_id_fkey (
-            email,
-            full_name,
-            avatar_url
-          ),
-          invitee_profile:user_profiles!room_invitations_invitee_id_fkey (
-            email,
-            full_name,
-            avatar_url
-          )
-        `)
-        .single();
+        .select('id, status')
+        .eq('room_id', params.roomId)
+        .eq('invitee_id', params.inviteeId)
+        .maybeSingle();
+
+      let data;
+      let error;
+
+      if (existingInvitation) {
+        // Update existing invitation to pending (allows re-inviting after user left)
+        const updateResult = await this.getClient()
+          .from('room_invitations')
+          .update({
+            inviter_id: params.inviterId,
+            status: 'pending',
+            updated_at: new Date().toISOString(),
+            room_name: roomData?.name || null,
+          })
+          .eq('id', existingInvitation.id)
+          .select(`
+            id,
+            room_id,
+            inviter_id,
+            invitee_id,
+            status,
+            created_at,
+            updated_at,
+            room_name,
+            inviter_profile:user_profiles!room_invitations_inviter_id_fkey (
+              email,
+              full_name,
+              avatar_url
+            ),
+            invitee_profile:user_profiles!room_invitations_invitee_id_fkey (
+              email,
+              full_name,
+              avatar_url
+            )
+          `)
+          .single();
+
+        data = updateResult.data;
+        error = updateResult.error;
+      } else {
+        // Insert new invitation
+        const insertResult = await this.getClient()
+          .from('room_invitations')
+          .insert({
+            room_id: params.roomId,
+            inviter_id: params.inviterId,
+            invitee_id: params.inviteeId,
+            status: 'pending',
+            room_name: roomData?.name || null,
+          })
+          .select(`
+            id,
+            room_id,
+            inviter_id,
+            invitee_id,
+            status,
+            created_at,
+            updated_at,
+            room_name,
+            inviter_profile:user_profiles!room_invitations_inviter_id_fkey (
+              email,
+              full_name,
+              avatar_url
+            ),
+            invitee_profile:user_profiles!room_invitations_invitee_id_fkey (
+              email,
+              full_name,
+              avatar_url
+            )
+          `)
+          .single();
+
+        data = insertResult.data;
+        error = insertResult.error;
+      }
 
       if (error) {
         console.error('Error sending invitation:', error);
