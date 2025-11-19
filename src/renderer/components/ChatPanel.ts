@@ -169,10 +169,23 @@ export class ChatPanel {
     const messagesContainer = this.container.querySelector('#chat-messages') as HTMLElement;
     if (!messagesContainer) return;
 
+    // Check if message already exists (prevent duplicates)
+    const existingMessage = messagesContainer.querySelector(`[data-message-id="${message.id}"]`);
+    if (existingMessage) {
+      console.log('Message already in UI, skipping:', message.id);
+      return;
+    }
+
     // Remove empty state if it exists
     const emptyState = messagesContainer.querySelector('.chat-empty-state');
     if (emptyState) {
       emptyState.remove();
+    }
+
+    // Remove loading state if it exists
+    const loadingState = messagesContainer.querySelector('.chat-loading');
+    if (loadingState) {
+      loadingState.remove();
     }
 
     const userName = this.userNames.get(message.userId) || 'Unknown User';
@@ -275,6 +288,15 @@ export class ChatPanel {
 
     try {
       await this.chatManager.sendMessage(this.currentRoomId, message);
+
+      // Immediately display the sent message (optimistic UI update)
+      // The message will be in the cache after sendMessage completes
+      const messages = this.chatManager.getMessages(this.currentRoomId);
+      const sentMessage = messages[messages.length - 1]; // Get the last message (just sent)
+      if (sentMessage) {
+        this.addMessageToUI(sentMessage);
+        this.scrollToBottom();
+      }
 
       // Clear input
       input.value = '';
