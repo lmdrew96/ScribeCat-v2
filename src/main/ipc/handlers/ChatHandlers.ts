@@ -11,6 +11,7 @@ import { SupabaseChatRepository } from '../../../infrastructure/services/supabas
 
 export class ChatHandlers extends BaseHandler {
   private repository: SupabaseChatRepository;
+  private subscriptions: Map<string, () => void> = new Map();
 
   constructor() {
     super();
@@ -87,24 +88,52 @@ export class ChatHandlers extends BaseHandler {
 
     this.handle(ipcMain, 'chat:subscribeToRoom', async (event, roomId: string) => {
       try {
+        // Create a unique key for this subscription (room + sender)
+        const subscriptionKey = `${roomId}-${event.sender.id}`;
+
+        // Unsubscribe from previous subscription if exists
+        const existingUnsubscribe = this.subscriptions.get(subscriptionKey);
+        if (existingUnsubscribe) {
+          console.log(`[ChatHandlers] Unsubscribing from previous subscription: ${subscriptionKey}`);
+          existingUnsubscribe();
+          this.subscriptions.delete(subscriptionKey);
+        }
+
         // Subscribe and send new messages and typing events to renderer
-        this.repository.subscribeToRoom(
+        const unsubscribe = this.repository.subscribeToRoom(
           roomId,
           (message) => {
-            event.sender.send('chat:newMessage', {
-              roomId,
-              message: message.toJSON(),
-            });
+            if (!event.sender.isDestroyed()) {
+              event.sender.send('chat:newMessage', {
+                roomId,
+                message: message.toJSON(),
+              });
+            }
           },
           (userId, userName, isTyping) => {
-            event.sender.send('chat:typingStatus', {
-              roomId,
-              userId,
-              userName,
-              isTyping,
-            });
+            if (!event.sender.isDestroyed()) {
+              event.sender.send('chat:typingStatus', {
+                roomId,
+                userId,
+                userName,
+                isTyping,
+              });
+            }
           }
         );
+
+        // Store the unsubscribe function
+        this.subscriptions.set(subscriptionKey, unsubscribe);
+
+        // Clean up when window is closed
+        event.sender.on('destroyed', () => {
+          const storedUnsubscribe = this.subscriptions.get(subscriptionKey);
+          if (storedUnsubscribe) {
+            console.log(`[ChatHandlers] Cleaning up subscription on window close: ${subscriptionKey}`);
+            storedUnsubscribe();
+            this.subscriptions.delete(subscriptionKey);
+          }
+        });
 
         return { success: true };
       } catch (error) {
@@ -142,6 +171,14 @@ export class ChatHandlers extends BaseHandler {
 
     this.handle(ipcMain, 'chat:unsubscribeAll', async () => {
       try {
+        // Call all stored unsubscribe functions
+        this.subscriptions.forEach((unsubscribe, key) => {
+          console.log(`[ChatHandlers] Unsubscribing: ${key}`);
+          unsubscribe();
+        });
+        this.subscriptions.clear();
+
+        // Also call repository unsubscribeAll as a fallback
         this.repository.unsubscribeAll();
 
         return { success: true };

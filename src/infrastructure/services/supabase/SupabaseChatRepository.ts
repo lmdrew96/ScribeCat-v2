@@ -95,6 +95,14 @@ export class SupabaseChatRepository implements IChatRepository {
     const channelName = `room-chat:${roomId}`;
     const client = this.getClient();
 
+    // Remove existing subscription if any (prevents duplicates)
+    const existingChannel = this.channels.get(channelName);
+    if (existingChannel) {
+      console.log(`Removing existing subscription for room ${roomId}`);
+      client.removeChannel(existingChannel);
+      this.channels.delete(channelName);
+    }
+
     const channel = client
       .channel(channelName)
       .on(
@@ -126,6 +134,13 @@ export class SupabaseChatRepository implements IChatRepository {
 
     channel.subscribe((status) => {
       console.log(`Chat subscription status for room ${roomId}:`, status);
+      if (status === 'SUBSCRIBED') {
+        console.log(`Successfully subscribed to chat in room ${roomId}`);
+      } else if (status === 'TIMED_OUT') {
+        console.error(`Chat subscription timed out for room ${roomId}`);
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error(`Chat subscription error for room ${roomId}`);
+      }
     });
 
     this.channels.set(channelName, channel);
