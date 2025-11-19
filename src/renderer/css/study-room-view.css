@@ -583,7 +583,7 @@
 
 /* Right Panel - Chat */
 .study-room-chat {
-  width: 320px;
+  width: 380px;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
