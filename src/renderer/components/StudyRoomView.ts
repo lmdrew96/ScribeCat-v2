@@ -14,6 +14,7 @@ import { ChatPanel } from './ChatPanel.js';
 import { InviteFriendsModal } from './InviteFriendsModal.js';
 import { escapeHtml, formatTimestamp } from '../utils/formatting.js';
 import { SupabaseClient } from '../../infrastructure/services/supabase/SupabaseClient.js';
+import { RendererSupabaseClient } from '../services/RendererSupabaseClient.js';
 import { Editor } from '@tiptap/core';
 import { CollaborationAdapter } from '../tiptap/CollaborationAdapter.js';
 import { EditorConfigService } from '../tiptap/EditorConfigService.js';
@@ -559,8 +560,8 @@ export class StudyRoomView {
         return;
       }
 
-      // Load session from Supabase
-      const supabase = SupabaseClient.getInstance().getClient();
+      // Load session from Supabase (use renderer client for auth context)
+      const supabase = RendererSupabaseClient.getInstance().getClient();
       const { data: sessionData, error } = await supabase
         .from('sessions')
         .select('id, title, notes, transcription_text, course_title, course_number, duration, created_at, user_id, source_session_id, source_user_id')
