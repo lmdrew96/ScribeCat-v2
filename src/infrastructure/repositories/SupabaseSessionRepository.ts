@@ -38,6 +38,8 @@ interface SessionRow {
   child_session_ids?: string[];
   session_order?: number;
   summary?: string;
+  source_session_id?: string; // For copied sessions, the original session ID
+  source_user_id?: string; // For copied sessions, the original user ID (for audio path)
 }
 
 export class SupabaseSessionRepository implements ISessionRepository {
@@ -682,7 +684,10 @@ export class SupabaseSessionRepository implements ISessionRepository {
         course_title: originalSession.courseTitle,
         course_number: originalSession.courseNumber,
         type: originalSession.type,
-        summary: originalSession.summary
+        summary: originalSession.summary,
+        // Track source session for audio file reference
+        source_session_id: originalSessionId,
+        source_user_id: originalSession.userId
       };
 
       // Insert the copied session

@@ -18,6 +18,8 @@ import { Editor } from '@tiptap/core';
 import { CollaborationAdapter } from '../tiptap/CollaborationAdapter.js';
 import { EditorConfigService } from '../tiptap/EditorConfigService.js';
 import { StudyModeEditorToolbar } from '../tiptap/StudyModeEditorToolbar.js';
+import { SessionPlaybackManager } from '../services/SessionPlaybackManager.js';
+import { SupabaseStorageService } from '../../infrastructure/services/supabase/SupabaseStorageService.js';
 
 export class StudyRoomView {
   private container: HTMLElement | null = null;
@@ -37,12 +39,16 @@ export class StudyRoomView {
   private collaborationAdapter: CollaborationAdapter;
   private editorToolbar: StudyModeEditorToolbar | null = null;
 
+  // Audio playback
+  private sessionPlaybackManager: SessionPlaybackManager;
+
   constructor(studyRoomsManager: StudyRoomsManager, friendsManager: FriendsManager) {
     this.studyRoomsManager = studyRoomsManager;
     this.friendsManager = friendsManager;
     this.chatManager = new ChatManager();
     this.inviteFriendsModal = new InviteFriendsModal(friendsManager, studyRoomsManager);
     this.collaborationAdapter = new CollaborationAdapter();
+    this.sessionPlaybackManager = new SessionPlaybackManager();
 
     // Listen for participant changes
     this.studyRoomsManager.addParticipantsListener((roomId) => {
@@ -128,6 +134,66 @@ export class StudyRoomView {
           <div class="study-room-content">
             <div class="content-header">
               <h3>Shared Session</h3>
+            </div>
+
+            <!-- Session Info Bar -->
+            <div class="session-info-bar" id="session-info-bar" style="display: none;">
+              <div class="session-info-content">
+                <span class="session-course-badge" id="session-course-badge">No Course</span>
+                <span class="session-title" id="session-title-display">Session Title</span>
+                <span class="session-meta-separator">•</span>
+                <span class="session-date" id="session-date-display">Date</span>
+                <span class="session-meta-separator">•</span>
+                <span class="session-duration" id="session-duration-display">Duration</span>
+              </div>
+            </div>
+
+            <!-- Audio Player -->
+            <div class="audio-player-container" id="audio-player-container" style="display: none;">
+              <div class="audio-player">
+                <audio id="session-audio" preload="metadata" style="display: none;">
+                  Your browser does not support the audio element.
+                </audio>
+
+                <!-- Custom Audio Controls -->
+                <div class="custom-audio-controls">
+                  <!-- Play/Pause Button -->
+                  <button class="audio-control-btn play-pause-btn" id="play-pause-btn" title="Play/Pause">
+                    <span class="play-icon">▶</span>
+                  </button>
+
+                  <!-- Time Display -->
+                  <div class="audio-time-display">
+                    <span id="current-time">0:00</span>
+                    <span class="time-separator">/</span>
+                    <span id="total-duration">0:00</span>
+                  </div>
+
+                  <!-- Progress Bar -->
+                  <div class="audio-progress-container" id="audio-progress-container">
+                    <div class="audio-progress-bar">
+                      <div class="audio-progress-buffered" id="audio-progress-buffered"></div>
+                      <div class="audio-progress-played" id="audio-progress-played"></div>
+                      <div class="audio-progress-handle" id="audio-progress-handle"></div>
+                    </div>
+                  </div>
+
+                  <!-- Volume Control -->
+                  <button class="audio-control-btn volume-btn" id="volume-btn" title="Mute/Unmute">
+                    <span class="volume-icon">🔊</span>
+                  </button>
+                </div>
+
+                <div class="playback-controls">
+                  <label>Speed:</label>
+                  <button class="speed-btn" data-speed="0.5">0.5x</button>
+                  <button class="speed-btn" data-speed="0.75">0.75x</button>
+                  <button class="speed-btn active" data-speed="1">1x</button>
+                  <button class="speed-btn" data-speed="1.25">1.25x</button>
+                  <button class="speed-btn" data-speed="1.5">1.5x</button>
+                  <button class="speed-btn" data-speed="2">2x</button>
+                </div>
+              </div>
             </div>
 
             <!-- Content Tabs (same structure as individual session view) -->
@@ -578,7 +644,7 @@ export class StudyRoomView {
       const supabase = SupabaseClient.getInstance().getClient();
       const { data: sessionData, error } = await supabase
         .from('sessions')
-        .select('id, title, notes, transcription_text')
+        .select('id, title, notes, transcription_text, course_title, course_number, duration, created_at, user_id, source_session_id, source_user_id')
         .eq('id', room.sessionId)
         .single();
 
@@ -643,9 +709,147 @@ export class StudyRoomView {
         }
       }
 
+      // Render session metadata
+      this.renderSessionMetadata(sessionData);
+
+      // Setup audio player - construct recording path from user_id and session_id
+      // For copied sessions (study rooms), use the source session's audio file
+      // Audio files are stored in Supabase Storage, not in the database
+      const audioUserId = sessionData.source_user_id || sessionData.user_id;
+      const audioSessionId = sessionData.source_session_id || sessionData.id;
+
+      if (audioUserId && audioSessionId) {
+        const recordingPath = `cloud://${audioUserId}/${audioSessionId}/audio.webm`;
+        console.log(`Constructing audio path: ${recordingPath}`);
+        await this.setupAudioPlayer(sessionData, recordingPath);
+      }
+
       console.log('Session content loaded successfully');
     } catch (error) {
       console.error('Failed to load session content:', error);
+    }
+  }
+
+  /**
+   * Render session metadata (title, course, date, duration)
+   */
+  private renderSessionMetadata(sessionData: any): void {
+    const sessionInfoBar = document.getElementById('session-info-bar');
+    const courseBadge = document.getElementById('session-course-badge');
+    const sessionTitle = document.getElementById('session-title-display');
+    const sessionDate = document.getElementById('session-date-display');
+    const sessionDuration = document.getElementById('session-duration-display');
+
+    if (!sessionInfoBar) return;
+
+    // Show the info bar
+    sessionInfoBar.style.display = 'block';
+
+    // Set course badge
+    if (courseBadge) {
+      if (sessionData.course_title) {
+        courseBadge.textContent = sessionData.course_number
+          ? `${sessionData.course_number}: ${sessionData.course_title}`
+          : sessionData.course_title;
+      } else {
+        courseBadge.textContent = 'No Course';
+      }
+    }
+
+    // Set session title
+    if (sessionTitle) {
+      sessionTitle.textContent = sessionData.title || 'Untitled Session';
+    }
+
+    // Set session date
+    if (sessionDate && sessionData.created_at) {
+      const date = new Date(sessionData.created_at);
+      sessionDate.textContent = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    // Set session duration
+    if (sessionDuration && sessionData.duration) {
+      const hours = Math.floor(sessionData.duration / 3600);
+      const minutes = Math.floor((sessionData.duration % 3600) / 60);
+      const seconds = Math.floor(sessionData.duration % 60);
+
+      if (hours > 0) {
+        sessionDuration.textContent = `${hours}h ${minutes}m`;
+      } else if (minutes > 0) {
+        sessionDuration.textContent = `${minutes}m ${seconds}s`;
+      } else {
+        sessionDuration.textContent = `${seconds}s`;
+      }
+    }
+  }
+
+  /**
+   * Setup audio player with recording
+   */
+  private async setupAudioPlayer(sessionData: any, recordingPath: string): Promise<void> {
+    const audioPlayerContainer = document.getElementById('audio-player-container');
+    const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
+
+    if (!audioPlayerContainer || !audioElement || !recordingPath) return;
+
+    try {
+      // Show the audio player
+      audioPlayerContainer.style.display = 'block';
+
+      // Handle cloud vs local recordings
+      if (recordingPath.startsWith('cloud://')) {
+        // Cloud recording - fetch signed URL
+        const storagePath = recordingPath.replace('cloud://', '');
+        const storageService = new SupabaseStorageService();
+
+        console.log(`Attempting to load audio from storage path: ${storagePath}`);
+        const result = await storageService.getSignedUrl(storagePath, 7200);
+
+        if (result.success && result.url) {
+          audioElement.src = result.url;
+          console.log(`✓ Loaded cloud audio from signed URL: ${storagePath}`);
+        } else {
+          console.warn(`⚠️ Audio file not found in storage: ${storagePath}`);
+          console.warn(`Error details:`, result.error);
+          // Don't hide the player - just show it's unavailable
+          audioPlayerContainer.style.display = 'none';
+          return;
+        }
+      } else if (recordingPath) {
+        // Local recording
+        audioElement.src = `file://${recordingPath}`;
+        console.log(`Loaded local audio from: ${recordingPath}`);
+      }
+
+      // Initialize custom audio controls with session ID for tracking
+      this.sessionPlaybackManager.initialize(
+        audioElement,
+        sessionData.duration || 0,
+        () => audioPlayerContainer.style.display !== 'none',
+        sessionData.id
+      );
+
+      // Setup speed controls
+      const speedButtons = document.querySelectorAll('.speed-btn');
+      speedButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const speed = parseFloat((btn as HTMLElement).dataset.speed || '1');
+          if (audioElement) {
+            audioElement.playbackRate = speed;
+          }
+          speedButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+
+      console.log('Audio player initialized successfully');
+    } catch (error) {
+      console.error('Failed to setup audio player:', error);
+      audioPlayerContainer.style.display = 'none';
     }
   }
 
