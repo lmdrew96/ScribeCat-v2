@@ -33,6 +33,10 @@ export class StudyRoomsManager {
 
   private realtimeChannel: RealtimeChannel | null = null;
 
+  // Debounce timer for loadRooms to prevent race conditions
+  private loadRoomsDebounceTimer: NodeJS.Timeout | null = null;
+  private readonly LOAD_ROOMS_DEBOUNCE_MS = 200;
+
   constructor() {
     logger.info('StudyRoomsManager initialized');
   }
@@ -56,6 +60,13 @@ export class StudyRoomsManager {
     this.rooms = [];
     this.participants.clear();
     this.invitations = [];
+
+    // Clear debounce timer
+    if (this.loadRoomsDebounceTimer) {
+      clearTimeout(this.loadRoomsDebounceTimer);
+      this.loadRoomsDebounceTimer = null;
+    }
+
     this.unsubscribeFromParticipantChanges();
     this.notifyRoomsListeners();
     this.notifyInvitationsListeners();
@@ -67,9 +78,32 @@ export class StudyRoomsManager {
   // ============================================================================
 
   /**
-   * Load rooms from the server
+   * Load rooms from the server (debounced to prevent race conditions)
    */
   async loadRooms(): Promise<void> {
+    // Clear existing debounce timer
+    if (this.loadRoomsDebounceTimer) {
+      clearTimeout(this.loadRoomsDebounceTimer);
+    }
+
+    // Set new debounce timer
+    return new Promise((resolve, reject) => {
+      this.loadRoomsDebounceTimer = setTimeout(async () => {
+        try {
+          await this.loadRoomsImmediate();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      }, this.LOAD_ROOMS_DEBOUNCE_MS);
+    });
+  }
+
+  /**
+   * Immediately load rooms from the server without debouncing
+   * Used internally and for initialization
+   */
+  private async loadRoomsImmediate(): Promise<void> {
     try {
       const result = await window.scribeCat.studyRooms.getUserRooms();
 

@@ -415,30 +415,81 @@ export class SupabaseStudyRoomsRepository {
 
   /**
    * Join a room (after accepting invitation)
+   * Uses UPSERT pattern to prevent duplicate active participant records
    */
   async joinRoom(roomId: string, userId: string): Promise<RoomParticipant> {
     try {
-      const { data, error } = await this.getClient()
+      // First, check if an active participant record already exists
+      const { data: existingRecord, error: checkError } = await this.getClient()
         .from('room_participants')
-        .insert({
-          room_id: roomId,
-          user_id: userId,
-          is_active: true,
-        })
-        .select(`
-          id,
-          room_id,
-          user_id,
-          joined_at,
-          left_at,
-          is_active,
-          user_profile:user_profiles!room_participants_user_id_fkey (
-            email,
-            full_name,
-            avatar_url
-          )
-        `)
-        .single();
+        .select('id')
+        .eq('room_id', roomId)
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing participant:', checkError);
+        throw new Error(`Failed to check existing participant: ${checkError.message}`);
+      }
+
+      let data;
+      let error;
+
+      if (existingRecord) {
+        // Update existing active record (user rejoining)
+        const updateResult = await this.getClient()
+          .from('room_participants')
+          .update({
+            joined_at: new Date().toISOString(),
+            left_at: null,
+            is_active: true,
+          })
+          .eq('id', existingRecord.id)
+          .select(`
+            id,
+            room_id,
+            user_id,
+            joined_at,
+            left_at,
+            is_active,
+            user_profile:user_profiles!room_participants_user_id_fkey (
+              email,
+              full_name,
+              avatar_url
+            )
+          `)
+          .single();
+
+        data = updateResult.data;
+        error = updateResult.error;
+      } else {
+        // Insert new participant record
+        const insertResult = await this.getClient()
+          .from('room_participants')
+          .insert({
+            room_id: roomId,
+            user_id: userId,
+            is_active: true,
+          })
+          .select(`
+            id,
+            room_id,
+            user_id,
+            joined_at,
+            left_at,
+            is_active,
+            user_profile:user_profiles!room_participants_user_id_fkey (
+              email,
+              full_name,
+              avatar_url
+            )
+          `)
+          .single();
+
+        data = insertResult.data;
+        error = insertResult.error;
+      }
 
       if (error) {
         console.error('Error joining room:', error);

@@ -888,7 +888,43 @@ export class StudyRoomView {
   }
 
   /**
-   * Exit room
+   * Retry a function with exponential backoff
+   * @param fn Function to retry
+   * @param maxRetries Maximum number of retries
+   * @param baseDelay Base delay in milliseconds (will be doubled each retry)
+   */
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 500
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+
+        // If this was the last attempt, throw the error
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        // Calculate exponential backoff delay
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`Retry attempt ${attempt + 1}/${maxRetries} failed. Retrying in ${delay}ms...`);
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Exit room with retry logic
    */
   private async exitRoom(): Promise<void> {
     if (!this.currentRoomId || !this.currentUserId) {
@@ -912,28 +948,43 @@ export class StudyRoomView {
       if (confirmClose === null) return; // Cancelled
 
       if (confirmClose) {
-        // Close room
+        // Close room with retry logic
         try {
-          await this.studyRoomsManager.closeRoom(this.currentRoomId);
+          await this.retryWithBackoff(
+            () => this.studyRoomsManager.closeRoom(this.currentRoomId!),
+            3,
+            500
+          );
         } catch (error) {
-          alert('Failed to close room. Please try again.');
+          console.error('Failed to close room after retries:', error);
+          alert('Failed to close room after multiple attempts. Please try again.');
           return;
         }
       } else {
-        // Just leave
+        // Leave room with retry logic
         try {
-          await this.studyRoomsManager.leaveRoom(this.currentRoomId);
+          await this.retryWithBackoff(
+            () => this.studyRoomsManager.leaveRoom(this.currentRoomId!),
+            3,
+            500
+          );
         } catch (error) {
-          alert('Failed to leave room. Please try again.');
+          console.error('Failed to leave room after retries:', error);
+          alert('Failed to leave room after multiple attempts. Please try again.');
           return;
         }
       }
     } else {
-      // Leave room
+      // Leave room with retry logic
       try {
-        await this.studyRoomsManager.leaveRoom(this.currentRoomId);
+        await this.retryWithBackoff(
+          () => this.studyRoomsManager.leaveRoom(this.currentRoomId!),
+          3,
+          500
+        );
       } catch (error) {
-        alert('Failed to leave room. Please try again.');
+        console.error('Failed to leave room after retries:', error);
+        alert('Failed to leave room after multiple attempts. Please try again.');
         return;
       }
     }
