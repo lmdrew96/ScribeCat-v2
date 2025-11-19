@@ -59,7 +59,6 @@ export class StudyModeAIToolsManager {
       aiToolsTabContainer.innerHTML = chatsHTML;
 
       // Setup event listeners for tab version
-      this.setupChatEventListenersForContainer(aiToolsTabContainer);
       this.setupChipEventListenersForContainer(aiToolsTabContainer);
 
       // Note: Content is now rendered directly to the active content area
@@ -103,17 +102,6 @@ export class StudyModeAIToolsManager {
         <div class="chat-suggestions">
           ${chipsHTML}
         </div>
-        <div class="chat-input-container">
-          <input
-            type="text"
-            class="chat-input"
-            placeholder="Ask Nugget anything... (e.g., 'create flashcards', 'quiz me', 'summarize')"
-            autocomplete="off"
-          />
-          <button class="chat-send-btn" title="Send message">
-            <span>→</span>
-          </button>
-        </div>
       </div>
     `;
   }
@@ -126,33 +114,7 @@ export class StudyModeAIToolsManager {
 
     const chatHTML = this.generateChatHTML();
     this.aiToolsContainer.innerHTML = chatHTML;
-    this.setupChatEventListenersForContainer(this.aiToolsContainer);
     this.setupChipEventListenersForContainer(this.aiToolsContainer);
-  }
-
-  /**
-   * Setup event listeners for inline chat in a specific container
-   */
-  private setupChatEventListenersForContainer(container: HTMLElement | Element): void {
-    const chatInput = container?.querySelector('.chat-input') as HTMLInputElement;
-    const sendBtn = container?.querySelector('.chat-send-btn');
-
-    if (!chatInput || !sendBtn) return;
-
-    // Send message on button click
-    sendBtn.addEventListener('click', () => {
-      this.handleSendMessage(chatInput.value);
-      chatInput.value = '';
-    });
-
-    // Send message on Enter key
-    chatInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        this.handleSendMessage(chatInput.value);
-        chatInput.value = '';
-      }
-    });
   }
 
   /**
@@ -170,43 +132,6 @@ export class StudyModeAIToolsManager {
         }
       });
     });
-  }
-
-  /**
-   * Handle sending a message
-   */
-  private async handleSendMessage(message: string): Promise<void> {
-    if (!message.trim() || !this.currentSession) return;
-
-    // Track chat message
-    try {
-      await (window as any).electronAPI.incrementAIChatMessages(this.currentSession.id, 1);
-    } catch (error) {
-      logger.error('Failed to track chat message:', error);
-    }
-
-    // Parse command
-    const suggestion = this.suggestionEngine.parseNaturalLanguageCommand(message);
-
-    if (suggestion) {
-      // Execute the action
-      this.handleToolAction(suggestion.action, this.currentSession);
-    } else {
-      // Show error in study content area
-      if (this.studyContentArea) {
-        this.studyContentArea.innerHTML = `
-          <div class="ai-response-error">
-            <p>I'm not sure what you mean. Try commands like:</p>
-            <ul>
-              <li>"create flashcards"</li>
-              <li>"quiz me"</li>
-              <li>"summarize this"</li>
-              <li>"explain the key concepts"</li>
-            </ul>
-          </div>
-        `;
-      }
-    }
   }
 
   /**
