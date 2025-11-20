@@ -17,6 +17,7 @@ export interface SaveRecordingInput {
   courseTitle?: string;
   courseNumber?: string;
   userId?: string;
+  transcription?: string;
 }
 
 export interface SaveRecordingOutput {
@@ -65,7 +66,7 @@ export class SaveRecordingUseCase {
       now,
       now,
       input.duration,
-      undefined, // transcription
+      input.transcription, // Include transcription if provided
       [], // tags
       [], // exportHistory
       input.courseId,

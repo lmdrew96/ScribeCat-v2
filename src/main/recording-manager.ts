@@ -113,7 +113,7 @@ export class RecordingManager {
       }
     });
 
-    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, title?: string) => {
+    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, transcription?: string, title?: string) => {
       try {
         const result = await this.saveRecordingUseCase.execute({
           audioData,
@@ -122,7 +122,8 @@ export class RecordingManager {
           courseId: courseData?.courseId,
           courseTitle: courseData?.courseTitle,
           courseNumber: courseData?.courseNumber,
-          userId: userId || undefined
+          userId: userId || undefined,
+          transcription
         });
 
         // NOTE: Cloud sync is now triggered from renderer process AFTER transcription is saved

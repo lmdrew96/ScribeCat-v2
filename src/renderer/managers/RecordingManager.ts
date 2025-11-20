@@ -173,12 +173,16 @@ export class RecordingManager {
       willUseCustomTitle: !!sessionTitle
     });
 
-    // Save the recording to disk
+    // Get transcription text before saving (to include in initial save)
+    const transcriptionText = this.transcriptionManager.getText();
+
+    // Save the recording to disk with transcription included
     const saveResult = await window.scribeCat.recording.stop(
       result.audioData.buffer as ArrayBuffer,
       durationSeconds,
       courseData,
       userId,
+      transcriptionText || undefined,
       sessionTitle
     );
 
@@ -188,66 +192,21 @@ export class RecordingManager {
 
     logger.info(`Recording saved to: ${saveResult.filePath}`);
 
-    // Save transcription to session
-    if (saveResult.sessionId) {
-      const transcriptionText = this.transcriptionManager.getText();
-      if (transcriptionText && transcriptionText.trim().length > 0) {
-        logger.info('Saving transcription to session');
-
-        // Show user feedback for large transcriptions
-        const transcriptionSize = new Blob([transcriptionText]).size;
-        const sizeInMB = (transcriptionSize / 1024 / 1024).toFixed(2);
-
-        if (transcriptionSize > 5 * 1024 * 1024) { // > 5MB
-          this.viewManager.showSessionInfo(`Saving large transcription (${sizeInMB}MB)...`);
-        }
-
-        // Get timestamped entries for accurate synchronization
-        const timestampedEntries = this.transcriptionManager.getTimestampedEntries();
-
-        logger.debug('Saving transcription with metadata', {
-          sessionDuration: durationSeconds,
-          entryCount: timestampedEntries.length,
-          transcriptionSizeMB: sizeInMB,
-          firstTimestamp: timestampedEntries[0]?.timestamp,
-          lastTimestamp: timestampedEntries[timestampedEntries.length - 1]?.timestamp
+    // Generate short summary for session card display
+    if (saveResult.sessionId && transcriptionText && transcriptionText.trim().length > 0) {
+      logger.info('Generating short summary for session');
+      const summaryManager = new AISummaryManager();
+      summaryManager.generateAndSaveShortSummary(saveResult.sessionId)
+        .then(() => {
+          logger.info('Short summary generated and saved');
+        })
+        .catch(error => {
+          logger.warn('Failed to generate short summary (non-critical):', error);
         });
+    }
 
-        // Retry logic for saving transcription (handles race condition where session isn't fully saved yet)
-        const transcriptionResult = await this.saveTranscriptionWithRetry(
-          saveResult.sessionId,
-          transcriptionText,
-          timestampedEntries,
-          3 // Max 3 attempts
-        );
-
-        if (transcriptionResult.success) {
-          logger.info('Transcription saved to session');
-
-          if (transcriptionSize > 5 * 1024 * 1024) {
-            this.viewManager.showSessionInfo(`Transcription saved successfully (${sizeInMB}MB)`);
-          }
-
-          // Generate and save short summary for card display
-          logger.info('Generating short summary for session');
-          const summaryManager = new AISummaryManager();
-          summaryManager.generateAndSaveShortSummary(saveResult.sessionId)
-            .then(() => {
-              logger.info('Short summary generated and saved');
-            })
-            .catch(error => {
-              logger.warn('Failed to generate short summary (non-critical):', error);
-            });
-        } else {
-          const errorMsg = `Failed to save transcription: ${transcriptionResult.error}`;
-          logger.error(errorMsg);
-
-          // Show clear error to user
-          this.viewManager.showSessionInfo(
-            `⚠️ Transcription save failed. Your recording is safe locally, but cloud upload failed. Please check your internet connection and try syncing again later.`
-          );
-        }
-      }
+    // Transition NotesAutoSaveManager and save notes
+    if (saveResult.sessionId) {
 
       // Transition NotesAutoSaveManager to use the recording session
       // This will copy notes from draft (if any) and continue auto-saving to the recording session
@@ -570,58 +529,4 @@ export class RecordingManager {
     }
   }
 
-  /**
-   * Save transcription with retry logic to handle race conditions
-   * Retries with exponential backoff if session isn't ready yet
-   */
-  private async saveTranscriptionWithRetry(
-    sessionId: string,
-    transcriptionText: string,
-    timestampedEntries: Array<{ startTime: number; endTime: number; text: string }>,
-    maxAttempts: number = 3
-  ): Promise<{ success: boolean; error?: string }> {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        logger.debug(`Transcription save attempt ${attempt}/${maxAttempts}`);
-
-        const result = await window.scribeCat.session.updateTranscription(
-          sessionId,
-          transcriptionText,
-          this.transcriptionService.getCurrentMode(),
-          timestampedEntries.length > 0 ? timestampedEntries : undefined
-        );
-
-        if (result.success) {
-          if (attempt > 1) {
-            logger.info(`Transcription saved successfully on attempt ${attempt}`);
-          }
-          return { success: true };
-        }
-
-        // If not the last attempt, wait before retrying
-        if (attempt < maxAttempts) {
-          const delayMs = Math.pow(2, attempt - 1) * 500; // 500ms, 1s, 2s
-          logger.warn(`Transcription save failed, retrying in ${delayMs}ms... (attempt ${attempt}/${maxAttempts})`);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        } else {
-          return { success: false, error: result.error };
-        }
-      } catch (error) {
-        logger.error(`Error saving transcription (attempt ${attempt}/${maxAttempts}):`, error);
-
-        if (attempt === maxAttempts) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-          };
-        }
-
-        // Wait before retrying
-        const delayMs = Math.pow(2, attempt - 1) * 500;
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-
-    return { success: false, error: 'Max retry attempts reached' };
-  }
 }

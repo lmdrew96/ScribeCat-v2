@@ -90,7 +90,7 @@ const electronAPI = {
   },
   recording: {
     start: () => ipcRenderer.invoke('recording:start'),
-    stop: (audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, title?: string) => ipcRenderer.invoke('recording:stop', audioData, duration, courseData, userId, title),
+    stop: (audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, transcription?: string, title?: string) => ipcRenderer.invoke('recording:stop', audioData, duration, courseData, userId, transcription, title),
     pause: () => ipcRenderer.invoke('recording:pause'),
     resume: () => ipcRenderer.invoke('recording:resume'),
     getStatus: () => ipcRenderer.invoke('recording:getStatus')
@@ -436,6 +436,66 @@ const electronAPI = {
       ipcRenderer.invoke('chat:broadcastTyping', { roomId, userId, userName, isTyping }),
     unsubscribeAll: () =>
       ipcRenderer.invoke('chat:unsubscribeAll')
+  },
+  games: {
+    createGameSession: (params: { roomId: string; gameType: string; config: any }) =>
+      ipcRenderer.invoke('games:create-session', params),
+    getGameSession: (gameSessionId: string) =>
+      ipcRenderer.invoke('games:get-session', gameSessionId),
+    getActiveGameForRoom: (roomId: string) =>
+      ipcRenderer.invoke('games:get-active-game', roomId),
+    startGame: (gameSessionId: string) =>
+      ipcRenderer.invoke('games:start', gameSessionId),
+    completeGame: (gameSessionId: string) =>
+      ipcRenderer.invoke('games:complete', gameSessionId),
+    cancelGame: (gameSessionId: string) =>
+      ipcRenderer.invoke('games:cancel', gameSessionId),
+    nextQuestion: (gameSessionId: string) =>
+      ipcRenderer.invoke('games:next-question', gameSessionId),
+    createGameQuestions: (questions: any[]) =>
+      ipcRenderer.invoke('games:create-questions', questions),
+    getCurrentQuestion: (gameSessionId: string) =>
+      ipcRenderer.invoke('games:get-current-question', gameSessionId),
+    getGameQuestions: (gameSessionId: string, includeAnswers: boolean) =>
+      ipcRenderer.invoke('games:get-questions', gameSessionId, includeAnswers),
+    submitAnswer: (params: { gameSessionId: string; userId: string; questionId: string; answer: string; timeTaken: number }) =>
+      ipcRenderer.invoke('games:submit-answer', params),
+    getGameLeaderboard: (gameSessionId: string) =>
+      ipcRenderer.invoke('games:get-leaderboard', gameSessionId),
+    getPlayerScores: (gameSessionId: string, userId: string) =>
+      ipcRenderer.invoke('games:get-player-scores', gameSessionId, userId),
+    subscribeToGameSession: (gameSessionId: string, onUpdate: (sessionData: any) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: any) => {
+        onUpdate(data);
+      };
+      ipcRenderer.on(`games:session-update:${gameSessionId}`, handler);
+      ipcRenderer.invoke('games:subscribe-session', gameSessionId);
+      return () => {
+        ipcRenderer.removeListener(`games:session-update:${gameSessionId}`, handler);
+      };
+    },
+    subscribeToGameQuestions: (gameSessionId: string, onQuestion: (questionData: any) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: any) => {
+        onQuestion(data);
+      };
+      ipcRenderer.on(`games:question-update:${gameSessionId}`, handler);
+      ipcRenderer.invoke('games:subscribe-questions', gameSessionId);
+      return () => {
+        ipcRenderer.removeListener(`games:question-update:${gameSessionId}`, handler);
+      };
+    },
+    subscribeToGameScores: (gameSessionId: string, onScore: (scoreData: any) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: any) => {
+        onScore(data);
+      };
+      ipcRenderer.on(`games:score-update:${gameSessionId}`, handler);
+      ipcRenderer.invoke('games:subscribe-scores', gameSessionId);
+      return () => {
+        ipcRenderer.removeListener(`games:score-update:${gameSessionId}`, handler);
+      };
+    },
+    unsubscribeAll: () =>
+      ipcRenderer.invoke('games:unsubscribe-all')
   },
   power: {
     preventSleep: () => ipcRenderer.invoke('power:preventSleep'),

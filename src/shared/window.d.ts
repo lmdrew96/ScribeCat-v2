@@ -37,7 +37,7 @@ declare global {
       };
       recording: {
         start: () => Promise<{ success: boolean; error?: string }>;
-        stop: (audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
+        stop: (audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, transcription?: string) => Promise<{ success: boolean; sessionId?: string; filePath?: string; error?: string }>;
         pause: () => Promise<{ success: boolean; error?: string }>;
         resume: () => Promise<{ success: boolean; error?: string }>;
         getStatus: () => Promise<{ isRecording: boolean; isPaused: boolean; duration: number; audioLevel: number; startTime?: Date; error?: string }>;
@@ -190,6 +190,25 @@ declare global {
           onTyping?: (userId: string, userName: string, isTyping: boolean) => void
         ) => () => void;
         broadcastTyping: (roomId: string, userId: string, userName: string, isTyping: boolean) => Promise<IPCResponse<void>>;
+        unsubscribeAll: () => Promise<IPCResponse<void>>;
+      };
+      games: {
+        createGameSession: (params: { roomId: string; gameType: string; config: any }) => Promise<IPCResponse<any>>;
+        getGameSession: (gameSessionId: string) => Promise<IPCResponse<any>>;
+        getActiveGameForRoom: (roomId: string) => Promise<IPCResponse<any>>;
+        startGame: (gameSessionId: string) => Promise<IPCResponse<any>>;
+        completeGame: (gameSessionId: string) => Promise<IPCResponse<any>>;
+        cancelGame: (gameSessionId: string) => Promise<IPCResponse<any>>;
+        nextQuestion: (gameSessionId: string) => Promise<IPCResponse<any>>;
+        createGameQuestions: (questions: any[]) => Promise<IPCResponse<any[]>>;
+        getCurrentQuestion: (gameSessionId: string) => Promise<IPCResponse<any>>;
+        getGameQuestions: (gameSessionId: string, includeAnswers: boolean) => Promise<IPCResponse<any[]>>;
+        submitAnswer: (params: { gameSessionId: string; userId: string; questionId: string; answer: string; timeTaken: number }) => Promise<IPCResponse<any>>;
+        getGameLeaderboard: (gameSessionId: string) => Promise<IPCResponse<any[]>>;
+        getPlayerScores: (gameSessionId: string, userId: string) => Promise<IPCResponse<any[]>>;
+        subscribeToGameSession: (gameSessionId: string, onUpdate: (sessionData: any) => void) => () => void;
+        subscribeToGameQuestions: (gameSessionId: string, onQuestion: (questionData: any) => void) => () => void;
+        subscribeToGameScores: (gameSessionId: string, onScore: (scoreData: any) => void) => () => void;
         unsubscribeAll: () => Promise<IPCResponse<void>>;
       };
       sharing: {
