@@ -177,7 +177,7 @@ export abstract class BaseAIToolGenerator {
    * @returns AI response data
    */
   protected static async callAI(prompt: string): Promise<{ success: boolean; data?: string; error?: string }> {
-    return await window.scribeCat.ai.chat(prompt, [], {
+    return window.scribeCat.ai.chat(prompt, [], {
       includeTranscription: false,
       includeNotes: false
     });

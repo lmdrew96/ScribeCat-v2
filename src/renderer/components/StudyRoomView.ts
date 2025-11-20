@@ -21,6 +21,9 @@ import { EditorConfigService } from '../tiptap/EditorConfigService.js';
 import { StudyModeEditorToolbar } from '../tiptap/StudyModeEditorToolbar.js';
 import { SessionPlaybackManager } from '../services/SessionPlaybackManager.js';
 import { SupabaseStorageService } from '../../infrastructure/services/supabase/SupabaseStorageService.js';
+import { MultiplayerGamesManager } from '../managers/social/MultiplayerGamesManager.js';
+import { GameSelectionModal } from './GameSelectionModal.js';
+import { Session } from '../../domain/entities/Session.js';
 
 export class StudyRoomView {
   private container: HTMLElement | null = null;
@@ -29,11 +32,14 @@ export class StudyRoomView {
   private chatManager: ChatManager;
   private chatPanel: ChatPanel | null = null;
   private inviteFriendsModal: InviteFriendsModal;
+  private gamesManager: MultiplayerGamesManager;
   private currentRoomId: string | null = null;
   private currentUserId: string | null = null;
   private currentUserEmail: string | null = null;
   private currentUserName: string | null = null;
   private onExit?: () => void;
+  private currentSession: Session | null = null;
+  private isGameActive: boolean = false;
 
   // Collaborative editor
   private notesEditor: Editor | null = null;
@@ -50,6 +56,7 @@ export class StudyRoomView {
     this.inviteFriendsModal = new InviteFriendsModal(friendsManager, studyRoomsManager);
     this.collaborationAdapter = new CollaborationAdapter();
     this.sessionPlaybackManager = new SessionPlaybackManager();
+    this.gamesManager = new MultiplayerGamesManager();
 
     // Listen for participant changes
     this.studyRoomsManager.addParticipantsListener((roomId) => {
@@ -113,6 +120,9 @@ export class StudyRoomView {
             <p id="room-subtitle">Loading...</p>
           </div>
           <div class="room-actions">
+            <button class="btn-primary btn-sm" id="start-game-btn" style="display: none;">
+              🎮 Start Game
+            </button>
             <button class="btn-secondary btn-sm" id="invite-friends-btn">
               Invite Friends
             </button>
@@ -227,6 +237,11 @@ export class StudyRoomView {
             <!-- Chat panel will be initialized here -->
           </div>
         </div>
+
+        <!-- Multiplayer Game Container -->
+        <div class="multiplayer-game-container" id="multiplayer-game-container" style="display: none;">
+          <!-- Game UI will be rendered here -->
+        </div>
       </div>
     `;
 
@@ -252,6 +267,10 @@ export class StudyRoomView {
     } else {
       console.error('Exit button not found');
     }
+
+    // Start game button
+    const startGameBtn = document.getElementById('start-game-btn');
+    startGameBtn?.addEventListener('click', () => this.handleStartGame());
 
     // Invite friends button
     const inviteBtn = document.getElementById('invite-friends-btn');
@@ -366,6 +385,7 @@ export class StudyRoomView {
 
     const titleEl = document.getElementById('room-title');
     const subtitleEl = document.getElementById('room-subtitle');
+    const startGameBtn = document.getElementById('start-game-btn');
 
     if (titleEl) {
       titleEl.textContent = room.name;
@@ -376,6 +396,13 @@ export class StudyRoomView {
       const hostText = isHost ? 'You (Host)' : `Host: ${room.hostFullName || room.hostEmail}`;
       const status = room.isActive ? 'Active' : 'Closed';
       subtitleEl.textContent = `${hostText} • ${status}`;
+    }
+
+    // Show "Start Game" button only for host when no game is active and session exists
+    if (startGameBtn) {
+      const isHost = this.currentUserId === room.hostId;
+      const showButton = isHost && !this.isGameActive && this.currentSession !== null;
+      startGameBtn.style.display = showButton ? 'inline-block' : 'none';
     }
   }
 
@@ -593,6 +620,69 @@ export class StudyRoomView {
         }
         return;
       }
+
+      // Store the session for game generation
+      // Need to transform sessionData to match Session.fromJSON expected format
+      console.log('Session data from database:', {
+        hasTranscriptionText: !!sessionData.transcription_text,
+        transcriptionTextType: typeof sessionData.transcription_text,
+        transcriptionTextLength: sessionData.transcription_text?.length,
+        hasNotes: !!sessionData.notes,
+        notesLength: sessionData.notes?.length
+      });
+
+      let transcription = undefined;
+      if (sessionData.transcription_text) {
+        const transcriptionData = JSON.parse(sessionData.transcription_text);
+        console.log('Parsed transcription data:', {
+          hasFullText: !!transcriptionData.fullText,
+          hasSegments: !!transcriptionData.segments,
+          segmentsCount: transcriptionData.segments?.length
+        });
+
+        // Ensure it has fullText - if not, build it from segments
+        if (!transcriptionData.fullText && transcriptionData.segments) {
+          transcriptionData.fullText = transcriptionData.segments
+            .map((seg: any) => seg.text)
+            .join(' ');
+          console.log('Built fullText from segments, length:', transcriptionData.fullText.length);
+        }
+
+        // Ensure it has required fields for Transcription entity
+        if (transcriptionData.fullText && transcriptionData.segments) {
+          transcription = {
+            fullText: transcriptionData.fullText,
+            segments: transcriptionData.segments,
+            language: transcriptionData.language || 'en',
+            provider: 'assemblyai',
+            createdAt: new Date(sessionData.created_at),
+            averageConfidence: transcriptionData.averageConfidence
+          };
+          console.log('Created transcription object with fullText length:', transcription.fullText.length);
+        } else {
+          console.warn('Transcription data missing fullText or segments');
+        }
+      }
+
+      const sessionForEntity = {
+        ...sessionData,
+        recordingPath: '', // Study room sessions may not have recording files
+        transcription,
+        createdAt: new Date(sessionData.created_at),
+        updatedAt: new Date(sessionData.created_at), // Use created_at as fallback
+      };
+      this.currentSession = Session.fromJSON(sessionForEntity);
+
+      console.log('Final session for games:', {
+        hasTranscription: !!this.currentSession.transcription,
+        hasFullText: !!this.currentSession.transcription?.fullText,
+        fullTextLength: this.currentSession.transcription?.fullText?.length,
+        hasNotes: !!this.currentSession.notes,
+        notesLength: this.currentSession.notes?.length
+      });
+
+      // Update header to show Start Game button if user is host
+      this.renderHeader();
 
       // Initialize collaborative editor
       if (notesContainer) {
@@ -1044,5 +1134,120 @@ export class StudyRoomView {
     }
 
     return 'Unknown User';
+  }
+
+  // ============================================================================
+  // Multiplayer Games
+  // ============================================================================
+
+  /**
+   * Handle Start Game button click
+   */
+  private async handleStartGame(): Promise<void> {
+    if (!this.currentRoomId || !this.currentUserId || !this.currentSession) {
+      return;
+    }
+
+    // Show game selection modal
+    const result = await GameSelectionModal.show();
+    if (!result) return;
+
+    try {
+      console.log('🎮 Starting game creation - generating questions with AI...');
+      console.log('⏱️ This may take 30-60 seconds depending on question count');
+
+      // Initialize games manager
+      this.gamesManager.initialize(this.currentUserId);
+
+      // Check for existing active game and cancel it
+      const activeGameResult = await window.scribeCat.games.getActiveGameForRoom(this.currentRoomId);
+      if (activeGameResult.success && activeGameResult.gameSession) {
+        console.log('Cancelling existing active game:', activeGameResult.gameSession.id);
+        await window.scribeCat.games.cancelGame(activeGameResult.gameSession.id);
+      }
+
+      // Create game session (this generates questions with AI)
+      const gameSession = await this.gamesManager.createGame(
+        this.currentRoomId,
+        result.gameType,
+        this.currentSession,
+        {
+          questionCount: result.questionCount,
+          difficulty: result.difficulty,
+        }
+      );
+
+      console.log('✅ Questions generated successfully');
+
+      // Get participants for game
+      const participants = this.studyRoomsManager.getActiveParticipants(this.currentRoomId);
+      const room = this.studyRoomsManager.getRoomById(this.currentRoomId);
+
+      const gameParticipants = participants.map((p) => ({
+        userId: p.userId,
+        userEmail: p.userEmail,
+        userFullName: p.userFullName,
+        userAvatarUrl: p.userAvatarUrl,
+        isHost: p.userId === room?.hostId,
+        isCurrentUser: p.userId === this.currentUserId,
+      }));
+
+      // Show game container
+      this.showGameContainer();
+
+      // Start the game
+      const gameContainer = document.getElementById('multiplayer-game-container');
+      if (gameContainer) {
+        await this.gamesManager.startGame(gameSession.id, gameContainer, gameParticipants);
+      }
+
+      // Listen for game close event
+      window.addEventListener('multiplayer-game:closed', this.handleGameClosed.bind(this), { once: true });
+    } catch (error) {
+      console.error('❌ Failed to start game:', error);
+      alert(`Failed to start game: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.hideGameContainer();
+    }
+  }
+
+  /**
+   * Show game container and hide normal room UI
+   */
+  private showGameContainer(): void {
+    this.isGameActive = true;
+
+    const gameContainer = document.getElementById('multiplayer-game-container');
+    const mainContent = document.querySelector('.study-room-main') as HTMLElement;
+
+    if (gameContainer) gameContainer.style.display = 'block';
+    if (mainContent) mainContent.style.display = 'none';
+
+    this.renderHeader();
+  }
+
+  /**
+   * Hide game container and show normal room UI
+   */
+  private hideGameContainer(): void {
+    this.isGameActive = false;
+
+    const gameContainer = document.getElementById('multiplayer-game-container');
+    const mainContent = document.querySelector('.study-room-main') as HTMLElement;
+
+    if (gameContainer) {
+      gameContainer.style.display = 'none';
+      gameContainer.innerHTML = '';
+    }
+    if (mainContent) mainContent.style.display = 'flex';
+
+    this.renderHeader();
+  }
+
+  /**
+   * Handle game closed event
+   */
+  private async handleGameClosed(): Promise<void> {
+    this.hideGameContainer();
+    await this.gamesManager.cleanup();
   }
 }

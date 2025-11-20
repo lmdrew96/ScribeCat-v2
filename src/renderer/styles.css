@@ -41,6 +41,7 @@
 @import './css/analytics.css';     /* Study analytics dashboard and visualizations */
 @import './css/collaboration.css'; /* Real-time collaboration features */
 @import './css/collaboration-cursors.css'; /* Live cursor overlay for collaborators */
+@import './css/games.css';         /* Multiplayer games (Quiz Battle, Jeopardy, Bingo, Flashcards) */
 
 /* Easter Eggs */
 @import './css/easter-eggs.css';   /* Fun interactive features and animations */

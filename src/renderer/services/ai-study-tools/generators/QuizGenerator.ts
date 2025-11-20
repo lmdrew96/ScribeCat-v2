@@ -282,4 +282,169 @@ ${transcriptionText}`;
 
     render();
   }
+
+  /**
+   * Generate questions for multiplayer games
+   * Returns raw question data without rendering UI
+   */
+  static async generateForMultiplayer(
+    session: Session,
+    questionCount: number,
+    gameType: 'quiz_battle' | 'jeopardy' | 'bingo' | 'flashcards',
+    options?: {
+      categories?: string[];
+      difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
+    }
+  ): Promise<Array<{
+    question: string;
+    options?: string[];
+    correctAnswer: string;
+    explanation?: string;
+    category?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+  }>> {
+    // Load transcription
+    const transcription = await this.loadTranscription(session);
+
+    if (!transcription) {
+      throw new Error('No transcription available for this session');
+    }
+
+    const { text: transcriptionText, isMultiSession } = transcription;
+
+    // Build prompt based on game type
+    let prompt = '';
+
+    switch (gameType) {
+      case 'quiz_battle':
+        prompt = `Create ${questionCount} competitive quiz questions for a multiplayer quiz battle game.
+
+Requirements:
+- Each question should have 4 multiple-choice options
+- Questions should be challenging but fair
+- Mix of difficulty levels: ${options?.difficulty || 'mixed'}
+${options?.categories ? `- Focus on these categories: ${options.categories.join(', ')}` : ''}
+
+For each question, provide:
+1. "question": The question text
+2. "options": Array of 4 answer choices
+3. "correctAnswer": The exact text of the correct answer from the options array
+4. "explanation": Brief explanation of why the answer is correct
+5. "difficulty": "easy", "medium", or "hard"
+${options?.categories ? '6. "category": Which category this question belongs to' : ''}
+
+Format as a JSON array. Cover key concepts from the transcription.
+
+${isMultiSession ? 'Note: This is a multi-session transcription. Create questions from ALL sessions.\n\n' : ''}Transcription:
+${transcriptionText}`;
+        break;
+
+      case 'jeopardy':
+        prompt = `Create ${questionCount} Jeopardy-style questions organized by categories.
+
+Requirements:
+- Questions should be phrased as answers (Jeopardy format)
+- Provide 4 multiple-choice responses phrased as questions
+${options?.categories ? `- Use these categories: ${options.categories.join(', ')}` : '- Create 3-5 relevant categories'}
+- Vary difficulty levels
+
+For each question, provide:
+1. "question": The "answer" in Jeopardy format (e.g., "This psychologist is known for...")
+2. "options": Array of 4 question-format responses (e.g., "Who is Sigmund Freud?")
+3. "correctAnswer": The exact text of the correct response from the options array
+4. "category": The Jeopardy category
+5. "difficulty": "easy", "medium", or "hard"
+6. "explanation": Brief context
+
+Format as a JSON array.
+
+${isMultiSession ? 'Note: This is a multi-session transcription. Create questions from ALL sessions.\n\n' : ''}Transcription:
+${transcriptionText}`;
+        break;
+
+      case 'bingo':
+        prompt = `Create ${questionCount} concept items for a study Bingo game.
+
+Requirements:
+- Each item should be a KEY CONCEPT, term, or topic from the transcription
+- Items should be concise (1-5 words)
+- No duplicate concepts
+- Cover a variety of topics from the material
+
+For each item, provide:
+1. "question": The concept/term (e.g., "Classical Conditioning", "Mitochondria", "Supply and Demand")
+2. "correctAnswer": Same as question (for consistency)
+3. "explanation": Brief definition or context (shown when marked)
+4. "category": Topic area this belongs to
+
+Format as a JSON array.
+
+${isMultiSession ? 'Note: This is a multi-session transcription. Create items from ALL sessions.\n\n' : ''}Transcription:
+${transcriptionText}`;
+        break;
+
+      case 'flashcards':
+        prompt = `Create ${questionCount} flashcard questions for collaborative study.
+
+Requirements:
+- Each should test understanding of a key concept
+- Questions should encourage discussion
+- Mix of recall and application questions
+${options?.difficulty ? `- Difficulty level: ${options.difficulty}` : ''}
+
+For each flashcard, provide:
+1. "question": The front of the card (question)
+2. "correctAnswer": The back of the card (answer)
+3. "explanation": Additional context or why this is important
+4. "difficulty": "easy", "medium", or "hard"
+${options?.categories ? '5. "category": Which category this belongs to' : ''}
+
+Format as a JSON array.
+
+${isMultiSession ? 'Note: This is a multi-session transcription. Create flashcards from ALL sessions.\n\n' : ''}Transcription:
+${transcriptionText}`;
+        break;
+
+      default:
+        throw new Error(`Unknown game type: ${gameType}`);
+    }
+
+    const result = await this.callAI(prompt);
+
+    if (!result.success || !result.data) {
+      throw new Error(result.error || 'Failed to generate questions');
+    }
+
+    try {
+      const questions = AIResponseParser.parseJsonArray(
+        result.data,
+        `${gameType} questions`,
+        (data): data is Array<{
+          question: string;
+          options?: string[];
+          correctAnswer: string;
+          explanation?: string;
+          category?: string;
+          difficulty?: 'easy' | 'medium' | 'hard';
+        }> => {
+          return (
+            Array.isArray(data) &&
+            data.length > 0 &&
+            typeof data[0] === 'object' &&
+            'question' in data[0] &&
+            'correctAnswer' in data[0]
+          );
+        }
+      );
+
+      if (questions.length === 0) {
+        throw new Error('No questions generated');
+      }
+
+      return questions;
+    } catch (e) {
+      console.error('Failed to parse questions:', e);
+      throw new Error(`Failed to parse ${gameType} questions from AI response`);
+    }
+  }
 }
