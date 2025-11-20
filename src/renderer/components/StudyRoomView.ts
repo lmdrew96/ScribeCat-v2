@@ -55,6 +55,10 @@ export class StudyRoomView {
     this.studyRoomsManager.addParticipantsListener((roomId) => {
       if (roomId === this.currentRoomId) {
         this.renderParticipants();
+        // Update chat panel with new participants (fixes "Unknown" user names)
+        this.updateChatParticipants().catch(err =>
+          console.error('Failed to update chat participants:', err)
+        );
       }
     });
 
