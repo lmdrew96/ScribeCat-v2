@@ -32,6 +32,9 @@ tmp/
 temp/
 *.tmp
 
+# Multi-account testing data
+.dev-data/
+
 # Package manager
 package-lock.json
 yarn.lock

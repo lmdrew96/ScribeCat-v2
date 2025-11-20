@@ -1,11 +1,13 @@
 {
   "name": "scribecat-v2",
-  "version": "1.51.0",
+  "version": "1.51.1",
   "type": "module",
   "description": "ScribeCat scribes and is cat. A revolutionary multi-platform app that can be used to record and accurately transcribe speech, take rich text notes, and interact with AI to better understand the content of the recording and your notes.",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "npm run compile && concurrently -k -n \"MAIN,PRELOAD,RENDERER,ELECTRON\" -c \"cyan,magenta,green,yellow\" \"node build-main.js --watch\" \"node build-preload.js --watch\" \"node build-renderer.js --watch\" \"electron .\"",
+    "dev:account1": "electron . --user-data-dir=./.dev-data/account1",
+    "dev:account2": "electron . --user-data-dir=./.dev-data/account2",
     "compile": "node build-main.js && tsc -p tsconfig.preload.json && node build-renderer.js",
     "build": "npm run compile && electron-builder",
     "build:mac": "npm run compile && electron-builder --mac",
