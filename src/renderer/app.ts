@@ -671,6 +671,12 @@ window.addEventListener('beforeunload', async (event) => {
     recordingManager.cleanup();
   }
 
+  // Set user offline before closing (presence cleanup)
+  if (friendsManager) {
+    console.log('[App] Setting user offline before window close...');
+    await friendsManager.stopPresenceTracking();
+  }
+
   // Clean up hot reload listener if it exists
   if ((window.scribeCat as any).dev) {
     (window.scribeCat as any).dev.removeHotReloadListener();

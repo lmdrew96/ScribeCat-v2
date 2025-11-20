@@ -379,6 +379,11 @@ export class IPCCoordinator {
   public async cleanup(): Promise<void> {
     console.log('[IPCCoordinator] Cleaning up handlers on app quit');
 
+    // Cleanup friends presence and subscriptions
+    if (this.friendsHandlers) {
+      await this.friendsHandlers.cleanup();
+    }
+
     // Cleanup chat subscriptions
     if (this.chatHandlers) {
       await this.chatHandlers.cleanup();

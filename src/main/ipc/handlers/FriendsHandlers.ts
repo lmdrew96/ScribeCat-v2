@@ -581,4 +581,37 @@ export class FriendsHandlers extends BaseHandler {
       }
     });
   }
+
+  /**
+   * Cleanup method called on app shutdown
+   * Sets current user offline and unsubscribes from presence updates
+   */
+  async cleanup(): Promise<void> {
+    console.log('[FriendsHandlers] Cleaning up on app quit');
+
+    // Set current user offline if authenticated
+    if (this.currentUserId) {
+      try {
+        console.log(`[FriendsHandlers] Setting user ${this.currentUserId} offline`);
+        await this.presenceRepository.setOffline(this.currentUserId);
+      } catch (error) {
+        console.error('[FriendsHandlers] Error setting user offline during cleanup:', error);
+      }
+    }
+
+    // Unsubscribe from all presence updates
+    if (this.presenceUnsubscribers.size > 0) {
+      console.log(`[FriendsHandlers] Unsubscribing from ${this.presenceUnsubscribers.size} presence channels`);
+      for (const [userId, unsubscribe] of this.presenceUnsubscribers.entries()) {
+        try {
+          await unsubscribe();
+        } catch (error) {
+          console.error(`[FriendsHandlers] Error unsubscribing from presence for user ${userId}:`, error);
+        }
+      }
+      this.presenceUnsubscribers.clear();
+    }
+
+    console.log('[FriendsHandlers] Cleanup complete');
+  }
 }
