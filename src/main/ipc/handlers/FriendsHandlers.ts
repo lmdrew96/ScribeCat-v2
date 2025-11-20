@@ -419,11 +419,13 @@ export class FriendsHandlers extends BaseHandler {
       'friends:updatePresence',
       async (_event, params: { userId: string; status: 'online' | 'away' | 'offline'; activity?: string }) => {
         try {
+          console.log('[FriendsHandlers] Received updatePresence IPC call:', params);
           await this.presenceRepository.updatePresence(params);
+          console.log('[FriendsHandlers] updatePresence completed successfully');
 
           return { success: true };
         } catch (error) {
-          console.error('Error in friends:updatePresence:', error);
+          console.error('[FriendsHandlers] Error in friends:updatePresence:', error);
           return {
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -471,6 +473,7 @@ export class FriendsHandlers extends BaseHandler {
      */
     this.handle(ipcMain, 'friends:getFriendsPresence', async (_event, userId: string) => {
       try {
+        console.log('[FriendsHandlers] Received getFriendsPresence IPC call for user:', userId);
         const presenceMap = await this.presenceRepository.getFriendsPresence(userId);
 
         // Convert Map to plain object for IPC serialization
@@ -483,12 +486,13 @@ export class FriendsHandlers extends BaseHandler {
           };
         }
 
+        console.log('[FriendsHandlers] Returning presence for', Object.keys(presenceObj).length, 'friends');
         return {
           success: true,
           presence: presenceObj,
         };
       } catch (error) {
-        console.error('Error in friends:getFriendsPresence:', error);
+        console.error('[FriendsHandlers] Error in friends:getFriendsPresence:', error);
         return {
           success: false,
           presence: {},

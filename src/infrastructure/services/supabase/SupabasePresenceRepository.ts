@@ -37,6 +37,12 @@ export class SupabasePresenceRepository implements IPresenceRepository {
    */
   async updatePresence(params: UpdatePresenceParams): Promise<void> {
     try {
+      console.log('[PresenceRepository] Updating presence:', {
+        userId: params.userId,
+        status: params.status,
+        activity: params.activity
+      });
+
       const { error } = await this.getClient().rpc('update_user_presence', {
         p_user_id: params.userId,
         p_status: params.status,
@@ -44,11 +50,13 @@ export class SupabasePresenceRepository implements IPresenceRepository {
       });
 
       if (error) {
-        console.error('Error updating presence:', error);
+        console.error('[PresenceRepository] Error updating presence:', error);
         throw new Error(`Failed to update presence: ${error.message}`);
       }
+
+      console.log('[PresenceRepository] Presence updated successfully');
     } catch (error) {
-      console.error('Exception in updatePresence:', error);
+      console.error('[PresenceRepository] Exception in updatePresence:', error);
       throw error;
     }
   }
@@ -95,19 +103,29 @@ export class SupabasePresenceRepository implements IPresenceRepository {
    */
   async getFriendsPresence(userId: string): Promise<Map<string, PresenceData>> {
     try {
+      console.log('[PresenceRepository] Fetching friends presence for user:', userId);
+
       const { data, error } = await this.getClient().rpc('get_friends_presence', {
         target_user_id: userId,
       });
 
       if (error) {
-        console.error('Error fetching friends presence:', error);
+        console.error('[PresenceRepository] Error fetching friends presence:', error);
         throw new Error(`Failed to fetch friends presence: ${error.message}`);
       }
+
+      console.log('[PresenceRepository] Friends presence data received:', data);
 
       const presenceMap = new Map<string, PresenceData>();
 
       if (data && Array.isArray(data)) {
         for (const row of data) {
+          console.log('[PresenceRepository] Processing friend presence:', {
+            friendId: row.friend_id,
+            status: row.status,
+            activity: row.activity,
+            lastSeen: row.last_seen
+          });
           presenceMap.set(row.friend_id, {
             userId: row.friend_id,
             status: row.status as UserStatus,
@@ -117,9 +135,10 @@ export class SupabasePresenceRepository implements IPresenceRepository {
         }
       }
 
+      console.log('[PresenceRepository] Returning presence map with', presenceMap.size, 'entries');
       return presenceMap;
     } catch (error) {
-      console.error('Exception in getFriendsPresence:', error);
+      console.error('[PresenceRepository] Exception in getFriendsPresence:', error);
       throw error;
     }
   }
@@ -152,11 +171,15 @@ export class SupabasePresenceRepository implements IPresenceRepository {
           table: 'user_presence',
         },
         (payload) => {
+          console.log('[PresenceRepository] Received realtime update:', payload);
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const data = payload.new as any;
+            console.log('[PresenceRepository] Presence change detected for user:', data.user_id);
             // Only notify if this is a friend's update (will be filtered by RLS on query)
             this.isFriend(userId, data.user_id).then((isFriend) => {
+              console.log('[PresenceRepository] Is friend check:', { userId: data.user_id, isFriend });
               if (isFriend) {
+                console.log('[PresenceRepository] Notifying about friend presence update');
                 onUpdate(data.user_id, {
                   userId: data.user_id,
                   status: data.status as UserStatus,

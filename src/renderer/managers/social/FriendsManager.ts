@@ -79,6 +79,11 @@ export class FriendsManager {
         this.friends = result.friends || [];
         this.notifyFriendsListeners();
         logger.info(`Loaded ${this.friends.length} friends`);
+
+        // Load presence data for all friends after loading friends list
+        if (this.currentUserId && this.friends.length > 0) {
+          await this.loadFriendsPresence();
+        }
       } else {
         logger.error('Failed to load friends:', result.error);
         throw new Error(result.error);
@@ -479,8 +484,8 @@ export class FriendsManager {
       // Subscribe to friends' presence updates
       await this.subscribeToPresenceUpdates();
 
-      // Load initial friends presence
-      await this.loadFriendsPresence();
+      // Note: loadFriendsPresence() is now called automatically after loadFriends()
+      // so we don't need to call it here
 
       logger.info('Presence tracking started');
     } catch (error) {
@@ -557,7 +562,6 @@ export class FriendsManager {
       const result = await window.scribeCat.friends.getFriendsPresence(this.currentUserId);
 
       if (result.success && result.presence) {
-        // Update friends with presence data
         this.updateFriendsWithPresence(result.presence);
       }
     } catch (error) {
@@ -617,6 +621,7 @@ export class FriendsManager {
 
     if (updated) {
       this.notifyFriendsListeners();
+      logger.debug('Updated presence for', Object.keys(presenceMap).length, 'friends');
     }
   }
 
