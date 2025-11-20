@@ -176,9 +176,16 @@ export class ChatPanel {
     // Check if message already exists (prevent duplicates)
     const existingMessage = messagesContainer.querySelector(`[data-message-id="${message.id}"]`);
     if (existingMessage) {
-      console.log('Message already in UI, skipping:', message.id);
+      const userName = this.userNames.get(message.userId) || 'Unknown';
+      const isOwn = message.userId === this.currentUserId;
+      console.log(`[ChatPanel] Message already in UI, skipping (${isOwn ? 'OWN' : 'OTHER'}):`, message.id, 'from:', userName);
       return;
     }
+
+    // Log message being added
+    const userName = this.userNames.get(message.userId) || 'Unknown';
+    const isOwnMessage = message.userId === this.currentUserId;
+    console.log(`[ChatPanel] Adding message to UI (${isOwnMessage ? 'OWN' : 'OTHER'}):`, message.id, 'from:', userName, 'text:', message.message);
 
     // Remove empty state if it exists
     const emptyState = messagesContainer.querySelector('.chat-empty-state');
@@ -191,9 +198,6 @@ export class ChatPanel {
     if (loadingState) {
       loadingState.remove();
     }
-
-    const userName = this.userNames.get(message.userId) || 'Unknown User';
-    const isOwnMessage = message.userId === this.currentUserId;
     const initials = this.getInitials(userName);
 
     const messageEl = document.createElement('div');
