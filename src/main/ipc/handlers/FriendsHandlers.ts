@@ -13,6 +13,7 @@ export class FriendsHandlers extends BaseHandler {
   private currentUserId: string | null = null;
   private friendsRepository: SupabaseFriendsRepository;
   private presenceRepository: SupabasePresenceRepository;
+  private presenceUnsubscribers: Map<string, () => Promise<void>> = new Map();
 
   constructor() {
     super();
@@ -501,6 +502,13 @@ export class FriendsHandlers extends BaseHandler {
      */
     this.handle(ipcMain, 'friends:subscribeToPresence', async (event, userId: string) => {
       try {
+        // Unsubscribe from any existing subscription for this user
+        const existingUnsubscribe = this.presenceUnsubscribers.get(userId);
+        if (existingUnsubscribe) {
+          await existingUnsubscribe();
+          this.presenceUnsubscribers.delete(userId);
+        }
+
         const unsubscribe = this.presenceRepository.subscribeToFriendsPresence(
           userId,
           (friendId, presence) => {
@@ -517,17 +525,34 @@ export class FriendsHandlers extends BaseHandler {
         );
 
         // Store unsubscribe function for cleanup
-        // Note: In a real implementation, you'd want to track this per window
-        // and clean up when the window closes
+        this.presenceUnsubscribers.set(userId, unsubscribe);
 
         return {
           success: true,
-          unsubscribe: async () => {
-            await unsubscribe();
-          },
         };
       } catch (error) {
         console.error('Error in friends:subscribeToPresence:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    });
+
+    /**
+     * Unsubscribe from presence updates
+     */
+    this.handle(ipcMain, 'friends:unsubscribeFromPresence', async (_event, userId: string) => {
+      try {
+        const unsubscribe = this.presenceUnsubscribers.get(userId);
+        if (unsubscribe) {
+          await unsubscribe();
+          this.presenceUnsubscribers.delete(userId);
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error('Error in friends:unsubscribeFromPresence:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',

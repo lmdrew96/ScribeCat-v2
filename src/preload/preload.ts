@@ -326,6 +326,8 @@ const electronAPI = {
       ipcRenderer.invoke('friends:getFriendsPresence', userId),
     subscribeToPresence: (userId: string) =>
       ipcRenderer.invoke('friends:subscribeToPresence', userId),
+    unsubscribeFromPresence: (userId: string) =>
+      ipcRenderer.invoke('friends:unsubscribeFromPresence', userId),
     setOffline: (userId: string) =>
       ipcRenderer.invoke('friends:setOffline', userId),
     onPresenceUpdate: (callback: (data: {

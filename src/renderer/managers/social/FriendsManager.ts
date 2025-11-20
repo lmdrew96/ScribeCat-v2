@@ -29,7 +29,6 @@ export class FriendsManager {
 
   // Presence tracking
   private heartbeatInterval: NodeJS.Timeout | null = null;
-  private presenceUnsubscribe: (() => Promise<void>) | null = null;
   private readonly HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
 
   constructor() {
@@ -509,9 +508,8 @@ export class FriendsManager {
       }
 
       // Unsubscribe from presence updates
-      if (this.presenceUnsubscribe) {
-        await this.presenceUnsubscribe();
-        this.presenceUnsubscribe = null;
+      if (this.currentUserId) {
+        await window.scribeCat.friends.unsubscribeFromPresence(this.currentUserId);
       }
 
       logger.info('Presence tracking stopped');
@@ -585,8 +583,7 @@ export class FriendsManager {
 
       const result = await window.scribeCat.friends.subscribeToPresence(this.currentUserId);
 
-      if (result.success && result.unsubscribe) {
-        this.presenceUnsubscribe = result.unsubscribe;
+      if (result.success) {
         logger.info('Subscribed to friends presence updates');
       }
     } catch (error) {
