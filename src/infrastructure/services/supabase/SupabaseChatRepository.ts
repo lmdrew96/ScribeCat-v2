@@ -118,6 +118,17 @@ export class SupabaseChatRepository implements IChatRepository {
       this.channels.delete(channelName);
     }
 
+    // Get access token for Realtime auth (required in main process where localStorage doesn't work)
+    const accessToken = SupabaseClient.getInstance().getAccessToken();
+
+    // Set auth token on the Realtime client before creating channel (required for RLS)
+    if (accessToken) {
+      console.log('🔐 Setting access token on Realtime client for RLS');
+      client.realtime.setAuth(accessToken);
+    } else {
+      console.warn('⚠️  No access token available for Realtime - RLS may fail');
+    }
+
     const channel = client
       .channel(channelName)
       .on(
