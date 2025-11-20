@@ -11,6 +11,26 @@ import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
 export class BingoGame extends MultiplayerGame {
   private markedCells: Set<number> = new Set();
   private gridSize: number = 5; // 5x5 grid
+  private readonly freeSpaceIndex: number = 12; // Center cell (index 12 in 5x5 grid)
+
+  // All 12 winning combinations for a 5x5 bingo grid
+  private readonly winningCombinations: number[][] = [
+    // Rows
+    [0, 1, 2, 3, 4],
+    [5, 6, 7, 8, 9],
+    [10, 11, 12, 13, 14],
+    [15, 16, 17, 18, 19],
+    [20, 21, 22, 23, 24],
+    // Columns
+    [0, 5, 10, 15, 20],
+    [1, 6, 11, 16, 21],
+    [2, 7, 12, 17, 22],
+    [3, 8, 13, 18, 23],
+    [4, 9, 14, 19, 24],
+    // Diagonals
+    [0, 6, 12, 18, 24],
+    [4, 8, 12, 16, 20],
+  ];
 
   protected render(): void {
     const { gameStarted, gameEnded } = this.state;
@@ -113,9 +133,21 @@ export class BingoGame extends MultiplayerGame {
     });
   }
 
+  /**
+   * Check if any winning combination is complete.
+   * A winning combination requires all 5 cells in a row, column, or diagonal to be marked.
+   * The free space (center cell) is automatically considered marked.
+   */
   private checkBingo(): boolean {
-    // Simple check - would need full row/column/diagonal logic
-    return this.markedCells.size >= 5;
+    return this.winningCombinations.some((combination) =>
+      combination.every((index) => {
+        // Free space is automatically marked
+        if (index === this.freeSpaceIndex) {
+          return true;
+        }
+        return this.markedCells.has(index);
+      })
+    );
   }
 
   private handleBingo(): void {

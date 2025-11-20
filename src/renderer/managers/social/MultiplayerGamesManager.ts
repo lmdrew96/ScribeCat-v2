@@ -19,12 +19,23 @@ export class MultiplayerGamesManager {
   private currentGameSession: GameSession | null = null;
   private currentUserId: string | null = null;
   private unsubscribers: Array<() => void> = [];
+  private reconnectAttempts: number = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 5;
+  private reconnectTimeout: number | null = null;
+  private isReconnecting: boolean = false;
+  private currentContainer: HTMLElement | null = null;
+  private currentParticipants: GameParticipant[] = [];
 
   /**
    * Initialize manager with current user
    */
   public initialize(userId: string): void {
     this.currentUserId = userId;
+
+    // Check for active games on initialization (reconnection scenario)
+    this.checkAndReconnectActiveGame().catch(err => {
+      console.error('Failed to reconnect to active game:', err);
+    });
   }
 
   /**
@@ -109,6 +120,149 @@ export class MultiplayerGamesManager {
   }
 
   /**
+   * Check for and reconnect to active games
+   */
+  private async checkAndReconnectActiveGame(): Promise<void> {
+    if (!this.currentUserId || this.currentGame) {
+      return; // Already have a game or not initialized
+    }
+
+    // Query for active game sessions where user is a participant
+    // This would require a new IPC method - for now, skip
+    console.log('[MultiplayerGamesManager] Checking for active games...');
+  }
+
+  /**
+   * Attempt to reconnect to game after disconnection
+   */
+  private async attemptReconnect(gameSessionId: string): Promise<void> {
+    if (this.isReconnecting || this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+      console.error('[MultiplayerGamesManager] Max reconnection attempts reached');
+      this.showConnectionError();
+      return;
+    }
+
+    this.isReconnecting = true;
+    this.reconnectAttempts++;
+
+    // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+    const backoffMs = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 16000);
+
+    console.log(`[MultiplayerGamesManager] Reconnecting in ${backoffMs}ms (attempt ${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS})`);
+
+    this.showReconnectingUI();
+
+    this.reconnectTimeout = window.setTimeout(async () => {
+      try {
+        // Resubscribe to game updates
+        this.subscribeToGameUpdates(gameSessionId);
+
+        // Refresh game state
+        await this.refreshGameState(gameSessionId);
+
+        // Success!
+        this.reconnectAttempts = 0;
+        this.isReconnecting = false;
+        this.hideReconnectingUI();
+        console.log('[MultiplayerGamesManager] Reconnected successfully');
+      } catch (error) {
+        console.error('[MultiplayerGamesManager] Reconnection failed:', error);
+        this.isReconnecting = false;
+        // Try again
+        await this.attemptReconnect(gameSessionId);
+      }
+    }, backoffMs);
+  }
+
+  /**
+   * Refresh game state from server
+   */
+  private async refreshGameState(gameSessionId: string): Promise<void> {
+    if (!this.currentGame) return;
+
+    // Reload game session
+    const sessionResult = await window.scribeCat.games.getGameSession(gameSessionId);
+    if (sessionResult.success && sessionResult.gameSession) {
+      this.currentGameSession = GameSession.fromJSON(sessionResult.gameSession);
+    }
+
+    // Reload current question
+    const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
+    const currentQuestion = questionResult.success && questionResult.question
+      ? GameQuestion.fromJSON(questionResult.question)
+      : null;
+
+    // Reload leaderboard
+    const leaderboardResult = await window.scribeCat.games.getGameLeaderboard(gameSessionId);
+    const leaderboard = leaderboardResult.success ? leaderboardResult.leaderboard || [] : [];
+
+    // Update game state
+    this.currentGame.updateState({
+      session: this.currentGameSession,
+      currentQuestion,
+      leaderboard,
+      gameEnded: this.currentGameSession?.hasEnded() || false,
+    });
+  }
+
+  /**
+   * Show reconnecting UI overlay
+   */
+  private showReconnectingUI(): void {
+    if (!this.currentContainer) return;
+
+    const existing = this.currentContainer.querySelector('.reconnecting-overlay');
+    if (existing) return; // Already showing
+
+    const overlay = document.createElement('div');
+    overlay.className = 'reconnecting-overlay';
+    overlay.innerHTML = `
+      <div class="reconnecting-content">
+        <div class="loading-spinner"></div>
+        <h3>Reconnecting to game...</h3>
+        <p>Attempt ${this.reconnectAttempts} of ${this.MAX_RECONNECT_ATTEMPTS}</p>
+      </div>
+    `;
+    this.currentContainer.appendChild(overlay);
+  }
+
+  /**
+   * Hide reconnecting UI overlay
+   */
+  private hideReconnectingUI(): void {
+    if (!this.currentContainer) return;
+
+    const overlay = this.currentContainer.querySelector('.reconnecting-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+  }
+
+  /**
+   * Show connection error UI
+   */
+  private showConnectionError(): void {
+    if (!this.currentContainer) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'connection-error-overlay';
+    overlay.innerHTML = `
+      <div class="error-content">
+        <h3>Connection Lost</h3>
+        <p>Unable to reconnect to the game. Please check your internet connection and refresh the page.</p>
+        <button class="close-game-btn">Close Game</button>
+      </div>
+    `;
+
+    const closeBtn = overlay.querySelector('.close-game-btn');
+    closeBtn?.addEventListener('click', () => {
+      this.cleanup();
+    });
+
+    this.currentContainer.appendChild(overlay);
+  }
+
+  /**
    * Start a game
    */
   public async startGame(
@@ -119,6 +273,10 @@ export class MultiplayerGamesManager {
     if (!this.currentUserId) {
       throw new Error('Games manager not initialized');
     }
+
+    // Store for reconnection
+    this.currentContainer = container;
+    this.currentParticipants = participants;
 
     // Update game status to in_progress
     const result = await window.scribeCat.games.startGame(gameSessionId);
@@ -391,6 +549,16 @@ export class MultiplayerGamesManager {
    * Cleanup resources
    */
   public async cleanup(): Promise<void> {
+    // Clear reconnection timeout
+    if (this.reconnectTimeout !== null) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    // Reset reconnection state
+    this.reconnectAttempts = 0;
+    this.isReconnecting = false;
+
     // Unsubscribe from all subscriptions
     for (const unsubscribe of this.unsubscribers) {
       unsubscribe();
@@ -404,6 +572,8 @@ export class MultiplayerGamesManager {
     }
 
     this.currentGameSession = null;
+    this.currentContainer = null;
+    this.currentParticipants = [];
 
     // Remove event listeners
     window.removeEventListener('game:answer', this.handleAnswerSubmit.bind(this));

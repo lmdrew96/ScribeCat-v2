@@ -13,6 +13,7 @@ import { ChatManager } from '../managers/social/ChatManager.js';
 import { ChatPanel } from './ChatPanel.js';
 import { InviteFriendsModal } from './InviteFriendsModal.js';
 import { escapeHtml, formatTimestamp } from '../utils/formatting.js';
+import { ErrorModal } from '../utils/ErrorModal.js';
 import { SupabaseClient } from '../../infrastructure/services/supabase/SupabaseClient.js';
 import { RendererSupabaseClient } from '../services/RendererSupabaseClient.js';
 import { Editor } from '@tiptap/core';
@@ -311,7 +312,10 @@ export class StudyRoomView {
         await this.studyRoomsManager.joinRoom(roomId);
       } catch (error) {
         console.error('Failed to join room:', error);
-        alert('Failed to join room. Please try again.');
+        ErrorModal.show(
+          'Failed to Join Room',
+          'Could not join the study room. Please check your connection and try again.'
+        );
         if (this.onExit) this.onExit();
         return;
       }
@@ -559,7 +563,10 @@ export class StudyRoomView {
           try {
             await this.studyRoomsManager.removeParticipant(this.currentRoomId, userId);
           } catch (error) {
-            alert('Failed to remove participant. Please try again.');
+            ErrorModal.show(
+              'Failed to Remove Participant',
+              'Could not remove the participant from the room. Please try again.'
+            );
           }
         }
       });
@@ -944,7 +951,10 @@ export class StudyRoomView {
 
     // Only host can invite
     if (room.hostId !== this.currentUserId) {
-      alert('Only the host can invite friends to the room.');
+      ErrorModal.show(
+        'Permission Denied',
+        'Only the room host can invite friends to the room.'
+      );
       return;
     }
 
@@ -1166,18 +1176,26 @@ export class StudyRoomView {
         await window.scribeCat.games.cancelGame(activeGameResult.gameSession.id);
       }
 
-      // Create game session (this generates questions with AI)
-      const gameSession = await this.gamesManager.createGame(
-        this.currentRoomId,
-        result.gameType,
-        this.currentSession,
-        {
-          questionCount: result.questionCount,
-          difficulty: result.difficulty,
-        }
-      );
+      // Show loading modal for AI question generation
+      const gameName = result.gameType === 'quiz_battle' ? 'Quiz Battle' :
+                       result.gameType === 'jeopardy' ? 'Jeopardy' :
+                       result.gameType === 'bingo' ? 'Bingo' : 'Flashcards';
+      const hideLoading = ErrorModal.showLoading(`Generating ${gameName} questions with AI...`);
 
-      console.log('✅ Questions generated successfully');
+      try {
+        // Create game session (this generates questions with AI)
+        const gameSession = await this.gamesManager.createGame(
+          this.currentRoomId,
+          result.gameType,
+          this.currentSession,
+          {
+            questionCount: result.questionCount,
+            difficulty: result.difficulty,
+          }
+        );
+
+        hideLoading();
+        console.log('✅ Questions generated successfully');
 
       // Get participants for game
       const participants = this.studyRoomsManager.getActiveParticipants(this.currentRoomId);
@@ -1203,9 +1221,16 @@ export class StudyRoomView {
 
       // Listen for game close event
       window.addEventListener('multiplayer-game:closed', this.handleGameClosed.bind(this), { once: true });
+      } catch (loadError) {
+        hideLoading();
+        throw loadError; // Re-throw to outer catch
+      }
     } catch (error) {
       console.error('❌ Failed to start game:', error);
-      alert(`Failed to start game: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      ErrorModal.show(
+        'Failed to Start Game',
+        error instanceof Error ? error.message : 'An unknown error occurred while starting the game.'
+      );
       this.hideGameContainer();
     }
   }

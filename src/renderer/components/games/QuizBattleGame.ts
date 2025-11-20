@@ -7,6 +7,7 @@
 
 import { MultiplayerGame, GameState } from './MultiplayerGame.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
+import { TimeSync } from '../../services/TimeSync.js';
 
 export class QuizBattleGame extends MultiplayerGame {
   private questionStartTime: number | null = null;
@@ -14,12 +15,19 @@ export class QuizBattleGame extends MultiplayerGame {
   private answerSubmitted: boolean = false;
   private timerInterval: number | null = null;
   private timeRemaining: number = 0;
+  private timeSync: TimeSync = TimeSync.getInstance();
 
   /**
-   * Initialize quiz battle game
+   * Initialize quiz battle game with time synchronization
    */
   public async initialize(): Promise<void> {
     await super.initialize();
+
+    // Initialize time sync for fair timing across all players
+    if (!this.timeSync.isSynced()) {
+      await this.timeSync.initialize();
+    }
+
     this.startQuestionTimer();
   }
 
@@ -98,14 +106,15 @@ export class QuizBattleGame extends MultiplayerGame {
   }
 
   /**
-   * Handle player answer submission
+   * Handle player answer submission with synchronized timing
    */
   protected async handleAnswer(answer: string): Promise<void> {
     if (this.answerSubmitted || !this.questionStartTime) {
       return;
     }
 
-    const timeTaken = Date.now() - this.questionStartTime;
+    // Use synchronized time for fair timing across all players
+    const timeTaken = this.timeSync.now() - this.questionStartTime;
     this.answerSubmitted = true;
 
     // Emit answer event (will be handled by MultiplayerGamesManager)
@@ -221,7 +230,8 @@ export class QuizBattleGame extends MultiplayerGame {
   // ============================================================================
 
   /**
-   * Start question timer
+   * Start question timer using synchronized time
+   * Uses TimeSync service to ensure all players see the same countdown
    */
   private startQuestionTimer(): void {
     this.stopQuestionTimer();
@@ -229,14 +239,14 @@ export class QuizBattleGame extends MultiplayerGame {
     const { currentQuestion } = this.state;
     if (!currentQuestion) return;
 
-    this.questionStartTime = Date.now();
+    // Use synchronized time instead of client Date.now()
+    this.questionStartTime = this.timeSync.now();
     this.timeRemaining = currentQuestion.timeLimitSeconds;
 
     this.timerInterval = window.setInterval(() => {
-      this.timeRemaining = Math.max(
-        0,
-        currentQuestion.timeLimitSeconds - (Date.now() - this.questionStartTime!) / 1000
-      );
+      // Calculate elapsed time using synchronized clock
+      const elapsed = (this.timeSync.now() - this.questionStartTime!) / 1000;
+      this.timeRemaining = Math.max(0, currentQuestion.timeLimitSeconds - elapsed);
 
       // Update timer display
       const timerText = this.container.querySelector('.timer-text');
