@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Dev testing data (multi-user testing)
+.dev-data/
+
 # Logs
 *.log
 npm-debug.log*
