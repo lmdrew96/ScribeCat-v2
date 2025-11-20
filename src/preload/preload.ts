@@ -316,7 +316,28 @@ const electronAPI = {
     searchUsers: (searchEmail: string, limit?: number) =>
       ipcRenderer.invoke('friends:searchUsers', searchEmail, limit),
     getUserProfile: (userId: string) =>
-      ipcRenderer.invoke('friends:getUserProfile', userId)
+      ipcRenderer.invoke('friends:getUserProfile', userId),
+    // Presence operations
+    updatePresence: (params: { userId: string; status: 'online' | 'away' | 'offline'; activity?: string }) =>
+      ipcRenderer.invoke('friends:updatePresence', params),
+    getUserPresence: (userId: string) =>
+      ipcRenderer.invoke('friends:getUserPresence', userId),
+    getFriendsPresence: (userId: string) =>
+      ipcRenderer.invoke('friends:getFriendsPresence', userId),
+    subscribeToPresence: (userId: string) =>
+      ipcRenderer.invoke('friends:subscribeToPresence', userId),
+    setOffline: (userId: string) =>
+      ipcRenderer.invoke('friends:setOffline', userId),
+    onPresenceUpdate: (callback: (data: {
+      friendId: string;
+      presence: {
+        status: 'online' | 'away' | 'offline';
+        activity?: string;
+        lastSeen: string;
+      }
+    }) => void) => {
+      ipcRenderer.on('friends:presenceUpdate', (_event: any, data: any) => callback(data));
+    }
   },
   studyRooms: {
     // Room operations

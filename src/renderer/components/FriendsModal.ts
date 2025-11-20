@@ -302,8 +302,12 @@ export class FriendsModal {
   private renderFriendItem(friend: FriendData): string {
     const displayName = friend.friendFullName || friend.friendEmail;
     const initials = this.getInitials(displayName);
-    const onlineStatus = friend.isOnline ? '<span class="status-indicator online"></span>' : '';
-    const statusText = friend.currentActivity || (friend.isOnline ? 'Online' : 'Offline');
+
+    // Determine online status indicator
+    const statusIndicator = this.getStatusIndicator(friend);
+
+    // Get status text (uses Friend entity logic if available, or fallback)
+    const statusText = this.getStatusText(friend);
 
     return `
       <div class="friend-item" data-friend-id="${friend.friendId}">
@@ -312,11 +316,11 @@ export class FriendsModal {
             `<img src="${escapeHtml(friend.friendAvatarUrl)}" alt="${escapeHtml(displayName)}" />` :
             `<div class="avatar-placeholder">${escapeHtml(initials)}</div>`
           }
-          ${onlineStatus}
+          ${statusIndicator}
         </div>
         <div class="friend-info">
           <div class="friend-name">${escapeHtml(displayName)}</div>
-          <div class="friend-status">${escapeHtml(statusText)}</div>
+          <div class="friend-status ${friend.isOnline ? 'status-online' : 'status-offline'}">${escapeHtml(statusText)}</div>
         </div>
         <div class="friend-actions">
           <button class="friend-remove-btn btn-text" data-friend-id="${friend.friendId}" title="Remove friend">
@@ -325,6 +329,78 @@ export class FriendsModal {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Get status indicator HTML for a friend
+   */
+  private getStatusIndicator(friend: FriendData): string {
+    if (friend.isOnline) {
+      return '<span class="status-indicator online" title="Online"></span>';
+    }
+
+    // Check if recently online (within last 10 minutes)
+    if (friend.lastSeen) {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const lastSeen = new Date(friend.lastSeen);
+      if (lastSeen > tenMinutesAgo) {
+        return '<span class="status-indicator away" title="Recently online"></span>';
+      }
+    }
+
+    return '<span class="status-indicator offline" title="Offline"></span>';
+  }
+
+  /**
+   * Get status text for a friend
+   */
+  private getStatusText(friend: FriendData): string {
+    // If online and has activity, show the activity
+    if (friend.isOnline && friend.currentActivity) {
+      return friend.currentActivity;
+    }
+
+    if (friend.isOnline) {
+      return 'Online';
+    }
+
+    // Check if recently online
+    if (friend.lastSeen) {
+      const lastSeen = new Date(friend.lastSeen);
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+      if (lastSeen > tenMinutesAgo) {
+        return 'Recently online';
+      }
+
+      // Format last seen time
+      return this.formatLastSeen(lastSeen);
+    }
+
+    return 'Offline';
+  }
+
+  /**
+   * Format last seen time as human-readable string
+   */
+  private formatLastSeen(lastSeen: Date): string {
+    const now = Date.now();
+    const diff = now - lastSeen.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) {
+      return 'Just now';
+    } else if (minutes < 60) {
+      return `${minutes}m ago`;
+    } else if (hours < 24) {
+      return `${hours}h ago`;
+    } else if (days < 7) {
+      return `${days}d ago`;
+    } else {
+      return lastSeen.toLocaleDateString();
+    }
   }
 
   /**

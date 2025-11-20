@@ -7,14 +7,17 @@
 import type { IpcMain } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import { SupabaseFriendsRepository } from '../../../infrastructure/services/supabase/SupabaseFriendsRepository.js';
+import { SupabasePresenceRepository } from '../../../infrastructure/services/supabase/SupabasePresenceRepository.js';
 
 export class FriendsHandlers extends BaseHandler {
   private currentUserId: string | null = null;
   private friendsRepository: SupabaseFriendsRepository;
+  private presenceRepository: SupabasePresenceRepository;
 
   constructor() {
     super();
     this.friendsRepository = new SupabaseFriendsRepository();
+    this.presenceRepository = new SupabasePresenceRepository();
   }
 
   /** Set the current user ID for access checks */
@@ -396,6 +399,152 @@ export class FriendsHandlers extends BaseHandler {
         };
       } catch (error) {
         console.error('Error in friends:getUserProfile:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    });
+
+    // ========================================================================
+    // Presence Operations
+    // ========================================================================
+
+    /**
+     * Update user's presence status
+     */
+    this.handle(
+      ipcMain,
+      'friends:updatePresence',
+      async (_event, params: { userId: string; status: 'online' | 'away' | 'offline'; activity?: string }) => {
+        try {
+          await this.presenceRepository.updatePresence(params);
+
+          return { success: true };
+        } catch (error) {
+          console.error('Error in friends:updatePresence:', error);
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          };
+        }
+      }
+    );
+
+    /**
+     * Get presence data for a specific user
+     */
+    this.handle(ipcMain, 'friends:getUserPresence', async (_event, userId: string) => {
+      try {
+        const presence = await this.presenceRepository.getUserPresence(userId);
+
+        if (!presence) {
+          return {
+            success: false,
+            presence: null,
+            error: 'User presence not found',
+          };
+        }
+
+        return {
+          success: true,
+          presence: {
+            userId: presence.userId,
+            status: presence.status,
+            activity: presence.activity,
+            lastSeen: presence.lastSeen.toISOString(),
+          },
+        };
+      } catch (error) {
+        console.error('Error in friends:getUserPresence:', error);
+        return {
+          success: false,
+          presence: null,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    });
+
+    /**
+     * Get presence data for all friends of a user
+     */
+    this.handle(ipcMain, 'friends:getFriendsPresence', async (_event, userId: string) => {
+      try {
+        const presenceMap = await this.presenceRepository.getFriendsPresence(userId);
+
+        // Convert Map to plain object for IPC serialization
+        const presenceObj: Record<string, any> = {};
+        for (const [friendId, presence] of presenceMap.entries()) {
+          presenceObj[friendId] = {
+            status: presence.status,
+            activity: presence.activity,
+            lastSeen: presence.lastSeen.toISOString(),
+          };
+        }
+
+        return {
+          success: true,
+          presence: presenceObj,
+        };
+      } catch (error) {
+        console.error('Error in friends:getFriendsPresence:', error);
+        return {
+          success: false,
+          presence: {},
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    });
+
+    /**
+     * Subscribe to presence updates for a user's friends
+     */
+    this.handle(ipcMain, 'friends:subscribeToPresence', async (event, userId: string) => {
+      try {
+        const unsubscribe = this.presenceRepository.subscribeToFriendsPresence(
+          userId,
+          (friendId, presence) => {
+            // Send presence update to renderer process
+            event.sender.send('friends:presenceUpdate', {
+              friendId,
+              presence: {
+                status: presence.status,
+                activity: presence.activity,
+                lastSeen: presence.lastSeen.toISOString(),
+              },
+            });
+          }
+        );
+
+        // Store unsubscribe function for cleanup
+        // Note: In a real implementation, you'd want to track this per window
+        // and clean up when the window closes
+
+        return {
+          success: true,
+          unsubscribe: async () => {
+            await unsubscribe();
+          },
+        };
+      } catch (error) {
+        console.error('Error in friends:subscribeToPresence:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    });
+
+    /**
+     * Set user to offline status
+     */
+    this.handle(ipcMain, 'friends:setOffline', async (_event, userId: string) => {
+      try {
+        await this.presenceRepository.setOffline(userId);
+
+        return { success: true };
+      } catch (error) {
+        console.error('Error in friends:setOffline:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',

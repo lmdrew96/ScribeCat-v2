@@ -17,6 +17,7 @@ export type RequestsChangeListener = (requests: FriendRequestData[]) => void;
 
 /**
  * FriendsManager - Manages friend relationships and requests
+ * Now includes real-time presence tracking
  */
 export class FriendsManager {
   private friends: FriendData[] = [];
@@ -25,6 +26,11 @@ export class FriendsManager {
 
   private friendsListeners: Set<FriendsChangeListener> = new Set();
   private requestsListeners: Set<RequestsChangeListener> = new Set();
+
+  // Presence tracking
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private presenceUnsubscribe: (() => Promise<void>) | null = null;
+  private readonly HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
 
   constructor() {
     logger.info('FriendsManager initialized');
@@ -37,13 +43,20 @@ export class FriendsManager {
     this.currentUserId = userId;
     await this.loadFriends();
     await this.loadFriendRequests();
+
+    // Start presence tracking
+    await this.startPresenceTracking();
+
     logger.info('FriendsManager initialized for user:', userId);
   }
 
   /**
    * Clear all data (on sign out)
    */
-  clear(): void {
+  async clear(): Promise<void> {
+    // Stop presence tracking
+    await this.stopPresenceTracking();
+
     this.currentUserId = null;
     this.friends = [];
     this.friendRequests = [];
@@ -433,5 +446,203 @@ export class FriendsManager {
       this.loadFriends(),
       this.loadFriendRequests(),
     ]);
+  }
+
+  // ============================================================================
+  // Presence Tracking
+  // ============================================================================
+
+  /**
+   * Start presence tracking for the current user
+   * - Sets user status to online
+   * - Starts heartbeat to keep presence updated
+   * - Subscribes to friends' presence changes
+   */
+  private async startPresenceTracking(): Promise<void> {
+    if (!this.currentUserId) {
+      logger.warn('Cannot start presence tracking: No user ID');
+      return;
+    }
+
+    try {
+      // Set initial presence to online
+      await this.updatePresence('online');
+
+      // Start heartbeat to update presence every 30 seconds
+      this.heartbeatInterval = setInterval(async () => {
+        try {
+          await this.updatePresence('online');
+        } catch (error) {
+          logger.error('Heartbeat presence update failed:', error);
+        }
+      }, this.HEARTBEAT_INTERVAL_MS);
+
+      // Subscribe to friends' presence updates
+      await this.subscribeToPresenceUpdates();
+
+      // Load initial friends presence
+      await this.loadFriendsPresence();
+
+      logger.info('Presence tracking started');
+    } catch (error) {
+      logger.error('Failed to start presence tracking:', error);
+    }
+  }
+
+  /**
+   * Stop presence tracking
+   * - Clears heartbeat interval
+   * - Sets user to offline
+   * - Unsubscribes from presence updates
+   */
+  private async stopPresenceTracking(): Promise<void> {
+    try {
+      // Clear heartbeat interval
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = null;
+      }
+
+      // Set user to offline
+      if (this.currentUserId) {
+        await this.updatePresence('offline');
+      }
+
+      // Unsubscribe from presence updates
+      if (this.presenceUnsubscribe) {
+        await this.presenceUnsubscribe();
+        this.presenceUnsubscribe = null;
+      }
+
+      logger.info('Presence tracking stopped');
+    } catch (error) {
+      logger.error('Failed to stop presence tracking:', error);
+    }
+  }
+
+  /**
+   * Update current user's presence status
+   */
+  private async updatePresence(status: 'online' | 'away' | 'offline', activity?: string): Promise<void> {
+    if (!this.currentUserId) return;
+
+    try {
+      const result = await window.scribeCat.friends.updatePresence({
+        userId: this.currentUserId,
+        status,
+        activity,
+      });
+
+      if (!result.success) {
+        logger.error('Failed to update presence:', result.error);
+      }
+    } catch (error) {
+      logger.error('Exception updating presence:', error);
+    }
+  }
+
+  /**
+   * Set user activity status
+   * Example: "Studying PSYCH101", "In Quiz Battle", etc.
+   */
+  async setActivity(activity: string | undefined): Promise<void> {
+    await this.updatePresence('online', activity);
+  }
+
+  /**
+   * Load friends' presence data
+   */
+  private async loadFriendsPresence(): Promise<void> {
+    if (!this.currentUserId) return;
+
+    try {
+      const result = await window.scribeCat.friends.getFriendsPresence(this.currentUserId);
+
+      if (result.success && result.presence) {
+        // Update friends with presence data
+        this.updateFriendsWithPresence(result.presence);
+      }
+    } catch (error) {
+      logger.error('Failed to load friends presence:', error);
+    }
+  }
+
+  /**
+   * Subscribe to real-time presence updates from friends
+   */
+  private async subscribeToPresenceUpdates(): Promise<void> {
+    if (!this.currentUserId) return;
+
+    try {
+      // Listen for presence updates from IPC
+      window.scribeCat.friends.onPresenceUpdate((data) => {
+        this.handlePresenceUpdate(data.friendId, {
+          status: data.presence.status,
+          activity: data.presence.activity,
+          lastSeen: new Date(data.presence.lastSeen),
+        });
+      });
+
+      const result = await window.scribeCat.friends.subscribeToPresence(this.currentUserId);
+
+      if (result.success && result.unsubscribe) {
+        this.presenceUnsubscribe = result.unsubscribe;
+        logger.info('Subscribed to friends presence updates');
+      }
+    } catch (error) {
+      logger.error('Failed to subscribe to presence updates:', error);
+    }
+  }
+
+  /**
+   * Update friends data with presence information
+   */
+  private updateFriendsWithPresence(presenceMap: Record<string, {
+    status: 'online' | 'away' | 'offline';
+    activity?: string;
+    lastSeen: string;
+  }>): void {
+    let updated = false;
+
+    this.friends = this.friends.map(friend => {
+      const presence = presenceMap[friend.friendId];
+      if (presence) {
+        updated = true;
+        return {
+          ...friend,
+          isOnline: presence.status === 'online',
+          currentActivity: presence.activity,
+          lastSeen: new Date(presence.lastSeen),
+        };
+      }
+      return friend;
+    });
+
+    if (updated) {
+      this.notifyFriendsListeners();
+    }
+  }
+
+  /**
+   * Handle incoming presence update for a single friend
+   */
+  private handlePresenceUpdate(friendId: string, presence: {
+    status: 'online' | 'away' | 'offline';
+    activity?: string;
+    lastSeen: Date;
+  }): void {
+    const friendIndex = this.friends.findIndex(f => f.friendId === friendId);
+
+    if (friendIndex !== -1) {
+      this.friends[friendIndex] = {
+        ...this.friends[friendIndex],
+        isOnline: presence.status === 'online',
+        currentActivity: presence.activity,
+        lastSeen: presence.lastSeen,
+      };
+
+      this.notifyFriendsListeners();
+      logger.debug(`Presence updated for friend ${friendId}: ${presence.status}`);
+    }
   }
 }

@@ -121,7 +121,15 @@
 }
 
 .status-indicator.online {
-  background: #10b981;
+  background: #10b981; /* Green for online */
+}
+
+.status-indicator.away {
+  background: #f59e0b; /* Amber for away/recently online */
+}
+
+.status-indicator.offline {
+  background: #6b7280; /* Gray for offline */
 }
 
 .friend-info {
@@ -138,6 +146,15 @@
 .friend-status {
   font-size: 0.85rem;
   color: var(--text-secondary, #666);
+}
+
+.friend-status.status-online {
+  color: #10b981; /* Green text for online status */
+  font-weight: 500;
+}
+
+.friend-status.status-offline {
+  color: var(--text-tertiary, #999); /* Lighter gray for offline */
 }
 
 .friend-actions {
