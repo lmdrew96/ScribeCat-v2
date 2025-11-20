@@ -6,6 +6,7 @@
  */
 
 import { AuthManager } from '../managers/AuthManager.js';
+import { RendererSupabaseClient } from '../services/RendererSupabaseClient.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('AccountSettingsModal');
@@ -216,8 +217,9 @@ export class AccountSettingsModal {
     this.hideSuccess();
 
     try {
-      // Update profile via IPC
-      const result = await window.scribeCat.auth.updateProfile({ fullName });
+      // Update profile directly in renderer (where auth session lives)
+      const supabaseClient = RendererSupabaseClient.getInstance();
+      const result = await supabaseClient.updateProfile(fullName);
 
       if (result.success) {
         this.showSuccess('Profile updated successfully');
@@ -265,8 +267,9 @@ export class AccountSettingsModal {
     this.hideSuccess();
 
     try {
-      // Send password reset email via IPC
-      const result = await window.scribeCat.auth.resetPassword(user.email);
+      // Send password reset email directly in renderer (where auth session lives)
+      const supabaseClient = RendererSupabaseClient.getInstance();
+      const result = await supabaseClient.resetPassword(user.email);
 
       if (result.success) {
         this.showSuccess(`Password reset email sent to ${user.email}`);
@@ -330,18 +333,20 @@ export class AccountSettingsModal {
     this.hideSuccess();
 
     try {
-      // Delete account via IPC
-      const result = await window.scribeCat.auth.deleteAccount();
+      // Delete account directly in renderer (where auth session lives)
+      const supabaseClient = RendererSupabaseClient.getInstance();
+      const result = await supabaseClient.deleteAccount();
 
       if (result.success) {
-        this.showSuccess('Account deleted successfully. Signing you out...');
-        logger.info('Account deleted successfully');
+        // Show the message from the result if provided
+        const message = result.message || 'Account deleted successfully. Signing you out...';
+        this.showSuccess(message);
+        logger.info('Account deletion initiated:', result.message);
 
-        // Wait a moment then sign out
-        setTimeout(async () => {
-          await this.authManager.signOut();
+        // User is already signed out by deleteAccount(), just hide the modal
+        setTimeout(() => {
           this.hide();
-        }, 2000);
+        }, 3000);
       } else {
         this.showError(result.error || 'Failed to delete account');
         logger.error('Failed to delete account:', result.error);

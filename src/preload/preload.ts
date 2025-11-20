@@ -244,9 +244,8 @@ const electronAPI = {
     getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
     isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated'),
     getAccessToken: () => ipcRenderer.invoke('auth:getAccessToken'),
-    updateProfile: (updates: { fullName?: string }) => ipcRenderer.invoke('auth:updateProfile', updates),
-    resetPassword: (email: string) => ipcRenderer.invoke('auth:resetPassword', email),
-    deleteAccount: () => ipcRenderer.invoke('auth:deleteAccount'),
+    // Note: updateProfile, resetPassword, and deleteAccount are handled directly in renderer
+    // via RendererSupabaseClient where the auth session is properly maintained.
     // Send auth state changes to main process for cloud sync
     sessionChanged: (data: { userId: string | null; accessToken?: string; refreshToken?: string }) =>
       ipcRenderer.invoke('auth:sessionChanged', data),

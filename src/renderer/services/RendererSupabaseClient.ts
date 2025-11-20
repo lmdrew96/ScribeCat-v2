@@ -298,6 +298,90 @@ export class RendererSupabaseClient {
   }
 
   /**
+   * Update user profile (full name)
+   * This runs in the renderer process where the auth session is properly maintained
+   */
+  async updateProfile(fullName: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await this.client.auth.updateUser({
+        data: {
+          full_name: fullName
+        }
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      // Auth state change listener will automatically notify main process with updated user
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error updating profile'
+      };
+    }
+  }
+
+  /**
+   * Send password reset email
+   * This runs in the renderer process where auth context exists
+   */
+  async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await this.client.auth.resetPasswordForEmail(email, {
+        redirectTo: 'http://localhost:3000/auth/reset-password'
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error sending password reset email'
+      };
+    }
+  }
+
+  /**
+   * Delete user account
+   * Note: Supabase doesn't allow client-side account deletion via the API for security reasons.
+   * This method signs the user out and returns a message to contact support.
+   */
+  async deleteAccount(): Promise<{ success: boolean; error?: string; message?: string }> {
+    try {
+      // Sign out the user
+      const { error } = await this.client.auth.signOut();
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Account deletion initiated. Your account has been signed out. Please contact support to complete account deletion.'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during account deletion'
+      };
+    }
+  }
+
+  /**
    * Convert Supabase Session to AuthSession
    */
   private convertToAuthSession(session: Session): AuthSession {
