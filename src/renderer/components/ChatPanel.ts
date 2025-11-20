@@ -118,12 +118,16 @@ export class ChatPanel {
    * Subscribe to new messages
    */
   private subscribeToMessages(): void {
-    if (!this.currentRoomId) return;
+    if (!this.currentRoomId) {
+      console.warn('[ChatPanel] Cannot subscribe - no current room ID');
+      return;
+    }
 
+    console.log('[ChatPanel] Subscribing to chat for room:', this.currentRoomId);
     this.chatManager.subscribeToRoom(
       this.currentRoomId,
       (message) => {
-        console.log('New message received:', message);
+        console.log('[ChatPanel] New message received:', message);
         this.addMessageToUI(message);
         this.scrollToBottom();
       },

@@ -390,7 +390,19 @@ const electronAPI = {
       if (onTyping) {
         ipcRenderer.on('chat:typingStatus', typingHandler);
       }
-      ipcRenderer.invoke('chat:subscribeToRoom', roomId);
+
+      // Subscribe to room (fire-and-forget, but log errors)
+      ipcRenderer.invoke('chat:subscribeToRoom', roomId)
+        .then((result: any) => {
+          if (!result?.success) {
+            console.error('[Preload] Chat subscription failed:', result?.error);
+          } else {
+            console.log('[Preload] Chat subscription successful for room:', roomId);
+          }
+        })
+        .catch((error: Error) => {
+          console.error('[Preload] Chat subscription error:', error);
+        });
 
       // Return unsubscribe function
       return () => {
