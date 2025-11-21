@@ -15,6 +15,7 @@ import { AISummaryManager } from '../services/AISummaryManager.js';
 import { ChatUI } from '../ai/ChatUI.js';
 import { createLogger } from '../../shared/logger.js';
 import { config } from '../../config.js';
+import { Transcription, TranscriptionSegment } from '../../domain/entities/Transcription.js';
 
 const logger = createLogger('RecordingManager');
 
@@ -144,120 +145,202 @@ export class RecordingManager {
   async stop(): Promise<void> {
     logger.info('Stopping recording');
 
-    // Stop transcription
-    await this.transcriptionService.stop();
+    let sessionId: string | undefined;
+    let saveError: Error | undefined;
 
-    // Stop audio recording
-    const result = await this.audioManager.stopRecording();
-    const durationSeconds = result.duration / 1000;
-    logger.info(`Recording stopped. Duration: ${durationSeconds} seconds`);
+    try {
+      // Stop transcription (with timeout protection)
+      const transcriptionStopPromise = this.transcriptionService.stop();
+      const timeoutPromise = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          logger.warn('Transcription stop timed out after 6 seconds, continuing with save');
+          resolve();
+        }, 6000);
+      });
+      await Promise.race([transcriptionStopPromise, timeoutPromise]);
 
-    // Get selected course data
-    const selectedCourse = this.courseManager?.getSelectedCourse();
-    const courseData = selectedCourse ? {
-      courseId: selectedCourse.id,
-      courseTitle: selectedCourse.title || selectedCourse.courseTitle,
-      courseNumber: selectedCourse.code || selectedCourse.courseNumber
-    } : undefined;
+      // Stop audio recording
+      const result = await this.audioManager.stopRecording();
+      const durationSeconds = result.duration / 1000;
+      logger.info(`Recording stopped. Duration: ${durationSeconds} seconds`);
 
-    // Get current user ID (if authenticated)
-    const currentUser = window.authManager?.getCurrentUser();
-    const userId = currentUser?.id || null;
+      // Get selected course data
+      const selectedCourse = this.courseManager?.getSelectedCourse();
+      const courseData = selectedCourse ? {
+        courseId: selectedCourse.id,
+        courseTitle: selectedCourse.title || selectedCourse.courseTitle,
+        courseNumber: selectedCourse.code || selectedCourse.courseNumber
+      } : undefined;
 
-    // Get session title (if provided)
-    const sessionTitle = this.sessionTitleInput?.value.trim() || undefined;
+      // Get current user ID (if authenticated)
+      const currentUser = window.authManager?.getCurrentUser();
+      const userId = currentUser?.id || null;
 
-    logger.info('Session title from input:', {
-      rawValue: this.sessionTitleInput?.value,
-      trimmedValue: sessionTitle,
-      willUseCustomTitle: !!sessionTitle
-    });
+      // Get session title (if provided)
+      const sessionTitle = this.sessionTitleInput?.value.trim() || undefined;
 
-    // Get transcription text before saving (to include in initial save)
-    const transcriptionText = this.transcriptionManager.getText();
+      logger.info('Session title from input:',
+        `Raw="${this.sessionTitleInput?.value}" ` +
+        `Trimmed="${sessionTitle}" ` +
+        `WillUseCustom=${!!sessionTitle}`
+      );
 
-    // Save the recording to disk with transcription included
-    const saveResult = await window.scribeCat.recording.stop(
-      result.audioData.buffer as ArrayBuffer,
-      durationSeconds,
-      courseData,
-      userId,
-      transcriptionText || undefined,
-      sessionTitle
-    );
+      // Get transcription data before saving (to include in initial save)
+      const transcriptionText = this.transcriptionManager.getText();
+      const timestampedEntries = this.transcriptionManager.getTimestampedEntries();
+      logger.info(`Transcription captured: ${transcriptionText?.length || 0} characters, ${timestampedEntries.length} segments`);
 
-    if (!saveResult.success) {
-      throw new Error(saveResult.error || 'Failed to save recording');
-    }
+      // Create Transcription object from timestamped entries if available
+      let transcription: Transcription | undefined;
+      if (timestampedEntries.length > 0 && transcriptionText) {
+        try {
+          const segments: TranscriptionSegment[] = timestampedEntries.map(entry => ({
+            text: entry.text,
+            startTime: entry.startTime,
+            endTime: entry.endTime
+          }));
 
-    logger.info(`Recording saved to: ${saveResult.filePath}`);
+          transcription = new Transcription(
+            transcriptionText,
+            segments,
+            'en', // Default language (AssemblyAI auto-detects)
+            'assemblyai',
+            new Date()
+          );
+          logger.info(`✅ Created Transcription object with ${segments.length} segments`);
+        } catch (error) {
+          logger.warn('Failed to create Transcription object:', error);
+          // Will fall back to string transcription
+        }
+      }
 
-    // Generate short summary for session card display
-    if (saveResult.sessionId && transcriptionText && transcriptionText.trim().length > 0) {
-      logger.info('Generating short summary for session');
-      const summaryManager = new AISummaryManager();
-      summaryManager.generateAndSaveShortSummary(saveResult.sessionId)
-        .then(() => {
-          logger.info('Short summary generated and saved');
-        })
-        .catch(error => {
-          logger.warn('Failed to generate short summary (non-critical):', error);
-        });
-    }
+      // Save the recording to disk with transcription included
+      try {
+        // Serialize Transcription object for IPC transfer (Electron serializes to JSON)
+        const transcriptionData = transcription?.toJSON();
 
-    // Transition NotesAutoSaveManager and save notes
-    if (saveResult.sessionId) {
+        const saveResult = await window.scribeCat.recording.stop(
+          result.audioData.buffer as ArrayBuffer,
+          durationSeconds,
+          courseData,
+          userId,
+          transcriptionData,
+          sessionTitle
+        );
+
+        if (!saveResult.success) {
+          saveError = new Error(saveResult.error || 'IPC save returned failure');
+          logger.error('❌ Recording save failed:', saveError.message);
+        } else {
+          sessionId = saveResult.sessionId;
+          logger.info(`✅ Recording saved to: ${saveResult.filePath}`);
+        }
+      } catch (error) {
+        saveError = error instanceof Error ? error : new Error('Unknown save error');
+        logger.error('❌ Exception during recording save:', saveError);
+      }
+
+      // Transition NotesAutoSaveManager and save notes
+      // CRITICAL: Do this even if initial save failed, using a fallback session ID
+      if (!sessionId) {
+        // Generate fallback session ID to preserve notes and transcription
+        sessionId = crypto.randomUUID();
+        logger.warn(`⚠️ Using fallback session ID: ${sessionId}`);
+      }
 
       // Transition NotesAutoSaveManager to use the recording session
       // This will copy notes from draft (if any) and continue auto-saving to the recording session
-      await this.notesAutoSaveManager.transitionToRecordingSession(saveResult.sessionId);
+      try {
+        await this.notesAutoSaveManager.transitionToRecordingSession(sessionId);
+        logger.info('✅ Notes transitioned to recording session');
+      } catch (error) {
+        logger.error('❌ Failed to transition notes:', error);
+        if (!saveError) {
+          saveError = error instanceof Error ? error : new Error('Notes transition failed');
+        }
+      }
 
       // Save notes immediately to ensure they're captured
-      await this.notesAutoSaveManager.saveImmediately();
+      try {
+        await this.notesAutoSaveManager.saveImmediately();
+        logger.info('✅ Notes saved immediately');
+      } catch (error) {
+        logger.error('❌ Failed to save notes immediately:', error);
+        if (!saveError) {
+          saveError = error instanceof Error ? error : new Error('Notes save failed');
+        }
+      }
+
+      // Generate short summary for session card display
+      if (sessionId && transcriptionText && transcriptionText.trim().length > 0) {
+        logger.info('Generating short summary for session');
+        const summaryManager = new AISummaryManager();
+        summaryManager.generateAndSaveShortSummary(sessionId)
+          .then(() => {
+            logger.info('Short summary generated and saved');
+          })
+          .catch(error => {
+            logger.warn('Failed to generate short summary (non-critical):', error);
+          });
+      }
 
       // Trigger cloud sync NOW - after transcription and notes are saved
       // This ensures we upload the complete session with all data
-      logger.info('Triggering cloud sync for session');
-      window.scribeCat.sync.uploadSession(saveResult.sessionId)
-        .then(result => {
-          if (result.success) {
-            logger.info('Session uploaded to cloud successfully');
-          } else {
-            logger.warn('Cloud sync failed (will retry later):', result.error);
-          }
-        })
-        .catch(error => {
-          logger.error('Error triggering cloud sync:', error);
-        });
-    }
+      if (sessionId) {
+        logger.info('Triggering cloud sync for session');
+        window.scribeCat.sync.uploadSession(sessionId)
+          .then(result => {
+            if (result.success) {
+              logger.info('Session uploaded to cloud successfully');
+            } else {
+              logger.warn('Cloud sync failed (will retry later):', result.error);
+            }
+          })
+          .catch(error => {
+            logger.error('Error triggering cloud sync:', error);
+          });
+      }
 
-    // Update state
-    this.isRecording = false;
-
-    // Allow system sleep now that recording is complete
-    try {
-      await window.scribeCat.power.allowSleep();
-      logger.info('Sleep prevention disabled');
+      // If there was a save error, throw it now (after attempting recovery)
+      if (saveError) {
+        throw saveError;
+      }
     } catch (error) {
-      logger.warn('Failed to allow sleep', error);
+      logger.error('❌ Critical error in stop():', error);
+      throw error;
+    } finally {
+      // Update state
+      this.isRecording = false;
+
+      // Allow system sleep now that recording is complete
+      try {
+        await window.scribeCat.power.allowSleep();
+        logger.info('Sleep prevention disabled');
+      } catch (error) {
+        logger.warn('Failed to allow sleep', error);
+      }
+
+      // Stop suggestion checks and reset AI analysis
+      this.stopSuggestionChecks();
+      this.aiManager.resetContentAnalysis();
+
+      // Stop live AI suggestions
+      this.chatUI.stopRecording();
+
+      // Update UI
+      this.viewManager.updateRecordingState(false);
+      this.stopElapsedTimer();
+      this.stopVUMeterUpdates();
+
+      // Show completion message
+      if (sessionId) {
+        this.viewManager.showSessionInfo(`Recording saved: ${sessionId}`);
+      } else {
+        this.viewManager.showSessionInfo('Recording stopped (save may have failed)');
+      }
+
+      logger.info('Recording stopped successfully');
     }
-
-    // Stop suggestion checks and reset AI analysis
-    this.stopSuggestionChecks();
-    this.aiManager.resetContentAnalysis();
-
-    // Stop live AI suggestions
-    this.chatUI.stopRecording();
-
-    // Update UI
-    this.viewManager.updateRecordingState(false);
-    this.stopElapsedTimer();
-    this.stopVUMeterUpdates();
-
-    // Show completion message
-    this.viewManager.showSessionInfo(`Recording saved: ${saveResult.sessionId}`);
-
-    logger.info('Recording stopped successfully');
   }
 
   /**

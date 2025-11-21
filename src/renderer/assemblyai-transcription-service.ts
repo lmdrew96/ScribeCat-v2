@@ -39,6 +39,7 @@ export class AssemblyAITranscriptionService {
   private startTime: number = 0;
   private apiKey: string = '';
   private terminationReceived: boolean = false;
+  private isStoppingIntentionally: boolean = false;
   private closeTimeout: NodeJS.Timeout | null = null;
   private tokenRefreshTimer: NodeJS.Timeout | null = null;
   private tokenCreatedAt: number = 0;
@@ -87,6 +88,7 @@ export class AssemblyAITranscriptionService {
     this.errorHandler.reset();
     this.droppedPacketCount = 0;
     this.audioBuffer = [];
+    this.isStoppingIntentionally = false;
 
     this.sessionId = `assemblyai-${Date.now()}`;
     this.startTime = Date.now();
@@ -346,28 +348,37 @@ export class AssemblyAITranscriptionService {
         // ROOT CAUSE FIX: Use error handler to categorize and decide retry strategy
         const categorizedError = this.errorHandler.categorizeCloseEvent(event);
 
-        // Map to legacy error types for backward compatibility
-        let errorType: TranscriptionError['type'] = 'UNKNOWN_ERROR';
-        if (event.code === 1008) {
-          if (event.reason.toLowerCase().includes('concurrent')) {
-            errorType = 'MAX_CONCURRENT_SESSIONS';
-          } else {
-            errorType = 'AUTH_ERROR';
-          }
-        } else if (event.code === 3005) {
-          if (event.reason.toLowerCase().includes('session expired')) {
-            errorType = 'SESSION_EXPIRED';
-          } else if (event.reason.toLowerCase().includes('transmission rate')) {
-            errorType = 'TRANSMISSION_RATE';
-          }
-        }
+        // Check if this is an intentional shutdown with normal closure
+        // Don't show error notification for expected closures
+        // Code 1000 = Normal Closure, Code 1005 = No Status Received (also normal for some closures)
+        const isExpectedClosure = (event.code === 1000 || event.code === 1005) && this.isStoppingIntentionally;
 
-        // Notify user with categorized error message
-        this.handleError({
-          type: errorType,
-          message: categorizedError.userMessage,
-          code: event.code
-        });
+        if (!isExpectedClosure) {
+          // Map to legacy error types for backward compatibility
+          let errorType: TranscriptionError['type'] = 'UNKNOWN_ERROR';
+          if (event.code === 1008) {
+            if (event.reason.toLowerCase().includes('concurrent')) {
+              errorType = 'MAX_CONCURRENT_SESSIONS';
+            } else {
+              errorType = 'AUTH_ERROR';
+            }
+          } else if (event.code === 3005) {
+            if (event.reason.toLowerCase().includes('session expired')) {
+              errorType = 'SESSION_EXPIRED';
+            } else if (event.reason.toLowerCase().includes('transmission rate')) {
+              errorType = 'TRANSMISSION_RATE';
+            }
+          }
+
+          // Notify user with categorized error message (only for unexpected closures)
+          this.handleError({
+            type: errorType,
+            message: categorizedError.userMessage,
+            code: event.code
+          });
+        } else {
+          console.log('✅ WebSocket closed normally after intentional stop');
+        }
 
         // Decide whether to reconnect based on error category
         if (this.sessionId && !this.terminationReceived && !this.isRefreshing) {
@@ -385,6 +396,9 @@ export class AssemblyAITranscriptionService {
             this.audioBuffer = [];
           }
         }
+
+        // Reset the flag after handling closure
+        this.isStoppingIntentionally = false;
       };
     });
   }
@@ -672,6 +686,9 @@ export class AssemblyAITranscriptionService {
 
       // Reset termination flag
       this.terminationReceived = false;
+
+      // Set flag to indicate intentional shutdown (prevents error notification on close)
+      this.isStoppingIntentionally = true;
 
       // Send termination message
       this.ws.send(JSON.stringify({ type: 'Terminate' }));

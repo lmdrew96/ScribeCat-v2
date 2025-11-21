@@ -8,6 +8,7 @@
 import { IAudioRepository } from '../../domain/repositories/IAudioRepository.js';
 import { ISessionRepository } from '../../domain/repositories/ISessionRepository.js';
 import { Session } from '../../domain/entities/Session.js';
+import { Transcription } from '../../domain/entities/Transcription.js';
 
 export interface SaveRecordingInput {
   audioData: ArrayBuffer;
@@ -17,7 +18,7 @@ export interface SaveRecordingInput {
   courseTitle?: string;
   courseNumber?: string;
   userId?: string;
-  transcription?: string;
+  transcription?: Transcription;
 }
 
 export interface SaveRecordingOutput {

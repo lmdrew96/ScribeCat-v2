@@ -14,6 +14,7 @@ import { IncrementAIChatMessagesUseCase } from '../application/use-cases/Increme
 import { FileAudioRepository } from '../infrastructure/repositories/FileAudioRepository.js';
 import { FileSessionRepository } from '../infrastructure/repositories/FileSessionRepository.js';
 import type { ISessionRepository } from '../domain/repositories/ISessionRepository.js';
+import { Transcription, TranscriptionData } from '../domain/entities/Transcription.js';
 
 /**
  * RecordingManager
@@ -113,8 +114,11 @@ export class RecordingManager {
       }
     });
 
-    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, transcription?: string, title?: string) => {
+    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, transcriptionData?: TranscriptionData, title?: string) => {
       try {
+        // Reconstruct Transcription object from serialized data if provided
+        const transcription = transcriptionData ? Transcription.fromJSON(transcriptionData) : undefined;
+
         const result = await this.saveRecordingUseCase.execute({
           audioData,
           duration,
