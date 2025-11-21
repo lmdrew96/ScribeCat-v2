@@ -12,6 +12,8 @@ export class BingoGame extends MultiplayerGame {
   private markedCells: Set<number> = new Set();
   private gridSize: number = 5; // 5x5 grid
   private readonly freeSpaceIndex: number = 12; // Center cell (index 12 in 5x5 grid)
+  private gridConcepts: string[] = [];
+  private allQuestions: GameQuestion[] = [];
 
   // All 12 winning combinations for a 5x5 bingo grid
   private readonly winningCombinations: number[][] = [
@@ -31,6 +33,96 @@ export class BingoGame extends MultiplayerGame {
     [0, 6, 12, 18, 24],
     [4, 8, 12, 16, 20],
   ];
+
+  /**
+   * Initialize bingo game and load all questions
+   */
+  public async initialize(): Promise<void> {
+    await super.initialize();
+    await this.loadQuestionsAndGenerateGrid();
+  }
+
+  /**
+   * Load all game questions and generate bingo grid
+   */
+  private async loadQuestionsAndGenerateGrid(): Promise<void> {
+    const { session } = this.state;
+    if (!session) return;
+
+    try {
+      const result = await window.scribeCat.games.getGameQuestions(session.id, false);
+      if (result.success && result.questions) {
+        this.allQuestions = result.questions.map((q: any) => GameQuestion.fromJSON(q));
+        this.generateGridFromQuestions();
+      }
+    } catch (error) {
+      console.error('Failed to load bingo questions:', error);
+      // Fallback to placeholder if loading fails
+      this.generateFallbackGrid();
+    }
+  }
+
+  /**
+   * Generate grid concepts from questions
+   */
+  private generateGridFromQuestions(): void {
+    const concepts: string[] = [];
+
+    // Extract concepts from each question
+    for (const question of this.allQuestions) {
+      // Use category as concept if available
+      if (question.category) {
+        concepts.push(question.category);
+      }
+
+      // Extract key terms from question text (first 3-4 words as concept)
+      const questionText = question.getQuestionText();
+      const shortConcept = this.extractShortConcept(questionText);
+      if (shortConcept) {
+        concepts.push(shortConcept);
+      }
+
+      // Add answer options as concepts
+      const options = question.getOptions();
+      concepts.push(...options);
+    }
+
+    // Shuffle and select 24 unique concepts (5x5 - 1 free space)
+    const shuffled = this.shuffleArray([...new Set(concepts)]); // Remove duplicates
+    this.gridConcepts = shuffled.slice(0, 24);
+
+    // Pad with generic concepts if we don't have enough
+    while (this.gridConcepts.length < 24) {
+      this.gridConcepts.push(`Study Topic ${this.gridConcepts.length + 1}`);
+    }
+  }
+
+  /**
+   * Extract a short concept from question text (max 4 words)
+   */
+  private extractShortConcept(text: string): string {
+    const words = text.split(/\s+/).filter(w => w.length > 3);
+    return words.slice(0, 4).join(' ').substring(0, 30);
+  }
+
+  /**
+   * Generate fallback grid if questions fail to load
+   */
+  private generateFallbackGrid(): void {
+    this.gridConcepts = Array.from({ length: 24 }, (_, i) => `Concept ${i + 1}`);
+  }
+
+  /**
+   * Shuffle array using Fisher-Yates algorithm
+   */
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
 
   protected render(): void {
     const { gameStarted, gameEnded } = this.state;
@@ -60,17 +152,23 @@ export class BingoGame extends MultiplayerGame {
   }
 
   private renderBingoGrid(): string {
-    // TODO: Use actual session concepts from questions instead of placeholders
     const gridItems = Array.from({ length: this.gridSize * this.gridSize }, (_, i) => {
       const isMarked = this.markedCells.has(i);
-      const isFreeSpace = i === Math.floor((this.gridSize * this.gridSize) / 2);
+      const isFreeSpace = i === this.freeSpaceIndex;
 
-      const concept = isFreeSpace ? 'FREE' : `Concept ${i + 1}`;
+      let concept: string;
+      if (isFreeSpace) {
+        concept = 'FREE';
+      } else {
+        // Adjust index for free space (cells after free space use next concept)
+        const conceptIndex = i < this.freeSpaceIndex ? i : i - 1;
+        concept = this.gridConcepts[conceptIndex] || `Topic ${i + 1}`;
+      }
 
       return `
         <div class="bingo-cell ${isMarked ? 'marked' : ''} ${isFreeSpace ? 'free-space' : ''}"
              data-index="${i}">
-          <span class="cell-content">${concept}</span>
+          <span class="cell-content">${this.escapeHtml(concept)}</span>
           ${isMarked ? '<span class="cell-marker">✓</span>' : ''}
         </div>
       `;
@@ -103,7 +201,7 @@ export class BingoGame extends MultiplayerGame {
   protected async handleAnswer(answer: string): Promise<void> {
     // For bingo, "answering" means marking a cell
     const event = new CustomEvent('game:answer', {
-      detail: { answer, timeTaken: 0 },
+      detail: { answer, timeTakenMs: 0 },
     });
     window.dispatchEvent(event);
   }

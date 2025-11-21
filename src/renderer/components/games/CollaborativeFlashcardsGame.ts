@@ -98,16 +98,10 @@ export class CollaborativeFlashcardsGame extends MultiplayerGame {
         `
             : `
           <div class="flashcard-next">
-            <p>Waiting for next card...</p>
-            ${
-              this.isCurrentUserHost()
-                ? `
-              <button class="btn-primary" id="next-card-btn">
-                ${isLastCard ? 'Finish' : 'Next Card'}
-              </button>
-            `
-                : ''
-            }
+            <p class="next-card-message">Ready for the next card? Any player can advance!</p>
+            <button class="btn-primary" id="next-card-btn">
+              ${isLastCard ? 'Finish Game' : 'Next Card →'}
+            </button>
           </div>
         `
         }
@@ -117,7 +111,7 @@ export class CollaborativeFlashcardsGame extends MultiplayerGame {
 
   protected async handleAnswer(answer: string): Promise<void> {
     const event = new CustomEvent('game:answer', {
-      detail: { answer, timeTaken: 0 },
+      detail: { answer, timeTakenMs: 0 },
     });
     window.dispatchEvent(event);
     this.updateState({ hasAnswered: true });

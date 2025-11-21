@@ -139,7 +139,7 @@ export class QuizBattleGame extends MultiplayerGame {
     const event = new CustomEvent('game:answer', {
       detail: {
         answer,
-        timeTaken,
+        timeTakenMs: timeTaken,
       },
     });
     window.dispatchEvent(event);

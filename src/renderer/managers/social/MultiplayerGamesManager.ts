@@ -38,6 +38,7 @@ export class MultiplayerGamesManager {
   private boundHandleGameExit = this.handleGameExit.bind(this);
   private boundHandleNextQuestion = this.handleNextQuestion.bind(this);
   private boundHandleTimeout = this.handleTimeout.bind(this);
+  private boundHandleBingo = this.handleBingo.bind(this);
 
   /**
    * Initialize manager with current user
@@ -565,14 +566,17 @@ export class MultiplayerGamesManager {
 
     // Handle timeout (when timer expires)
     window.addEventListener('game:timeout', this.boundHandleTimeout);
+
+    // Handle bingo (when player gets bingo)
+    window.addEventListener('game:bingo', this.boundHandleBingo);
   }
 
   /**
    * Handle answer submission
    */
   private async handleAnswerSubmit(event: Event): Promise<void> {
-    const customEvent = event as CustomEvent<{ answer: string; timeTaken: number }>;
-    const { answer, timeTaken } = customEvent.detail;
+    const customEvent = event as CustomEvent<{ answer: string; timeTakenMs: number }>;
+    const { answer, timeTakenMs } = customEvent.detail;
 
     if (!this.currentGameSession || !this.currentGame || !this.currentUserId) {
       return;
@@ -587,7 +591,7 @@ export class MultiplayerGamesManager {
         userId: this.currentUserId,
         questionId: currentQuestion.id,
         answer,
-        timeTaken,
+        timeTakenMs,
       });
 
       if (result.success) {
@@ -731,6 +735,34 @@ export class MultiplayerGamesManager {
     // Mark player as having answered (with no answer) by advancing
     // The real-time subscription will handle loading the new question
     await this.handleNextQuestion(event);
+  }
+
+  /**
+   * Handle bingo - when a player achieves bingo
+   * Completes the game and shows winner
+   */
+  private async handleBingo(event: Event): Promise<void> {
+    if (!this.currentGameSession || !this.currentUserId) return;
+
+    const customEvent = event as CustomEvent<{ userId: string }>;
+    const { userId } = customEvent.detail;
+
+    console.log('[MultiplayerGamesManager] BINGO achieved by user:', userId);
+
+    try {
+      // Complete the game
+      const result = await window.scribeCat.games.completeGame(this.currentGameSession.id);
+
+      if (!result.success) {
+        console.error('[MultiplayerGamesManager] Failed to complete game:', result.error);
+        return;
+      }
+
+      console.log('[MultiplayerGamesManager] Game completed due to BINGO');
+      // State update will happen via real-time subscription
+    } catch (error) {
+      console.error('[MultiplayerGamesManager] Exception in handleBingo:', error);
+    }
   }
 
   /**
@@ -944,5 +976,6 @@ export class MultiplayerGamesManager {
     window.removeEventListener('game:exit', this.boundHandleGameExit);
     window.removeEventListener('game:next-question', this.boundHandleNextQuestion);
     window.removeEventListener('game:timeout', this.boundHandleTimeout);
+    window.removeEventListener('game:bingo', this.boundHandleBingo);
   }
 }
