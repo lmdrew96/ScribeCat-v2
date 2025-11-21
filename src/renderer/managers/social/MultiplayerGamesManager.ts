@@ -13,6 +13,7 @@ import { QuizBattleGame } from '../../components/games/QuizBattleGame.js';
 import { JeopardyGame } from '../../components/games/JeopardyGame.js';
 import { BingoGame } from '../../components/games/BingoGame.js';
 import { CollaborativeFlashcardsGame } from '../../components/games/CollaborativeFlashcardsGame.js';
+import { TimeSync } from '../../services/TimeSync.js';
 
 export class MultiplayerGamesManager {
   private currentGame: MultiplayerGame | null = null;
@@ -25,6 +26,12 @@ export class MultiplayerGamesManager {
   private isReconnecting: boolean = false;
   private currentContainer: HTMLElement | null = null;
   private currentParticipants: GameParticipant[] = [];
+
+  // Bound event handlers - stored as properties so we can properly remove them
+  private boundHandleAnswerSubmit = this.handleAnswerSubmit.bind(this);
+  private boundHandleGameStart = this.handleGameStart.bind(this);
+  private boundHandleGameClose = this.handleGameClose.bind(this);
+  private boundHandleNextQuestion = this.handleNextQuestion.bind(this);
 
   /**
    * Initialize manager with current user
@@ -426,19 +433,20 @@ export class MultiplayerGamesManager {
 
   /**
    * Setup game event listeners
+   * Uses bound handler references stored as class properties for proper cleanup
    */
   private setupGameEventListeners(): void {
     // Handle answer submissions
-    window.addEventListener('game:answer', this.handleAnswerSubmit.bind(this));
+    window.addEventListener('game:answer', this.boundHandleAnswerSubmit);
 
     // Handle game start (from waiting screen)
-    window.addEventListener('game:start', this.handleGameStart.bind(this));
+    window.addEventListener('game:start', this.boundHandleGameStart);
 
     // Handle game close
-    window.addEventListener('game:close', this.handleGameClose.bind(this));
+    window.addEventListener('game:close', this.boundHandleGameClose);
 
     // Handle next question
-    window.addEventListener('game:next-question', this.handleNextQuestion.bind(this));
+    window.addEventListener('game:next-question', this.boundHandleNextQuestion);
   }
 
   /**
@@ -493,6 +501,10 @@ export class MultiplayerGamesManager {
 
   /**
    * Handle next question
+   *
+   * Note: We only call nextQuestion() here and let the real-time subscription
+   * handle the state update. This avoids a race condition where both the
+   * subscription and manual fetch could update the state with the same question.
    */
   private async handleNextQuestion(event: Event): Promise<void> {
     if (!this.currentGameSession) return;
@@ -500,20 +512,10 @@ export class MultiplayerGamesManager {
     try {
       const result = await window.scribeCat.games.nextQuestion(this.currentGameSession.id);
 
-      if (result.success) {
-        // Game session will be updated via real-time subscription
-        // Then fetch the new current question
-        const questionResult = await window.scribeCat.games.getCurrentQuestion(
-          this.currentGameSession.id
-        );
-
-        if (questionResult.success && questionResult.question && this.currentGame) {
-          this.currentGame.updateState({
-            currentQuestion: GameQuestion.fromJSON(questionResult.question),
-            hasAnswered: false,
-          });
-        }
+      if (!result.success) {
+        console.error('Failed to advance to next question:', result.error);
       }
+      // State update will happen via real-time subscription (subscribeToGameQuestions)
     } catch (error) {
       console.error('Failed to advance to next question:', error);
     }
@@ -571,14 +573,17 @@ export class MultiplayerGamesManager {
       this.currentGame = null;
     }
 
+    // Cleanup TimeSync to stop periodic server requests
+    TimeSync.getInstance().cleanup();
+
     this.currentGameSession = null;
     this.currentContainer = null;
     this.currentParticipants = [];
 
-    // Remove event listeners
-    window.removeEventListener('game:answer', this.handleAnswerSubmit.bind(this));
-    window.removeEventListener('game:start', this.handleGameStart.bind(this));
-    window.removeEventListener('game:close', this.handleGameClose.bind(this));
-    window.removeEventListener('game:next-question', this.handleNextQuestion.bind(this));
+    // Remove event listeners using the same bound references
+    window.removeEventListener('game:answer', this.boundHandleAnswerSubmit);
+    window.removeEventListener('game:start', this.boundHandleGameStart);
+    window.removeEventListener('game:close', this.boundHandleGameClose);
+    window.removeEventListener('game:next-question', this.boundHandleNextQuestion);
   }
 }

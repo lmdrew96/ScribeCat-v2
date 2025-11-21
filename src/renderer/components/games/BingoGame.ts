@@ -59,7 +59,7 @@ export class BingoGame extends MultiplayerGame {
   }
 
   private renderBingoGrid(): string {
-    const questions = this.state.scores.map((s) => s.questionId); // Questions as concepts
+    // TODO: Use actual session concepts from questions instead of placeholders
     const gridItems = Array.from({ length: this.gridSize * this.gridSize }, (_, i) => {
       const isMarked = this.markedCells.has(i);
       const isFreeSpace = i === Math.floor((this.gridSize * this.gridSize) / 2);

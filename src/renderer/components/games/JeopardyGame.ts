@@ -7,9 +7,47 @@
 
 import { MultiplayerGame, GameState } from './MultiplayerGame.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
+import { TimeSync } from '../../services/TimeSync.js';
 
 export class JeopardyGame extends MultiplayerGame {
   private selectedAnswer: number | null = null;
+  private questionStartTime: number | null = null;
+  private timeSync: TimeSync = TimeSync.getInstance();
+
+  /**
+   * Initialize Jeopardy game with time synchronization
+   */
+  public async initialize(): Promise<void> {
+    await super.initialize();
+
+    // Initialize time sync for fair timing across all players
+    if (!this.timeSync.isSynced()) {
+      await this.timeSync.initialize();
+    }
+
+    this.startQuestionTimer();
+  }
+
+  /**
+   * Update game state and handle question changes
+   */
+  public updateState(updates: Partial<GameState>): void {
+    const previousQuestion = this.state.currentQuestion;
+    super.updateState(updates);
+
+    // Reset answer state when question changes
+    if (updates.currentQuestion && previousQuestion?.id !== updates.currentQuestion.id) {
+      this.selectedAnswer = null;
+      this.startQuestionTimer();
+    }
+  }
+
+  /**
+   * Start question timer for timing tracking
+   */
+  private startQuestionTimer(): void {
+    this.questionStartTime = this.timeSync.now();
+  }
 
   protected render(): void {
     const { gameStarted, gameEnded, currentQuestion } = this.state;
@@ -73,11 +111,17 @@ export class JeopardyGame extends MultiplayerGame {
     `;
   }
 
+  /**
+   * Handle player answer submission with synchronized timing
+   */
   protected async handleAnswer(answer: string): Promise<void> {
-    if (this.state.hasAnswered) return;
+    if (this.state.hasAnswered || !this.questionStartTime) return;
+
+    // Use synchronized time for fair timing across all players
+    const timeTaken = this.timeSync.now() - this.questionStartTime;
 
     const event = new CustomEvent('game:answer', {
-      detail: { answer, timeTaken: 0 },
+      detail: { answer, timeTaken },
     });
     window.dispatchEvent(event);
     this.updateState({ hasAnswered: true });

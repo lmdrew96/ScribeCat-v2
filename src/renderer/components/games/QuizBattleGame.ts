@@ -260,7 +260,8 @@ export class QuizBattleGame extends MultiplayerGame {
       }
 
       // Time's up - auto-submit if not already answered
-      if (this.timeRemaining === 0 && !this.answerSubmitted) {
+      // Use <= 0 instead of === 0 because timeRemaining is a float and may never exactly equal 0
+      if (this.timeRemaining <= 0 && !this.answerSubmitted) {
         this.handleTimeUp();
       }
     }, 100);

@@ -225,7 +225,7 @@ export abstract class MultiplayerGame {
         ${
           isHost
             ? `
-          <button class="btn-primary start-game-btn" id="multiplayer-game-start-btn">
+          <button class="btn-primary start-game-btn" id="start-game-btn">
             Start Game
           </button>
         `
