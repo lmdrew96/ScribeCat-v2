@@ -1186,34 +1186,49 @@ export class StudyModeManager {
       }
 
       // Update session transcription
-      await (window as any).scribeCat.session.updateTranscription(
+      const updateResult = await (window as any).scribeCat.session.updateTranscription(
         sessionId,
         transcriptionData.text,
         'assemblyai',
         timestampedEntries
       );
 
+      // Check if the save actually succeeded
+      if (!updateResult?.success) {
+        throw new Error(updateResult?.error || 'Failed to save transcription to session');
+      }
+
       console.log('✅ Re-transcription update complete, waiting for file system...');
 
-      // Add small delay to ensure file system writes complete before reloading
-      // This prevents race condition where we reload stale data before save finishes
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Add delay to ensure file system writes complete before reloading
+      // 500ms provides sufficient time for file sync operations
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       console.log('📥 Reloading sessions to get updated transcription data...');
       // Reload sessions to get updated data
       await this.loadSessions();
+
+      // Validate that transcription was actually saved
+      const updatedSession = this.sessions.find(s => s.id === sessionId);
+      if (!updatedSession?.transcription || updatedSession.transcription.segments.length === 0) {
+        logger.warn('Transcription not found in session after reload - file system may be slow');
+        console.warn('⚠️ Transcription missing after reload, retrying...');
+        // Retry once with longer delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await this.loadSessions();
+      }
 
       // Refresh the detail view if we're still on this session
       const inDetailView = !this.sessionDetailContainer.classList.contains('hidden');
       console.log(`🔍 Detail view status: ${inDetailView ? 'visible' : 'hidden'}`);
 
       if (inDetailView) {
-        const updatedSession = this.sessions.find(s => s.id === sessionId);
-        if (updatedSession) {
+        const sessionForRender = this.sessions.find(s => s.id === sessionId);
+        if (sessionForRender) {
           console.log(`✅ Found updated session, re-rendering detail view`);
-          console.log(`   Transcription segments: ${updatedSession.transcription?.segments.length || 0}`);
-          console.log(`   Transcription text length: ${updatedSession.transcription?.fullText.length || 0}`);
-          await this.detailViewManager.render(updatedSession, true);
+          console.log(`   Transcription segments: ${sessionForRender.transcription?.segments.length || 0}`);
+          console.log(`   Transcription text length: ${sessionForRender.transcription?.fullText.length || 0}`);
+          await this.detailViewManager.render(sessionForRender, true);
           console.log('✅ Detail view re-rendered successfully');
         } else {
           console.error(`❌ Updated session ${sessionId} not found in reloaded sessions`);
