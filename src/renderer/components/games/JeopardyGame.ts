@@ -8,17 +8,13 @@
 import { MultiplayerGame, GameState } from './MultiplayerGame.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
 import { TimeSync } from '../../services/TimeSync.js';
+import { GameTimer } from '../../services/GameTimer.js';
 
 export class JeopardyGame extends MultiplayerGame {
   private selectedAnswer: number | null = null;
-  private questionStartTime: number | null = null;
   private answerSubmitted: boolean = false;
-  private timerInterval: number | null = null;
-  private timeRemaining: number = 0;
-  private isRevealingAnswer: boolean = false;
-  private revealTimeout: number | null = null;
   private timeSync: TimeSync = TimeSync.getInstance();
-  private static readonly REVEAL_DURATION_MS = 3000; // Show answer for 3 seconds
+  private gameTimer: GameTimer = new GameTimer();
 
   /**
    * Initialize Jeopardy game with time synchronization
@@ -38,11 +34,7 @@ export class JeopardyGame extends MultiplayerGame {
    * Clean up resources
    */
   public async cleanup(): Promise<void> {
-    this.stopQuestionTimer();
-    if (this.revealTimeout !== null) {
-      clearTimeout(this.revealTimeout);
-      this.revealTimeout = null;
-    }
+    this.gameTimer.cleanup();
     await super.cleanup();
   }
 
@@ -68,59 +60,37 @@ export class JeopardyGame extends MultiplayerGame {
 
     // Stop timer if game ended
     if (updates.gameEnded) {
-      this.stopQuestionTimer();
+      this.gameTimer.stop();
     }
   }
 
   /**
-   * Start question timer using synchronized time
+   * Start question timer using GameTimer utility
    */
   private startQuestionTimer(): void {
-    this.stopQuestionTimer();
-
     const { currentQuestion, questionStartedAt } = this.state;
     if (!currentQuestion) return;
 
-    // Use shared questionStartedAt if available (for late joiner sync)
-    if (questionStartedAt !== undefined) {
-      this.questionStartTime = questionStartedAt;
-      const elapsed = (this.timeSync.now() - questionStartedAt) / 1000;
-      this.timeRemaining = Math.max(0, currentQuestion.timeLimitSeconds - elapsed);
-    } else {
-      this.questionStartTime = this.timeSync.now();
-      this.timeRemaining = currentQuestion.timeLimitSeconds;
-    }
-
-    this.timerInterval = window.setInterval(() => {
-      const elapsed = (this.timeSync.now() - this.questionStartTime!) / 1000;
-      this.timeRemaining = Math.max(0, currentQuestion.timeLimitSeconds - elapsed);
-
-      // Update timer display
-      const timerText = this.container.querySelector('.timer-text');
-      if (timerText) {
-        timerText.textContent = Math.ceil(this.timeRemaining).toString();
-      }
-
-      const timerCircle = this.container.querySelector('.circle');
-      if (timerCircle) {
-        (timerCircle as SVGPathElement).setAttribute('stroke-dasharray', this.getTimerDasharray());
-      }
-
-      // Time's up - handle timeout
-      if (this.timeRemaining <= 0) {
-        this.stopQuestionTimer();
-        this.handleTimeUp();
-      }
-    }, 100);
+    this.gameTimer.start({
+      timeLimitSeconds: currentQuestion.timeLimitSeconds,
+      questionStartedAt,
+      onTick: (timeRemaining) => this.updateTimerDisplay(timeRemaining),
+      onTimeout: () => this.handleTimeUp(),
+    });
   }
 
   /**
-   * Stop question timer
+   * Update timer display in UI
    */
-  private stopQuestionTimer(): void {
-    if (this.timerInterval !== null) {
-      clearInterval(this.timerInterval);
-      this.timerInterval = null;
+  private updateTimerDisplay(timeRemaining: number): void {
+    const timerText = this.container.querySelector('.timer-text');
+    if (timerText) {
+      timerText.textContent = Math.ceil(timeRemaining).toString();
+    }
+
+    const timerCircle = this.container.querySelector('.circle');
+    if (timerCircle) {
+      (timerCircle as SVGPathElement).setAttribute('stroke-dasharray', this.gameTimer.getDasharray());
     }
   }
 
@@ -132,31 +102,16 @@ export class JeopardyGame extends MultiplayerGame {
       this.answerSubmitted = true;
     }
 
-    this.isRevealingAnswer = true;
-    this.render();
+    this.render(); // Re-render to show reveal state
 
     // Only host triggers advancement
     const isHost = this.state.participants.find(p => p.isCurrentUser)?.isHost ?? false;
-
-    this.revealTimeout = window.setTimeout(() => {
-      if (isHost) {
-        const event = new CustomEvent('game:timeout', {
-          detail: { questionId: this.state.currentQuestion?.id },
-        });
-        window.dispatchEvent(event);
-      }
-    }, JeopardyGame.REVEAL_DURATION_MS);
-  }
-
-  /**
-   * Get timer circle dash array for progress
-   */
-  private getTimerDasharray(): string {
-    const { currentQuestion } = this.state;
-    if (!currentQuestion) return '0, 100';
-
-    const percentage = (this.timeRemaining / currentQuestion.timeLimitSeconds) * 100;
-    return `${percentage}, 100`;
+    if (isHost) {
+      const event = new CustomEvent('game:timeout', {
+        detail: { questionId: this.state.currentQuestion?.id },
+      });
+      window.dispatchEvent(event);
+    }
   }
 
   /**
@@ -165,12 +120,7 @@ export class JeopardyGame extends MultiplayerGame {
   private resetAnswerState(): void {
     this.selectedAnswer = null;
     this.answerSubmitted = false;
-    this.questionStartTime = null;
-    this.isRevealingAnswer = false;
-    if (this.revealTimeout !== null) {
-      clearTimeout(this.revealTimeout);
-      this.revealTimeout = null;
-    }
+    this.gameTimer.reset();
   }
 
   protected render(): void {
@@ -209,7 +159,8 @@ export class JeopardyGame extends MultiplayerGame {
   private renderJeopardyQuestion(question: GameQuestion): string {
     const options = question.getOptions();
     const { hasAnswered } = this.state;
-    const isDisabled = hasAnswered || this.isRevealingAnswer;
+    const timerState = this.gameTimer.getState();
+    const isDisabled = hasAnswered || timerState.isRevealingAnswer;
 
     const optionsHtml = options
       .map(
@@ -223,13 +174,13 @@ export class JeopardyGame extends MultiplayerGame {
       .join('');
 
     // Show "Time's Up!" in timer during reveal phase
-    const timerContent = this.isRevealingAnswer
+    const timerContent = timerState.isRevealingAnswer
       ? `<div class="timer-text times-up">0</div>`
-      : `<div class="timer-text">${Math.ceil(this.timeRemaining)}</div>`;
+      : `<div class="timer-text">${Math.ceil(timerState.timeRemaining)}</div>`;
 
     return `
-      <div class="jeopardy-question-container ${this.isRevealingAnswer ? 'revealing' : ''}">
-        <div class="question-timer ${this.isRevealingAnswer ? 'times-up' : ''}">
+      <div class="jeopardy-question-container ${timerState.isRevealingAnswer ? 'revealing' : ''}">
+        <div class="question-timer ${timerState.isRevealingAnswer ? 'times-up' : ''}">
           <div class="timer-circle">
             <svg viewBox="0 0 36 36" class="circular-chart">
               <path class="circle-bg"
@@ -238,7 +189,7 @@ export class JeopardyGame extends MultiplayerGame {
                   a 15.9155 15.9155 0 0 1 0 -31.831"
               />
               <path class="circle"
-                stroke-dasharray="${this.isRevealingAnswer ? '0, 100' : this.getTimerDasharray()}"
+                stroke-dasharray="${timerState.isRevealingAnswer ? '0, 100' : this.gameTimer.getDasharray()}"
                 d="M18 2.0845
                   a 15.9155 15.9155 0 0 1 0 31.831
                   a 15.9155 15.9155 0 0 1 0 -31.831"
@@ -256,7 +207,7 @@ export class JeopardyGame extends MultiplayerGame {
         <div class="jeopardy-responses">
           ${optionsHtml}
         </div>
-        ${this.isRevealingAnswer ? this.renderTimeUpFeedback() : (hasAnswered ? this.renderAnswerFeedback() : '')}
+        ${timerState.isRevealingAnswer ? this.renderTimeUpFeedback() : (hasAnswered ? this.renderAnswerFeedback() : '')}
       </div>
     `;
   }
@@ -299,10 +250,13 @@ export class JeopardyGame extends MultiplayerGame {
    * Handle player answer submission with synchronized timing
    */
   protected async handleAnswer(answer: string): Promise<void> {
-    if (this.answerSubmitted || !this.questionStartTime) return;
+    if (this.answerSubmitted) return;
+
+    const startTime = this.gameTimer.getStartTime();
+    if (!startTime) return;
 
     // Use synchronized time for fair timing across all players
-    const timeTaken = this.timeSync.now() - this.questionStartTime;
+    const timeTaken = this.timeSync.now() - startTime;
     this.answerSubmitted = true;
 
     const event = new CustomEvent('game:answer', {
