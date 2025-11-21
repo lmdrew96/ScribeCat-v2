@@ -233,6 +233,28 @@ export function registerGameHandlers(): void {
     }
   });
 
+  ipcMain.handle('games:subscribe-room-games', (event, roomId: string) => {
+    try {
+      const subscriptionKey = `room-games:${roomId}`;
+
+      // Clean up existing subscription if any
+      const existing = subscriptions.get(subscriptionKey);
+      if (existing) {
+        existing().catch(console.error);
+      }
+
+      const unsubscribe = gamesRepo.subscribeToRoomGames(roomId, (gameSession) => {
+        event.sender.send(`games:room-game-update:${roomId}`, gameSession?.toJSON());
+      });
+
+      subscriptions.set(subscriptionKey, unsubscribe);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to subscribe to room games:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('games:unsubscribe-all', async () => {
     try {
       // Unsubscribe all stored subscriptions

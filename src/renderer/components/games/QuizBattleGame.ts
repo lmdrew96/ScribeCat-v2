@@ -16,6 +16,9 @@ export class QuizBattleGame extends MultiplayerGame {
   private timerInterval: number | null = null;
   private timeRemaining: number = 0;
   private timeSync: TimeSync = TimeSync.getInstance();
+  private isRevealingAnswer: boolean = false;
+  private revealTimeout: number | null = null;
+  private static readonly REVEAL_DURATION_MS = 3000; // Show answer for 3 seconds
 
   /**
    * Initialize quiz battle game with time synchronization
@@ -36,6 +39,10 @@ export class QuizBattleGame extends MultiplayerGame {
    */
   public async cleanup(): Promise<void> {
     this.stopQuestionTimer();
+    if (this.revealTimeout !== null) {
+      clearTimeout(this.revealTimeout);
+      this.revealTimeout = null;
+    }
     await super.cleanup();
   }
 
@@ -44,14 +51,24 @@ export class QuizBattleGame extends MultiplayerGame {
    */
   public updateState(updates: Partial<GameState>): void {
     const previousQuestion = this.state.currentQuestion;
-    super.updateState(updates);
 
-    // Reset answer state when question changes
+    // Reset answer state BEFORE calling super.updateState() (which calls render())
+    // This ensures the render uses clean state, not stale selectedAnswer value
     if (
       updates.currentQuestion &&
       previousQuestion?.id !== updates.currentQuestion.id
     ) {
       this.resetAnswerState();
+    }
+
+    // Now call parent updateState() - render will use clean state
+    super.updateState(updates);
+
+    // Start timer AFTER state is fully updated
+    if (
+      updates.currentQuestion &&
+      previousQuestion?.id !== updates.currentQuestion.id
+    ) {
       this.startQuestionTimer();
     }
 
@@ -103,6 +120,7 @@ export class QuizBattleGame extends MultiplayerGame {
     `;
 
     this.attachAnswerListeners();
+    this.attachExitListeners();
   }
 
   /**
@@ -144,6 +162,7 @@ export class QuizBattleGame extends MultiplayerGame {
   private renderQuestion(question: GameQuestion): string {
     const options = question.getOptions();
     const { hasAnswered } = this.state;
+    const isDisabled = hasAnswered || this.isRevealingAnswer;
 
     const optionsHtml = options
       .map((option, index) => {
@@ -153,12 +172,12 @@ export class QuizBattleGame extends MultiplayerGame {
           className += ' selected';
         }
 
-        if (hasAnswered) {
+        if (isDisabled) {
           className += ' disabled';
         }
 
         return `
-          <button class="${className}" data-index="${index}" ${hasAnswered ? 'disabled' : ''}>
+          <button class="${className}" data-index="${index}" ${isDisabled ? 'disabled' : ''}>
             <span class="option-letter">${this.getOptionLetter(index)}</span>
             <span class="option-text">${this.escapeHtml(option)}</span>
           </button>
@@ -166,9 +185,14 @@ export class QuizBattleGame extends MultiplayerGame {
       })
       .join('');
 
+    // Show "Time's Up!" in timer during reveal phase
+    const timerContent = this.isRevealingAnswer
+      ? `<div class="timer-text times-up">0</div>`
+      : `<div class="timer-text">${Math.ceil(this.timeRemaining)}</div>`;
+
     return `
-      <div class="quiz-battle-question-container">
-        <div class="question-timer">
+      <div class="quiz-battle-question-container ${this.isRevealingAnswer ? 'revealing' : ''}">
+        <div class="question-timer ${this.isRevealingAnswer ? 'times-up' : ''}">
           <div class="timer-circle">
             <svg viewBox="0 0 36 36" class="circular-chart">
               <path class="circle-bg"
@@ -177,13 +201,13 @@ export class QuizBattleGame extends MultiplayerGame {
                   a 15.9155 15.9155 0 0 1 0 -31.831"
               />
               <path class="circle"
-                stroke-dasharray="${this.getTimerDasharray()}"
+                stroke-dasharray="${this.isRevealingAnswer ? '0, 100' : this.getTimerDasharray()}"
                 d="M18 2.0845
                   a 15.9155 15.9155 0 0 1 0 31.831
                   a 15.9155 15.9155 0 0 1 0 -31.831"
               />
             </svg>
-            <div class="timer-text">${Math.ceil(this.timeRemaining)}</div>
+            ${timerContent}
           </div>
         </div>
 
@@ -204,7 +228,7 @@ export class QuizBattleGame extends MultiplayerGame {
           ${optionsHtml}
         </div>
 
-        ${hasAnswered ? this.renderAnswerFeedback() : ''}
+        ${this.isRevealingAnswer ? this.renderTimeUpFeedback() : (hasAnswered ? this.renderAnswerFeedback() : '')}
       </div>
     `;
   }
@@ -216,10 +240,28 @@ export class QuizBattleGame extends MultiplayerGame {
     return `
       <div class="answer-feedback">
         <div class="feedback-message">
-          ✅ Answer submitted! Waiting for other players...
+          Answer submitted! Waiting for other players...
         </div>
         <div class="feedback-subtitle">
           Get ready for the next question
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render time's up feedback during reveal phase
+   */
+  private renderTimeUpFeedback(): string {
+    const hasAnswer = this.selectedAnswer !== null;
+    return `
+      <div class="answer-feedback times-up-feedback">
+        <div class="feedback-message times-up-message">
+          Time's Up!
+        </div>
+        <div class="feedback-subtitle">
+          ${hasAnswer ? 'Your answer has been recorded.' : 'No answer submitted.'}
+          Next question coming up...
         </div>
       </div>
     `;
@@ -232,16 +274,28 @@ export class QuizBattleGame extends MultiplayerGame {
   /**
    * Start question timer using synchronized time
    * Uses TimeSync service to ensure all players see the same countdown
+   * For late joiners, uses the shared questionStartedAt to sync with other players
    */
   private startQuestionTimer(): void {
     this.stopQuestionTimer();
 
-    const { currentQuestion } = this.state;
+    const { currentQuestion, questionStartedAt } = this.state;
     if (!currentQuestion) return;
 
-    // Use synchronized time instead of client Date.now()
-    this.questionStartTime = this.timeSync.now();
-    this.timeRemaining = currentQuestion.timeLimitSeconds;
+    // Use shared questionStartedAt if available (for late joiner sync or mid-game question changes)
+    // Otherwise use current synchronized time (host starting first question fresh)
+    if (questionStartedAt !== undefined) {
+      this.questionStartTime = questionStartedAt;
+      // Calculate how much time has already elapsed for late joiners
+      const elapsed = (this.timeSync.now() - questionStartedAt) / 1000;
+      this.timeRemaining = Math.max(0, currentQuestion.timeLimitSeconds - elapsed);
+      console.log(`[QuizBattleGame] Synced timer: ${elapsed.toFixed(1)}s elapsed, ${this.timeRemaining.toFixed(1)}s remaining`);
+    } else {
+      // No shared timestamp - set it ourselves (host starting first question fresh)
+      this.questionStartTime = this.timeSync.now();
+      this.timeRemaining = currentQuestion.timeLimitSeconds;
+      console.log(`[QuizBattleGame] Fresh timer started: ${this.timeRemaining}s remaining`);
+    }
 
     this.timerInterval = window.setInterval(() => {
       // Calculate elapsed time using synchronized clock
@@ -259,9 +313,10 @@ export class QuizBattleGame extends MultiplayerGame {
         (timerCircle as SVGPathElement).setAttribute('stroke-dasharray', this.getTimerDasharray());
       }
 
-      // Time's up - auto-submit if not already answered
+      // Time's up - handle timeout
       // Use <= 0 instead of === 0 because timeRemaining is a float and may never exactly equal 0
-      if (this.timeRemaining <= 0 && !this.answerSubmitted) {
+      if (this.timeRemaining <= 0) {
+        this.stopQuestionTimer();
         this.handleTimeUp();
       }
     }, 100);
@@ -279,17 +334,35 @@ export class QuizBattleGame extends MultiplayerGame {
 
   /**
    * Handle time running out
+   * Called when timer reaches 0, regardless of whether player answered
+   * Shows "Time's Up!" message for a few seconds before advancing
    */
   private handleTimeUp(): void {
-    this.answerSubmitted = true;
+    // If player hasn't answered yet, mark as submitted (no answer)
+    if (!this.answerSubmitted) {
+      this.answerSubmitted = true;
+    }
 
-    // Emit timeout event
-    const event = new CustomEvent('game:timeout', {
-      detail: {
-        questionId: this.state.currentQuestion?.id,
-      },
-    });
-    window.dispatchEvent(event);
+    // Enter reveal phase - show feedback before advancing
+    this.isRevealingAnswer = true;
+    this.render(); // Re-render to show reveal state
+
+    // Check if this user is the host - only host should trigger question advancement
+    const isHost = this.state.participants.find(p => p.isCurrentUser)?.isHost ?? false;
+
+    // Wait for reveal duration, then advance to next question
+    this.revealTimeout = window.setTimeout(() => {
+      // Only the host should trigger the timeout event to advance to next question
+      // This prevents multiple clients from trying to advance simultaneously
+      if (isHost) {
+        const event = new CustomEvent('game:timeout', {
+          detail: {
+            questionId: this.state.currentQuestion?.id,
+          },
+        });
+        window.dispatchEvent(event);
+      }
+    }, QuizBattleGame.REVEAL_DURATION_MS);
   }
 
   /**
@@ -310,6 +383,11 @@ export class QuizBattleGame extends MultiplayerGame {
     this.selectedAnswer = null;
     this.answerSubmitted = false;
     this.questionStartTime = null;
+    this.isRevealingAnswer = false;
+    if (this.revealTimeout !== null) {
+      clearTimeout(this.revealTimeout);
+      this.revealTimeout = null;
+    }
   }
 
   // ============================================================================
@@ -351,6 +429,9 @@ export class QuizBattleGame extends MultiplayerGame {
         window.dispatchEvent(event);
       });
     }
+
+    // Also attach exit listener for waiting screen
+    this.attachExitListeners();
   }
 
   /**
@@ -361,6 +442,19 @@ export class QuizBattleGame extends MultiplayerGame {
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
         const event = new CustomEvent('game:close');
+        window.dispatchEvent(event);
+      });
+    }
+  }
+
+  /**
+   * Attach exit button listeners
+   */
+  private attachExitListeners(): void {
+    const exitBtn = this.container.querySelector('#exit-game-btn');
+    if (exitBtn) {
+      exitBtn.addEventListener('click', () => {
+        const event = new CustomEvent('game:exit');
         window.dispatchEvent(event);
       });
     }

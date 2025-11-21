@@ -56,6 +56,7 @@ export class BingoGame extends MultiplayerGame {
     `;
 
     this.attachBingoListeners();
+    this.attachExitListeners();
   }
 
   private renderBingoGrid(): string {
@@ -162,12 +163,22 @@ export class BingoGame extends MultiplayerGame {
     startBtn?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('game:start'));
     });
+
+    // Also attach exit listener for waiting screen
+    this.attachExitListeners();
   }
 
   private attachCompleteListeners(): void {
     const closeBtn = this.container.querySelector('#close-game-btn');
     closeBtn?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('game:close'));
+    });
+  }
+
+  private attachExitListeners(): void {
+    const exitBtn = this.container.querySelector('#exit-game-btn');
+    exitBtn?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('game:exit'));
     });
   }
 }

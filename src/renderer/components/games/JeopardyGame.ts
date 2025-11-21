@@ -33,11 +33,18 @@ export class JeopardyGame extends MultiplayerGame {
    */
   public updateState(updates: Partial<GameState>): void {
     const previousQuestion = this.state.currentQuestion;
-    super.updateState(updates);
 
-    // Reset answer state when question changes
+    // Reset answer state BEFORE calling super.updateState() (which calls render())
+    // This ensures the render uses clean state, not stale selectedAnswer value
     if (updates.currentQuestion && previousQuestion?.id !== updates.currentQuestion.id) {
       this.selectedAnswer = null;
+    }
+
+    // Now call parent updateState() - render will use clean state
+    super.updateState(updates);
+
+    // Start timer AFTER state is fully updated
+    if (updates.currentQuestion && previousQuestion?.id !== updates.currentQuestion.id) {
       this.startQuestionTimer();
     }
   }
@@ -79,6 +86,7 @@ export class JeopardyGame extends MultiplayerGame {
     `;
 
     this.attachAnswerListeners();
+    this.attachExitListeners();
   }
 
   private renderJeopardyQuestion(question: GameQuestion): string {
@@ -148,12 +156,22 @@ export class JeopardyGame extends MultiplayerGame {
     startBtn?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('game:start'));
     });
+
+    // Also attach exit listener for waiting screen
+    this.attachExitListeners();
   }
 
   private attachCompleteListeners(): void {
     const closeBtn = this.container.querySelector('#close-game-btn');
     closeBtn?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('game:close'));
+    });
+  }
+
+  private attachExitListeners(): void {
+    const exitBtn = this.container.querySelector('#exit-game-btn');
+    exitBtn?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('game:exit'));
     });
   }
 }

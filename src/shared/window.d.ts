@@ -209,6 +209,7 @@ declare global {
         subscribeToGameSession: (gameSessionId: string, onUpdate: (sessionData: any) => void) => () => void;
         subscribeToGameQuestions: (gameSessionId: string, onQuestion: (questionData: any) => void) => () => void;
         subscribeToGameScores: (gameSessionId: string, onScore: (scoreData: any) => void) => () => void;
+        subscribeToRoomGames: (roomId: string, onGameSession: (sessionData: any) => void) => () => void;
         unsubscribeAll: () => Promise<IPCResponse<void>>;
       };
       sharing: {

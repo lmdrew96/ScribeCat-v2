@@ -494,6 +494,16 @@ const electronAPI = {
         ipcRenderer.removeListener(`games:score-update:${gameSessionId}`, handler);
       };
     },
+    subscribeToRoomGames: (roomId: string, onGameSession: (sessionData: any) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: any) => {
+        onGameSession(data);
+      };
+      ipcRenderer.on(`games:room-game-update:${roomId}`, handler);
+      ipcRenderer.invoke('games:subscribe-room-games', roomId);
+      return () => {
+        ipcRenderer.removeListener(`games:room-game-update:${roomId}`, handler);
+      };
+    },
     unsubscribeAll: () =>
       ipcRenderer.invoke('games:unsubscribe-all')
   },

@@ -195,6 +195,15 @@ export interface IGameRepository {
   ): () => Promise<void>;
 
   /**
+   * Subscribe to game sessions for a specific room
+   * Used to detect when a host starts a new game
+   */
+  subscribeToRoomGames(
+    roomId: string,
+    onGameSession: (gameSession: GameSession | null) => void
+  ): () => Promise<void>;
+
+  /**
    * Unsubscribe from all game subscriptions
    */
   unsubscribeAll(): Promise<void>;

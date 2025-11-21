@@ -87,11 +87,16 @@ export class SupabaseGamesRepository implements IGameRepository {
    * Get the active game for a room
    */
   public async getActiveGameForRoom(roomId: string): Promise<GameSession | null> {
+    // Calculate timestamp for 24 hours ago (defense against stale games)
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
     const { data, error } = await this.getClient()
       .from('game_sessions')
       .select('*')
       .eq('room_id', roomId)
       .in('status', ['waiting', 'in_progress'])
+      .gte('created_at', twentyFourHoursAgo.toISOString()) // Only games from last 24 hours
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -641,6 +646,66 @@ export class SupabaseGamesRepository implements IGameRepository {
       client.removeChannel(channel);
       this.channels.delete(channelName);
       console.log(`Unsubscribed from game scores ${gameSessionId}`);
+    };
+  }
+
+  /**
+   * Subscribe to game sessions for a specific room
+   * Used to detect when a host starts a new game
+   */
+  public subscribeToRoomGames(
+    roomId: string,
+    onGameSession: (gameSession: GameSession | null) => void
+  ): () => Promise<void> {
+    const channelName = `room-games:${roomId}`;
+    const client = this.getRealtimeClient();
+
+    console.log('📡 Creating Realtime room games subscription:', roomId);
+
+    // Remove existing subscription if any
+    const existingChannel = this.channels.get(channelName);
+    if (existingChannel) {
+      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
+      client.removeChannel(existingChannel);
+      this.channels.delete(channelName);
+    }
+
+    // Set auth token for RLS
+    const accessToken = SupabaseClient.getInstance().getAccessToken();
+    if (accessToken) {
+      client.realtime.setAuth(accessToken);
+    }
+
+    const channel = client.channel(channelName).on(
+      'postgres_changes',
+      {
+        event: '*', // Listen for INSERT and UPDATE
+        schema: 'public',
+        table: 'game_sessions',
+        filter: `room_id=eq.${roomId}`,
+      },
+      (payload) => {
+        console.log('Room game update:', payload.eventType, payload);
+        if (payload.new) {
+          const gameSession = GameSession.fromDatabase(payload.new as any);
+          onGameSession(gameSession);
+        } else {
+          onGameSession(null);
+        }
+      }
+    );
+
+    channel.subscribe((status) => {
+      console.log(`Room games subscription status for ${roomId}:`, status);
+    });
+
+    this.channels.set(channelName, channel);
+
+    return async () => {
+      await channel.unsubscribe();
+      client.removeChannel(channel);
+      this.channels.delete(channelName);
+      console.log(`Unsubscribed from room games ${roomId}`);
     };
   }
 

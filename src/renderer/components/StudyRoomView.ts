@@ -41,6 +41,9 @@ export class StudyRoomView {
   private onExit?: () => void;
   private currentSession: Session | null = null;
   private isGameActive: boolean = false;
+  private roomGameUnsubscribe: (() => void) | null = null;
+  private gamePollingInterval: number | null = null;
+  private static readonly GAME_POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 
   // Collaborative editor
   private notesEditor: Editor | null = null;
@@ -326,6 +329,15 @@ export class StudyRoomView {
 
     // Load room data
     await this.loadRoomData();
+
+    // Check for active games (important for non-host participants)
+    await this.checkForActiveGame();
+
+    // Subscribe to room game changes for real-time game detection
+    this.subscribeToRoomGames();
+
+    // Start polling as fallback for game detection (non-hosts only)
+    this.startGamePolling();
   }
 
   /**
@@ -333,6 +345,13 @@ export class StudyRoomView {
    */
   public hide(): void {
     if (!this.container) return;
+
+    // Cleanup room game subscription and polling
+    if (this.roomGameUnsubscribe) {
+      this.roomGameUnsubscribe();
+      this.roomGameUnsubscribe = null;
+    }
+    this.stopGamePolling();
 
     // Cleanup chat panel
     if (this.chatPanel) {
@@ -1213,10 +1232,10 @@ export class StudyRoomView {
       // Show game container
       this.showGameContainer();
 
-      // Start the game
+      // Join the game in waiting mode (don't start yet - let host click "Start Game" button)
       const gameContainer = document.getElementById('multiplayer-game-container');
       if (gameContainer) {
-        await this.gamesManager.startGame(gameSession.id, gameContainer, gameParticipants);
+        await this.gamesManager.joinGame(gameSession.id, gameContainer, gameParticipants);
       }
 
       // Listen for game close event
@@ -1240,6 +1259,7 @@ export class StudyRoomView {
    */
   private showGameContainer(): void {
     this.isGameActive = true;
+    this.stopGamePolling(); // Stop polling once game is detected
 
     const gameContainer = document.getElementById('multiplayer-game-container');
     const mainContent = document.querySelector('.study-room-main') as HTMLElement;
@@ -1274,5 +1294,158 @@ export class StudyRoomView {
   private async handleGameClosed(): Promise<void> {
     this.hideGameContainer();
     await this.gamesManager.cleanup();
+  }
+
+  /**
+   * Check for active games when entering a room
+   * This allows non-host participants to join games already in progress
+   * NOTE: Hosts don't auto-join - they create/start games via handleStartGame()
+   */
+  private async checkForActiveGame(): Promise<void> {
+    if (!this.currentRoomId || !this.currentUserId) return;
+
+    // Check if current user is the host - hosts don't auto-join games
+    const room = this.studyRoomsManager.getRoomById(this.currentRoomId);
+    const isHost = room?.hostId === this.currentUserId;
+
+    if (isHost) {
+      console.log('[StudyRoomView] Skipping active game check - current user is host');
+      return;
+    }
+
+    try {
+      const activeGameResult = await window.scribeCat.games.getActiveGameForRoom(this.currentRoomId);
+
+      if (activeGameResult.success && activeGameResult.gameSession) {
+        const gameSession = activeGameResult.gameSession;
+        console.log('[StudyRoomView] Found active game:', gameSession.id, 'status:', gameSession.status);
+
+        // Only join if game is in progress (not waiting or ended)
+        if (gameSession.status === 'in_progress' || gameSession.status === 'waiting') {
+          await this.joinExistingGame(gameSession);
+        }
+      }
+    } catch (error) {
+      console.error('[StudyRoomView] Failed to check for active game:', error);
+    }
+  }
+
+  /**
+   * Subscribe to room game changes to detect when host starts a new game
+   * NOTE: This is primarily for non-host participants to detect when a game starts
+   */
+  private subscribeToRoomGames(): void {
+    if (!this.currentRoomId) return;
+
+    // Subscribe to game sessions for this room
+    this.roomGameUnsubscribe = window.scribeCat.games.subscribeToRoomGames(
+      this.currentRoomId,
+      async (gameSessionData) => {
+        console.log('[StudyRoomView] Room game update:', gameSessionData?.id, 'status:', gameSessionData?.status);
+
+        // Check if current user is the host - hosts don't join via subscription
+        // They create/start games via handleStartGame()
+        const room = this.studyRoomsManager.getRoomById(this.currentRoomId!);
+        const isHost = room?.hostId === this.currentUserId;
+
+        if (isHost) {
+          console.log('[StudyRoomView] Ignoring room game update - current user is host');
+          return;
+        }
+
+        // If a game started and we're not already in one, join it
+        if (gameSessionData && !this.isGameActive) {
+          if (gameSessionData.status === 'in_progress' || gameSessionData.status === 'waiting') {
+            await this.joinExistingGame(gameSessionData);
+          }
+        }
+
+        // If game ended, hide the game container
+        if (gameSessionData && gameSessionData.status === 'completed') {
+          this.hideGameContainer();
+        }
+      }
+    );
+  }
+
+  /**
+   * Start polling for active games as a fallback mechanism
+   * This ensures non-host participants can detect games even if Realtime subscription fails
+   */
+  private startGamePolling(): void {
+    // Don't start if already polling or if user is host
+    if (this.gamePollingInterval !== null) return;
+
+    const room = this.studyRoomsManager.getRoomById(this.currentRoomId!);
+    const isHost = room?.hostId === this.currentUserId;
+
+    if (isHost) {
+      console.log('[StudyRoomView] Skipping game polling - current user is host');
+      return;
+    }
+
+    console.log('[StudyRoomView] Starting game polling as fallback');
+    this.gamePollingInterval = window.setInterval(async () => {
+      // Stop polling if game is already active or we left the room
+      if (this.isGameActive || !this.currentRoomId) {
+        this.stopGamePolling();
+        return;
+      }
+
+      await this.checkForActiveGame();
+    }, StudyRoomView.GAME_POLLING_INTERVAL_MS);
+  }
+
+  /**
+   * Stop polling for active games
+   */
+  private stopGamePolling(): void {
+    if (this.gamePollingInterval !== null) {
+      clearInterval(this.gamePollingInterval);
+      this.gamePollingInterval = null;
+      console.log('[StudyRoomView] Stopped game polling');
+    }
+  }
+
+  /**
+   * Join an existing game session (for non-host participants)
+   */
+  private async joinExistingGame(gameSessionData: any): Promise<void> {
+    if (!this.currentRoomId || !this.currentUserId || this.isGameActive) return;
+
+    try {
+      console.log('[StudyRoomView] Joining existing game:', gameSessionData.id);
+
+      // Initialize games manager
+      this.gamesManager.initialize(this.currentUserId);
+
+      // Get participants for game
+      const participants = this.studyRoomsManager.getActiveParticipants(this.currentRoomId);
+      const room = this.studyRoomsManager.getRoomById(this.currentRoomId);
+
+      const gameParticipants = participants.map((p) => ({
+        userId: p.userId,
+        userEmail: p.userEmail,
+        userFullName: p.userFullName,
+        userAvatarUrl: p.userAvatarUrl,
+        isHost: p.userId === room?.hostId,
+        isCurrentUser: p.userId === this.currentUserId,
+      }));
+
+      // Show game container
+      this.showGameContainer();
+
+      // Join the game (not create) - use joinGame instead of startGame to avoid updating status
+      const gameContainer = document.getElementById('multiplayer-game-container');
+      if (gameContainer) {
+        await this.gamesManager.joinGame(gameSessionData.id, gameContainer, gameParticipants);
+      }
+
+      // Listen for game close event
+      window.addEventListener('multiplayer-game:closed', this.handleGameClosed.bind(this), { once: true });
+    } catch (error) {
+      console.error('[StudyRoomView] Failed to join existing game:', error);
+      this.hideGameContainer();
+    }
   }
 }

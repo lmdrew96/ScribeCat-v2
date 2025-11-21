@@ -28,6 +28,7 @@ export interface GameState {
   hasAnswered: boolean;
   gameStarted: boolean;
   gameEnded: boolean;
+  questionStartedAt?: number; // Timestamp when current question started (for late joiner sync)
 }
 
 /**
@@ -113,11 +114,25 @@ export abstract class MultiplayerGame {
           <h3>${session.getGameTypeName()}</h3>
           <span class="game-status ${session.status}">${session.getStatusText()}</span>
         </div>
-        <div class="game-score">
-          <span class="score-label">Your Score:</span>
-          <span class="score-value">${currentUserScore}</span>
+        <div class="game-header-actions">
+          <div class="game-score">
+            <span class="score-label">Your Score:</span>
+            <span class="score-value">${currentUserScore}</span>
+          </div>
+          ${this.renderExitButton()}
         </div>
       </div>
+    `;
+  }
+
+  /**
+   * Render exit button (for mid-game exit)
+   */
+  protected renderExitButton(): string {
+    return `
+      <button class="btn-exit exit-game-btn" id="exit-game-btn" title="Exit Game">
+        ✕
+      </button>
     `;
   }
 
@@ -211,9 +226,16 @@ export abstract class MultiplayerGame {
 
     return `
       <div class="game-waiting-screen">
-        <div class="waiting-icon">⏳</div>
-        <h3>Waiting for game to start...</h3>
-        <p class="waiting-subtitle">${this.getInstructions()}</p>
+        <div class="waiting-header">
+          <div class="waiting-header-content">
+            <div class="waiting-icon">⏳</div>
+            <div>
+              <h3>Waiting for game to start...</h3>
+              <p class="waiting-subtitle">${this.getInstructions()}</p>
+            </div>
+          </div>
+          ${this.renderExitButton()}
+        </div>
 
         <div class="waiting-participants">
           <h4>Players (${participants.length})</h4>
