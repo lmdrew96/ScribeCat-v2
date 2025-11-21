@@ -339,6 +339,14 @@ export class SupabaseGamesRepository implements IGameRepository {
    * Submit a player's answer
    */
   public async submitAnswer(params: SubmitAnswerParams): Promise<PlayerScore> {
+    console.log(`[SupabaseGamesRepository] submitAnswer called:`, {
+      gameSessionId: params.gameSessionId,
+      userId: params.userId,
+      questionId: params.questionId,
+      answer: params.answer,
+      timeTakenMs: params.timeTakenMs,
+    });
+
     // Get the question to check the correct answer
     const question = await this.getGameQuestion(params.questionId, true);
     if (!question) {
@@ -350,6 +358,14 @@ export class SupabaseGamesRepository implements IGameRepository {
 
     // Calculate points
     const pointsEarned = isCorrect ? question.calculatePoints(params.timeTakenMs) : 0;
+
+    console.log(`[SupabaseGamesRepository] Score calculation:`, {
+      questionId: params.questionId,
+      userId: params.userId,
+      isCorrect,
+      pointsEarned,
+      timeTakenMs: params.timeTakenMs,
+    });
 
     // Insert the score
     const { data, error } = await this.getClient()
@@ -367,9 +383,14 @@ export class SupabaseGamesRepository implements IGameRepository {
       .single();
 
     if (error) {
-      console.error('Failed to submit answer:', error);
+      console.error('[SupabaseGamesRepository] Failed to insert player_scores:', error);
       throw new Error(`Failed to submit answer: ${error.message}`);
     }
+
+    console.log(`[SupabaseGamesRepository] Answer submitted successfully:`, {
+      scoreId: data.id,
+      pointsEarned,
+    });
 
     return PlayerScore.fromDatabase(data);
   }

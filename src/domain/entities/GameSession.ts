@@ -25,6 +25,7 @@ export interface GameSessionData {
   readonly status: GameStatus;
   readonly config: GameConfig;
   readonly currentQuestionIndex: number;
+  readonly questionStartedAt?: Date; // When current question started (for timer sync)
   readonly startedAt?: Date;
   readonly endedAt?: Date;
   readonly createdAt: Date;
@@ -47,6 +48,7 @@ export class GameSession {
     status: string;
     config: unknown;
     current_question_index: number;
+    question_started_at?: string | Date | null;
     started_at?: string | Date | null;
     ended_at?: string | Date | null;
     created_at: string | Date;
@@ -59,6 +61,11 @@ export class GameSession {
       status: row.status as GameStatus,
       config: (row.config as GameConfig) || {},
       currentQuestionIndex: row.current_question_index,
+      questionStartedAt: row.question_started_at
+        ? typeof row.question_started_at === 'string'
+          ? new Date(row.question_started_at)
+          : row.question_started_at
+        : undefined,
       startedAt: row.started_at
         ? typeof row.started_at === 'string'
           ? new Date(row.started_at)
@@ -80,6 +87,7 @@ export class GameSession {
   static fromJSON(data: GameSessionData): GameSession {
     return new GameSession({
       ...data,
+      questionStartedAt: data.questionStartedAt ? new Date(data.questionStartedAt) : undefined,
       startedAt: data.startedAt ? new Date(data.startedAt) : undefined,
       endedAt: data.endedAt ? new Date(data.endedAt) : undefined,
       createdAt: new Date(data.createdAt),
@@ -120,6 +128,10 @@ export class GameSession {
 
   get currentQuestionIndex(): number {
     return this.data.currentQuestionIndex;
+  }
+
+  get questionStartedAt(): Date | undefined {
+    return this.data.questionStartedAt;
   }
 
   get startedAt(): Date | undefined {

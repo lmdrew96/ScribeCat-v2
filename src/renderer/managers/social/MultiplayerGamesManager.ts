@@ -477,9 +477,9 @@ export class MultiplayerGamesManager {
           console.log(`[MultiplayerGamesManager] Fetched question for index ${gameSession.currentQuestionIndex}:`, currentQuestion?.id);
 
           if (this.currentGame) {
-            // For question changes mid-game, use session.updatedAt for timer sync
-            // This timestamp represents when the question index was incremented
-            const questionStartedAt = questionIndexChanged ? gameSession.updatedAt.getTime() : undefined;
+            // Use session.questionStartedAt for timer sync (set by database trigger)
+            // This ensures all players start timers at the exact same moment
+            const questionStartedAt = gameSession.questionStartedAt?.getTime();
 
             this.currentGame.updateState({
               session: gameSession,
@@ -487,7 +487,7 @@ export class MultiplayerGamesManager {
               hasAnswered: false, // Reset for new question
               gameStarted: gameSession.status === 'in_progress',
               gameEnded: gameSession.hasEnded(),
-              questionStartedAt, // Set for question changes, undefined for game start
+              questionStartedAt, // Database timestamp for synchronized timing
             });
           }
         } else if (this.currentGame) {
@@ -578,12 +578,36 @@ export class MultiplayerGamesManager {
     const customEvent = event as CustomEvent<{ answer: string; timeTakenMs: number }>;
     const { answer, timeTakenMs } = customEvent.detail;
 
-    if (!this.currentGameSession || !this.currentGame || !this.currentUserId) {
+    // Validation with detailed logging
+    if (!this.currentGameSession) {
+      console.error('[MultiplayerGamesManager] Cannot submit answer: No active game session');
+      return;
+    }
+
+    if (!this.currentGame) {
+      console.error('[MultiplayerGamesManager] Cannot submit answer: No current game instance');
+      return;
+    }
+
+    if (!this.currentUserId) {
+      console.error('[MultiplayerGamesManager] CRITICAL: Cannot submit answer - currentUserId is null!');
+      console.error('[MultiplayerGamesManager] This means initialize() was not called or user is not authenticated');
+      console.error('[MultiplayerGamesManager] Game session:', this.currentGameSession.id);
       return;
     }
 
     const currentQuestion = this.currentGame['state'].currentQuestion;
-    if (!currentQuestion) return;
+    if (!currentQuestion) {
+      console.warn('[MultiplayerGamesManager] Cannot submit answer: No current question');
+      return;
+    }
+
+    console.log(`[MultiplayerGamesManager] Submitting answer for user ${this.currentUserId}:`, {
+      gameSessionId: this.currentGameSession.id,
+      questionId: currentQuestion.id,
+      answer,
+      timeTakenMs,
+    });
 
     try {
       const result = await window.scribeCat.games.submitAnswer({
@@ -595,10 +619,13 @@ export class MultiplayerGamesManager {
       });
 
       if (result.success) {
+        console.log(`[MultiplayerGamesManager] Answer submitted successfully for user ${this.currentUserId}`);
         this.currentGame.updateState({ hasAnswered: true });
+      } else {
+        console.error('[MultiplayerGamesManager] Answer submission failed:', result.error);
       }
     } catch (error) {
-      console.error('Failed to submit answer:', error);
+      console.error('[MultiplayerGamesManager] Exception while submitting answer:', error);
     }
   }
 

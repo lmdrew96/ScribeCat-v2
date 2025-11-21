@@ -268,15 +268,32 @@ export class GameQuestion {
     const speedRatio = timeTakenMs / timeLimit;
 
     let speedBonus = 0;
+    let bonusPercentage = 0;
     if (speedRatio < 0.25) {
       speedBonus = basePoints * 0.5; // 50% bonus
+      bonusPercentage = 50;
     } else if (speedRatio < 0.5) {
       speedBonus = basePoints * 0.25; // 25% bonus
+      bonusPercentage = 25;
     } else if (speedRatio < 0.75) {
       speedBonus = basePoints * 0.1; // 10% bonus
+      bonusPercentage = 10;
     }
 
-    return Math.round(basePoints + speedBonus);
+    const totalPoints = Math.round(basePoints + speedBonus);
+
+    console.log(`[GameQuestion] calculatePoints:`, {
+      questionId: this.data.id,
+      basePoints,
+      timeTakenMs,
+      timeLimitMs: timeLimit,
+      speedRatio: speedRatio.toFixed(2),
+      bonusPercentage: `${bonusPercentage}%`,
+      speedBonus,
+      totalPoints,
+    });
+
+    return totalPoints;
   }
 
   /**
