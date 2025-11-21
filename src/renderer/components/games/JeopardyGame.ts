@@ -256,7 +256,7 @@ export class JeopardyGame extends MultiplayerGame {
     if (!startTime) return;
 
     // Use synchronized time for fair timing across all players
-    const timeTaken = this.timeSync.now() - startTime;
+    const timeTaken = Math.round(this.timeSync.now() - startTime);
     this.answerSubmitted = true;
 
     const event = new CustomEvent('game:answer', {
