@@ -129,12 +129,15 @@ export class CollaborativeFlashcardsGame extends MultiplayerGame {
 
   public updateState(updates: Partial<GameState>): void {
     const previousQuestion = this.state.currentQuestion;
-    super.updateState(updates);
 
-    // Reset flip state when question changes
+    // Reset flip state BEFORE calling super.updateState() (which calls render())
+    // This ensures the render uses clean state, not stale isFlipped value
     if (updates.currentQuestion && previousQuestion?.id !== updates.currentQuestion.id) {
       this.isFlipped = false;
     }
+
+    // Now call parent updateState() - render will use clean state
+    super.updateState(updates);
   }
 
   private attachFlashcardListeners(): void {
