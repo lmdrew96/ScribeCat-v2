@@ -43,6 +43,7 @@ export class QuizBattleGame extends MultiplayerGame {
    */
   public updateState(updates: Partial<GameState>): void {
     const previousQuestion = this.state.currentQuestion;
+    const wasGameStarted = this.state.gameStarted; // Track if game was started before update
 
     // Reset answer state BEFORE calling super.updateState() (which calls render())
     // This ensures the render uses clean state, not stale selectedAnswer value
@@ -56,10 +57,12 @@ export class QuizBattleGame extends MultiplayerGame {
     // Now call parent updateState() - render will use clean state
     super.updateState(updates);
 
-    // Start timer AFTER state is fully updated
+    // Start timer when:
+    // 1. Question changes, OR
+    // 2. Game just started (transitioned from waiting to started)
     if (
-      updates.currentQuestion &&
-      previousQuestion?.id !== updates.currentQuestion.id
+      (updates.currentQuestion && previousQuestion?.id !== updates.currentQuestion.id) ||
+      (!wasGameStarted && this.state.gameStarted && this.state.currentQuestion)
     ) {
       this.startQuestionTimer();
     }
