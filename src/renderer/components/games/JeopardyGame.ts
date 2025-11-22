@@ -68,8 +68,8 @@ export class JeopardyGame extends MultiplayerGame {
    * Start question timer using GameTimer utility
    */
   private startQuestionTimer(): void {
-    const { currentQuestion, questionStartedAt } = this.state;
-    if (!currentQuestion) return;
+    const { currentQuestion, questionStartedAt, gameStarted } = this.state;
+    if (!currentQuestion || !gameStarted) return;
 
     this.gameTimer.start({
       timeLimitSeconds: currentQuestion.timeLimitSeconds,
