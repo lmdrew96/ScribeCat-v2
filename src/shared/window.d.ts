@@ -203,7 +203,8 @@ declare global {
         createGameQuestions: (questions: any[]) => Promise<IPCResponse<any[]>>;
         getCurrentQuestion: (gameSessionId: string) => Promise<IPCResponse<any>>;
         getGameQuestions: (gameSessionId: string, includeAnswers: boolean) => Promise<IPCResponse<any[]>>;
-        submitAnswer: (params: { gameSessionId: string; userId: string; questionId: string; answer: string; timeTaken: number }) => Promise<IPCResponse<any>>;
+        getCorrectAnswer: (params: { gameSessionId: string; questionId: string; userId: string }) => Promise<IPCResponse<{ correctAnswerIndex: number; explanation?: string } | null>>;
+        submitAnswer: (params: { gameSessionId: string; userId: string; questionId: string; answer: string; timeTakenMs: number }) => Promise<IPCResponse<any>>;
         getGameLeaderboard: (gameSessionId: string) => Promise<IPCResponse<any[]>>;
         getPlayerScores: (gameSessionId: string, userId: string) => Promise<IPCResponse<any[]>>;
         subscribeToGameSession: (gameSessionId: string, onUpdate: (sessionData: any) => void) => () => void;

@@ -632,7 +632,39 @@ export class MultiplayerGamesManager {
 
       if (result.success) {
         console.log(`[MultiplayerGamesManager] Answer submitted successfully for user ${this.currentUserId}`);
+        console.log('[DEBUG MultiplayerGamesManager] Submit result:', result);
+        console.log('[DEBUG MultiplayerGamesManager] Score data:', result.score);
+        console.log('[DEBUG MultiplayerGamesManager] isCorrect:', result.score?.isCorrect);
+
         this.currentGame.updateState({ hasAnswered: true });
+
+        // Fetch correct answer details to show individual reveal
+        const correctAnswerResult = await window.scribeCat.games.getCorrectAnswer({
+          gameSessionId: this.currentGameSession.id,
+          questionId: currentQuestion.id,
+          userId: this.currentUserId,
+        });
+
+        console.log('[DEBUG MultiplayerGamesManager] getCorrectAnswer result:', correctAnswerResult);
+
+        if (correctAnswerResult.success && correctAnswerResult.result) {
+          // Emit event with correct answer data and player's result
+          window.dispatchEvent(
+            new CustomEvent('game:answer-reveal', {
+              detail: {
+                correctAnswerIndex: correctAnswerResult.result.correctAnswerIndex,
+                explanation: correctAnswerResult.result.explanation,
+                wasCorrect: result.score?.isCorrect || false,
+              },
+            })
+          );
+          console.log('[MultiplayerGamesManager] Answer reveal data emitted:', {
+            correctAnswerIndex: correctAnswerResult.result.correctAnswerIndex,
+            wasCorrect: result.score?.isCorrect,
+          });
+        } else {
+          console.log('[DEBUG MultiplayerGamesManager] getCorrectAnswer failed or returned null:', correctAnswerResult);
+        }
       } else {
         console.error('[MultiplayerGamesManager] Answer submission failed:', result.error);
       }

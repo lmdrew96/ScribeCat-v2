@@ -132,6 +132,16 @@ export interface IGameRepository {
    */
   revealQuestion(questionId: string): Promise<GameQuestion>;
 
+  /**
+   * Get correct answer details for a question after player has submitted
+   * Returns correct answer index and explanation (security: only after player submission)
+   */
+  getCorrectAnswer(
+    gameSessionId: string,
+    questionId: string,
+    userId: string
+  ): Promise<{ correctAnswerIndex: number; explanation?: string } | null>;
+
   // ============================================================================
   // Player Score Operations
   // ============================================================================

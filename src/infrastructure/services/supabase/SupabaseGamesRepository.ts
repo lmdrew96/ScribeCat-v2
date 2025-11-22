@@ -331,6 +331,52 @@ export class SupabaseGamesRepository implements IGameRepository {
     return GameQuestion.fromDatabase(data);
   }
 
+  /**
+   * Get correct answer details for a question after player has submitted
+   * Security: Only returns answer if player has already submitted
+   */
+  public async getCorrectAnswer(
+    gameSessionId: string,
+    questionId: string,
+    userId: string
+  ): Promise<{ correctAnswerIndex: number; explanation?: string } | null> {
+    // Security check: Verify player has submitted an answer
+    const playerScore = await this.getPlayerScore(gameSessionId, userId, questionId);
+    if (!playerScore) {
+      console.warn('[SupabaseGamesRepository] Player has not submitted answer yet');
+      return null;
+    }
+
+    // Get the question with correct answer
+    const question = await this.getGameQuestion(questionId, true);
+    if (!question) {
+      throw new Error('Question not found');
+    }
+
+    // Find the index of the correct answer in options
+    const options = question.getOptions();
+    if (!options || options.length === 0) {
+      throw new Error('Question has no options');
+    }
+
+    const correctAnswerIndex = options.findIndex(
+      (option) => option.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()
+    );
+
+    if (correctAnswerIndex === -1) {
+      console.error('[SupabaseGamesRepository] Correct answer not found in options', {
+        correctAnswer: question.correctAnswer,
+        options,
+      });
+      throw new Error('Correct answer not found in options');
+    }
+
+    return {
+      correctAnswerIndex,
+      explanation: question.questionData.explanation,
+    };
+  }
+
   // ============================================================================
   // Player Score Operations
   // ============================================================================

@@ -129,13 +129,26 @@ export function registerGameHandlers(): void {
     }
   });
 
+  ipcMain.handle('games:get-correct-answer', async (event, params: { gameSessionId: string; questionId: string; userId: string }) => {
+    try {
+      const result = await gamesRepo.getCorrectAnswer(params.gameSessionId, params.questionId, params.userId);
+      return { success: true, result };
+    } catch (error: any) {
+      console.error('Failed to get correct answer:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // ============================================================================
   // Score Handlers
   // ============================================================================
 
   ipcMain.handle('games:submit-answer', async (event, params) => {
+    console.log('[DEBUG GameHandlers] submitAnswer params:', params);
+    console.log('[DEBUG GameHandlers] timeTakenMs:', params.timeTakenMs);
     try {
       const score = await gamesRepo.submitAnswer(params);
+      console.log('[DEBUG GameHandlers] Score created:', score.toJSON());
       return { success: true, score: score.toJSON() };
     } catch (error: any) {
       console.error('Failed to submit answer:', error);

@@ -16,6 +16,12 @@ export class QuizBattleGame extends MultiplayerGame {
   private timeSync: TimeSync = TimeSync.getInstance();
   private gameTimer: GameTimer = new GameTimer();
 
+  // Answer reveal state (set after player submits)
+  private correctAnswerIndex: number | null = null;
+  private wasCorrect: boolean = false;
+  private explanation: string | undefined = undefined;
+  private boundHandleAnswerReveal: ((event: Event) => void) | null = null;
+
   /**
    * Initialize quiz battle game with time synchronization
    */
@@ -27,6 +33,10 @@ export class QuizBattleGame extends MultiplayerGame {
       await this.timeSync.initialize();
     }
 
+    // Listen for answer reveal events
+    this.boundHandleAnswerReveal = this.handleAnswerReveal.bind(this);
+    window.addEventListener('game:answer-reveal', this.boundHandleAnswerReveal);
+
     this.startQuestionTimer();
   }
 
@@ -35,6 +45,9 @@ export class QuizBattleGame extends MultiplayerGame {
    */
   public async cleanup(): Promise<void> {
     this.gameTimer.cleanup();
+    if (this.boundHandleAnswerReveal) {
+      window.removeEventListener('game:answer-reveal', this.boundHandleAnswerReveal);
+    }
     await super.cleanup();
   }
 
@@ -144,6 +157,30 @@ export class QuizBattleGame extends MultiplayerGame {
   }
 
   /**
+   * Handle answer reveal event from MultiplayerGamesManager
+   */
+  private handleAnswerReveal(event: Event): void {
+    const customEvent = event as CustomEvent<{
+      correctAnswerIndex: number;
+      explanation?: string;
+      wasCorrect: boolean;
+    }>;
+
+    this.correctAnswerIndex = customEvent.detail.correctAnswerIndex;
+    this.wasCorrect = customEvent.detail.wasCorrect;
+    this.explanation = customEvent.detail.explanation;
+
+    console.log('[QuizBattleGame] Answer reveal received:', {
+      correctAnswerIndex: this.correctAnswerIndex,
+      wasCorrect: this.wasCorrect,
+      explanation: this.explanation,
+    });
+
+    // Re-render to show the answer feedback
+    this.render();
+  }
+
+  /**
    * Get game-specific instructions
    */
   protected getInstructions(): string {
@@ -175,13 +212,18 @@ export class QuizBattleGame extends MultiplayerGame {
           className += ' disabled';
         }
 
-        // During reveal phase, highlight correct/wrong answers
-        if (timerState.isRevealingAnswer) {
-          const isCorrect = question.isCorrectAnswer(option);
-          if (isCorrect) {
+        // Individual reveal: Show correct/wrong when player has submitted and received reveal data
+        if (this.correctAnswerIndex !== null && hasAnswered) {
+          if (index === this.correctAnswerIndex) {
             className += ' option-correct';
           } else if (this.selectedAnswer === index) {
             className += ' option-wrong';
+          }
+        }
+        // Timer reveal phase: Also highlight for players who didn't answer
+        else if (timerState.isRevealingAnswer && this.correctAnswerIndex !== null) {
+          if (index === this.correctAnswerIndex) {
+            className += ' option-correct';
           }
         }
 
@@ -246,6 +288,39 @@ export class QuizBattleGame extends MultiplayerGame {
    * Render answer feedback after submission
    */
   private renderAnswerFeedback(): string {
+    // If we have reveal data, show individual result
+    if (this.correctAnswerIndex !== null) {
+      const correctOption = this.state.currentQuestion?.getOptions()[this.correctAnswerIndex];
+      const correctOptionLetter = this.getOptionLetter(this.correctAnswerIndex);
+
+      return `
+        <div class="answer-feedback answer-reveal ${this.wasCorrect ? 'correct' : 'incorrect'}">
+          <div class="feedback-icon">
+            ${this.wasCorrect ? '✓' : '✗'}
+          </div>
+          <div class="feedback-content">
+            <div class="feedback-message ${this.wasCorrect ? 'correct-message' : 'incorrect-message'}">
+              ${this.wasCorrect ? 'Correct!' : 'Incorrect'}
+            </div>
+            ${!this.wasCorrect && correctOption ? `
+              <div class="correct-answer-info">
+                The correct answer was <strong>${correctOptionLetter}. ${this.escapeHtml(correctOption)}</strong>
+              </div>
+            ` : ''}
+            ${this.explanation ? `
+              <div class="answer-explanation">
+                <strong>Explanation:</strong> ${this.escapeHtml(this.explanation)}
+              </div>
+            ` : ''}
+            <div class="feedback-subtitle">
+              Waiting for other players...
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // No reveal data yet, show waiting message
     return `
       <div class="answer-feedback">
         <div class="feedback-message">
@@ -336,6 +411,9 @@ export class QuizBattleGame extends MultiplayerGame {
   private resetAnswerState(): void {
     this.selectedAnswer = null;
     this.answerSubmitted = false;
+    this.correctAnswerIndex = null;
+    this.wasCorrect = false;
+    this.explanation = undefined;
     this.gameTimer.reset();
   }
 

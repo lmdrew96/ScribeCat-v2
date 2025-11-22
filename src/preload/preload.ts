@@ -458,6 +458,8 @@ const electronAPI = {
       ipcRenderer.invoke('games:get-current-question', gameSessionId),
     getGameQuestions: (gameSessionId: string, includeAnswers: boolean) =>
       ipcRenderer.invoke('games:get-questions', gameSessionId, includeAnswers),
+    getCorrectAnswer: (params: { gameSessionId: string; questionId: string; userId: string }) =>
+      ipcRenderer.invoke('games:get-correct-answer', params),
     submitAnswer: (params: { gameSessionId: string; userId: string; questionId: string; answer: string; timeTakenMs: number }) =>
       ipcRenderer.invoke('games:submit-answer', params),
     getGameLeaderboard: (gameSessionId: string) =>
