@@ -1182,8 +1182,8 @@ export class StudyRoomView {
     if (!result) return;
 
     try {
-      console.log('🎮 Starting game creation - generating questions with AI...');
-      console.log('⏱️ This may take 30-60 seconds depending on question count');
+      console.log('🎮 Starting game creation - lobby will open immediately');
+      console.log('⏱️ Questions will generate in background (30-60 seconds)');
 
       // Initialize games manager
       this.gamesManager.initialize(this.currentUserId);
@@ -1195,26 +1195,16 @@ export class StudyRoomView {
         await window.scribeCat.games.cancelGame(activeGameResult.gameSession.id);
       }
 
-      // Show loading modal for AI question generation
-      const gameName = result.gameType === 'quiz_battle' ? 'Quiz Battle' :
-                       result.gameType === 'jeopardy' ? 'Jeopardy' :
-                       result.gameType === 'bingo' ? 'Bingo' : 'Flashcards';
-      const hideLoading = ErrorModal.showLoading(`Generating ${gameName} questions with AI...`);
-
-      try {
-        // Create game session (this generates questions with AI)
-        const gameSession = await this.gamesManager.createGame(
-          this.currentRoomId,
-          result.gameType,
-          this.currentSession,
-          {
-            questionCount: result.questionCount,
-            difficulty: result.difficulty,
-          }
-        );
-
-        hideLoading();
-        console.log('✅ Questions generated successfully');
+      // Create game session (lobby opens immediately, questions generate in background)
+      const gameSession = await this.gamesManager.createGame(
+        this.currentRoomId,
+        result.gameType,
+        this.currentSession,
+        {
+          questionCount: result.questionCount,
+          difficulty: result.difficulty,
+        }
+      );
 
       // Get participants for game
       const participants = this.studyRoomsManager.getActiveParticipants(this.currentRoomId);
@@ -1240,10 +1230,6 @@ export class StudyRoomView {
 
       // Listen for game close event
       window.addEventListener('multiplayer-game:closed', this.handleGameClosed.bind(this), { once: true });
-      } catch (loadError) {
-        hideLoading();
-        throw loadError; // Re-throw to outer catch
-      }
     } catch (error) {
       console.error('❌ Failed to start game:', error);
       ErrorModal.show(

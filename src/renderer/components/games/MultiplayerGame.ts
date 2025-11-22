@@ -28,6 +28,7 @@ export interface GameState {
   hasAnswered: boolean;
   gameStarted: boolean;
   gameEnded: boolean;
+  questionsReady: boolean; // Whether questions have been generated (for async loading)
   questionStartedAt?: number; // Timestamp when current question started (for late joiner sync)
 }
 
@@ -204,7 +205,7 @@ export abstract class MultiplayerGame {
    * Render waiting screen (before game starts)
    */
   protected renderWaitingScreen(): string {
-    const { participants, session } = this.state;
+    const { participants, session, questionsReady } = this.state;
     const isHost = this.isCurrentUserHost();
 
     const participantsList = participants
@@ -224,14 +225,25 @@ export abstract class MultiplayerGame {
       )
       .join('');
 
+    // Determine lobby state messaging
+    let headerIcon = '⏳';
+    let headerTitle = 'Waiting for game to start...';
+    let headerSubtitle = this.getInstructions();
+
+    if (!questionsReady) {
+      headerIcon = '🤖';
+      headerTitle = 'Generating questions with AI...';
+      headerSubtitle = 'This may take 30-60 seconds depending on question count';
+    }
+
     return `
       <div class="game-waiting-screen">
         <div class="waiting-header">
           <div class="waiting-header-content">
-            <div class="waiting-icon">⏳</div>
+            <div class="waiting-icon">${headerIcon}</div>
             <div>
-              <h3>Waiting for game to start...</h3>
-              <p class="waiting-subtitle">${this.getInstructions()}</p>
+              <h3>${headerTitle}</h3>
+              <p class="waiting-subtitle">${headerSubtitle}</p>
             </div>
           </div>
           ${this.renderExitButton()}
@@ -247,11 +259,11 @@ export abstract class MultiplayerGame {
         ${
           isHost
             ? `
-          <button class="btn-primary start-game-btn" id="start-game-btn">
-            Start Game
+          <button class="btn-primary start-game-btn" id="start-game-btn" ${!questionsReady ? 'disabled' : ''}>
+            ${questionsReady ? 'Start Game' : 'Generating Questions...'}
           </button>
         `
-            : '<p class="waiting-message">Waiting for host to start the game...</p>'
+            : `<p class="waiting-message">${!questionsReady ? 'Generating questions...' : 'Waiting for host to start the game...'}</p>`
         }
       </div>
     `;

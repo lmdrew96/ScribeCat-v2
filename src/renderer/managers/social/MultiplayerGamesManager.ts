@@ -39,6 +39,7 @@ export class MultiplayerGamesManager {
   private boundHandleNextQuestion = this.handleNextQuestion.bind(this);
   private boundHandleTimeout = this.handleTimeout.bind(this);
   private boundHandleBingo = this.handleBingo.bind(this);
+  private boundHandleQuestionsReady = this.handleQuestionsReady.bind(this);
 
   /**
    * Initialize manager with current user
@@ -86,16 +87,16 @@ export class MultiplayerGamesManager {
 
     const gameSession = GameSession.fromJSON(result.gameSession);
 
-    // Generate questions using AI
-    await this.generateQuestions(gameSession, session);
+    // Generate questions using AI in background (non-blocking)
+    this.generateQuestionsAsync(gameSession, session);
 
     return gameSession;
   }
 
   /**
-   * Generate questions for a game using AI
+   * Generate questions for a game using AI (runs in background)
    */
-  private async generateQuestions(gameSession: GameSession, session: Session): Promise<void> {
+  private async generateQuestionsAsync(gameSession: GameSession, session: Session): Promise<void> {
     const questionCount = gameSession.getTotalQuestions();
 
     // Generate questions using QuizGenerator
@@ -131,6 +132,13 @@ export class MultiplayerGamesManager {
     if (!result.success) {
       throw new Error(result.error || 'Failed to create game questions');
     }
+
+    // Emit event when questions are ready
+    window.dispatchEvent(
+      new CustomEvent('game:questions-ready', {
+        detail: { gameSessionId: gameSession.id },
+      })
+    );
   }
 
   /**
@@ -372,6 +380,7 @@ export class MultiplayerGamesManager {
       hasAnswered: false,
       gameStarted: this.currentGameSession!.status === 'in_progress',
       gameEnded: this.currentGameSession!.status === 'completed',
+      questionsReady: currentQuestion !== null, // Questions ready if we have at least one question
       // Don't set questionStartedAt here - let timer start fresh
     };
 
@@ -569,6 +578,9 @@ export class MultiplayerGamesManager {
 
     // Handle bingo (when player gets bingo)
     window.addEventListener('game:bingo', this.boundHandleBingo);
+
+    // Handle questions ready (when async question generation completes)
+    window.addEventListener('game:questions-ready', this.boundHandleQuestionsReady);
   }
 
   /**
@@ -793,6 +805,40 @@ export class MultiplayerGamesManager {
   }
 
   /**
+   * Handle questions ready (async question generation completed)
+   */
+  private async handleQuestionsReady(event: Event): Promise<void> {
+    if (!this.currentGameSession || !this.currentGame) return;
+
+    const customEvent = event as CustomEvent<{ gameSessionId: string }>;
+    const { gameSessionId } = customEvent.detail;
+
+    // Only process if this is for the current game
+    if (gameSessionId !== this.currentGameSession.id) return;
+
+    console.log('[MultiplayerGamesManager] Questions ready for game:', gameSessionId);
+
+    try {
+      // Fetch the first question
+      const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
+
+      if (questionResult.success && questionResult.question) {
+        const currentQuestion = GameQuestion.fromJSON(questionResult.question);
+
+        // Update game state to show questions are ready
+        this.currentGame.updateState({
+          currentQuestion,
+          questionsReady: true,
+        });
+
+        console.log('[MultiplayerGamesManager] Questions loaded - Start button now enabled');
+      }
+    } catch (error) {
+      console.error('[MultiplayerGamesManager] Exception in handleQuestionsReady:', error);
+    }
+  }
+
+  /**
    * Get active game for a room
    */
   public async getActiveGame(roomId: string): Promise<GameSession | null> {
@@ -1004,5 +1050,6 @@ export class MultiplayerGamesManager {
     window.removeEventListener('game:next-question', this.boundHandleNextQuestion);
     window.removeEventListener('game:timeout', this.boundHandleTimeout);
     window.removeEventListener('game:bingo', this.boundHandleBingo);
+    window.removeEventListener('game:questions-ready', this.boundHandleQuestionsReady);
   }
 }

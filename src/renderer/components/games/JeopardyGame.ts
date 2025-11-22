@@ -169,14 +169,29 @@ export class JeopardyGame extends MultiplayerGame {
     const isDisabled = hasAnswered || timerState.isRevealingAnswer;
 
     const optionsHtml = options
-      .map(
-        (option, index) => `
-        <button class="jeopardy-option ${this.selectedAnswer === index ? 'selected' : ''}"
-                data-index="${index}" ${isDisabled ? 'disabled' : ''}>
-          ${this.escapeHtml(option)}
-        </button>
-      `
-      )
+      .map((option, index) => {
+        let className = 'jeopardy-option';
+
+        if (this.selectedAnswer === index) {
+          className += ' selected';
+        }
+
+        // During reveal phase, highlight correct/wrong answers
+        if (timerState.isRevealingAnswer) {
+          const isCorrect = question.isCorrectAnswer(option);
+          if (isCorrect) {
+            className += ' option-correct';
+          } else if (this.selectedAnswer === index) {
+            className += ' option-wrong';
+          }
+        }
+
+        return `
+          <button class="${className}" data-index="${index}" ${isDisabled ? 'disabled' : ''}>
+            ${this.escapeHtml(option)}
+          </button>
+        `;
+      })
       .join('');
 
     // Show "Time's Up!" in timer during reveal phase

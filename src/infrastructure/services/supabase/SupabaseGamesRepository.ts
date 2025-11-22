@@ -492,6 +492,9 @@ export class SupabaseGamesRepository implements IGameRepository {
 
     return (data || []).map((row: any, index: number) => ({
       userId: row.user_id,
+      userEmail: row.user_email,
+      userFullName: row.user_full_name,
+      userAvatarUrl: row.user_avatar_url,
       totalScore: row.total_score,
       correctAnswers: row.correct_answers,
       totalAnswers: row.total_answers,

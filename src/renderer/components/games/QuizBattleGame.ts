@@ -175,6 +175,16 @@ export class QuizBattleGame extends MultiplayerGame {
           className += ' disabled';
         }
 
+        // During reveal phase, highlight correct/wrong answers
+        if (timerState.isRevealingAnswer) {
+          const isCorrect = question.isCorrectAnswer(option);
+          if (isCorrect) {
+            className += ' option-correct';
+          } else if (this.selectedAnswer === index) {
+            className += ' option-wrong';
+          }
+        }
+
         return `
           <button class="${className}" data-index="${index}" ${isDisabled ? 'disabled' : ''}>
             <span class="option-letter">${this.getOptionLetter(index)}</span>
