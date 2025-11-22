@@ -1280,6 +1280,15 @@ export class StudyRoomView {
   private async handleGameClosed(): Promise<void> {
     this.hideGameContainer();
     await this.gamesManager.cleanup();
+
+    // Restart game polling for non-host participants so they can detect future games
+    const room = this.studyRoomsManager.getRoomById(this.currentRoomId!);
+    const isHost = room?.hostId === this.currentUserId;
+
+    if (!isHost && this.currentRoomId) {
+      console.log('[StudyRoomView] Restarting game polling after game closed');
+      this.startGamePolling();
+    }
   }
 
   /**

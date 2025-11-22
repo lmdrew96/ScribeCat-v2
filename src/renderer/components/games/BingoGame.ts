@@ -14,6 +14,7 @@ export class BingoGame extends MultiplayerGame {
   private readonly freeSpaceIndex: number = 12; // Center cell (index 12 in 5x5 grid)
   private gridConcepts: string[] = [];
   private allQuestions: GameQuestion[] = [];
+  private questionsLoaded: boolean = false;
 
   // All 12 winning combinations for a 5x5 bingo grid
   private readonly winningCombinations: number[][] = [
@@ -35,11 +36,28 @@ export class BingoGame extends MultiplayerGame {
   ];
 
   /**
-   * Initialize bingo game and load all questions
+   * Initialize bingo game
+   * Questions are loaded when game starts, not during initialization
    */
   public async initialize(): Promise<void> {
     await super.initialize();
-    await this.loadQuestionsAndGenerateGrid();
+    // Don't load questions yet - they may not be ready for participants
+    // Questions will be loaded when game starts via updateState()
+  }
+
+  /**
+   * Update game state and load questions when game starts
+   */
+  public updateState(updates: Partial<GameState>): void {
+    const wasGameStarted = this.state.gameStarted;
+
+    // Call parent updateState (which will call render())
+    super.updateState(updates);
+
+    // Load questions when game transitions from waiting to started
+    if (!wasGameStarted && this.state.gameStarted && !this.questionsLoaded) {
+      this.loadQuestionsAndGenerateGrid();
+    }
   }
 
   /**
@@ -54,11 +72,17 @@ export class BingoGame extends MultiplayerGame {
       if (result.success && result.questions) {
         this.allQuestions = result.questions.map((q: any) => GameQuestion.fromJSON(q));
         this.generateGridFromQuestions();
+        this.questionsLoaded = true;
+        // Re-render with the new grid
+        this.render();
       }
     } catch (error) {
       console.error('Failed to load bingo questions:', error);
       // Fallback to placeholder if loading fails
       this.generateFallbackGrid();
+      this.questionsLoaded = true;
+      // Re-render with fallback grid
+      this.render();
     }
   }
 
