@@ -746,6 +746,7 @@ export class JeopardyGame extends MultiplayerGame {
       showingDailyDoubleWager: false,
       buzzerEnabled: false, // No buzzer for Daily Double - only current player answers
       firstBuzzerId: currentUser?.userId || null, // Set current player as answerer
+      myBuzzerRank: 1, // Set as rank 1 to allow answer submission
     });
     this.render();
   }
@@ -759,6 +760,7 @@ export class JeopardyGame extends MultiplayerGame {
       wagerAmount: wager,
       showingFinalJeopardyWager: false,
       firstBuzzerId: currentUser?.userId || null, // Set current player as answerer
+      myBuzzerRank: 1, // Set as rank 1 to allow answer submission
     });
     this.render();
   }
