@@ -1,6 +1,6 @@
 {
   "name": "scribecat-v2",
-  "version": "1.61.0",
+  "version": "1.62.2",
   "type": "module",
   "description": "ScribeCat scribes and is cat. A revolutionary multi-platform app that can be used to record and accurately transcribe speech, take rich text notes, and interact with AI to better understand the content of the recording and your notes.",
   "main": "dist/main/main.js",
