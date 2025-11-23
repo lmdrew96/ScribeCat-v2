@@ -3,19 +3,25 @@
  * Allows the host to choose which multiplayer game to start
  */
 
-import { GameType } from '../../domain/entities/GameSession.js';
+import { GameType, GameLength } from '../../domain/entities/GameSession.js';
 
 export interface GameSelectionResult {
   gameType: GameType;
   questionCount: number;
+  gameLength: GameLength;
   difficulty: 'easy' | 'medium' | 'hard' | 'mixed';
+  progressiveDifficulty: boolean;
+  powerUpsEnabled: boolean;
 }
 
 export class GameSelectionModal {
   private modal: HTMLElement | null = null;
   private selectedGameType: GameType = 'quiz_battle';
   private selectedQuestionCount: number = 10;
+  private selectedGameLength: GameLength = 'medium';
   private selectedDifficulty: 'easy' | 'medium' | 'hard' | 'mixed' = 'mixed';
+  private progressiveDifficulty: boolean = true;
+  private powerUpsEnabled: boolean = true;
   private resolvePromise: ((result: GameSelectionResult | null) => void) | null = null;
 
   /**
@@ -46,19 +52,18 @@ export class GameSelectionModal {
 
             <div class="game-types-grid">
               ${this.renderGameTypeCard('quiz_battle', '⚡', 'Quiz Battle', 'Race to answer questions correctly. Speed and accuracy earn points!')}
-              ${this.renderGameTypeCard('jeopardy', '🎯', 'Jeopardy', 'Answer questions by category. Strategic and fun!')}
-              ${this.renderGameTypeCard('bingo', '🎲', 'Study Bingo', 'Mark concepts as they\'re discussed. Collaborative learning!')}
-              ${this.renderGameTypeCard('flashcards', '🃏', 'Flashcards', 'Review cards together. Great for group study!')}
+              ${this.renderGameTypeCard('jeopardy', '🎯', 'Jeopardy', 'Answer questions by category with buzzer mechanic. Strategic and competitive!')}
+              ${this.renderGameTypeCard('hot_seat_challenge', '🔥', 'Hot Seat Challenge', 'Take turns in the hot seat. Other players can challenge your answers!')}
+              ${this.renderGameTypeCard('lightning_chain', '⚡🔗', 'Lightning Chain', 'Team up against the clock. Cooperative time challenge!')}
             </div>
 
             <div class="game-settings">
               <div class="setting-group">
-                <label>Number of Questions</label>
-                <div class="question-count-buttons">
-                  <button class="count-btn ${this.selectedQuestionCount === 5 ? 'selected' : ''}" data-count="5">5</button>
-                  <button class="count-btn ${this.selectedQuestionCount === 10 ? 'selected' : ''}" data-count="10">10</button>
-                  <button class="count-btn ${this.selectedQuestionCount === 15 ? 'selected' : ''}" data-count="15">15</button>
-                  <button class="count-btn ${this.selectedQuestionCount === 20 ? 'selected' : ''}" data-count="20">20</button>
+                <label>Game Length</label>
+                <div class="game-length-buttons">
+                  <button class="length-btn ${this.selectedGameLength === 'short' ? 'selected' : ''}" data-length="short">Short (10 questions)</button>
+                  <button class="length-btn ${this.selectedGameLength === 'medium' ? 'selected' : ''}" data-length="medium">Medium (15 questions)</button>
+                  <button class="length-btn ${this.selectedGameLength === 'long' ? 'selected' : ''}" data-length="long">Long (20 questions)</button>
                 </div>
               </div>
 
@@ -70,6 +75,20 @@ export class GameSelectionModal {
                   <button class="difficulty-btn ${this.selectedDifficulty === 'hard' ? 'selected' : ''}" data-difficulty="hard">Hard</button>
                   <button class="difficulty-btn ${this.selectedDifficulty === 'mixed' ? 'selected' : ''}" data-difficulty="mixed">Mixed</button>
                 </div>
+              </div>
+
+              <div class="setting-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="progressive-difficulty-toggle" ${this.progressiveDifficulty ? 'checked' : ''}>
+                  Progressive Difficulty (Easy → Medium → Hard)
+                </label>
+              </div>
+
+              <div class="setting-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="power-ups-toggle" ${this.powerUpsEnabled ? 'checked' : ''}>
+                  Enable Power-ups
+                </label>
               </div>
             </div>
 
@@ -152,19 +171,18 @@ export class GameSelectionModal {
 
       <div class="game-types-grid">
         ${this.renderGameTypeCard('quiz_battle', '⚡', 'Quiz Battle', 'Race to answer questions correctly. Speed and accuracy earn points!')}
-        ${this.renderGameTypeCard('jeopardy', '🎯', 'Jeopardy', 'Answer questions by category. Strategic and fun!')}
-        ${this.renderGameTypeCard('bingo', '🎲', 'Study Bingo', 'Mark concepts as they\'re discussed. Collaborative learning!')}
-        ${this.renderGameTypeCard('flashcards', '🃏', 'Flashcards', 'Review cards together. Great for group study!')}
+        ${this.renderGameTypeCard('jeopardy', '🎯', 'Jeopardy', 'Answer questions by category with buzzer mechanic. Strategic and competitive!')}
+        ${this.renderGameTypeCard('hot_seat_challenge', '🔥', 'Hot Seat Challenge', 'Take turns in the hot seat. Other players can challenge your answers!')}
+        ${this.renderGameTypeCard('lightning_chain', '⚡🔗', 'Lightning Chain', 'Team up against the clock. Cooperative time challenge!')}
       </div>
 
       <div class="game-settings">
         <div class="setting-group">
-          <label>Number of Questions</label>
-          <div class="question-count-buttons">
-            <button class="count-btn ${this.selectedQuestionCount === 5 ? 'selected' : ''}" data-count="5">5</button>
-            <button class="count-btn ${this.selectedQuestionCount === 10 ? 'selected' : ''}" data-count="10">10</button>
-            <button class="count-btn ${this.selectedQuestionCount === 15 ? 'selected' : ''}" data-count="15">15</button>
-            <button class="count-btn ${this.selectedQuestionCount === 20 ? 'selected' : ''}" data-count="20">20</button>
+          <label>Game Length</label>
+          <div class="game-length-buttons">
+            <button class="length-btn ${this.selectedGameLength === 'short' ? 'selected' : ''}" data-length="short">Short (10 questions)</button>
+            <button class="length-btn ${this.selectedGameLength === 'medium' ? 'selected' : ''}" data-length="medium">Medium (15 questions)</button>
+            <button class="length-btn ${this.selectedGameLength === 'long' ? 'selected' : ''}" data-length="long">Long (20 questions)</button>
           </div>
         </div>
 
@@ -176,6 +194,20 @@ export class GameSelectionModal {
             <button class="difficulty-btn ${this.selectedDifficulty === 'hard' ? 'selected' : ''}" data-difficulty="hard">Hard</button>
             <button class="difficulty-btn ${this.selectedDifficulty === 'mixed' ? 'selected' : ''}" data-difficulty="mixed">Mixed</button>
           </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="progressive-difficulty-toggle" ${this.progressiveDifficulty ? 'checked' : ''}>
+            Progressive Difficulty (Easy → Medium → Hard)
+          </label>
+        </div>
+
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="power-ups-toggle" ${this.powerUpsEnabled ? 'checked' : ''}>
+            Enable Power-ups
+          </label>
         </div>
       </div>
 
@@ -211,10 +243,20 @@ export class GameSelectionModal {
     // Start button
     const startBtn = this.modal.querySelector('#game-selection-start-btn');
     startBtn?.addEventListener('click', () => {
+      // Calculate question count from game length
+      const lengthQuestions: Record<GameLength, number> = {
+        short: 10,
+        medium: 15,
+        long: 20,
+      };
+
       this.resolvePromise?.({
         gameType: this.selectedGameType,
-        questionCount: this.selectedQuestionCount,
+        questionCount: lengthQuestions[this.selectedGameLength],
+        gameLength: this.selectedGameLength,
         difficulty: this.selectedDifficulty,
+        progressiveDifficulty: this.progressiveDifficulty,
+        powerUpsEnabled: this.powerUpsEnabled,
       });
       this.closeModal();
     });
@@ -238,11 +280,11 @@ export class GameSelectionModal {
       });
     });
 
-    // Question count selection
-    const countButtons = this.modal.querySelectorAll('.count-btn');
-    countButtons.forEach((btn) => {
+    // Game length selection
+    const lengthButtons = this.modal.querySelectorAll('.length-btn');
+    lengthButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        this.selectedQuestionCount = parseInt((btn as HTMLElement).dataset.count || '10');
+        this.selectedGameLength = (btn as HTMLElement).dataset.length as GameLength;
         this.updateModal();
       });
     });
@@ -254,6 +296,18 @@ export class GameSelectionModal {
         this.selectedDifficulty = (btn as HTMLElement).dataset.difficulty as any;
         this.updateModal();
       });
+    });
+
+    // Progressive difficulty toggle
+    const progressiveToggle = this.modal.querySelector('#progressive-difficulty-toggle') as HTMLInputElement;
+    progressiveToggle?.addEventListener('change', () => {
+      this.progressiveDifficulty = progressiveToggle.checked;
+    });
+
+    // Power-ups toggle
+    const powerUpsToggle = this.modal.querySelector('#power-ups-toggle') as HTMLInputElement;
+    powerUpsToggle?.addEventListener('change', () => {
+      this.powerUpsEnabled = powerUpsToggle.checked;
     });
   }
 

@@ -11,8 +11,8 @@ import { QuizGenerator } from '../../services/ai-study-tools/generators/QuizGene
 import { MultiplayerGame, GameState, GameParticipant } from '../../components/games/MultiplayerGame.js';
 import { QuizBattleGame } from '../../components/games/QuizBattleGame.js';
 import { JeopardyGame } from '../../components/games/JeopardyGame.js';
-import { BingoGame } from '../../components/games/BingoGame.js';
-import { CollaborativeFlashcardsGame } from '../../components/games/CollaborativeFlashcardsGame.js';
+import { HotSeatChallengeGame } from '../../components/games/HotSeatChallengeGame.js';
+import { LightningChainGame } from '../../components/games/LightningChainGame.js';
 import { TimeSync } from '../../services/TimeSync.js';
 
 export class MultiplayerGamesManager {
@@ -549,10 +549,10 @@ export class MultiplayerGamesManager {
         return new QuizBattleGame(container, state);
       case 'jeopardy':
         return new JeopardyGame(container, state);
-      case 'bingo':
-        return new BingoGame(container, state);
-      case 'flashcards':
-        return new CollaborativeFlashcardsGame(container, state);
+      case 'hot_seat_challenge':
+        return new HotSeatChallengeGame(container, state);
+      case 'lightning_chain':
+        return new LightningChainGame(container, state);
       default:
         throw new Error(`Unknown game type: ${gameType}`);
     }

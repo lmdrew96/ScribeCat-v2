@@ -2,20 +2,36 @@
  * GameSession Entity
  *
  * Represents a multiplayer game session within a study room.
- * Supports Quiz Battle, Jeopardy, Bingo, and Collaborative Flashcards.
+ * Supports Quiz Battle, Jeopardy, Hot Seat Challenge, and Lightning Chain.
  */
 
-export type GameType = 'quiz_battle' | 'jeopardy' | 'bingo' | 'flashcards';
+export type GameType = 'quiz_battle' | 'jeopardy' | 'hot_seat_challenge' | 'lightning_chain';
 export type GameStatus = 'waiting' | 'in_progress' | 'completed' | 'cancelled';
+export type GameLength = 'short' | 'medium' | 'long';
+
+// Power-up types for different games
+export type HotSeatPowerUpType = 'skip' | 'fifty_fifty' | 'double_points' | 'freeze_challenges';
+export type LightningChainPowerUpType = 'time_freeze' | 'bonus_time' | 'shield' | 'hint';
+export type PowerUpType = HotSeatPowerUpType | LightningChainPowerUpType;
+
+export interface PowerUp {
+  type: PowerUpType;
+  usedBy?: string; // player ID
+  usedAtQuestion?: number;
+  usedAt?: Date;
+}
 
 export interface GameConfig {
   questionCount?: number;
+  gameLength?: GameLength; // short (10q), medium (15q), long (20q)
   categories?: string[];
   difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
   timePerQuestion?: number; // seconds
   pointsPerQuestion?: number;
   teamMode?: boolean; // for Jeopardy
-  bingoGridSize?: number; // for Bingo (e.g., 5 for 5x5)
+  progressiveDifficulty?: boolean; // Enable progressive difficulty (easy → medium → hard)
+  powerUpsEnabled?: boolean; // Enable power-ups
+  availablePowerUps?: PowerUp[]; // Power-ups available in the game
 }
 
 export interface GameSessionData {
@@ -31,10 +47,15 @@ export interface GameSessionData {
   readonly createdAt: Date;
   readonly updatedAt: Date;
   // Jeopardy-specific fields
-  readonly currentPlayerId?: string; // Whose turn to select question
+  readonly currentPlayerId?: string; // Whose turn to select question (also used for Hot Seat Challenge)
   readonly selectedQuestionId?: string; // Currently active question
   readonly round?: 'regular' | 'final_jeopardy'; // Game round
   readonly boardState?: Record<string, any>; // Track answered questions
+  // Hot Seat Challenge-specific fields
+  readonly currentTurnPlayer?: string; // Player currently in the hot seat
+  readonly turnQuestionCount?: number; // Questions answered in current turn (0-5)
+  // Lightning Chain-specific fields
+  readonly teamTimer?: number; // Remaining time in seconds for cooperative mode
 }
 
 /**
@@ -63,6 +84,11 @@ export class GameSession {
     selected_question_id?: string | null;
     round?: string | null;
     board_state?: unknown;
+    // Hot Seat Challenge-specific fields
+    current_turn_player?: string | null;
+    turn_question_count?: number | null;
+    // Lightning Chain-specific fields
+    team_timer?: number | null;
   }): GameSession {
     return new GameSession({
       id: row.id,
@@ -93,6 +119,11 @@ export class GameSession {
       selectedQuestionId: row.selected_question_id || undefined,
       round: (row.round as 'regular' | 'final_jeopardy') || undefined,
       boardState: (row.board_state as Record<string, any>) || undefined,
+      // Hot Seat Challenge fields
+      currentTurnPlayer: row.current_turn_player || undefined,
+      turnQuestionCount: row.turn_question_count || undefined,
+      // Lightning Chain fields
+      teamTimer: row.team_timer || undefined,
     });
   }
 
@@ -182,6 +213,20 @@ export class GameSession {
     return this.data.boardState;
   }
 
+  // Hot Seat Challenge getters
+  get currentTurnPlayer(): string | undefined {
+    return this.data.currentTurnPlayer;
+  }
+
+  get turnQuestionCount(): number | undefined {
+    return this.data.turnQuestionCount;
+  }
+
+  // Lightning Chain getters
+  get teamTimer(): number | undefined {
+    return this.data.teamTimer;
+  }
+
   // ============================================================================
   // Business Logic
   // ============================================================================
@@ -235,8 +280,8 @@ export class GameSession {
     const names: Record<GameType, string> = {
       quiz_battle: 'Quiz Battle',
       jeopardy: 'Jeopardy',
-      bingo: 'Study Bingo',
-      flashcards: 'Collaborative Flashcards',
+      hot_seat_challenge: 'Hot Seat Challenge',
+      lightning_chain: 'Lightning Chain',
     };
     return names[this.data.gameType] || 'Unknown Game';
   }
@@ -285,9 +330,32 @@ export class GameSession {
 
   /**
    * Get total question count from config
+   * If gameLength is specified, it overrides questionCount
    */
   getTotalQuestions(): number {
+    // Use gameLength if specified
+    if (this.data.config.gameLength) {
+      const lengthQuestions: Record<GameLength, number> = {
+        short: 10,
+        medium: 15,
+        long: 20,
+      };
+      return lengthQuestions[this.data.config.gameLength];
+    }
+    // Fallback to questionCount or default
     return this.data.config.questionCount || 10;
+  }
+
+  /**
+   * Get question count for a given game length
+   */
+  static getQuestionCountForLength(length: GameLength): number {
+    const counts: Record<GameLength, number> = {
+      short: 10,
+      medium: 15,
+      long: 20,
+    };
+    return counts[length];
   }
 
   /**
@@ -348,12 +416,14 @@ export class GameSession {
     }
 
     // Game-specific validations
-    if (gameType === 'bingo') {
-      if (config.bingoGridSize !== undefined) {
-        if (config.bingoGridSize < 3 || config.bingoGridSize > 7) {
-          errors.push('Bingo grid size must be between 3 and 7');
-        }
-      }
+    if (gameType === 'hot_seat_challenge') {
+      // Hot Seat requires at least 2 players (validated elsewhere)
+      // Each player gets 5 questions per turn
+    }
+
+    if (gameType === 'lightning_chain') {
+      // Lightning Chain is cooperative (team-based)
+      // Time-based challenge (validated elsewhere)
     }
 
     return {
@@ -374,7 +444,7 @@ export class GameSession {
 
     if (!data.gameType) {
       errors.push('Game type is required');
-    } else if (!['quiz_battle', 'jeopardy', 'bingo', 'flashcards'].includes(data.gameType)) {
+    } else if (!['quiz_battle', 'jeopardy', 'hot_seat_challenge', 'lightning_chain'].includes(data.gameType)) {
       errors.push('Invalid game type');
     }
 

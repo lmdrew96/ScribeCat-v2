@@ -356,8 +356,8 @@ export abstract class MultiplayerGame {
     const icons: Record<string, string> = {
       quiz_battle: '⚡',
       jeopardy: '🎯',
-      bingo: '🎲',
-      flashcards: '🃏',
+      hot_seat_challenge: '🔥',
+      lightning_chain: '⚡🔗',
     };
     return icons[this.state.session.gameType] || '🎮';
   }
