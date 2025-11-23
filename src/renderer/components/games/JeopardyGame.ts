@@ -682,10 +682,12 @@ export class JeopardyGame extends MultiplayerGame {
    * Handle Daily Double wager submission
    */
   private async handleDailyDoubleWager(wager: number): Promise<void> {
+    const currentUser = this.state.participants.find(p => p.isCurrentUser);
     this.updateState({
       wagerAmount: wager,
       showingDailyDoubleWager: false,
       buzzerEnabled: false, // No buzzer for Daily Double - only current player answers
+      firstBuzzerId: currentUser?.userId || null, // Set current player as answerer
     });
     this.render();
   }
@@ -694,9 +696,11 @@ export class JeopardyGame extends MultiplayerGame {
    * Handle Final Jeopardy wager submission
    */
   private async handleFinalJeopardyWager(wager: number): Promise<void> {
+    const currentUser = this.state.participants.find(p => p.isCurrentUser);
     this.updateState({
       wagerAmount: wager,
       showingFinalJeopardyWager: false,
+      firstBuzzerId: currentUser?.userId || null, // Set current player as answerer
     });
     this.render();
   }
