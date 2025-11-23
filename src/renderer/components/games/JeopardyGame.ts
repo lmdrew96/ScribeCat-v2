@@ -174,8 +174,10 @@ export class JeopardyGame extends MultiplayerGame {
     // If returning to board (question cleared), reload board to show updated question statuses
     if ('currentQuestion' in updates && updates.currentQuestion === null && previousQuestionId) {
       console.log('[JeopardyGame] Returning to board after question, reloading board to show answered questions');
-      // Just finished a question, reload board to show it as answered
-      this.loadBoard();
+      // Add small delay to allow database to update isSelected field
+      setTimeout(() => {
+        this.loadBoard();
+      }, 500);
     }
 
     // If round changed to Final Jeopardy, show wager screen
@@ -439,12 +441,17 @@ export class JeopardyGame extends MultiplayerGame {
    * Render question view with buzzer
    */
   private renderQuestionView(): string {
-    const { currentQuestion, buzzerEnabled, myBuzzerRank, firstBuzzerId, participants, hasAnswered } = this.state;
+    const { currentQuestion, buzzerEnabled, myBuzzerRank, firstBuzzerId, participants, hasAnswered, currentPlayerId } = this.state;
     if (!currentQuestion) return '';
 
     const currentUser = participants.find(p => p.isCurrentUser);
+    const isSelectingPlayer = currentPlayerId === currentUser?.userId;
     const isFirstBuzzer = firstBuzzerId === currentUser?.userId;
     const canAnswer = isFirstBuzzer && !hasAnswered;
+
+    // For Daily Doubles: only the selecting player can answer
+    const isDailyDouble = currentQuestion.isDailyDouble;
+    const canAnswerDailyDouble = isDailyDouble && isSelectingPlayer && !hasAnswered;
 
     console.log('[JeopardyGame] renderQuestionView - buzzer state:', {
       myBuzzerRank,
@@ -454,6 +461,9 @@ export class JeopardyGame extends MultiplayerGame {
       hasAnswered,
       canAnswer,
       buzzerEnabled,
+      isDailyDouble,
+      isSelectingPlayer,
+      canAnswerDailyDouble,
     });
 
     return `
@@ -469,7 +479,7 @@ export class JeopardyGame extends MultiplayerGame {
             <div class="jeopardy-clue">${this.escapeHtml(currentQuestion.getQuestionText())}</div>
           </div>
 
-          ${this.renderBuzzerSection(buzzerEnabled, myBuzzerRank, isFirstBuzzer, canAnswer, currentQuestion)}
+          ${this.renderBuzzerSection(buzzerEnabled, myBuzzerRank, isFirstBuzzer, canAnswer, currentQuestion, isDailyDouble, canAnswerDailyDouble, isSelectingPlayer)}
         </div>
 
         ${this.renderLeaderboard()}
@@ -480,10 +490,58 @@ export class JeopardyGame extends MultiplayerGame {
   /**
    * Render buzzer section based on state
    */
-  private renderBuzzerSection(buzzerEnabled: boolean, myBuzzerRank: number | null, isFirstBuzzer: boolean, canAnswer: boolean, question: GameQuestion): string {
+  private renderBuzzerSection(
+    buzzerEnabled: boolean,
+    myBuzzerRank: number | null,
+    isFirstBuzzer: boolean,
+    canAnswer: boolean,
+    question: GameQuestion,
+    isDailyDouble: boolean,
+    canAnswerDailyDouble: boolean,
+    isSelectingPlayer: boolean
+  ): string {
+    const options = question.getOptions();
+
+    // DAILY DOUBLE LOGIC
+    if (isDailyDouble) {
+      // Selecting player can answer
+      if (canAnswerDailyDouble) {
+        return `
+          <div class="jeopardy-answer-section">
+            <p class="buzzer-status your-turn-buzz">Daily Double! Select your answer:</p>
+            <div class="jeopardy-options">
+              ${options.map((option, index) => `
+                <button class="jeopardy-option" data-index="${index}">
+                  ${this.escapeHtml(option)}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Selecting player has answered
+      if (isSelectingPlayer && this.state.hasAnswered) {
+        return `
+          <div class="buzzer-status buzzer-locked">
+            Answer submitted! Waiting for result...
+          </div>
+        `;
+      }
+
+      // Other players wait
+      const selectingParticipant = this.state.participants.find(p => p.userId === this.state.currentPlayerId);
+      const selectingPlayerName = selectingParticipant?.userFullName || selectingParticipant?.userEmail || 'the player';
+      return `
+        <div class="buzzer-status buzzer-locked">
+          Daily Double! Waiting for ${this.escapeHtml(selectingPlayerName)} to answer...
+        </div>
+      `;
+    }
+
+    // REGULAR QUESTION LOGIC
     // If current user can answer, show options
     if (canAnswer) {
-      const options = question.getOptions();
       return `
         <div class="jeopardy-answer-section">
           <p class="buzzer-status your-turn-buzz">You buzzed in first! Select your answer:</p>
