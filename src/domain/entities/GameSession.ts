@@ -30,6 +30,11 @@ export interface GameSessionData {
   readonly endedAt?: Date;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  // Jeopardy-specific fields
+  readonly currentPlayerId?: string; // Whose turn to select question
+  readonly selectedQuestionId?: string; // Currently active question
+  readonly round?: 'regular' | 'final_jeopardy'; // Game round
+  readonly boardState?: Record<string, any>; // Track answered questions
 }
 
 /**
@@ -53,6 +58,11 @@ export class GameSession {
     ended_at?: string | Date | null;
     created_at: string | Date;
     updated_at: string | Date;
+    // Jeopardy-specific fields
+    current_player_id?: string | null;
+    selected_question_id?: string | null;
+    round?: string | null;
+    board_state?: unknown;
   }): GameSession {
     return new GameSession({
       id: row.id,
@@ -78,6 +88,11 @@ export class GameSession {
         : undefined,
       createdAt: typeof row.created_at === 'string' ? new Date(row.created_at) : row.created_at,
       updatedAt: typeof row.updated_at === 'string' ? new Date(row.updated_at) : row.updated_at,
+      // Jeopardy-specific fields
+      currentPlayerId: row.current_player_id || undefined,
+      selectedQuestionId: row.selected_question_id || undefined,
+      round: (row.round as 'regular' | 'final_jeopardy') || undefined,
+      boardState: (row.board_state as Record<string, any>) || undefined,
     });
   }
 
@@ -148,6 +163,23 @@ export class GameSession {
 
   get updatedAt(): Date {
     return this.data.updatedAt;
+  }
+
+  // Jeopardy-specific getters
+  get currentPlayerId(): string | undefined {
+    return this.data.currentPlayerId;
+  }
+
+  get selectedQuestionId(): string | undefined {
+    return this.data.selectedQuestionId;
+  }
+
+  get round(): 'regular' | 'final_jeopardy' | undefined {
+    return this.data.round;
+  }
+
+  get boardState(): Record<string, any> | undefined {
+    return this.data.boardState;
   }
 
   // ============================================================================

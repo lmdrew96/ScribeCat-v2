@@ -41,6 +41,10 @@ export class MultiplayerGamesManager {
   private boundHandleBingo = this.handleBingo.bind(this);
   private boundHandleQuestionsReady = this.handleQuestionsReady.bind(this);
 
+  // Jeopardy-specific bound handlers
+  private boundHandleJeopardyQuestionAnswered = this.handleJeopardyQuestionAnswered.bind(this);
+  private boundHandleJeopardyBoardComplete = this.handleJeopardyBoardComplete.bind(this);
+
   /**
    * Initialize manager with current user
    */
@@ -110,22 +114,39 @@ export class MultiplayerGamesManager {
       }
     );
 
+    // Post-process Jeopardy questions
+    let processedQuestions = generatedQuestions;
+    if (gameSession.gameType === 'jeopardy') {
+      processedQuestions = this.processJeopardyQuestions(generatedQuestions);
+    }
+
     // Create questions in database
-    const questionParams = generatedQuestions.map((q, index) => ({
-      gameSessionId: gameSession.id,
-      questionIndex: index,
-      questionData: {
-        question: q.question,
-        options: q.options,
-        questionType: 'multiple_choice',
-        explanation: q.explanation,
-      },
-      correctAnswer: q.correctAnswer,
-      category: q.category,
-      difficulty: q.difficulty || 'medium',
-      points: gameSession.config.pointsPerQuestion || 100,
-      timeLimitSeconds: gameSession.config.timePerQuestion || 30,
-    }));
+    const questionParams = processedQuestions.map((q: any, index) => {
+      // Map difficulty to allowed values (easy, medium, hard)
+      let difficulty = q.difficulty || 'medium';
+      if (difficulty === 'easy-medium') difficulty = 'easy';
+      if (difficulty === 'medium-hard') difficulty = 'hard';
+
+      return {
+        gameSessionId: gameSession.id,
+        questionIndex: index,
+        questionData: {
+          question: q.question,
+          options: q.options,
+          questionType: 'multiple_choice',
+          explanation: q.explanation,
+        },
+        correctAnswer: q.correctAnswer,
+        category: q.category,
+        difficulty,
+        points: q.points || gameSession.config.pointsPerQuestion || 100,
+        timeLimitSeconds: gameSession.config.timePerQuestion || 30,
+        // Jeopardy-specific fields
+        columnPosition: q.columnPosition,
+        isDailyDouble: q.isDailyDouble || false,
+        isFinalJeopardy: q.isFinalJeopardy || false,
+      };
+    });
 
     const result = await window.scribeCat.games.createGameQuestions(questionParams);
 
@@ -139,6 +160,62 @@ export class MultiplayerGamesManager {
         detail: { gameSessionId: gameSession.id },
       })
     );
+  }
+
+  /**
+   * Process Jeopardy questions to add point values, Daily Doubles, etc.
+   */
+  private processJeopardyQuestions(questions: any[]): any[] {
+    // Map difficulty to point values
+    const difficultyToPoints: Record<string, number> = {
+      'easy': 100,
+      'easy-medium': 200,
+      'medium': 300,
+      'medium-hard': 400,
+      'hard': 500,
+    };
+
+    // Assign points based on difficulty and columnPosition
+    const processed = questions.map((q) => {
+      // If AI provided columnPosition, use that to determine points
+      let points = 100;
+      if (q.columnPosition) {
+        points = q.columnPosition * 100; // 1=100, 2=200, 3=300, 4=400, 5=500
+      } else if (q.difficulty && difficultyToPoints[q.difficulty]) {
+        points = difficultyToPoints[q.difficulty];
+      }
+
+      return {
+        ...q,
+        points,
+        columnPosition: q.columnPosition || Math.ceil(points / 100),
+        isFinalJeopardy: q.isFinalJeopardy || false,
+        isDailyDouble: false, // Will be set below
+      };
+    });
+
+    // Separate Final Jeopardy from regular questions
+    const regularQuestions = processed.filter((q) => !q.isFinalJeopardy);
+    const finalJeopardy = processed.filter((q) => q.isFinalJeopardy);
+
+    // Select 1-2 Daily Doubles from non-first-row questions
+    const eligibleForDD = regularQuestions.filter((q) => q.columnPosition > 1); // Not 100-point questions
+    if (eligibleForDD.length > 0) {
+      // Randomly select 1-2 Daily Doubles
+      const numDailyDoubles = Math.min(2, eligibleForDD.length);
+      const shuffled = [...eligibleForDD].sort(() => Math.random() - 0.5);
+
+      for (let i = 0; i < numDailyDoubles; i++) {
+        const ddQuestion = shuffled[i];
+        const index = regularQuestions.indexOf(ddQuestion);
+        if (index !== -1) {
+          regularQuestions[index].isDailyDouble = true;
+        }
+      }
+    }
+
+    // Return regular questions + Final Jeopardy at the end
+    return [...regularQuestions, ...finalJeopardy];
   }
 
   /**
@@ -353,13 +430,43 @@ export class MultiplayerGamesManager {
     console.log('Game session status:', this.currentGameSession!.status);
     console.log('Current question index:', this.currentGameSession!.currentQuestionIndex);
 
-    // Load current question
-    const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
-    console.log('getCurrentQuestion result:', questionResult);
+    let currentQuestion: GameQuestion | null = null;
 
-    const currentQuestion = questionResult.success && questionResult.question
-      ? GameQuestion.fromJSON(questionResult.question)
-      : null;
+    // For Jeopardy: Only load question if one has been selected (selectedQuestionId is set)
+    // For other games: Load question based on current_question_index
+    let jeopardyBoard: any[] | null = null;
+    let jeopardyQuestionsReady = false;
+
+    if (this.currentGameSession!.gameType === 'jeopardy') {
+      const selectedQuestionId = this.currentGameSession!.selectedQuestionId;
+
+      if (selectedQuestionId) {
+        console.log('Jeopardy: Loading selected question:', selectedQuestionId);
+        const questionResult = await window.scribeCat.games.getGameQuestion(gameSessionId, selectedQuestionId);
+        currentQuestion = questionResult.success && questionResult.question
+          ? GameQuestion.fromJSON(questionResult.question)
+          : null;
+        jeopardyQuestionsReady = true;
+      } else {
+        console.log('Jeopardy: No question selected yet, checking for existing board...');
+        // Check if questions already exist (for participants joining after questions created)
+        const boardResult = await window.scribeCat.games.jeopardy.getBoard(gameSessionId);
+        if (boardResult.success && boardResult.board && boardResult.board.length > 0) {
+          console.log('[MultiplayerGamesManager] Questions already exist, loading board for participant (', boardResult.board.length, 'questions)');
+          jeopardyBoard = boardResult.board;
+          jeopardyQuestionsReady = true;
+        } else {
+          console.log('[MultiplayerGamesManager] No questions exist yet, waiting for host to generate them');
+        }
+      }
+    } else {
+      // Other games use sequential question index
+      const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
+      console.log('getCurrentQuestion result:', questionResult);
+      currentQuestion = questionResult.success && questionResult.question
+        ? GameQuestion.fromJSON(questionResult.question)
+        : null;
+    }
 
     console.log('Current question:', currentQuestion ? `Question ${currentQuestion.questionIndex}: ${currentQuestion.questionData.question}` : 'No question loaded');
 
@@ -380,9 +487,16 @@ export class MultiplayerGamesManager {
       hasAnswered: false,
       gameStarted: this.currentGameSession!.status === 'in_progress',
       gameEnded: this.currentGameSession!.status === 'completed',
-      questionsReady: currentQuestion !== null, // Questions ready if we have at least one question
+      questionsReady: this.currentGameSession!.gameType === 'jeopardy'
+        ? jeopardyQuestionsReady
+        : currentQuestion !== null, // For Jeopardy, check if board exists; for others, check if question exists
       // Don't set questionStartedAt here - let timer start fresh
     };
+
+    // Add Jeopardy-specific state if applicable
+    if (this.currentGameSession!.gameType === 'jeopardy' && jeopardyBoard) {
+      (gameState as any).board = jeopardyBoard;
+    }
 
     console.log('Initializing game with state:', {
       hasSession: !!gameState.session,
@@ -462,42 +576,62 @@ export class MultiplayerGamesManager {
         this.currentGameSession = gameSession;
 
         // Check if we need to fetch a question:
-        // 1. Question index changed
-        // 2. Game just started (waiting -> in_progress)
-        // 3. Game is in_progress but we have no current question (late joiner or missed update)
+        // For Jeopardy: check selectedQuestionId
+        // For other games: check question index
+        const isJeopardy = gameSession.gameType === 'jeopardy';
+        const selectedQuestionId = gameSession.selectedQuestionId;
+        const previousSelectedId = (this.currentGame as any)?.state?.selectedQuestionId;
+
         const questionIndexChanged = previousIndex !== undefined && previousIndex !== gameSession.currentQuestionIndex;
+        const selectedQuestionChanged = isJeopardy && selectedQuestionId && selectedQuestionId !== previousSelectedId;
         const gameJustStarted = previousStatus === 'waiting' && gameSession.status === 'in_progress';
         const missingQuestion = gameSession.status === 'in_progress' && !currentQuestion;
-        const needsQuestionFetch = questionIndexChanged || gameJustStarted || missingQuestion;
+        const needsQuestionFetch = questionIndexChanged || selectedQuestionChanged || gameJustStarted || missingQuestion;
 
         if (needsQuestionFetch) {
-          console.log(`[MultiplayerGamesManager] Fetching question - indexChanged: ${questionIndexChanged}, gameJustStarted: ${gameJustStarted}, missingQuestion: ${missingQuestion}`);
+          console.log(`[MultiplayerGamesManager] Fetching question - indexChanged: ${questionIndexChanged}, selectedChanged: ${selectedQuestionChanged}, gameJustStarted: ${gameJustStarted}, missingQuestion: ${missingQuestion}`);
 
           // Small delay to ensure the database write has fully propagated
-          // This prevents race conditions where getCurrentQuestion returns stale data
           await new Promise(resolve => setTimeout(resolve, 150));
 
-          // Fetch the new current question
-          const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
-          const currentQuestion = questionResult.success && questionResult.question
-            ? GameQuestion.fromJSON(questionResult.question)
-            : null;
+          let fetchedQuestion: GameQuestion | null = null;
 
-          console.log(`[MultiplayerGamesManager] Fetched question for index ${gameSession.currentQuestionIndex}:`, currentQuestion?.id);
+          if (isJeopardy && selectedQuestionId) {
+            // Jeopardy: Fetch selected question by ID
+            const questionResult = await window.scribeCat.games.getGameQuestion(gameSessionId, selectedQuestionId);
+            if (questionResult.success && questionResult.question) {
+              fetchedQuestion = GameQuestion.fromJSON(questionResult.question);
+              console.log(`[MultiplayerGamesManager] Fetched Jeopardy question ${selectedQuestionId}:`, fetchedQuestion.id);
+            }
+          } else {
+            // Sequential games: Fetch current question by index
+            const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
+            fetchedQuestion = questionResult.success && questionResult.question
+              ? GameQuestion.fromJSON(questionResult.question)
+              : null;
+            console.log(`[MultiplayerGamesManager] Fetched question for index ${gameSession.currentQuestionIndex}:`, fetchedQuestion?.id);
+          }
 
           if (this.currentGame) {
-            // Use session.questionStartedAt for timer sync (set by database trigger)
-            // This ensures all players start timers at the exact same moment
             const questionStartedAt = gameSession.questionStartedAt?.getTime();
 
             this.currentGame.updateState({
               session: gameSession,
-              currentQuestion,
-              hasAnswered: false, // Reset for new question
+              currentQuestion: fetchedQuestion,
+              hasAnswered: false,
               gameStarted: gameSession.status === 'in_progress',
               gameEnded: gameSession.hasEnded(),
-              questionStartedAt, // Database timestamp for synchronized timing
+              questionStartedAt,
             });
+
+            // Update Jeopardy-specific state
+            if (isJeopardy) {
+              (this.currentGame as any).updateState({
+                selectedQuestionId: gameSession.selectedQuestionId || null,
+                currentPlayerId: gameSession.currentPlayerId || null,
+                round: gameSession.round || 'regular',
+              });
+            }
           }
         } else if (this.currentGame) {
           // Just update session state without changing question
@@ -506,6 +640,14 @@ export class MultiplayerGamesManager {
             gameStarted: gameSession.status === 'in_progress',
             gameEnded: gameSession.hasEnded(),
           });
+
+          // Update Jeopardy state even without question change
+          if (isJeopardy) {
+            (this.currentGame as any).updateState({
+              currentPlayerId: (sessionData as any).current_player_id || null,
+              round: (sessionData as any).round || 'regular',
+            });
+          }
         }
       }
     );
@@ -532,6 +674,7 @@ export class MultiplayerGamesManager {
     const scoresUnsubscribe = window.scribeCat.games.subscribeToGameScores(
       gameSessionId,
       async (scoreData) => {
+        console.log('[MultiplayerGamesManager] New score received, refreshing leaderboard:', scoreData);
         // Reload leaderboard when new scores come in
         await this.refreshLeaderboard(gameSessionId);
       }
@@ -581,6 +724,10 @@ export class MultiplayerGamesManager {
 
     // Handle questions ready (when async question generation completes)
     window.addEventListener('game:questions-ready', this.boundHandleQuestionsReady);
+
+    // Jeopardy-specific events
+    window.addEventListener('game:jeopardy:question-answered', this.boundHandleJeopardyQuestionAnswered);
+    window.addEventListener('game:jeopardy:board-complete', this.boundHandleJeopardyBoardComplete);
   }
 
   /**
@@ -694,6 +841,18 @@ export class MultiplayerGamesManager {
       }
 
       console.log('[MultiplayerGamesManager] Game started successfully');
+
+      // For Jeopardy, set the initial current player (first participant)
+      if (this.currentGameSession.gameType === 'jeopardy' && this.currentParticipants.length > 0) {
+        const firstPlayer = this.currentParticipants[0];
+        console.log('[MultiplayerGamesManager] Setting initial Jeopardy player:', firstPlayer.userName);
+
+        await window.scribeCat.games.jeopardy.setCurrentPlayer({
+          gameSessionId: this.currentGameSession.id,
+          userId: firstPlayer.userId,
+        });
+      }
+
       // State update will happen via real-time subscription
     } catch (error) {
       console.error('[MultiplayerGamesManager] Exception in handleGameStart:', error);
@@ -851,22 +1010,110 @@ export class MultiplayerGamesManager {
     console.log('[MultiplayerGamesManager] Questions ready for game:', gameSessionId);
 
     try {
-      // Fetch the first question
-      const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
+      if (this.currentGameSession.gameType === 'jeopardy') {
+        // For Jeopardy: Reload the board (don't load a question)
+        console.log('[MultiplayerGamesManager] Jeopardy questions ready - reloading board...');
+        const boardResult = await window.scribeCat.games.jeopardy.getBoard(gameSessionId);
 
-      if (questionResult.success && questionResult.question) {
-        const currentQuestion = GameQuestion.fromJSON(questionResult.question);
+        if (boardResult.success && boardResult.board) {
+          console.log('[MultiplayerGamesManager] Board reloaded with', boardResult.board.length, 'questions');
+          // Update Jeopardy game with the board
+          (this.currentGame as any).updateState({
+            board: boardResult.board,
+            questionsReady: true,
+          });
+        }
+      } else {
+        // For other games: Fetch the first question
+        const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
 
-        // Update game state to show questions are ready
-        this.currentGame.updateState({
-          currentQuestion,
-          questionsReady: true,
-        });
+        if (questionResult.success && questionResult.question) {
+          const currentQuestion = GameQuestion.fromJSON(questionResult.question);
 
-        console.log('[MultiplayerGamesManager] Questions loaded - Start button now enabled');
+          // Update game state to show questions are ready
+          this.currentGame.updateState({
+            currentQuestion,
+            questionsReady: true,
+          });
+
+          console.log('[MultiplayerGamesManager] Questions loaded - Start button now enabled');
+        }
       }
     } catch (error) {
       console.error('[MultiplayerGamesManager] Exception in handleQuestionsReady:', error);
+    }
+  }
+
+  /**
+   * Handle Jeopardy question answered - manages turn rotation
+   */
+  private async handleJeopardyQuestionAnswered(event: Event): Promise<void> {
+    if (!this.currentGameSession || !this.currentUserId) return;
+
+    const customEvent = event as CustomEvent<{
+      userId: string;
+      isCorrect: boolean;
+      wasFirstBuzzer: boolean;
+    }>;
+    const { userId, isCorrect, wasFirstBuzzer } = customEvent.detail;
+
+    console.log('[MultiplayerGamesManager] Jeopardy question answered:', { userId, isCorrect, wasFirstBuzzer });
+
+    try {
+      // If the first buzzer answered correctly, they select the next question
+      if (wasFirstBuzzer && isCorrect) {
+        console.log('[MultiplayerGamesManager] Correct answer - player selects next');
+        // Player already set as current in JeopardyGame component
+        return;
+      }
+
+      // If wrong answer or no correct answer, set lowest scoring player as current
+      if (!isCorrect) {
+        console.log('[MultiplayerGamesManager] Wrong answer - finding lowest scoring player');
+
+        const lowestResult = await window.scribeCat.games.jeopardy.getLowestScoringPlayer(
+          this.currentGameSession.id
+        );
+
+        if (lowestResult.success && lowestResult.userId) {
+          await window.scribeCat.games.jeopardy.setCurrentPlayer({
+            gameSessionId: this.currentGameSession.id,
+            userId: lowestResult.userId,
+          });
+
+          console.log('[MultiplayerGamesManager] Lowest scoring player set as current');
+        }
+      }
+    } catch (error) {
+      console.error('[MultiplayerGamesManager] Exception in handleJeopardyQuestionAnswered:', error);
+    }
+  }
+
+  /**
+   * Handle Jeopardy board complete - advance to Final Jeopardy
+   */
+  private async handleJeopardyBoardComplete(event: Event): Promise<void> {
+    if (!this.currentGameSession) return;
+
+    console.log('[MultiplayerGamesManager] Jeopardy board complete - checking for Final Jeopardy');
+
+    try {
+      // Check if board is really complete
+      const completeResult = await window.scribeCat.games.jeopardy.isBoardComplete(
+        this.currentGameSession.id
+      );
+
+      if (completeResult.success && completeResult.isComplete) {
+        console.log('[MultiplayerGamesManager] Advancing to Final Jeopardy');
+
+        // Advance to Final Jeopardy
+        await window.scribeCat.games.jeopardy.advanceToFinal(this.currentGameSession.id);
+
+        // State update will happen via real-time subscription
+        console.log('[MultiplayerGamesManager] Final Jeopardy initiated');
+      }
+    } catch (error) {
+      console.error('[MultiplayerGamesManager] Exception in handleJeopardyBoardComplete:', error);
     }
   }
 
@@ -917,11 +1164,34 @@ export class MultiplayerGamesManager {
           this.stopWaitingPoll();
           this.currentGameSession = gameSession;
 
-          // Fetch the current question
-          const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
-          const currentQuestion = questionResult.success && questionResult.question
-            ? GameQuestion.fromJSON(questionResult.question)
-            : null;
+          // Fetch the current question (Jeopardy-aware logic)
+          let currentQuestion: GameQuestion | null = null;
+          let jeopardyBoardUpdate: any = null;
+
+          if (gameSession.gameType === 'jeopardy') {
+            const selectedQuestionId = gameSession.selectedQuestionId;
+            if (selectedQuestionId) {
+              console.log('[MultiplayerGamesManager] Waiting poll: Jeopardy game with selected question:', selectedQuestionId);
+              const questionResult = await window.scribeCat.games.getGameQuestion(gameSessionId, selectedQuestionId);
+              currentQuestion = questionResult.success && questionResult.question
+                ? GameQuestion.fromJSON(questionResult.question)
+                : null;
+            } else {
+              console.log('[MultiplayerGamesManager] Waiting poll: Jeopardy game, no question selected yet - reloading board');
+              // Reload board when game starts (for participants who joined before questions were created)
+              const boardResult = await window.scribeCat.games.jeopardy.getBoard(gameSessionId);
+              if (boardResult.success && boardResult.board && boardResult.board.length > 0) {
+                console.log('[MultiplayerGamesManager] Waiting poll: Board reloaded with', boardResult.board.length, 'questions');
+                jeopardyBoardUpdate = boardResult.board;
+              }
+            }
+          } else {
+            // Other games use sequential question index
+            const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
+            currentQuestion = questionResult.success && questionResult.question
+              ? GameQuestion.fromJSON(questionResult.question)
+              : null;
+          }
 
           console.log('[MultiplayerGamesManager] Waiting poll detected game start, fetched question:', currentQuestion?.id);
 
@@ -938,6 +1208,23 @@ export class MultiplayerGamesManager {
               gameEnded: false,
               questionStartedAt, // Use game startedAt for first question
             });
+
+            // Update Jeopardy-specific state
+            if (gameSession.gameType === 'jeopardy') {
+              const jeopardyUpdates: any = {
+                selectedQuestionId: gameSession.selectedQuestionId || null,
+                currentPlayerId: gameSession.currentPlayerId || null,
+                round: gameSession.round || 'regular',
+              };
+
+              // Add board if we loaded it
+              if (jeopardyBoardUpdate) {
+                jeopardyUpdates.board = jeopardyBoardUpdate;
+                jeopardyUpdates.questionsReady = true;
+              }
+
+              (this.currentGame as any).updateState(jeopardyUpdates);
+            }
 
             // Start question poll now that game is in progress
             this.startQuestionPoll(gameSessionId);
@@ -979,19 +1266,48 @@ export class MultiplayerGamesManager {
         if (!result.success || !result.gameSession) return;
 
         const gameSession = GameSession.fromJSON(result.gameSession);
-        const previousIndex = this.currentGameSession.currentQuestionIndex;
-        const newIndex = gameSession.currentQuestionIndex;
 
-        // Check if question index changed or game ended
-        if (newIndex !== previousIndex) {
-          console.log(`[MultiplayerGamesManager] Question poll detected change: ${previousIndex} -> ${newIndex}`);
+        // Determine what changed based on game type
+        const isJeopardy = gameSession.gameType === 'jeopardy';
+        let questionChanged = false;
+
+        if (isJeopardy) {
+          // For Jeopardy: Check if selectedQuestionId changed
+          const previousSelectedId = this.currentGameSession.selectedQuestionId;
+          const newSelectedId = gameSession.selectedQuestionId;
+          questionChanged = newSelectedId !== previousSelectedId;
+          if (questionChanged) {
+            console.log(`[MultiplayerGamesManager] Question poll detected Jeopardy question change: ${previousSelectedId} -> ${newSelectedId}`);
+          }
+        } else {
+          // For other games: Check if question index changed
+          const previousIndex = this.currentGameSession.currentQuestionIndex;
+          const newIndex = gameSession.currentQuestionIndex;
+          questionChanged = newIndex !== previousIndex;
+          if (questionChanged) {
+            console.log(`[MultiplayerGamesManager] Question poll detected index change: ${previousIndex} -> ${newIndex}`);
+          }
+        }
+
+        // If question changed, fetch the new question
+        if (questionChanged) {
           this.currentGameSession = gameSession;
 
-          // Fetch the new question
-          const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
-          const currentQuestion = questionResult.success && questionResult.question
-            ? GameQuestion.fromJSON(questionResult.question)
-            : null;
+          let currentQuestion: GameQuestion | null = null;
+          if (isJeopardy) {
+            const selectedQuestionId = gameSession.selectedQuestionId;
+            if (selectedQuestionId) {
+              const questionResult = await window.scribeCat.games.getGameQuestion(gameSessionId, selectedQuestionId);
+              currentQuestion = questionResult.success && questionResult.question
+                ? GameQuestion.fromJSON(questionResult.question)
+                : null;
+            }
+          } else {
+            const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
+            currentQuestion = questionResult.success && questionResult.question
+              ? GameQuestion.fromJSON(questionResult.question)
+              : null;
+          }
 
           console.log(`[MultiplayerGamesManager] Question poll fetched question:`, currentQuestion?.id);
 
@@ -1004,6 +1320,15 @@ export class MultiplayerGamesManager {
               gameEnded: gameSession.hasEnded(),
               questionStartedAt: gameSession.updatedAt.getTime(), // Use updated_at for question sync
             });
+
+            // Update Jeopardy-specific state
+            if (isJeopardy) {
+              (this.currentGame as any).updateState({
+                selectedQuestionId: gameSession.selectedQuestionId || null,
+                currentPlayerId: gameSession.currentPlayerId || null,
+                round: gameSession.round || 'regular',
+              });
+            }
           }
         } else if (gameSession.hasEnded() && !this.currentGameSession.hasEnded()) {
           // Game ended
@@ -1083,5 +1408,9 @@ export class MultiplayerGamesManager {
     window.removeEventListener('game:timeout', this.boundHandleTimeout);
     window.removeEventListener('game:bingo', this.boundHandleBingo);
     window.removeEventListener('game:questions-ready', this.boundHandleQuestionsReady);
+
+    // Remove Jeopardy-specific event listeners
+    window.removeEventListener('game:jeopardy:question-answered', this.boundHandleJeopardyQuestionAnswered);
+    window.removeEventListener('game:jeopardy:board-complete', this.boundHandleJeopardyBoardComplete);
   }
 }

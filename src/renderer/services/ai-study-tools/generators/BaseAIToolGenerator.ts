@@ -174,12 +174,14 @@ export abstract class BaseAIToolGenerator {
    * Call Claude AI with a prompt
    *
    * @param prompt - The prompt to send to Claude
+   * @param maxTokens - Optional max tokens for response (default: undefined = use API default)
    * @returns AI response data
    */
-  protected static async callAI(prompt: string): Promise<{ success: boolean; data?: string; error?: string }> {
+  protected static async callAI(prompt: string, maxTokens?: number): Promise<{ success: boolean; data?: string; error?: string }> {
     return window.scribeCat.ai.chat(prompt, [], {
       includeTranscription: false,
-      includeNotes: false
+      includeNotes: false,
+      maxTokens
     });
   }
 }

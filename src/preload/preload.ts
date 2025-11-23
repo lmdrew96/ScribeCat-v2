@@ -458,6 +458,8 @@ const electronAPI = {
       ipcRenderer.invoke('games:get-current-question', gameSessionId),
     getGameQuestions: (gameSessionId: string, includeAnswers: boolean) =>
       ipcRenderer.invoke('games:get-questions', gameSessionId, includeAnswers),
+    getGameQuestion: (gameSessionId: string, questionId: string) =>
+      ipcRenderer.invoke('games:get-question', gameSessionId, questionId),
     getCorrectAnswer: (params: { gameSessionId: string; questionId: string; userId: string }) =>
       ipcRenderer.invoke('games:get-correct-answer', params),
     submitAnswer: (params: { gameSessionId: string; userId: string; questionId: string; answer: string; timeTakenMs: number }) =>
@@ -507,7 +509,50 @@ const electronAPI = {
       };
     },
     unsubscribeAll: () =>
-      ipcRenderer.invoke('games:unsubscribe-all')
+      ipcRenderer.invoke('games:unsubscribe-all'),
+
+    // Jeopardy-specific methods
+    jeopardy: {
+      selectQuestion: (params: { gameSessionId: string; questionId: string; userId: string }) =>
+        ipcRenderer.invoke('games:jeopardy:select-question', params),
+      buzzIn: (params: { gameSessionId: string; questionId: string; userId: string }) =>
+        ipcRenderer.invoke('games:jeopardy:buzz-in', params),
+      getBuzzers: (questionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:get-buzzers', questionId),
+      getFirstBuzzer: (questionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:get-first-buzzer', questionId),
+      getBoard: (gameSessionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:get-board', gameSessionId),
+      setCurrentPlayer: (params: { gameSessionId: string; userId: string }) =>
+        ipcRenderer.invoke('games:jeopardy:set-current-player', params),
+      getLowestScoringPlayer: (gameSessionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:get-lowest-scoring-player', gameSessionId),
+      advanceToFinal: (gameSessionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:advance-to-final', gameSessionId),
+      isBoardComplete: (gameSessionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:is-board-complete', gameSessionId),
+      submitAnswer: (params: {
+        gameSessionId: string;
+        questionId: string;
+        userId: string;
+        answer: string;
+        isCorrect: boolean;
+        buzzerRank: number;
+        wagerAmount?: number;
+        timeTakenMs?: number;
+      }) =>
+        ipcRenderer.invoke('games:jeopardy:submit-answer', params),
+      subscribeToBuzzers: (questionId: string, onBuzzer: (buzzer: any) => void) => {
+        const handler = (_event: Electron.IpcRendererEvent, data: any) => {
+          onBuzzer(data);
+        };
+        ipcRenderer.on(`games:buzzer-press:${questionId}`, handler);
+        ipcRenderer.invoke('games:jeopardy:subscribe-buzzers', questionId);
+        return () => {
+          ipcRenderer.removeListener(`games:buzzer-press:${questionId}`, handler);
+        };
+      },
+    }
   },
   power: {
     preventSleep: () => ipcRenderer.invoke('power:preventSleep'),

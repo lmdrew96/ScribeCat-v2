@@ -340,23 +340,57 @@ ${transcriptionText}`;
         break;
 
       case 'jeopardy':
-        prompt = `Create ${questionCount} Jeopardy-style questions organized by categories.
+        // For Jeopardy, questionCount should be (numCategories * 5) + 1 for Final Jeopardy
+        // Default to 5 categories if not specified
+        const categoryList = options?.categories || [];
+        const numCategories = categoryList.length > 0 ? Math.min(Math.max(categoryList.length, 3), 6) : 5;
+        const regularQuestions = numCategories * 5; // 5 questions per category (100-500 points)
+        const totalWithFinal = regularQuestions + 1; // +1 for Final Jeopardy
 
-Requirements:
-- Questions should be phrased as answers (Jeopardy format)
-- Provide 4 multiple-choice responses phrased as questions
-${options?.categories ? `- Use these categories: ${options.categories.join(', ')}` : '- Create 3-5 relevant categories'}
-- Vary difficulty levels
+        prompt = `Create ${totalWithFinal} Jeopardy-style questions for a real Jeopardy game board.
 
-For each question, provide:
-1. "question": The "answer" in Jeopardy format (e.g., "This psychologist is known for...")
-2. "options": Array of 4 question-format responses (e.g., "Who is Sigmund Freud?")
-3. "correctAnswer": The exact text of the correct response from the options array
-4. "category": The Jeopardy category
-5. "difficulty": "easy", "medium", or "hard"
-6. "explanation": Brief context
+BOARD STRUCTURE:
+- ${numCategories} categories
+- 5 questions per category (ranging from easy to hard)
+- Questions will be worth 100, 200, 300, 400, and 500 points based on difficulty
+- Plus 1 Final Jeopardy question (different category)
 
-Format as a JSON array.
+${categoryList.length > 0 ? `CATEGORIES TO USE: ${categoryList.join(', ')}` : `Create ${numCategories} distinct, relevant categories from the transcription content.`}
+
+JEOPARDY FORMAT:
+- Questions are phrased as answers/clues (e.g., "This psychologist is known for classical conditioning")
+- Response options are phrased as questions (e.g., "Who is Ivan Pavlov?")
+
+For each of the ${regularQuestions} regular questions, provide:
+1. "question": The clue in Jeopardy format
+2. "options": Array of 4 question-format responses (e.g., "Who is...", "What is...")
+3. "correctAnswer": The exact text of the correct response from options
+4. "category": ONE of the ${numCategories} category names (MUST distribute evenly - exactly 5 questions per category)
+5. "difficulty": Map to point values:
+   - "easy" = 100 points (first/easiest in category)
+   - "easy-medium" = 200 points
+   - "medium" = 300 points
+   - "medium-hard" = 400 points
+   - "hard" = 500 points (most difficult in category)
+6. "explanation": Brief context about the answer
+7. "columnPosition": 1-5 (position in category: 1=100pts, 2=200pts, 3=300pts, 4=400pts, 5=500pts)
+
+For the Final Jeopardy question (#${totalWithFinal}), provide:
+1. "question": A challenging final clue
+2. "options": Array of 4 question-format responses
+3. "correctAnswer": The correct response
+4. "category": A DIFFERENT category from the main board (unique Final Jeopardy category)
+5. "difficulty": "hard"
+6. "explanation": Context
+7. "isFinalJeopardy": true
+8. "columnPosition": null
+
+IMPORTANT:
+- Distribute questions EVENLY across categories (exactly 5 per category)
+- Within each category, order from easiest (100pts) to hardest (500pts)
+- Final Jeopardy must use a different category
+
+Format as a JSON array with ${totalWithFinal} questions total.
 
 ${isMultiSession ? 'Note: This is a multi-session transcription. Create questions from ALL sessions.\n\n' : ''}Transcription:
 ${transcriptionText}`;
@@ -409,7 +443,9 @@ ${transcriptionText}`;
         throw new Error(`Unknown game type: ${gameType}`);
     }
 
-    const result = await this.callAI(prompt);
+    // Jeopardy needs more tokens due to large board (26 questions with options)
+    const maxTokens = gameType === 'jeopardy' ? 16000 : undefined;
+    const result = await this.callAI(prompt, maxTokens);
 
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Failed to generate questions');

@@ -129,6 +129,20 @@ export function registerGameHandlers(): void {
     }
   });
 
+  // Get a specific game question by ID
+  ipcMain.handle('games:get-question', async (event, gameSessionId: string, questionId: string) => {
+    try {
+      const question = await gamesRepo.getGameQuestion(questionId, true);
+      return {
+        success: true,
+        question: question ? question.toClientJSON(true) : null,
+      };
+    } catch (error: any) {
+      console.error('Failed to get game question:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('games:get-correct-answer', async (event, params: { gameSessionId: string; questionId: string; userId: string }) => {
     try {
       const result = await gamesRepo.getCorrectAnswer(params.gameSessionId, params.questionId, params.userId);
@@ -281,6 +295,132 @@ export function registerGameHandlers(): void {
       return { success: true };
     } catch (error: any) {
       console.error('Failed to unsubscribe from games:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ============================================================================
+  // Jeopardy-Specific Handlers
+  // ============================================================================
+
+  ipcMain.handle('games:jeopardy:select-question', async (event, params: { gameSessionId: string; questionId: string; userId: string }) => {
+    try {
+      const success = await gamesRepo.selectJeopardyQuestion(params.gameSessionId, params.questionId, params.userId);
+      return { success, gameSessionId: params.gameSessionId, questionId: params.questionId };
+    } catch (error: any) {
+      console.error('Failed to select Jeopardy question:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:buzz-in', async (event, params: { gameSessionId: string; questionId: string; userId: string }) => {
+    try {
+      const buzzerRank = await gamesRepo.recordBuzzerPress(params.gameSessionId, params.questionId, params.userId);
+      return { success: true, buzzerRank };
+    } catch (error: any) {
+      console.error('Failed to record buzzer press:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:get-buzzers', async (event, questionId: string) => {
+    try {
+      const buzzers = await gamesRepo.getQuestionBuzzers(questionId);
+      return { success: true, buzzers };
+    } catch (error: any) {
+      console.error('Failed to get question buzzers:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:get-first-buzzer', async (event, questionId: string) => {
+    try {
+      const userId = await gamesRepo.getFirstBuzzer(questionId);
+      return { success: true, userId };
+    } catch (error: any) {
+      console.error('Failed to get first buzzer:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:get-board', async (event, gameSessionId: string) => {
+    try {
+      const board = await gamesRepo.getJeopardyBoard(gameSessionId);
+      return { success: true, board };
+    } catch (error: any) {
+      console.error('Failed to get Jeopardy board:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:set-current-player', async (event, params: { gameSessionId: string; userId: string }) => {
+    try {
+      await gamesRepo.setCurrentJeopardyPlayer(params.gameSessionId, params.userId);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to set current Jeopardy player:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:get-lowest-scoring-player', async (event, gameSessionId: string) => {
+    try {
+      const userId = await gamesRepo.getLowestScoringPlayer(gameSessionId);
+      return { success: true, userId };
+    } catch (error: any) {
+      console.error('Failed to get lowest scoring player:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:advance-to-final', async (event, gameSessionId: string) => {
+    try {
+      await gamesRepo.advanceToFinalJeopardy(gameSessionId);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to advance to Final Jeopardy:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:is-board-complete', async (event, gameSessionId: string) => {
+    try {
+      const isComplete = await gamesRepo.isJeopardyBoardComplete(gameSessionId);
+      return { success: true, isComplete };
+    } catch (error: any) {
+      console.error('Failed to check if board is complete:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:submit-answer', async (event, params) => {
+    try {
+      const pointsEarned = await gamesRepo.submitJeopardyAnswer(params);
+      return { success: true, pointsEarned };
+    } catch (error: any) {
+      console.error('Failed to submit Jeopardy answer:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:subscribe-buzzers', (event, questionId: string) => {
+    try {
+      const subscriptionKey = `buzzers:${questionId}`;
+
+      // Clean up existing subscription if any
+      const existing = subscriptions.get(subscriptionKey);
+      if (existing) {
+        existing().catch(console.error);
+      }
+
+      const unsubscribe = gamesRepo.subscribeToBuzzerPresses(questionId, (buzzer) => {
+        event.sender.send(`games:buzzer-press:${questionId}`, buzzer);
+      });
+
+      subscriptions.set(subscriptionKey, unsubscribe);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to subscribe to buzzer presses:', error);
       return { success: false, error: error.message };
     }
   });

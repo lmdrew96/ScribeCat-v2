@@ -39,6 +39,10 @@ export interface CreateGameQuestionParams {
   difficulty?: 'easy' | 'medium' | 'hard';
   points: number;
   timeLimitSeconds: number;
+  // Jeopardy-specific fields
+  columnPosition?: number;
+  isDailyDouble?: boolean;
+  isFinalJeopardy?: boolean;
 }
 
 export interface SubmitAnswerParams {

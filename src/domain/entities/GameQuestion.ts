@@ -28,6 +28,12 @@ export interface GameQuestionData {
   readonly timeLimitSeconds: number;
   readonly revealedAt?: Date;
   readonly createdAt: Date;
+  // Jeopardy-specific fields
+  readonly isDailyDouble?: boolean;
+  readonly isFinalJeopardy?: boolean;
+  readonly columnPosition?: number;
+  readonly isSelected?: boolean;
+  readonly selectedByUserId?: string;
 }
 
 /**
@@ -51,6 +57,11 @@ export class GameQuestion {
     time_limit_seconds: number;
     revealed_at?: string | Date | null;
     created_at: string | Date;
+    is_daily_double?: boolean | null;
+    is_final_jeopardy?: boolean | null;
+    column_position?: number | null;
+    is_selected?: boolean | null;
+    selected_by_user_id?: string | null;
   }): GameQuestion {
     return new GameQuestion({
       id: row.id,
@@ -68,6 +79,11 @@ export class GameQuestion {
           : row.revealed_at
         : undefined,
       createdAt: typeof row.created_at === 'string' ? new Date(row.created_at) : row.created_at,
+      isDailyDouble: row.is_daily_double || undefined,
+      isFinalJeopardy: row.is_final_jeopardy || undefined,
+      columnPosition: row.column_position || undefined,
+      isSelected: row.is_selected || undefined,
+      selectedByUserId: row.selected_by_user_id || undefined,
     });
   }
 
@@ -148,6 +164,26 @@ export class GameQuestion {
 
   get createdAt(): Date {
     return this.data.createdAt;
+  }
+
+  get isDailyDouble(): boolean {
+    return this.data.isDailyDouble || false;
+  }
+
+  get isFinalJeopardy(): boolean {
+    return this.data.isFinalJeopardy || false;
+  }
+
+  get columnPosition(): number | undefined {
+    return this.data.columnPosition;
+  }
+
+  get isSelected(): boolean {
+    return this.data.isSelected || false;
+  }
+
+  get selectedByUserId(): string | undefined {
+    return this.data.selectedByUserId;
   }
 
   // ============================================================================

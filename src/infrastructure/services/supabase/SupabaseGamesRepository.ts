@@ -140,12 +140,71 @@ export class SupabaseGamesRepository implements IGameRepository {
 
   /**
    * Start a game (change status to in_progress)
+   * For Jeopardy: Also sets initial current_player_id
    */
   public async startGame(gameSessionId: string): Promise<GameSession> {
-    return this.updateGameSession({
-      gameSessionId,
-      status: 'in_progress',
-    });
+    console.log('[SupabaseGamesRepository] startGame() called for:', gameSessionId);
+
+    // Get the game session to check if it's Jeopardy
+    const { data: sessionData, error: sessionError } = await this.getClient()
+      .from('game_sessions')
+      .select('game_type, room_id')
+      .eq('id', gameSessionId)
+      .single();
+
+    console.log('[SupabaseGamesRepository] Session data:', sessionData);
+
+    if (sessionError || !sessionData) {
+      throw new Error(`Failed to get game session: ${sessionError?.message}`);
+    }
+
+    // If Jeopardy, select a random starting player
+    let currentPlayerId: string | undefined = undefined;
+    if (sessionData.game_type === 'jeopardy') {
+      console.log('[SupabaseGamesRepository] This is a Jeopardy game, selecting starting player...');
+      const { data: participants, error: participantsError } = await this.getClient()
+        .from('room_participants')
+        .select('user_id')
+        .eq('room_id', sessionData.room_id)
+        .eq('is_active', true);
+
+      console.log('[SupabaseGamesRepository] Participants query result:', { participants, error: participantsError });
+
+      if (!participantsError && participants && participants.length > 0) {
+        // Select random participant as starting player
+        const randomIndex = Math.floor(Math.random() * participants.length);
+        currentPlayerId = participants[randomIndex].user_id;
+        console.log(`[SupabaseGamesRepository] Selected player ${currentPlayerId} as first selector (index ${randomIndex} of ${participants.length})`);
+      } else {
+        console.error('[SupabaseGamesRepository] Failed to get participants or no participants found');
+      }
+    }
+
+    // Update game status (and current_player_id for Jeopardy)
+    const updates: any = { status: 'in_progress' };
+    if (currentPlayerId) {
+      updates.current_player_id = currentPlayerId;
+      console.log('[SupabaseGamesRepository] Setting current_player_id to:', currentPlayerId);
+    } else {
+      console.log('[SupabaseGamesRepository] No currentPlayerId to set');
+    }
+
+    console.log('[SupabaseGamesRepository] Updating game session with:', updates);
+
+    const { data, error } = await this.getClient()
+      .from('game_sessions')
+      .update(updates)
+      .eq('id', gameSessionId)
+      .select()
+      .single();
+
+    console.log('[SupabaseGamesRepository] Update result:', { data, error });
+
+    if (error) {
+      throw new Error(`Failed to start game: ${error.message}`);
+    }
+
+    return GameSession.fromDatabase(data);
   }
 
   /**
@@ -227,6 +286,10 @@ export class SupabaseGamesRepository implements IGameRepository {
       difficulty: q.difficulty,
       points: q.points,
       time_limit_seconds: q.timeLimitSeconds,
+      // Jeopardy-specific fields (undefined values are filtered by Supabase)
+      column_position: q.columnPosition,
+      is_daily_double: q.isDailyDouble,
+      is_final_jeopardy: q.isFinalJeopardy,
     }));
 
     const { data, error } = await this.getClient().from('game_questions').insert(rows).select();
@@ -792,5 +855,276 @@ export class SupabaseGamesRepository implements IGameRepository {
     }
 
     this.channels.clear();
+  }
+
+  // ============================================================================
+  // Jeopardy-Specific Operations
+  // ============================================================================
+
+  /**
+   * Select a Jeopardy question from the board
+   */
+  public async selectJeopardyQuestion(
+    gameSessionId: string,
+    questionId: string,
+    selectedByUserId: string
+  ): Promise<boolean> {
+    const { data, error } = await this.getClient().rpc('select_jeopardy_question', {
+      p_game_session_id: gameSessionId,
+      p_question_id: questionId,
+      p_selected_by_user_id: selectedByUserId,
+    });
+
+    if (error) {
+      console.error('Failed to select Jeopardy question:', error);
+      throw new Error(`Failed to select Jeopardy question: ${error.message}`);
+    }
+
+    return data === true;
+  }
+
+  /**
+   * Record a buzzer press for a question
+   * Returns the buzzer rank (1st, 2nd, 3rd, etc.)
+   */
+  public async recordBuzzerPress(
+    gameSessionId: string,
+    questionId: string,
+    userId: string
+  ): Promise<number> {
+    const { data, error } = await this.getClient().rpc('record_buzzer_press', {
+      p_game_session_id: gameSessionId,
+      p_question_id: questionId,
+      p_user_id: userId,
+    });
+
+    if (error) {
+      console.error('Failed to record buzzer press:', error);
+      throw new Error(`Failed to record buzzer press: ${error.message}`);
+    }
+
+    return data as number;
+  }
+
+  /**
+   * Get ordered list of buzzers for a question
+   */
+  public async getQuestionBuzzers(
+    questionId: string
+  ): Promise<Array<{ userId: string; buzzerRank: number; pressedAt: Date }>> {
+    const { data, error } = await this.getClient().rpc('get_question_buzzers', {
+      p_question_id: questionId,
+    });
+
+    if (error) {
+      console.error('Failed to get question buzzers:', error);
+      throw new Error(`Failed to get question buzzers: ${error.message}`);
+    }
+
+    return (data || []).map((row: any) => ({
+      userId: row.user_id,
+      buzzerRank: row.buzzer_rank,
+      pressedAt: new Date(row.pressed_at),
+    }));
+  }
+
+  /**
+   * Get the first player to buzz in for a question
+   */
+  public async getFirstBuzzer(questionId: string): Promise<string | null> {
+    const { data, error } = await this.getClient().rpc('get_first_buzzer', {
+      p_question_id: questionId,
+    });
+
+    if (error) {
+      console.error('Failed to get first buzzer:', error);
+      throw new Error(`Failed to get first buzzer: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get Jeopardy board state (categories × point values)
+   */
+  public async getJeopardyBoard(gameSessionId: string): Promise<
+    Array<{
+      questionId: string;
+      category: string;
+      points: number;
+      columnPosition: number;
+      isSelected: boolean;
+      isDailyDouble: boolean;
+    }>
+  > {
+    const { data, error } = await this.getClient().rpc('get_jeopardy_board', {
+      p_game_session_id: gameSessionId,
+    });
+
+    if (error) {
+      console.error('Failed to get Jeopardy board:', error);
+      throw new Error(`Failed to get Jeopardy board: ${error.message}`);
+    }
+
+    return (data || []).map((row: any) => ({
+      questionId: row.question_id,
+      category: row.category,
+      points: row.points,
+      columnPosition: row.column_position,
+      isSelected: row.is_selected,
+      isDailyDouble: row.is_daily_double,
+    }));
+  }
+
+  /**
+   * Set the current player (whose turn to select a question)
+   */
+  public async setCurrentJeopardyPlayer(gameSessionId: string, userId: string): Promise<void> {
+    const { error } = await this.getClient().rpc('set_current_jeopardy_player', {
+      p_game_session_id: gameSessionId,
+      p_user_id: userId,
+    });
+
+    if (error) {
+      console.error('Failed to set current Jeopardy player:', error);
+      throw new Error(`Failed to set current Jeopardy player: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get player with lowest score (for turn rotation)
+   */
+  public async getLowestScoringPlayer(gameSessionId: string): Promise<string | null> {
+    const { data, error } = await this.getClient().rpc('get_lowest_scoring_player', {
+      p_game_session_id: gameSessionId,
+    });
+
+    if (error) {
+      console.error('Failed to get lowest scoring player:', error);
+      throw new Error(`Failed to get lowest scoring player: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Advance to Final Jeopardy round
+   */
+  public async advanceToFinalJeopardy(gameSessionId: string): Promise<void> {
+    const { error } = await this.getClient().rpc('advance_to_final_jeopardy', {
+      p_game_session_id: gameSessionId,
+    });
+
+    if (error) {
+      console.error('Failed to advance to Final Jeopardy:', error);
+      throw new Error(`Failed to advance to Final Jeopardy: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if the Jeopardy board is complete (all questions answered)
+   */
+  public async isJeopardyBoardComplete(gameSessionId: string): Promise<boolean> {
+    const { data, error } = await this.getClient().rpc('is_jeopardy_board_complete', {
+      p_game_session_id: gameSessionId,
+    });
+
+    if (error) {
+      console.error('Failed to check if board is complete:', error);
+      throw new Error(`Failed to check if board is complete: ${error.message}`);
+    }
+
+    return data === true;
+  }
+
+  /**
+   * Submit a Jeopardy answer with wager support
+   */
+  public async submitJeopardyAnswer(params: {
+    gameSessionId: string;
+    questionId: string;
+    userId: string;
+    answer: string;
+    isCorrect: boolean;
+    buzzerRank: number;
+    wagerAmount?: number;
+    timeTakenMs?: number;
+  }): Promise<number> {
+    const { data, error } = await this.getClient().rpc('submit_jeopardy_answer', {
+      p_game_session_id: params.gameSessionId,
+      p_question_id: params.questionId,
+      p_user_id: params.userId,
+      p_answer: params.answer,
+      p_is_correct: params.isCorrect,
+      p_buzzer_rank: params.buzzerRank,
+      p_wager_amount: params.wagerAmount || null,
+      p_time_taken_ms: params.timeTakenMs || null,
+    });
+
+    if (error) {
+      console.error('Failed to submit Jeopardy answer:', error);
+      throw new Error(`Failed to submit Jeopardy answer: ${error.message}`);
+    }
+
+    return data as number; // Returns points earned
+  }
+
+  /**
+   * Subscribe to buzzer presses for a question
+   */
+  public subscribeToBuzzerPresses(
+    questionId: string,
+    onBuzzer: (buzzer: { userId: string; buzzerRank: number; pressedAt: Date }) => void
+  ): () => Promise<void> {
+    const channelName = `buzzer-presses:${questionId}`;
+    const client = this.getRealtimeClient();
+
+    console.log('📡 Creating Realtime buzzer subscription:', questionId);
+
+    // Remove existing subscription if any
+    const existingChannel = this.channels.get(channelName);
+    if (existingChannel) {
+      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
+      client.removeChannel(existingChannel);
+      this.channels.delete(channelName);
+    }
+
+    // Set auth token for RLS
+    const accessToken = SupabaseClient.getInstance().getAccessToken();
+    if (accessToken) {
+      client.realtime.setAuth(accessToken);
+    }
+
+    const channel = client.channel(channelName).on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'buzzer_presses',
+        filter: `question_id=eq.${questionId}`,
+      },
+      (payload) => {
+        console.log('New buzzer press:', payload);
+        const data = payload.new as any;
+        onBuzzer({
+          userId: data.user_id,
+          buzzerRank: data.buzzer_rank,
+          pressedAt: new Date(data.pressed_at),
+        });
+      }
+    );
+
+    channel.subscribe((status) => {
+      console.log(`Buzzer subscription status for ${questionId}:`, status);
+    });
+
+    this.channels.set(channelName, channel);
+
+    return async () => {
+      await channel.unsubscribe();
+      client.removeChannel(channel);
+      this.channels.delete(channelName);
+      console.log(`Unsubscribed from buzzer presses ${questionId}`);
+    };
   }
 }

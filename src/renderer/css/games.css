@@ -810,15 +810,118 @@
 }
 
 /* ============================================================================
-   Jeopardy Game
+   Jeopardy Game - Real Game Show Experience
    ============================================================================ */
 
 .jeopardy-game {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-.jeopardy-question-container {
+/* Board View - Question Selection Grid
+   ========================================================================== */
+
+.jeopardy-board-container {
+  margin-bottom: 24px;
+}
+
+.jeopardy-turn-indicator {
+  text-align: center;
+  padding: 16px;
+  margin-bottom: 24px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+}
+
+.jeopardy-turn-indicator .your-turn {
+  color: var(--success-text);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.jeopardy-turn-indicator .waiting-turn {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.jeopardy-board {
+  background: #060ce9;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(6, 12, 233, 0.4);
+}
+
+.jeopardy-categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.jeopardy-category-header {
+  background: #0052cc;
+  color: white;
+  padding: 16px 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.jeopardy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.jeopardy-question-cell {
+  aspect-ratio: 1.2;
+  background: #060ce9;
+  border: 3px solid #0052cc;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 900;
+  color: #ffd700;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.jeopardy-question-cell.selectable:hover {
+  transform: scale(1.05);
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.jeopardy-question-cell.answered {
+  background: #001a4d;
+  border-color: #003380;
+  color: #003380;
+  cursor: not-allowed;
+}
+
+.jeopardy-question-cell.empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+
+.jeopardy-question-cell:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Question View - Buzzer & Clue Display
+   ========================================================================== */
+
+.jeopardy-question-view {
   background: var(--bg-secondary);
   border-radius: 16px;
   padding: 32px;
@@ -837,56 +940,292 @@
   margin-bottom: 24px;
 }
 
-.jeopardy-board {
+.jeopardy-clue-display {
   background: #060ce9;
   color: white;
-  padding: 40px;
+  padding: 48px 32px;
   border-radius: 12px;
   text-align: center;
   margin-bottom: 32px;
   box-shadow: 0 8px 24px rgba(6, 12, 233, 0.3);
 }
 
-.jeopardy-clue {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1.4;
-  margin-bottom: 24px;
-}
-
 .jeopardy-value {
   font-size: 48px;
   font-weight: 900;
   color: #ffd700;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: 16px;
 }
 
-.jeopardy-responses {
+.jeopardy-clue {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: white;
+}
+
+/* Buzzer Button
+   ========================================================================== */
+
+.jeopardy-buzzer-section {
+  text-align: center;
+  padding: 32px;
+}
+
+.jeopardy-buzzer-btn {
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 8px solid #ffd700;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  color: white;
+  font-size: 28px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 12px 32px rgba(255, 107, 107, 0.4),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 auto 16px;
+}
+
+.jeopardy-buzzer-btn:hover:not(.disabled):not([disabled]) {
+  transform: scale(1.08);
+  box-shadow: 0 16px 48px rgba(255, 107, 107, 0.6),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.2);
+  border-color: #fff;
+}
+
+.jeopardy-buzzer-btn:active:not(.disabled):not([disabled]) {
+  transform: scale(0.95);
+}
+
+.jeopardy-buzzer-btn.disabled,
+.jeopardy-buzzer-btn[disabled] {
+  background: linear-gradient(135deg, #666 0%, #555 100%);
+  border-color: #888;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.buzzer-icon {
+  font-size: 64px;
+}
+
+.buzzer-text {
+  font-size: 24px;
+  letter-spacing: 2px;
+}
+
+.buzzer-rank {
+  margin-top: 16px;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.buzzer-status {
+  text-align: center;
+  padding: 24px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.buzzer-status.your-turn-buzz {
+  color: var(--success-text);
+}
+
+.buzzer-status.buzzer-locked {
+  color: var(--text-secondary);
+}
+
+/* Answer Options (shown only to first buzzer)
+   ========================================================================== */
+
+.jeopardy-answer-section {
+  padding: 24px;
+}
+
+.jeopardy-options {
   display: grid;
   gap: 16px;
+  max-width: 700px;
+  margin: 0 auto;
 }
 
 .jeopardy-option {
-  padding: 20px;
+  padding: 20px 24px;
   background: var(--bg-primary);
-  border: 2px solid var(--border-color);
+  border: 3px solid var(--border-color);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
   font-size: 18px;
   color: var(--text-primary);
   text-align: left;
+  font-weight: 500;
 }
 
 .jeopardy-option:hover:not([disabled]) {
   border-color: var(--accent-primary);
-  transform: translateX(4px);
+  background: var(--accent-bg);
+  transform: translateX(8px);
 }
 
 .jeopardy-option.selected {
   border-color: var(--accent-primary);
   background: var(--accent-bg);
 }
+
+/* Daily Double Screen
+   ========================================================================== */
+
+.daily-double-screen {
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.daily-double-reveal {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #003380;
+  padding: 64px 48px;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(255, 215, 0, 0.5);
+  max-width: 600px;
+  animation: dailyDoublePulse 0.5s ease-out;
+}
+
+@keyframes dailyDoublePulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.daily-double-title {
+  font-size: 56px;
+  font-weight: 900;
+  margin-bottom: 16px;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+  letter-spacing: 2px;
+}
+
+.daily-double-category {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 32px;
+  color: #0052cc;
+}
+
+.daily-double-wager-form {
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.daily-double-wager-form label {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #003380;
+}
+
+.wager-rules {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.daily-double-wager-form input {
+  width: 100%;
+  padding: 16px;
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  border: 3px solid #0052cc;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+/* Final Jeopardy Screen
+   ========================================================================== */
+
+.final-jeopardy-screen {
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.final-jeopardy-wager {
+  background: linear-gradient(135deg, #060ce9 0%, #0052cc 100%);
+  color: white;
+  padding: 64px 48px;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(6, 12, 233, 0.5);
+  max-width: 600px;
+}
+
+.final-jeopardy-title {
+  font-size: 56px;
+  font-weight: 900;
+  margin-bottom: 16px;
+  color: #ffd700;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+  letter-spacing: 2px;
+}
+
+.final-jeopardy-category {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 32px;
+}
+
+.final-jeopardy-wager-form {
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.final-jeopardy-wager-form label {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #003380;
+}
+
+.final-jeopardy-wager-form input {
+  width: 100%;
+  padding: 16px;
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  border: 3px solid #060ce9;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+/* Shared Styles
+   ========================================================================== */
 
 .answer-submitted {
   text-align: center;
