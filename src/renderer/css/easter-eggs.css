@@ -174,3 +174,308 @@
     background-position: 100% 50%;
   }
 }
+
+/* ====================================
+   Nyan Cat Effects - Enhanced
+   ==================================== */
+
+/* Cursor Trail Particles */
+.nyan-cursor-trail {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  animation: trail-fade 0.6s ease-out forwards;
+  box-shadow: 0 0 10px currentColor;
+}
+
+@keyframes trail-fade {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+}
+
+/* Sparkle Particles */
+.nyan-sparkle {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9997;
+  animation: sparkle-twinkle 3s ease-in-out infinite;
+  filter: blur(0.5px);
+}
+
+@keyframes sparkle-twinkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1) rotate(90deg);
+  }
+  90% {
+    opacity: 1;
+    transform: scale(1) rotate(270deg);
+  }
+}
+
+/* Explosion Particles */
+.nyan-particle {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  width: 6px;
+  height: 6px;
+  transform: translate(-50%, -50%);
+}
+
+/* Notification Messages */
+.nyan-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(
+    135deg,
+    #ff0000,
+    #ff7f00,
+    #ffff00,
+    #00ff00,
+    #0000ff,
+    #9400d3
+  );
+  background-size: 400% 400%;
+  animation: rainbow-gradient 2s ease infinite, notification-bounce 0.6s ease-out;
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  padding: 2rem 3rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 99999;
+  text-align: center;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+@keyframes notification-bounce {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Enhanced Rainbow Background for Nyan Theme */
+body.nyan-cat-theme {
+  position: relative;
+}
+
+body.nyan-cat-theme::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 0, 0, 0.03),
+    rgba(255, 127, 0, 0.03),
+    rgba(255, 255, 0, 0.03),
+    rgba(0, 255, 0, 0.03),
+    rgba(0, 0, 255, 0.03),
+    rgba(75, 0, 130, 0.03),
+    rgba(148, 0, 211, 0.03)
+  );
+  background-size: 400% 400%;
+  animation: rainbow-gradient 15s ease infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Super Rainbow Mode - Activated by typing "nyan" */
+body.super-rainbow-mode::before {
+  background: linear-gradient(
+    45deg,
+    rgba(255, 0, 0, 0.08),
+    rgba(255, 127, 0, 0.08),
+    rgba(255, 255, 0, 0.08),
+    rgba(0, 255, 0, 0.08),
+    rgba(0, 0, 255, 0.08),
+    rgba(75, 0, 130, 0.08),
+    rgba(148, 0, 211, 0.08)
+  );
+  animation: rainbow-gradient 5s ease infinite;
+}
+
+body.super-rainbow-mode::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%);
+  animation: super-rainbow-pulse 2s ease infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes super-rainbow-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Enhanced rainbow gradient for UI elements */
+body.nyan-cat-theme .sidebar,
+body.nyan-cat-theme .note-container {
+  position: relative;
+}
+
+body.nyan-cat-theme .sidebar::after,
+body.nyan-cat-theme .note-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(255, 0, 255, 0.05) 25%,
+    rgba(0, 255, 255, 0.05) 50%,
+    rgba(255, 255, 0, 0.05) 75%,
+    transparent 100%
+  );
+  background-size: 200% 200%;
+  animation: rainbow-gradient 10s ease infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Rainbow effect for modal content (not the modal container itself) */
+body.nyan-cat-theme .modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(255, 0, 255, 0.03) 25%,
+    rgba(0, 255, 255, 0.03) 50%,
+    rgba(255, 255, 0, 0.03) 75%,
+    transparent 100%
+  );
+  background-size: 200% 200%;
+  animation: rainbow-gradient 10s ease infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Glowing borders for Nyan theme */
+body.nyan-cat-theme button:hover,
+body.nyan-cat-theme .btn:hover,
+body.nyan-cat-theme input:focus,
+body.nyan-cat-theme textarea:focus {
+  box-shadow:
+    0 0 10px var(--accent),
+    0 0 20px rgba(255, 0, 255, 0.3),
+    0 0 30px rgba(0, 255, 255, 0.2);
+  animation: glow-pulse 2s ease infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+/* Rainbow text shimmer on headings */
+body.nyan-cat-theme h1,
+body.nyan-cat-theme h2 {
+  background: linear-gradient(
+    90deg,
+    #ff00ff,
+    #00ffff,
+    #ff00ff
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rainbow-text-shimmer 3s linear infinite;
+}
+
+@keyframes rainbow-text-shimmer {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Record button extra sparkle in Nyan theme */
+body.nyan-cat-theme .record-button {
+  position: relative;
+  overflow: visible;
+}
+
+body.nyan-cat-theme .record-button::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: inherit;
+  background: linear-gradient(
+    45deg,
+    #ff00ff,
+    #00ffff,
+    #ff00ff
+  );
+  background-size: 200% 200%;
+  animation: rainbow-gradient 3s ease infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+body.nyan-cat-theme .record-button:hover::before {
+  opacity: 0.5;
+}

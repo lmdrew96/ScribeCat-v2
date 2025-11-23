@@ -18,30 +18,30 @@ export const easterEggThemes: Theme[] = [
     variant: 'dark',
     description: 'Rainbow gradient magic - unlocked with secret meow code!',
     colors: {
-      // Base backgrounds with dark tones for contrast
-      bgPrimary: '#1a1a2e',
-      bgSecondary: '#16213e',
-      bgTertiary: '#0f3460',
+      // Deep space backgrounds for maximum color pop
+      bgPrimary: '#0a0a1a',
+      bgSecondary: '#12001f',
+      bgTertiary: '#1a0033',
 
-      // Hot pink accent
-      accent: '#ff69b4',
-      accentHover: '#ff1493',
+      // Vibrant neon pink/magenta accents
+      accent: '#ff00ff',
+      accentHover: '#ff1aff',
 
-      // White text for dark areas
+      // Bright white text with neon glow
       textPrimary: '#ffffff',
-      textSecondary: '#e0e0e0',
-      textTertiary: '#c0c0c0',
+      textSecondary: '#f0f0ff',
+      textTertiary: '#d0d0ff',
 
-      // Cyan for record button
+      // Electric cyan for record button
       recordColor: '#00ffff',
-      recordHover: '#00cccc',
+      recordHover: '#33ffff',
 
-      // Yellow for success
-      success: '#ffd700',
+      // Bright neon yellow/gold for success
+      success: '#ffff00',
 
-      // Purple border
-      border: '#9370db',
-      shadow: 'rgba(255, 105, 180, 0.3)'
+      // Electric purple border
+      border: '#b300ff',
+      shadow: 'rgba(255, 0, 255, 0.5)'
     }
   },
   {
@@ -51,30 +51,30 @@ export const easterEggThemes: Theme[] = [
     variant: 'light',
     description: 'Rainbow gradient magic in light mode - unlocked with secret meow code!',
     colors: {
-      // Light backgrounds with pastel tones
-      bgPrimary: '#fff5f8',
-      bgSecondary: '#ffe8f0',
-      bgTertiary: '#ffd6e8',
+      // Bright pastel rainbow backgrounds
+      bgPrimary: '#fff0ff',
+      bgSecondary: '#ffe0ff',
+      bgTertiary: '#ffc8ff',
 
-      // Hot pink accent (darker for contrast on light bg)
-      accent: '#ff1493',
-      accentHover: '#ff69b4',
+      // Vibrant magenta accent
+      accent: '#ff00aa',
+      accentHover: '#ff33bb',
 
-      // Dark text for light areas
-      textPrimary: '#2d2d2d',
-      textSecondary: '#4a4a4a',
-      textTertiary: '#6a6a6a',
+      // Deep purple/pink text for contrast
+      textPrimary: '#330033',
+      textSecondary: '#550055',
+      textTertiary: '#770077',
 
-      // Magenta for record button
-      recordColor: '#ff1493',
-      recordHover: '#ff69b4',
+      // Electric pink for record button
+      recordColor: '#ff0088',
+      recordHover: '#ff33aa',
 
-      // Gold for success
-      success: '#ff8c00',
+      // Bright orange/gold for success
+      success: '#ff9900',
 
-      // Purple border
-      border: '#da70d6',
-      shadow: 'rgba(255, 20, 147, 0.15)'
+      // Vibrant purple border
+      border: '#cc00ff',
+      shadow: 'rgba(204, 0, 255, 0.3)'
     }
   }
 ];

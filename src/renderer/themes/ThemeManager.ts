@@ -1,11 +1,12 @@
 /**
  * Theme Manager
- * 
+ *
  * Manages theme loading, application, and persistence.
  */
 
 import { Theme, ThemeMetadata } from './types.js';
 import { themes, getThemeById, getThemesByCategory, getCategories, getDefaultTheme, getVisibleThemes } from './presets-index.js';
+import { getNyanEffects } from '../effects/nyan-effects.js';
 
 export class ThemeManager {
   private currentTheme: Theme;
@@ -87,6 +88,18 @@ export class ThemeManager {
     root.style.setProperty('--success', colors.success);
     root.style.setProperty('--border', colors.border);
     root.style.setProperty('--shadow', colors.shadow);
+
+    // Handle Nyan Cat theme effects
+    const nyanEffects = getNyanEffects();
+    const isNyanTheme = theme.id === 'nyan-cat' || theme.id === 'nyan-cat-light';
+
+    if (isNyanTheme) {
+      // Activate Nyan effects for Nyan Cat themes
+      nyanEffects.activate();
+    } else {
+      // Deactivate Nyan effects for other themes
+      nyanEffects.deactivate();
+    }
   }
 
   /**
