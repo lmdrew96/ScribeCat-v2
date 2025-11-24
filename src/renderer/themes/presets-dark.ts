@@ -1,14 +1,15 @@
 /**
  * Dark Theme Presets
  *
- * 20 carefully designed dark themes using color theory to evoke positive emotions.
+ * 15 carefully designed dark themes using color theory to evoke positive emotions.
+ * Includes unique emotional categories and special themed variants.
  * Organized into 5 categories: Calm, Energetic, Focus, Creative, and Balanced.
  */
 
 import { Theme } from './types.js';
 
 export const darkThemes: Theme[] = [
-  // ===== CALM & PEACEFUL (4 themes) =====
+  // ===== CALM & PEACEFUL (3 themes) =====
   {
     id: 'ocean-serenity',
     name: 'Ocean Serenity',
@@ -16,18 +17,20 @@ export const darkThemes: Theme[] = [
     variant: 'dark',
     description: 'Deep blues evoke tranquility and trust, with warm coral accents',
     colors: {
-      bgPrimary: '#1a2332',
-      bgSecondary: '#243447',
-      bgTertiary: '#2e4557',
-      accent: '#ff8566',
-      accentHover: '#ff7055',
-      textPrimary: '#e8f4f8',
-      textSecondary: '#b8d4e0',
-      textTertiary: '#8ab4c8',
-      recordColor: '#ff9977',
-      recordHover: '#ff8566',
-      success: '#6bc4a6',
-      border: '#3a5566',
+      bgPrimary: '#1a2840',
+      bgSecondary: '#243854',
+      bgTertiary: '#2e4868',
+      accent: '#ff9977',
+      accentHover: '#ff8866',
+      accentSecondary: '#7bd4b6',
+      accentSecondaryHover: '#6bc4a6',
+      textPrimary: '#ecf8ff',
+      textSecondary: '#c8e0f0',
+      textTertiary: '#98c0d8',
+      recordColor: '#ffaa88',
+      recordHover: '#ff9977',
+      success: '#7bd4b6',
+      border: '#3a5878',
       shadow: 'rgba(0, 0, 0, 0.4)'
     }
   },
@@ -38,18 +41,20 @@ export const darkThemes: Theme[] = [
     variant: 'dark',
     description: 'Grounding greens bring natural peace with soft lavender accents',
     colors: {
-      bgPrimary: '#1a2e1a',
-      bgSecondary: '#243d24',
-      bgTertiary: '#2e4d2e',
-      accent: '#b399d8',
-      accentHover: '#a388c8',
-      textPrimary: '#e8f4e8',
-      textSecondary: '#c8e0c8',
-      textTertiary: '#a0c8a0',
-      recordColor: '#c3aae8',
-      recordHover: '#b399d8',
-      success: '#7bc47b',
-      border: '#3a5a3a',
+      bgPrimary: '#1a321a',
+      bgSecondary: '#244024',
+      bgTertiary: '#2e502e',
+      accent: '#c3a9e8',
+      accentHover: '#b399d8',
+      accentSecondary: '#8bd48b',
+      accentSecondaryHover: '#7bc47b',
+      textPrimary: '#ecf8ec',
+      textSecondary: '#d0e8d0',
+      textTertiary: '#a8d0a8',
+      recordColor: '#d3b9f8',
+      recordHover: '#c3a9e8',
+      success: '#8bd48b',
+      border: '#3a603a',
       shadow: 'rgba(0, 0, 0, 0.4)'
     }
   },
@@ -60,67 +65,25 @@ export const darkThemes: Theme[] = [
     variant: 'dark',
     description: 'Soft purples inspire calm creativity and spiritual peace',
     colors: {
-      bgPrimary: '#2a2438',
-      bgSecondary: '#3a3448',
-      bgTertiary: '#4a4458',
-      accent: '#8b7fa8',
-      accentHover: '#7b6f98',
-      textPrimary: '#f0e8f8',
-      textSecondary: '#d8c8e8',
-      textTertiary: '#c0a8d8',
-      recordColor: '#a88fc4',
-      recordHover: '#987fb4',
-      success: '#9b8fb8',
-      border: '#4a3e5a',
-      shadow: 'rgba(0, 0, 0, 0.4)'
-    }
-  },
-  {
-    id: 'moonlight-zen',
-    name: 'Moonlight Zen',
-    category: 'calm',
-    variant: 'dark',
-    description: 'Cool silvers and blues with warm golden accents',
-    colors: {
-      bgPrimary: '#1e2228',
-      bgSecondary: '#2a3038',
-      bgTertiary: '#363e48',
-      accent: '#f0b857',
-      accentHover: '#e0a847',
-      textPrimary: '#e8ecf0',
-      textSecondary: '#c8d0d8',
-      textTertiary: '#a8b4c0',
-      recordColor: '#ffc870',
-      recordHover: '#f0b857',
-      success: '#7a9fb8',
-      border: '#3e4a5a',
+      bgPrimary: '#2a2440',
+      bgSecondary: '#3a3450',
+      bgTertiary: '#4a4460',
+      accent: '#a896d8',
+      accentHover: '#9886c8',
+      accentSecondary: '#e8b8d8',
+      accentSecondaryHover: '#d8a8c8',
+      textPrimary: '#f4ecff',
+      textSecondary: '#e0d0f0',
+      textTertiary: '#c8b0e0',
+      recordColor: '#b8a6e8',
+      recordHover: '#a896d8',
+      success: '#b8a6e8',
+      border: '#504468',
       shadow: 'rgba(0, 0, 0, 0.4)'
     }
   },
 
-  // ===== ENERGETIC & MOTIVATED (4 themes) =====
-  {
-    id: 'sunrise-energy',
-    name: 'Sunrise Energy',
-    category: 'energetic',
-    variant: 'dark',
-    description: 'Warm oranges and golds radiate enthusiasm and optimism',
-    colors: {
-      bgPrimary: '#2e1a1a',
-      bgSecondary: '#3d2424',
-      bgTertiary: '#4d2e2e',
-      accent: '#d2691e',
-      accentHover: '#c2590e',
-      textPrimary: '#fff4e8',
-      textSecondary: '#f0d8c8',
-      textTertiary: '#d8b8a0',
-      recordColor: '#e8843e',
-      recordHover: '#d8742e',
-      success: '#e89f5a',
-      border: '#5a3a2e',
-      shadow: 'rgba(0, 0, 0, 0.4)'
-    }
-  },
+  // ===== ENERGETIC & MOTIVATED (1 theme) =====
   {
     id: 'ruby-passion',
     name: 'Ruby Passion',
@@ -131,64 +94,22 @@ export const darkThemes: Theme[] = [
       bgPrimary: '#2e1a1e',
       bgSecondary: '#3d2428',
       bgTertiary: '#4d2e32',
-      accent: '#4ecdc4',
-      accentHover: '#3ebdb4',
+      accent: '#ff5577',
+      accentHover: '#ff4466',
+      accentSecondary: '#4ecdc4',
+      accentSecondaryHover: '#3ebdb4',
       textPrimary: '#ffe8ec',
       textSecondary: '#f0c8d0',
       textTertiary: '#d8a0b0',
-      recordColor: '#5eddd4',
-      recordHover: '#4ecdc4',
-      success: '#e85a7a',
+      recordColor: '#ff6688',
+      recordHover: '#ff5577',
+      success: '#4ecdc4',
       border: '#5a2e38',
       shadow: 'rgba(0, 0, 0, 0.4)'
     }
   },
-  {
-    id: 'citrus-burst',
-    name: 'Citrus Burst',
-    category: 'energetic',
-    variant: 'dark',
-    description: 'Vibrant yellows and oranges spark joy and creativity',
-    colors: {
-      bgPrimary: '#2e2a1a',
-      bgSecondary: '#3d3624',
-      bgTertiary: '#4d442e',
-      accent: '#ffa500',
-      accentHover: '#ef9500',
-      textPrimary: '#fffae8',
-      textSecondary: '#f0e8c8',
-      textTertiary: '#d8d0a0',
-      recordColor: '#ffb84d',
-      recordHover: '#efa83d',
-      success: '#ffc966',
-      border: '#5a4a2e',
-      shadow: 'rgba(0, 0, 0, 0.4)'
-    }
-  },
-  {
-    id: 'tropical-fire',
-    name: 'Tropical Fire',
-    category: 'energetic',
-    variant: 'dark',
-    description: 'Hot pinks and magentas energize with playful vibrancy',
-    colors: {
-      bgPrimary: '#2e1a2a',
-      bgSecondary: '#3d2436',
-      bgTertiary: '#4d2e44',
-      accent: '#ff1493',
-      accentHover: '#ef0483',
-      textPrimary: '#ffe8f8',
-      textSecondary: '#f0c8e8',
-      textTertiary: '#d8a0d0',
-      recordColor: '#ff69b4',
-      recordHover: '#ef59a4',
-      success: '#ff8fc7',
-      border: '#5a2e48',
-      shadow: 'rgba(0, 0, 0, 0.4)'
-    }
-  },
 
-  // ===== FOCUS & PRODUCTIVITY (4 themes) =====
+  // ===== FOCUS & PRODUCTIVITY (2 themes) =====
   {
     id: 'midnight-focus',
     name: 'Midnight Focus',
@@ -196,63 +117,21 @@ export const darkThemes: Theme[] = [
     variant: 'dark',
     description: 'Deep navy promotes intense concentration with warm amber highlights',
     colors: {
-      bgPrimary: '#0f1419',
-      bgSecondary: '#1a2028',
-      bgTertiary: '#252d38',
-      accent: '#f5a742',
-      accentHover: '#e59732',
-      textPrimary: '#e8f0f8',
-      textSecondary: '#c8d8e8',
-      textTertiary: '#a0b8d0',
+      bgPrimary: '#0f1828',
+      bgSecondary: '#1a2438',
+      bgTertiary: '#253048',
+      accent: '#ffa742',
+      accentHover: '#ff9732',
+      accentSecondary: '#6aafcc',
+      accentSecondaryHover: '#5a9fbc',
+      textPrimary: '#e8f4ff',
+      textSecondary: '#c8dcf0',
+      textTertiary: '#a0c0d8',
       recordColor: '#ffb85c',
-      recordHover: '#f5a742',
-      success: '#5a9fb8',
-      border: '#2a3848',
+      recordHover: '#ffa742',
+      success: '#6aafcc',
+      border: '#2a3c58',
       shadow: 'rgba(0, 0, 0, 0.5)'
-    }
-  },
-  {
-    id: 'slate-professional',
-    name: 'Slate Professional',
-    category: 'focus',
-    variant: 'dark',
-    description: 'Neutral grays provide balanced, clear-minded focus',
-    colors: {
-      bgPrimary: '#1e2228',
-      bgSecondary: '#2a3038',
-      bgTertiary: '#363e48',
-      accent: '#708090',
-      accentHover: '#607080',
-      textPrimary: '#e8ecf0',
-      textSecondary: '#c8d0d8',
-      textTertiary: '#a8b4c0',
-      recordColor: '#8090a0',
-      recordHover: '#708090',
-      success: '#7a9fb8',
-      border: '#3e4a5a',
-      shadow: 'rgba(0, 0, 0, 0.4)'
-    }
-  },
-  {
-    id: 'deep-space',
-    name: 'Deep Space',
-    category: 'focus',
-    variant: 'dark',
-    description: 'Dark purples and blues for mysterious, deep concentration',
-    colors: {
-      bgPrimary: '#0a0a14',
-      bgSecondary: '#14141e',
-      bgTertiary: '#1e1e2e',
-      accent: '#6a5acd',
-      accentHover: '#5a4abd',
-      textPrimary: '#e8e8ff',
-      textSecondary: '#c8c8e8',
-      textTertiary: '#a0a0d0',
-      recordColor: '#7a6add',
-      recordHover: '#6a5acd',
-      success: '#7a8aed',
-      border: '#2e2e48',
-      shadow: 'rgba(0, 0, 0, 0.6)'
     }
   },
   {
@@ -267,6 +146,8 @@ export const darkThemes: Theme[] = [
       bgTertiary: '#2e4d4d',
       accent: '#5f9ea0',
       accentHover: '#4f8e90',
+      accentSecondary: '#b8e6ff',
+      accentSecondaryHover: '#a8d6ef',
       textPrimary: '#e8f8f8',
       textSecondary: '#c8e8e8',
       textTertiary: '#a0d0d0',
@@ -278,7 +159,7 @@ export const darkThemes: Theme[] = [
     }
   },
 
-  // ===== CREATIVE & INSPIRED (4 themes) =====
+  // ===== CREATIVE & INSPIRED (2 themes) =====
   {
     id: 'sunset-canvas',
     name: 'Sunset Canvas',
@@ -286,41 +167,21 @@ export const darkThemes: Theme[] = [
     variant: 'dark',
     description: 'Purple and orange blend for artistic imagination',
     colors: {
-      bgPrimary: '#2a1e2e',
-      bgSecondary: '#3a2838',
-      bgTertiary: '#4a3248',
-      accent: '#ff8c42',
-      accentHover: '#ef7c32',
-      textPrimary: '#fff0e8',
-      textSecondary: '#f0d0c8',
-      textTertiary: '#d8b0a8',
-      recordColor: '#ff9c5a',
-      recordHover: '#ef8c4a',
-      success: '#b88fd8',
-      border: '#5a3e58',
+      bgPrimary: '#2e1e32',
+      bgSecondary: '#3e2840',
+      bgTertiary: '#4e3250',
+      accent: '#ff9c52',
+      accentHover: '#ff8c42',
+      accentSecondary: '#c89fe8',
+      accentSecondaryHover: '#b88fd8',
+      textPrimary: '#fff4ec',
+      textSecondary: '#f0d8cc',
+      textTertiary: '#d8bca8',
+      recordColor: '#ffac66',
+      recordHover: '#ff9c52',
+      success: '#c89fe8',
+      border: '#5e4260',
       shadow: 'rgba(0, 0, 0, 0.4)'
-    }
-  },
-  {
-    id: 'rainbow-joy',
-    name: 'Rainbow Joy',
-    category: 'creative',
-    variant: 'dark',
-    description: 'Full spectrum rainbow colors bring vibrant joy and creativity',
-    colors: {
-      bgPrimary: '#1e1e2e',
-      bgSecondary: '#2a2a3a',
-      bgTertiary: '#363648',
-      accent: '#ff6b9d',
-      accentHover: '#ff5b8d',
-      textPrimary: '#f0f0ff',
-      textSecondary: '#d0d0e8',
-      textTertiary: '#b0b0d0',
-      recordColor: '#ffa500',
-      recordHover: '#ff9500',
-      success: '#00ff88',
-      border: '#6b4ecf',
-      shadow: 'rgba(107, 78, 207, 0.3)'
     }
   },
   {
@@ -335,6 +196,8 @@ export const darkThemes: Theme[] = [
       bgTertiary: '#1e1e28',
       accent: '#00ffff',
       accentHover: '#00efef',
+      accentSecondary: '#ff00ff',
+      accentSecondaryHover: '#ef00ef',
       textPrimary: '#f0f0ff',
       textSecondary: '#d0d0e8',
       textTertiary: '#b0b0d0',
@@ -345,52 +208,8 @@ export const darkThemes: Theme[] = [
       shadow: 'rgba(0, 255, 255, 0.2)'
     }
   },
-  {
-    id: 'autumn-inspiration',
-    name: 'Autumn Inspiration',
-    category: 'creative',
-    variant: 'dark',
-    description: 'Warm autumn tones inspire cozy creativity',
-    colors: {
-      bgPrimary: '#2a1e1a',
-      bgSecondary: '#3a2824',
-      bgTertiary: '#4a322e',
-      accent: '#d2691e',
-      accentHover: '#c2590e',
-      textPrimary: '#fff4e8',
-      textSecondary: '#f0d8c8',
-      textTertiary: '#d8b8a0',
-      recordColor: '#cd853f',
-      recordHover: '#bd752f',
-      success: '#daa520',
-      border: '#5a3e2e',
-      shadow: 'rgba(0, 0, 0, 0.4)'
-    }
-  },
 
-  // ===== BALANCED & HARMONIOUS (4 themes) =====
-  {
-    id: 'earth-tones',
-    name: 'Earth Tones',
-    category: 'balanced',
-    variant: 'dark',
-    description: 'Natural browns provide stable harmony with turquoise energy',
-    colors: {
-      bgPrimary: '#2a2420',
-      bgSecondary: '#3a3028',
-      bgTertiary: '#4a3c30',
-      accent: '#5bc0be',
-      accentHover: '#4bb0ae',
-      textPrimary: '#f0ece8',
-      textSecondary: '#d8d0c8',
-      textTertiary: '#c0b0a0',
-      recordColor: '#6bd0ce',
-      recordHover: '#5bc0be',
-      success: '#9b8f7a',
-      border: '#5a4a3e',
-      shadow: 'rgba(0, 0, 0, 0.4)'
-    }
-  },
+  // ===== BALANCED & HARMONIOUS (2 themes) =====
   {
     id: 'sakura-blossom',
     name: 'Sakura Blossom',
@@ -398,18 +217,20 @@ export const darkThemes: Theme[] = [
     variant: 'dark',
     description: 'Elegant pink and gray for gentle sophistication',
     colors: {
-      bgPrimary: '#2a2428',
-      bgSecondary: '#3a2e32',
-      bgTertiary: '#4a383c',
-      accent: '#d8a0b0',
-      accentHover: '#c890a0',
-      textPrimary: '#fff0f4',
-      textSecondary: '#f0d0d8',
-      textTertiary: '#d8b0c0',
-      recordColor: '#e8b0c0',
-      recordHover: '#d8a0b0',
-      success: '#c8a0b8',
-      border: '#5a3e48',
+      bgPrimary: '#2e2428',
+      bgSecondary: '#3e2e32',
+      bgTertiary: '#4e383c',
+      accent: '#f0b0c8',
+      accentHover: '#e0a0b8',
+      accentSecondary: '#ffc0d8',
+      accentSecondaryHover: '#f0b0c8',
+      textPrimary: '#fff4f8',
+      textSecondary: '#f8d8e4',
+      textTertiary: '#e0c0d0',
+      recordColor: '#ffc0d8',
+      recordHover: '#f0b0c8',
+      success: '#d8b0c8',
+      border: '#5e4450',
       shadow: 'rgba(0, 0, 0, 0.4)'
     }
   },
@@ -425,6 +246,8 @@ export const darkThemes: Theme[] = [
       bgTertiary: '#324238',
       accent: '#7cb89d',
       accentHover: '#6ca88d',
+      accentSecondary: '#9cd8bd',
+      accentSecondaryHover: '#8cc8ad',
       textPrimary: '#e8f8f0',
       textSecondary: '#c8e8d8',
       textTertiary: '#a0d0b8',
@@ -435,26 +258,126 @@ export const darkThemes: Theme[] = [
       shadow: 'rgba(0, 0, 0, 0.4)'
     }
   },
+
+  // ===== SPECIAL THEMES (5 themes) =====
   {
-    id: 'twilight-balance',
-    name: 'Twilight Balance',
-    category: 'balanced',
+    id: 'spirited-away',
+    name: 'Spirited Away',
+    category: 'creative',
     variant: 'dark',
-    description: 'Indigo and mauve for peaceful transition and balance',
+    description: 'Deep bathhouse night with spirit world glow inspired by Studio Ghibli',
     colors: {
-      bgPrimary: '#1e1e2a',
-      bgSecondary: '#2a2a38',
-      bgTertiary: '#363648',
-      accent: '#9b8fb8',
-      accentHover: '#8b7fa8',
+      bgPrimary: '#1a1834',
+      bgSecondary: '#252244',
+      bgTertiary: '#302c54',
+      accent: '#ffd700',
+      accentHover: '#ffc700',
+      accentSecondary: '#6eb5c0',
+      accentSecondaryHover: '#5ea5b0',
       textPrimary: '#f0e8ff',
       textSecondary: '#d8c8e8',
-      textTertiary: '#c0a8d0',
-      recordColor: '#ab9fc8',
-      recordHover: '#9b8fb8',
-      success: '#b8afd8',
-      border: '#3e3e58',
-      shadow: 'rgba(0, 0, 0, 0.4)'
+      textTertiary: '#b8a0d0',
+      recordColor: '#ffe84d',
+      recordHover: '#ffd700',
+      success: '#6eb5c0',
+      border: '#3e3a68',
+      shadow: 'rgba(255, 215, 0, 0.2)'
+    }
+  },
+  {
+    id: 'aurora-borealis',
+    name: 'Aurora Borealis',
+    category: 'creative',
+    variant: 'dark',
+    description: 'Northern lights dancing over night sky with ethereal greens and purples',
+    colors: {
+      bgPrimary: '#0a0e1a',
+      bgSecondary: '#141824',
+      bgTertiary: '#1e2230',
+      accent: '#00ff88',
+      accentHover: '#00ef78',
+      accentSecondary: '#b668ff',
+      accentSecondaryHover: '#a658ef',
+      textPrimary: '#f0f8ff',
+      textSecondary: '#d0e0f0',
+      textTertiary: '#b0c8e0',
+      recordColor: '#00ffaa',
+      recordHover: '#00ef9a',
+      success: '#b668ff',
+      border: '#2e3a48',
+      shadow: 'rgba(0, 255, 136, 0.15)'
+    }
+  },
+  {
+    id: 'zelda-botw',
+    name: 'Zelda: Breath of the Wild',
+    category: 'balanced',
+    variant: 'dark',
+    description: 'Nighttime Hyrule field with glowing Sheikah shrine technology',
+    colors: {
+      bgPrimary: '#1a2618',
+      bgSecondary: '#243224',
+      bgTertiary: '#2e3e30',
+      accent: '#00d9ff',
+      accentHover: '#00c9ef',
+      accentSecondary: '#6fc276',
+      accentSecondaryHover: '#5fb266',
+      textPrimary: '#e8f8e8',
+      textSecondary: '#c8e0c8',
+      textTertiary: '#a0c8a0',
+      recordColor: '#00e9ff',
+      recordHover: '#00d9ff',
+      success: '#6fc276',
+      border: '#3a4a38',
+      shadow: 'rgba(0, 217, 255, 0.15)'
+    }
+  },
+  {
+    id: 'vaporwave-dreams',
+    name: 'Vaporwave Dreams',
+    category: 'creative',
+    variant: 'dark',
+    description: 'Retro 80s/90s aesthetic with hot pink and cyan vibes',
+    colors: {
+      bgPrimary: '#1a0f2e',
+      bgSecondary: '#24193a',
+      bgTertiary: '#2e2348',
+      accent: '#ff10f0',
+      accentHover: '#ef00e0',
+      accentSecondary: '#00ffff',
+      accentSecondaryHover: '#00efef',
+      textPrimary: '#fff0ff',
+      textSecondary: '#f0d0f0',
+      textTertiary: '#d8a0e0',
+      recordColor: '#ff30ff',
+      recordHover: '#ff10f0',
+      success: '#00ffff',
+      border: '#3e2e58',
+      shadow: 'rgba(255, 16, 240, 0.2)'
+    }
+  },
+  {
+    id: 'winter-wonderland',
+    name: 'Winter Wonderland',
+    category: 'calm',
+    variant: 'dark',
+    description: 'Snowy night with ice crystal blues and northern light glow',
+    colors: {
+      bgPrimary: '#0f1820',
+      bgSecondary: '#19222c',
+      bgTertiary: '#232c38',
+      accent: '#b8e6ff',
+      accentHover: '#a8d6ef',
+      accentSecondary: '#9dd0e8',
+      accentSecondaryHover: '#8dc0d8',
+      textPrimary: '#fafcff',
+      textSecondary: '#e8f4ff',
+      textTertiary: '#d0e0f0',
+      recordColor: '#c8f6ff',
+      recordHover: '#b8e6ff',
+      success: '#9dd0e8',
+      border: '#334a5a',
+      shadow: 'rgba(184, 230, 255, 0.15)'
     }
   }
 ];

@@ -589,6 +589,15 @@
   background-color: var(--accent);
 }
 
+.tab-btn.secondary.active {
+  color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+}
+
+.tab-btn.secondary.active::after {
+  background-color: var(--accent-secondary);
+}
+
 /* Tab Content */
 .tab-content {
   display: none;
@@ -676,6 +685,14 @@
 .legal-document a:hover {
   text-decoration: underline;
   color: var(--accent-hover);
+}
+
+.legal-document a.secondary {
+  color: var(--accent-secondary);
+}
+
+.legal-document a.secondary:hover {
+  color: var(--accent-secondary-hover);
 }
 
 .legal-document code {

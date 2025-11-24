@@ -80,6 +80,8 @@ export class ThemeManager {
     root.style.setProperty('--bg-tertiary', colors.bgTertiary);
     root.style.setProperty('--accent', colors.accent);
     root.style.setProperty('--accent-hover', colors.accentHover);
+    root.style.setProperty('--accent-secondary', colors.accentSecondary);
+    root.style.setProperty('--accent-secondary-hover', colors.accentSecondaryHover);
     root.style.setProperty('--text-primary', colors.textPrimary);
     root.style.setProperty('--text-secondary', colors.textSecondary);
     root.style.setProperty('--text-tertiary', colors.textTertiary);

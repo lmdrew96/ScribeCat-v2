@@ -332,6 +332,22 @@
   cursor: not-allowed;
 }
 
+.button-secondary {
+  background-color: var(--accent-secondary);
+  color: white;
+}
+
+.button-secondary:hover:not(:disabled) {
+  background-color: var(--accent-secondary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 179, 166, 0.3);
+}
+
+.button-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Progress Container */
 .progress-container {
   margin-top: 12px;

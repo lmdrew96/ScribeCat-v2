@@ -90,9 +90,13 @@
 }
 
 .score-value {
-  color: var(--accent-primary);
+  color: var(--accent);
   font-weight: 700;
   font-size: 24px;
+}
+
+.score-value.secondary {
+  color: var(--accent-secondary);
 }
 
 .btn-exit {
@@ -142,8 +146,12 @@
 
 .game-progress-fill {
   height: 100%;
-  background: var(--accent-primary);
+  background: var(--accent);
   transition: width 0.3s ease;
+}
+
+.game-progress-fill.secondary {
+  background: var(--accent-secondary);
 }
 
 /* Leaderboard */

@@ -1,14 +1,15 @@
 /**
  * Light Theme Presets
  *
- * 20 light mode themes using color theory to evoke positive emotions.
+ * 15 light mode themes using color theory to evoke positive emotions.
+ * Includes unique emotional categories and special themed variants.
  * Organized into 5 categories: Calm, Energetic, Focus, Creative, and Balanced.
  */
 
 import { Theme } from './types.js';
 
 export const lightThemes: Theme[] = [
-  // ===== CALM & PEACEFUL - LIGHT (4 themes) =====
+  // ===== CALM & PEACEFUL - LIGHT (3 themes) =====
   {
     id: 'ocean-serenity-light',
     name: 'Ocean Serenity (Light)',
@@ -21,6 +22,8 @@ export const lightThemes: Theme[] = [
       bgTertiary: '#d8e8f0',
       accent: '#ff6644',
       accentHover: '#ff5533',
+      accentSecondary: '#5ba48b',
+      accentSecondaryHover: '#4b947b',
       textPrimary: '#1a2332',
       textSecondary: '#2e4557',
       textTertiary: '#4a6577',
@@ -43,6 +46,8 @@ export const lightThemes: Theme[] = [
       bgTertiary: '#d8f0d8',
       accent: '#9377c8',
       accentHover: '#8366b8',
+      accentSecondary: '#6ba86b',
+      accentSecondaryHover: '#5b985b',
       textPrimary: '#1a2e1a',
       textSecondary: '#2e4d2e',
       textTertiary: '#4a6d4a',
@@ -65,6 +70,8 @@ export const lightThemes: Theme[] = [
       bgTertiary: '#e8d8f0',
       accent: '#7b6f98',
       accentHover: '#6b5f88',
+      accentSecondary: '#c898b8',
+      accentSecondaryHover: '#b888a8',
       textPrimary: '#2a2438',
       textSecondary: '#4a4458',
       textTertiary: '#6a6478',
@@ -75,184 +82,56 @@ export const lightThemes: Theme[] = [
       shadow: 'rgba(42, 36, 56, 0.1)'
     }
   },
-  {
-    id: 'moonlight-zen-light',
-    name: 'Moonlight Zen (Light)',
-    category: 'calm',
-    variant: 'light',
-    description: 'Cool silvers and blues with warm golden accents',
-    colors: {
-      bgPrimary: '#f8f9fb',
-      bgSecondary: '#eef2f6',
-      bgTertiary: '#e0e8f0',
-      accent: '#d89a37',
-      accentHover: '#c88a27',
-      textPrimary: '#1e2228',
-      textSecondary: '#363e48',
-      textTertiary: '#5a6270',
-      recordColor: '#e0a847',
-      recordHover: '#d89a37',
-      success: '#6a8fa8',
-      border: '#c8d0d8',
-      shadow: 'rgba(30, 34, 40, 0.1)'
-    }
-  },
 
-  // ===== ENERGETIC & MOTIVATED - LIGHT (4 themes) =====
-  {
-    id: 'sunrise-energy-light',
-    name: 'Sunrise Energy (Light)',
-    category: 'energetic',
-    variant: 'light',
-    description: 'Warm oranges and golds radiate enthusiasm and optimism',
-    colors: {
-      bgPrimary: '#fffaf5',
-      bgSecondary: '#fff0e8',
-      bgTertiary: '#ffe8d8',
-      accent: '#c2590e',
-      accentHover: '#b24900',
-      textPrimary: '#2e1a1a',
-      textSecondary: '#4d2e2e',
-      textTertiary: '#6d4a4a',
-      recordColor: '#d2691e',
-      recordHover: '#c2590e',
-      success: '#d8893e',
-      border: '#f0d8c8',
-      shadow: 'rgba(46, 26, 26, 0.1)'
-    }
-  },
+  // ===== ENERGETIC & MOTIVATED - LIGHT (1 theme) =====
   {
     id: 'ruby-passion-light',
     name: 'Ruby Passion (Light)',
     category: 'energetic',
     variant: 'light',
-    description: 'Bold reds ignite determination with cool teal balance',
+    description: 'Vibrant ruby red and magenta for bold energy and determination',
     colors: {
-      bgPrimary: '#fff5f7',
-      bgSecondary: '#ffe8ec',
-      bgTertiary: '#ffd8e0',
-      accent: '#3eada4',
-      accentHover: '#2e9d94',
-      textPrimary: '#2e1a1e',
-      textSecondary: '#4d2e32',
-      textTertiary: '#6d4a4e',
-      recordColor: '#4ebdb4',
-      recordHover: '#3eada4',
-      success: '#e8445a',
-      border: '#f0c8d0',
-      shadow: 'rgba(46, 26, 30, 0.1)'
-    }
-  },
-  {
-    id: 'citrus-burst-light',
-    name: 'Citrus Burst (Light)',
-    category: 'energetic',
-    variant: 'light',
-    description: 'Vibrant yellows and oranges spark joy and creativity',
-    colors: {
-      bgPrimary: '#fffdf5',
-      bgSecondary: '#fffae8',
-      bgTertiary: '#fff0d8',
-      accent: '#ef9500',
-      accentHover: '#df8500',
-      textPrimary: '#2e2a1a',
-      textSecondary: '#4d442e',
-      textTertiary: '#6d6444',
-      recordColor: '#ffa500',
-      recordHover: '#ef9500',
-      success: '#ffb84d',
-      border: '#f0e8c8',
-      shadow: 'rgba(46, 42, 26, 0.1)'
-    }
-  },
-  {
-    id: 'tropical-fire-light',
-    name: 'Tropical Fire (Light)',
-    category: 'energetic',
-    variant: 'light',
-    description: 'Hot pinks and magentas energize with playful vibrancy',
-    colors: {
-      bgPrimary: '#fff5fb',
-      bgSecondary: '#ffe8f8',
-      bgTertiary: '#ffd8f0',
-      accent: '#ef0483',
-      accentHover: '#df0073',
-      textPrimary: '#2e1a2a',
-      textSecondary: '#4d2e44',
-      textTertiary: '#6d4a64',
-      recordColor: '#ff1493',
-      recordHover: '#ef0483',
-      success: '#ff69b4',
-      border: '#f0c8e8',
-      shadow: 'rgba(46, 26, 42, 0.1)'
+      bgPrimary: '#fff0f4',
+      bgSecondary: '#ffe0e8',
+      bgTertiary: '#ffd0dc',
+      accent: '#d83050',
+      accentHover: '#c82040',
+      accentSecondary: '#e85080',
+      accentSecondaryHover: '#d84070',
+      textPrimary: '#2e1418',
+      textSecondary: '#4d2428',
+      textTertiary: '#6d3438',
+      recordColor: '#e84060',
+      recordHover: '#d83050',
+      success: '#e85080',
+      border: '#f0c0d0',
+      shadow: 'rgba(46, 20, 24, 0.12)'
     }
   },
 
-  // ===== FOCUS & PRODUCTIVITY - LIGHT (4 themes) =====
+  // ===== FOCUS & PRODUCTIVITY - LIGHT (2 themes) =====
   {
     id: 'midnight-focus-light',
     name: 'Midnight Focus (Light)',
     category: 'focus',
     variant: 'light',
-    description: 'Deep navy promotes intense concentration with warm amber highlights',
+    description: 'Warm parchment tones for comfortable reading and deep concentration',
     colors: {
-      bgPrimary: '#f5f8fb',
-      bgSecondary: '#e8f0f8',
-      bgTertiary: '#d8e8f0',
-      accent: '#e08722',
-      accentHover: '#d07712',
-      textPrimary: '#0f1419',
-      textSecondary: '#252d38',
-      textTertiary: '#3a4858',
-      recordColor: '#f59732',
-      recordHover: '#e08722',
-      success: '#4a8fb8',
-      border: '#c8d8e8',
-      shadow: 'rgba(15, 20, 25, 0.12)'
-    }
-  },
-  {
-    id: 'slate-professional-light',
-    name: 'Slate Professional (Light)',
-    category: 'focus',
-    variant: 'light',
-    description: 'Neutral grays provide balanced, clear-minded focus',
-    colors: {
-      bgPrimary: '#f8f9fb',
-      bgSecondary: '#eef2f6',
-      bgTertiary: '#e0e8f0',
-      accent: '#607080',
-      accentHover: '#506070',
-      textPrimary: '#1e2228',
-      textSecondary: '#363e48',
-      textTertiary: '#5a6270',
-      recordColor: '#708090',
-      recordHover: '#607080',
-      success: '#6a8fa8',
-      border: '#c8d0d8',
-      shadow: 'rgba(30, 34, 40, 0.1)'
-    }
-  },
-  {
-    id: 'deep-space-light',
-    name: 'Deep Space (Light)',
-    category: 'focus',
-    variant: 'light',
-    description: 'Dark purples and blues for mysterious, deep concentration',
-    colors: {
-      bgPrimary: '#f8f8ff',
-      bgSecondary: '#e8e8f8',
-      bgTertiary: '#d8d8f0',
-      accent: '#5a4abd',
-      accentHover: '#4a3aad',
-      textPrimary: '#0a0a14',
-      textSecondary: '#1e1e2e',
-      textTertiary: '#3a3a50',
-      recordColor: '#6a5acd',
-      recordHover: '#5a4abd',
-      success: '#6a7add',
-      border: '#c8c8e8',
-      shadow: 'rgba(10, 10, 20, 0.15)'
+      bgPrimary: '#f9f5ed',
+      bgSecondary: '#f0e8d8',
+      bgTertiary: '#e8dcc8',
+      accent: '#d07020',
+      accentHover: '#c06010',
+      accentSecondary: '#8b6914',
+      accentSecondaryHover: '#7b5904',
+      textPrimary: '#2a1f14',
+      textSecondary: '#4a3828',
+      textTertiary: '#6a5040',
+      recordColor: '#e08030',
+      recordHover: '#d07020',
+      success: '#8b6914',
+      border: '#d8ccb8',
+      shadow: 'rgba(42, 31, 20, 0.12)'
     }
   },
   {
@@ -267,6 +146,8 @@ export const lightThemes: Theme[] = [
       bgTertiary: '#d8f0f0',
       accent: '#4f8e90',
       accentHover: '#3f7e80',
+      accentSecondary: '#88c6ff',
+      accentSecondaryHover: '#78b6ef',
       textPrimary: '#1a2e2e',
       textSecondary: '#2e4d4d',
       textTertiary: '#4a6d6d',
@@ -278,49 +159,29 @@ export const lightThemes: Theme[] = [
     }
   },
 
-  // ===== CREATIVE & INSPIRED - LIGHT (4 themes) =====
+  // ===== CREATIVE & INSPIRED - LIGHT (2 themes) =====
   {
     id: 'sunset-canvas-light',
     name: 'Sunset Canvas (Light)',
     category: 'creative',
     variant: 'light',
-    description: 'Purple and orange blend for artistic imagination',
+    description: 'Bold orange sunset with deep purple accents for creative energy',
     colors: {
-      bgPrimary: '#fffaf5',
-      bgSecondary: '#fff0e8',
-      bgTertiary: '#ffe8d8',
-      accent: '#ef7c32',
-      accentHover: '#df6c22',
-      textPrimary: '#2a1e2e',
-      textSecondary: '#4a3248',
-      textTertiary: '#6a4a68',
-      recordColor: '#ff8c42',
-      recordHover: '#ef7c32',
-      success: '#a87fc8',
-      border: '#f0d0c8',
-      shadow: 'rgba(42, 30, 46, 0.1)'
-    }
-  },
-  {
-    id: 'rainbow-joy-light',
-    name: 'Rainbow Joy (Light)',
-    category: 'creative',
-    variant: 'light',
-    description: 'Full spectrum rainbow colors bring vibrant joy and creativity',
-    colors: {
-      bgPrimary: '#fafbff',
-      bgSecondary: '#f0f2ff',
-      bgTertiary: '#e8eaff',
-      accent: '#ff4b7d',
-      accentHover: '#ff3b6d',
-      textPrimary: '#1e1e2e',
-      textSecondary: '#363648',
-      textTertiary: '#5a5a70',
-      recordColor: '#ff8800',
-      recordHover: '#ff7700',
-      success: '#00dd77',
-      border: '#8b6bff',
-      shadow: 'rgba(139, 107, 255, 0.2)'
+      bgPrimary: '#fff4e8',
+      bgSecondary: '#ffe8d0',
+      bgTertiary: '#ffd8b0',
+      accent: '#ff7030',
+      accentHover: '#ef6020',
+      accentSecondary: '#9860c0',
+      accentSecondaryHover: '#8850b0',
+      textPrimary: '#2a1810',
+      textSecondary: '#4a2820',
+      textTertiary: '#6a3830',
+      recordColor: '#ff8040',
+      recordHover: '#ff7030',
+      success: '#9860c0',
+      border: '#f0d0a8',
+      shadow: 'rgba(42, 24, 16, 0.12)'
     }
   },
   {
@@ -335,6 +196,8 @@ export const lightThemes: Theme[] = [
       bgTertiary: '#e8f0ff',
       accent: '#00cfcf',
       accentHover: '#00bfbf',
+      accentSecondary: '#cf00cf',
+      accentSecondaryHover: '#bf00bf',
       textPrimary: '#0a0a0f',
       textSecondary: '#1e1e28',
       textTertiary: '#3a3a48',
@@ -345,52 +208,8 @@ export const lightThemes: Theme[] = [
       shadow: 'rgba(0, 207, 207, 0.15)'
     }
   },
-  {
-    id: 'autumn-inspiration-light',
-    name: 'Autumn Inspiration (Light)',
-    category: 'creative',
-    variant: 'light',
-    description: 'Warm autumn tones inspire cozy creativity',
-    colors: {
-      bgPrimary: '#fffaf5',
-      bgSecondary: '#fff4e8',
-      bgTertiary: '#ffe8d8',
-      accent: '#c2590e',
-      accentHover: '#b24900',
-      textPrimary: '#2a1e1a',
-      textSecondary: '#4a322e',
-      textTertiary: '#6a4a44',
-      recordColor: '#d2691e',
-      recordHover: '#c2590e',
-      success: '#ca9520',
-      border: '#f0d8c8',
-      shadow: 'rgba(42, 30, 26, 0.1)'
-    }
-  },
 
-  // ===== BALANCED & HARMONIOUS - LIGHT (4 themes) =====
-  {
-    id: 'earth-tones-light',
-    name: 'Earth Tones (Light)',
-    category: 'balanced',
-    variant: 'light',
-    description: 'Natural browns provide stable harmony with turquoise energy',
-    colors: {
-      bgPrimary: '#faf8f5',
-      bgSecondary: '#f0ece8',
-      bgTertiary: '#e8e0d8',
-      accent: '#3ba09e',
-      accentHover: '#2b908e',
-      textPrimary: '#2a2420',
-      textSecondary: '#4a3c30',
-      textTertiary: '#6a5a50',
-      recordColor: '#4bb0ae',
-      recordHover: '#3ba09e',
-      success: '#8b7f6a',
-      border: '#d8d0c8',
-      shadow: 'rgba(42, 36, 32, 0.1)'
-    }
-  },
+  // ===== BALANCED & HARMONIOUS - LIGHT (2 themes) =====
   {
     id: 'sakura-blossom-light',
     name: 'Sakura Blossom (Light)',
@@ -403,6 +222,8 @@ export const lightThemes: Theme[] = [
       bgTertiary: '#ffe8f0',
       accent: '#c890a0',
       accentHover: '#b88090',
+      accentSecondary: '#d8a0b0',
+      accentSecondaryHover: '#c890a0',
       textPrimary: '#2a2428',
       textSecondary: '#4a383c',
       textTertiary: '#6a5558',
@@ -418,43 +239,145 @@ export const lightThemes: Theme[] = [
     name: 'Jade Garden (Light)',
     category: 'balanced',
     variant: 'light',
-    description: 'Jade greens bring balanced prosperity and freshness',
+    description: 'Cool teal-jade tones with aquamarine accents for balanced energy',
     colors: {
-      bgPrimary: '#f5fbf8',
-      bgSecondary: '#e8f8f0',
-      bgTertiary: '#d8f0e8',
-      accent: '#6ca88d',
-      accentHover: '#5c987d',
-      textPrimary: '#1e2a24',
-      textSecondary: '#324238',
-      textTertiary: '#4a5a50',
-      recordColor: '#7cb89d',
-      recordHover: '#6ca88d',
-      success: '#8cc8ad',
-      border: '#c8e8d8',
-      shadow: 'rgba(30, 42, 36, 0.1)'
+      bgPrimary: '#f0fcfa',
+      bgSecondary: '#e0f8f4',
+      bgTertiary: '#d0f0e8',
+      accent: '#40a89d',
+      accentHover: '#30988d',
+      accentSecondary: '#60c8bd',
+      accentSecondaryHover: '#50b8ad',
+      textPrimary: '#14332a',
+      textSecondary: '#244a3e',
+      textTertiary: '#346252',
+      recordColor: '#50b8ad',
+      recordHover: '#40a89d',
+      success: '#60c8bd',
+      border: '#b8e8e0',
+      shadow: 'rgba(20, 51, 42, 0.1)'
+    }
+  },
+
+  // ===== SPECIAL THEMES - LIGHT (5 themes) =====
+  {
+    id: 'spirited-away-light',
+    name: 'Spirited Away (Light)',
+    category: 'creative',
+    variant: 'light',
+    description: 'Warm peachy sunset skies inspired by Studio Ghibli magic',
+    colors: {
+      bgPrimary: '#fff8f0',
+      bgSecondary: '#ffefd8',
+      bgTertiary: '#ffe5c0',
+      accent: '#ff9966',
+      accentHover: '#ff8856',
+      accentSecondary: '#ffc18a',
+      accentSecondaryHover: '#ffb17a',
+      textPrimary: '#2a1e14',
+      textSecondary: '#4a3424',
+      textTertiary: '#6a4a34',
+      recordColor: '#ffa876',
+      recordHover: '#ff9966',
+      success: '#ffc18a',
+      border: '#f0d8b8',
+      shadow: 'rgba(42, 30, 20, 0.12)'
     }
   },
   {
-    id: 'twilight-balance-light',
-    name: 'Twilight Balance (Light)',
+    id: 'aurora-borealis-light',
+    name: 'Aurora Borealis (Light)',
+    category: 'creative',
+    variant: 'light',
+    description: 'Daylight aurora pastels with ice blue and soft pink tones',
+    colors: {
+      bgPrimary: '#f0f8ff',
+      bgSecondary: '#e0f0ff',
+      bgTertiary: '#d0e8ff',
+      accent: '#88e5ff',
+      accentHover: '#78d5ef',
+      accentSecondary: '#ffb3e6',
+      accentSecondaryHover: '#ffa3d6',
+      textPrimary: '#0a0e1a',
+      textSecondary: '#1e2230',
+      textTertiary: '#3a4050',
+      recordColor: '#98f5ff',
+      recordHover: '#88e5ff',
+      success: '#ffb3e6',
+      border: '#c8e0f0',
+      shadow: 'rgba(10, 14, 26, 0.1)'
+    }
+  },
+  {
+    id: 'zelda-botw-light',
+    name: 'Zelda: Breath of the Wild (Light)',
     category: 'balanced',
     variant: 'light',
-    description: 'Indigo and mauve for peaceful transition and balance',
+    description: 'Bright Hyrule grasslands with golden sunshine and adventure',
     colors: {
-      bgPrimary: '#faf8ff',
-      bgSecondary: '#f0e8ff',
-      bgTertiary: '#e8d8f8',
-      accent: '#8b7fa8',
-      accentHover: '#7b6f98',
-      textPrimary: '#1e1e2a',
-      textSecondary: '#363648',
-      textTertiary: '#5a5a70',
-      recordColor: '#9b8fb8',
-      recordHover: '#8b7fa8',
-      success: '#a89fc8',
-      border: '#d8c8e8',
-      shadow: 'rgba(30, 30, 42, 0.1)'
+      bgPrimary: '#f8fce8',
+      bgSecondary: '#f0f8d0',
+      bgTertiary: '#e8f0b8',
+      accent: '#c8a040',
+      accentHover: '#b89030',
+      accentSecondary: '#98b848',
+      accentSecondaryHover: '#88a838',
+      textPrimary: '#2a2814',
+      textSecondary: '#4a4024',
+      textTertiary: '#6a5834',
+      recordColor: '#d8b050',
+      recordHover: '#c8a040',
+      success: '#98b848',
+      border: '#d8e8b0',
+      shadow: 'rgba(42, 40, 20, 0.1)'
+    }
+  },
+  {
+    id: 'vaporwave-dreams-light',
+    name: 'Vaporwave Dreams (Light)',
+    category: 'creative',
+    variant: 'light',
+    description: 'Soft vaporwave pastels with dreamy purple and cyan tones',
+    colors: {
+      bgPrimary: '#fff0f8',
+      bgSecondary: '#ffe8f0',
+      bgTertiary: '#ffd8e8',
+      accent: '#d4a5ff',
+      accentHover: '#c495ef',
+      accentSecondary: '#a5f0ff',
+      accentSecondaryHover: '#95e0ef',
+      textPrimary: '#1a0f2e',
+      textSecondary: '#2e2348',
+      textTertiary: '#4a3a68',
+      recordColor: '#e4b5ff',
+      recordHover: '#d4a5ff',
+      success: '#a5f0ff',
+      border: '#f0d0e8',
+      shadow: 'rgba(26, 15, 46, 0.1)'
+    }
+  },
+  {
+    id: 'winter-wonderland-light',
+    name: 'Winter Wonderland (Light)',
+    category: 'calm',
+    variant: 'light',
+    description: 'Pure white snow with cool silver and icy blue accents',
+    colors: {
+      bgPrimary: '#fdfefe',
+      bgSecondary: '#f5f7f9',
+      bgTertiary: '#edf0f3',
+      accent: '#87b5d1',
+      accentHover: '#77a5c1',
+      accentSecondary: '#a0b8c8',
+      accentSecondaryHover: '#90a8b8',
+      textPrimary: '#1a2028',
+      textSecondary: '#2e3640',
+      textTertiary: '#454e58',
+      recordColor: '#97c5e1',
+      recordHover: '#87b5d1',
+      success: '#a0b8c8',
+      border: '#dde4e8',
+      shadow: 'rgba(26, 32, 40, 0.08)'
     }
   }
 ];

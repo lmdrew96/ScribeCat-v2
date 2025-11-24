@@ -15,23 +15,27 @@ export type ThemeCategory = 'calm' | 'energetic' | 'focus' | 'creative' | 'balan
 export type ThemeVariant = 'dark' | 'light';
 
 /**
- * Theme color palette
+ * Theme color palette with 4-color system
  */
 export interface ThemeColors {
   // Background colors
   bgPrimary: string;
   bgSecondary: string;
   bgTertiary: string;
-  
-  // Accent colors
+
+  // Primary accent colors
   accent: string;
   accentHover: string;
-  
+
+  // Secondary accent colors (NEW - adds 4th color to themes)
+  accentSecondary: string;
+  accentSecondaryHover: string;
+
   // Text colors
   textPrimary: string;
   textSecondary: string;
   textTertiary: string;
-  
+
   // Functional colors
   recordColor: string;
   recordHover: string;
