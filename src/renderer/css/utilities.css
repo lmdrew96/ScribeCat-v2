@@ -97,25 +97,25 @@
   background: var(--bg-hover);
 }
 
-/* Notification types */
+/* Notification types - theme-aware colors */
 .ticker-success {
-  color: #10b981;
-  border-left-color: #10b981;
+  color: var(--success);
+  border-left-color: var(--success);
 }
 
 .ticker-error {
-  color: #ef4444;
-  border-left-color: #ef4444;
+  color: var(--record-color);
+  border-left-color: var(--record-color);
 }
 
 .ticker-warning {
-  color: #f59e0b;
-  border-left-color: #f59e0b;
+  color: var(--accent-secondary);
+  border-left-color: var(--accent-secondary);
 }
 
 .ticker-info {
-  color: #3b82f6;
-  border-left-color: #3b82f6;
+  color: var(--accent);
+  border-left-color: var(--accent);
 }
 
 /* Ticker icon */

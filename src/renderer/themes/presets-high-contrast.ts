@@ -30,6 +30,8 @@ export const highContrastThemes: Theme[] = [
       // Bright cyan accent for high visibility
       accent: '#00ffff',
       accentHover: '#00e6e6',
+      accentSecondary: '#ffff00',
+      accentSecondaryHover: '#e6e600',
 
       // Pure white text for maximum contrast
       textPrimary: '#ffffff',
@@ -66,6 +68,8 @@ export const highContrastThemes: Theme[] = [
       // Bright orange accent
       accent: '#ffaa00',
       accentHover: '#ff9900',
+      accentSecondary: '#ffee00',
+      accentSecondaryHover: '#ffdd00',
 
       // Warm white text
       textPrimary: '#ffffe6',
@@ -101,6 +105,8 @@ export const highContrastThemes: Theme[] = [
       // Bright blue accent
       accent: '#66ccff',
       accentHover: '#55bbee',
+      accentSecondary: '#cc99ff',
+      accentSecondaryHover: '#bb88ee',
 
       // Cool white text
       textPrimary: '#e6f7ff',
@@ -137,6 +143,8 @@ export const highContrastThemes: Theme[] = [
       // Dark blue accent for readability on white
       accent: '#0000cc',
       accentHover: '#0000aa',
+      accentSecondary: '#660099',
+      accentSecondaryHover: '#550088',
 
       // Pure black text for maximum contrast
       textPrimary: '#000000',
@@ -173,6 +181,8 @@ export const highContrastThemes: Theme[] = [
       // Dark purple accent
       accent: '#4400aa',
       accentHover: '#330088',
+      accentSecondary: '#006699',
+      accentSecondaryHover: '#005588',
 
       // Pure black text
       textPrimary: '#000000',
@@ -208,6 +218,8 @@ export const highContrastThemes: Theme[] = [
       // Dark blue accent
       accent: '#003366',
       accentHover: '#002244',
+      accentSecondary: '#004d66',
+      accentSecondaryHover: '#003d55',
 
       // Pure black text
       textPrimary: '#000000',
@@ -244,6 +256,8 @@ export const highContrastThemes: Theme[] = [
       // Bright amber accent
       accent: '#ffbb00',
       accentHover: '#ffaa00',
+      accentSecondary: '#ff9900',
+      accentSecondaryHover: '#ff8800',
 
       // Amber text on black
       textPrimary: '#ffcc00',
@@ -279,6 +293,8 @@ export const highContrastThemes: Theme[] = [
       // Bright lime accent
       accent: '#00ff00',
       accentHover: '#00ee00',
+      accentSecondary: '#00ffcc',
+      accentSecondaryHover: '#00eebb',
 
       // Green text on black
       textPrimary: '#00ff00',
