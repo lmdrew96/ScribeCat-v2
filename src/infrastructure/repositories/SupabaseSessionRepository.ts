@@ -40,6 +40,7 @@ interface SessionRow {
   summary?: string;
   source_session_id?: string; // For copied sessions, the original session ID
   source_user_id?: string; // For copied sessions, the original user ID (for audio path)
+  is_room_only?: boolean; // True if session is created for study room and shouldn't appear in study mode
 }
 
 export class SupabaseSessionRepository implements ISessionRepository {
@@ -206,6 +207,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
         .select('*')
         .eq('user_id', this.userId)
         .is('deleted_at', null)
+        .neq('is_room_only', true) // Exclude room-only sessions from study mode
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -687,7 +689,9 @@ export class SupabaseSessionRepository implements ISessionRepository {
         summary: originalSession.summary,
         // Track source session for audio file reference
         source_session_id: originalSessionId,
-        source_user_id: originalSession.userId
+        source_user_id: originalSession.userId,
+        // Mark as room-only so it doesn't appear in study mode
+        is_room_only: true
       };
 
       // Insert the copied session
