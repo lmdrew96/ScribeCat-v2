@@ -32,6 +32,7 @@ export class StudyRoomsManager {
   private invitationsListeners: Set<InvitationsChangeListener> = new Set();
 
   private realtimeChannel: RealtimeChannel | null = null;
+  private invitationUnsubscribe: (() => void) | null = null;
 
   // Debounce timers to prevent cascade reloads
   private loadRoomsDebounceTimer: NodeJS.Timeout | null = null;
@@ -51,6 +52,7 @@ export class StudyRoomsManager {
     await this.loadRooms();
     await this.loadInvitations();
     await this.subscribeToParticipantChanges();
+    await this.subscribeToInvitations();
     logger.info('StudyRoomsManager initialized for user:', userId);
   }
 
@@ -70,6 +72,7 @@ export class StudyRoomsManager {
     }
 
     this.unsubscribeFromParticipantChanges();
+    this.unsubscribeFromInvitations();
     this.notifyRoomsListeners();
     this.notifyInvitationsListeners();
     logger.info('StudyRoomsManager cleared');
@@ -617,6 +620,79 @@ export class StudyRoomsManager {
       this.realtimeChannel.unsubscribe();
       this.realtimeChannel = null;
       logger.info('Unsubscribed from room participants real-time updates');
+    }
+  }
+
+  /**
+   * Subscribe to real-time invitation updates
+   */
+  private async subscribeToInvitations(): Promise<void> {
+    try {
+      logger.info('🔔 Setting up realtime invitation subscription for user:', this.userId);
+      console.log('🔔 StudyRoomsManager: Starting invitation subscription setup...');
+
+      this.invitationUnsubscribe = await window.scribeCat.studyRooms.subscribeToInvitations(
+        (invitation, eventType) => {
+          logger.info('🎯 Received invitation event:', eventType, invitation);
+          console.log('🎯 StudyRoomsManager: Invitation event received!', { eventType, invitation });
+          this.handleInvitationChange(invitation, eventType);
+        }
+      );
+
+      logger.info('✅ Subscribed to invitation real-time updates successfully');
+      console.log('✅ StudyRoomsManager: Subscription setup complete');
+
+      // Log current invitations for debugging
+      console.log('📊 Current invitations in manager:', this.invitations);
+    } catch (error) {
+      logger.error('❌ Exception subscribing to invitation changes:', error);
+      console.error('❌ StudyRoomsManager: Failed to subscribe to invitations:', error);
+    }
+  }
+
+  /**
+   * Unsubscribe from real-time invitation updates
+   */
+  private unsubscribeFromInvitations(): void {
+    if (this.invitationUnsubscribe) {
+      this.invitationUnsubscribe();
+      this.invitationUnsubscribe = null;
+      logger.info('Unsubscribed from invitation real-time updates');
+    }
+  }
+
+  /**
+   * Handle real-time invitation change events
+   */
+  private handleInvitationChange(invitation: RoomInvitationData, eventType: 'INSERT' | 'UPDATE'): void {
+    try {
+      logger.info('📨 Invitation change event:', eventType, invitation);
+      console.log(`📨 handleInvitationChange called: ${eventType}`, invitation);
+
+      if (eventType === 'INSERT') {
+        // New invitation received - add to local state
+        const existingIndex = this.invitations.findIndex(inv => inv.id === invitation.id);
+        if (existingIndex === -1) {
+          this.invitations.push(invitation);
+          console.log('➕ Added new invitation to local state. Total invitations:', this.invitations.length);
+        } else {
+          console.log('⚠️ Invitation already exists in local state');
+        }
+      } else if (eventType === 'UPDATE') {
+        // Invitation status updated - update local state
+        const existingIndex = this.invitations.findIndex(inv => inv.id === invitation.id);
+        if (existingIndex !== -1) {
+          this.invitations[existingIndex] = invitation;
+          console.log('📝 Updated existing invitation in local state');
+        } else {
+          console.log('⚠️ Tried to update non-existent invitation');
+        }
+      }
+
+      console.log('🔔 Notifying', this.invitationListeners.length, 'invitation listeners');
+      this.notifyInvitationsListeners();
+    } catch (error) {
+      logger.error('Error handling invitation change:', error);
     }
   }
 

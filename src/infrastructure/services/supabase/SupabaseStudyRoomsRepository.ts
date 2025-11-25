@@ -954,11 +954,17 @@ export class SupabaseStudyRoomsRepository {
         },
         async (payload) => {
           console.log('🔥 NEW INVITATION EVENT:', payload);
+          console.log('🔥 Payload new data:', payload.new);
+          console.log('🔥 Event type:', payload.eventType);
 
           // Fetch full invitation with profile data
           const invitation = await this.getInvitationById(payload.new.id);
+          console.log('🔥 Fetched full invitation:', invitation);
           if (invitation) {
+            console.log('🔥 Calling onInvitation callback with INSERT');
             onInvitation(invitation, 'INSERT');
+          } else {
+            console.error('❌ Could not fetch invitation details for ID:', payload.new.id);
           }
         }
       )

@@ -637,11 +637,8 @@ export class SupabaseGamesRepository implements IGameRepository {
       this.channels.delete(channelName);
     }
 
-    // Set auth token for RLS
-    const accessToken = SupabaseClient.getInstance().getAccessToken();
-    if (accessToken) {
-      client.realtime.setAuth(accessToken);
-    }
+    // Auth is already set via setSession() on the base client
+    // No need to call setAuth() per channel - it can cause conflicts
 
     const channel = client.channel(channelName).on(
       'postgres_changes',
@@ -692,11 +689,8 @@ export class SupabaseGamesRepository implements IGameRepository {
       this.channels.delete(channelName);
     }
 
-    // Set auth token for RLS
-    const accessToken = SupabaseClient.getInstance().getAccessToken();
-    if (accessToken) {
-      client.realtime.setAuth(accessToken);
-    }
+    // Auth is already set via setSession() on the base client
+    // No need to call setAuth() per channel - it can cause conflicts
 
     const channel = client.channel(channelName).on(
       'postgres_changes',
@@ -747,11 +741,8 @@ export class SupabaseGamesRepository implements IGameRepository {
       this.channels.delete(channelName);
     }
 
-    // Set auth token for RLS
-    const accessToken = SupabaseClient.getInstance().getAccessToken();
-    if (accessToken) {
-      client.realtime.setAuth(accessToken);
-    }
+    // Auth is already set via setSession() on the base client
+    // No need to call setAuth() per channel - it can cause conflicts
 
     const channel = client.channel(channelName).on(
       'postgres_changes',
@@ -803,11 +794,8 @@ export class SupabaseGamesRepository implements IGameRepository {
       this.channels.delete(channelName);
     }
 
-    // Set auth token for RLS
-    const accessToken = SupabaseClient.getInstance().getAccessToken();
-    if (accessToken) {
-      client.realtime.setAuth(accessToken);
-    }
+    // Auth is already set via setSession() on the base client
+    // No need to call setAuth() per channel - it can cause conflicts
 
     const channel = client.channel(channelName).on(
       'postgres_changes',
@@ -1089,11 +1077,8 @@ export class SupabaseGamesRepository implements IGameRepository {
       this.channels.delete(channelName);
     }
 
-    // Set auth token for RLS
-    const accessToken = SupabaseClient.getInstance().getAccessToken();
-    if (accessToken) {
-      client.realtime.setAuth(accessToken);
-    }
+    // Auth is already set via setSession() on the base client
+    // No need to call setAuth() per channel - it can cause conflicts
 
     const channel = client.channel(channelName).on(
       'postgres_changes',

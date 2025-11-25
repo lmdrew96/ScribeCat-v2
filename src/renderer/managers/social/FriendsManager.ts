@@ -31,6 +31,9 @@ export class FriendsManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
 
+  // Friend request realtime subscription
+  private requestUnsubscribe: (() => void) | null = null;
+
   constructor() {
     logger.info('FriendsManager initialized');
   }
@@ -46,6 +49,9 @@ export class FriendsManager {
     // Start presence tracking
     await this.startPresenceTracking();
 
+    // Subscribe to realtime friend request updates
+    await this.subscribeToRequests();
+
     logger.info('FriendsManager initialized for user:', userId);
   }
 
@@ -55,6 +61,9 @@ export class FriendsManager {
   async clear(): Promise<void> {
     // Stop presence tracking
     await this.stopPresenceTracking();
+
+    // Unsubscribe from friend request updates
+    this.unsubscribeFromRequests();
 
     this.currentUserId = null;
     this.friends = [];
@@ -645,6 +654,68 @@ export class FriendsManager {
 
       this.notifyFriendsListeners();
       logger.debug(`Presence updated for friend ${friendId}: ${presence.status}`);
+    }
+  }
+
+  // ============================================================================
+  // Friend Request Realtime Subscriptions
+  // ============================================================================
+
+  /**
+   * Subscribe to real-time friend request updates
+   */
+  private async subscribeToRequests(): Promise<void> {
+    try {
+      logger.info('Setting up realtime friend request subscription');
+
+      this.requestUnsubscribe = await window.scribeCat.friends.subscribeToRequests(
+        (friendRequest, eventType) => {
+          logger.info('Received friend request event:', eventType, friendRequest);
+          this.handleRequestChange(friendRequest, eventType);
+        }
+      );
+
+      logger.info('Subscribed to friend request real-time updates');
+    } catch (error) {
+      logger.error('Exception subscribing to friend request changes:', error);
+    }
+  }
+
+  /**
+   * Unsubscribe from real-time friend request updates
+   */
+  private unsubscribeFromRequests(): void {
+    if (this.requestUnsubscribe) {
+      this.requestUnsubscribe();
+      this.requestUnsubscribe = null;
+      logger.info('Unsubscribed from friend request real-time updates');
+    }
+  }
+
+  /**
+   * Handle real-time friend request change events
+   */
+  private handleRequestChange(friendRequest: FriendRequestData, eventType: 'INSERT' | 'UPDATE'): void {
+    try {
+      logger.info('Friend request change event:', eventType, friendRequest);
+
+      if (eventType === 'INSERT') {
+        // New friend request received - add to local state
+        const existingIndex = this.friendRequests.findIndex(req => req.id === friendRequest.id);
+        if (existingIndex === -1) {
+          this.friendRequests.push(friendRequest);
+        }
+      } else if (eventType === 'UPDATE') {
+        // Friend request status updated - update local state
+        const existingIndex = this.friendRequests.findIndex(req => req.id === friendRequest.id);
+        if (existingIndex !== -1) {
+          this.friendRequests[existingIndex] = friendRequest;
+        }
+      }
+
+      this.notifyRequestsListeners();
+    } catch (error) {
+      logger.error('Error handling friend request change:', error);
     }
   }
 }

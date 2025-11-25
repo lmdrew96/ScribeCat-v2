@@ -338,7 +338,29 @@ const electronAPI = {
       }
     }) => void) => {
       ipcRenderer.on('friends:presenceUpdate', (_event: any, data: any) => callback(data));
-    }
+    },
+    // Friend request realtime subscriptions
+    subscribeToRequests: async (
+      onRequest: (friendRequest: any, eventType: 'INSERT' | 'UPDATE') => void
+    ) => {
+      const requestHandler = (_event: any, data: { friendRequest: any; eventType: 'INSERT' | 'UPDATE' }) => {
+        console.log('[Preload] Received friend request event:', data);
+        onRequest(data.friendRequest, data.eventType);
+      };
+
+      ipcRenderer.on('friends:requestReceived', requestHandler);
+
+      // Set up the subscription and wait for it to complete
+      const result = await ipcRenderer.invoke('friends:subscribeToRequests');
+      console.log('[Preload] Friend request subscription result:', result);
+
+      // Return unsubscribe function
+      return () => {
+        ipcRenderer.removeListener('friends:requestReceived', requestHandler);
+      };
+    },
+    unsubscribeFromRequests: () =>
+      ipcRenderer.invoke('friends:unsubscribeFromRequests')
   },
   studyRooms: {
     // Room operations
@@ -377,7 +399,29 @@ const electronAPI = {
     declineInvitation: (invitationId: string) =>
       ipcRenderer.invoke('rooms:declineInvitation', invitationId),
     cancelInvitation: (invitationId: string) =>
-      ipcRenderer.invoke('rooms:cancelInvitation', invitationId)
+      ipcRenderer.invoke('rooms:cancelInvitation', invitationId),
+    // Realtime subscriptions
+    subscribeToInvitations: async (
+      onInvitation: (invitation: any, eventType: 'INSERT' | 'UPDATE') => void
+    ) => {
+      const invitationHandler = (_event: any, data: { invitation: any; eventType: 'INSERT' | 'UPDATE' }) => {
+        console.log('[Preload] Received invitation event:', data);
+        onInvitation(data.invitation, data.eventType);
+      };
+
+      ipcRenderer.on('rooms:invitationReceived', invitationHandler);
+
+      // Set up the subscription and wait for it to complete
+      const result = await ipcRenderer.invoke('rooms:subscribeToInvitations');
+      console.log('[Preload] Subscription result:', result);
+
+      // Return unsubscribe function
+      return () => {
+        ipcRenderer.removeListener('rooms:invitationReceived', invitationHandler);
+      };
+    },
+    unsubscribeFromInvitations: () =>
+      ipcRenderer.invoke('rooms:unsubscribeFromInvitations')
   },
   chat: {
     sendMessage: (params: { roomId: string; userId: string; message: string }) =>

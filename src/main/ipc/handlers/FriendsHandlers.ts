@@ -14,6 +14,7 @@ export class FriendsHandlers extends BaseHandler {
   private friendsRepository: SupabaseFriendsRepository;
   private presenceRepository: SupabasePresenceRepository;
   private presenceUnsubscribers: Map<string, () => Promise<void>> = new Map();
+  private requestSubscriptions: Map<string, () => void> = new Map();
 
   constructor() {
     super();
@@ -580,6 +581,95 @@ export class FriendsHandlers extends BaseHandler {
         };
       }
     });
+
+    // ========================================================================
+    // Friend Request Realtime Subscriptions
+    // ========================================================================
+
+    /**
+     * Subscribe to friend request updates for the current user
+     */
+    this.handle(ipcMain, 'friends:subscribeToRequests', async (event) => {
+      if (!this.currentUserId) {
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      try {
+        // Create a unique key for this subscription (user + sender)
+        const subscriptionKey = `friend-requests-${this.currentUserId}-${event.sender.id}`;
+
+        // Unsubscribe from previous subscription if exists
+        const existingUnsubscribe = this.requestSubscriptions.get(subscriptionKey);
+        if (existingUnsubscribe) {
+          console.log(`[FriendsHandlers] Unsubscribing from previous subscription: ${subscriptionKey}`);
+          existingUnsubscribe();
+          this.requestSubscriptions.delete(subscriptionKey);
+        }
+
+        // Subscribe and send friend request events to renderer
+        const unsubscribe = this.friendsRepository.subscribeToUserFriendRequests(
+          this.currentUserId,
+          (friendRequest, eventType) => {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send('friends:requestReceived', {
+                friendRequest: friendRequest.toJSON(),
+                eventType,
+              });
+            }
+          }
+        );
+
+        // Store the unsubscribe function
+        this.requestSubscriptions.set(subscriptionKey, unsubscribe);
+
+        // Clean up when window is closed
+        event.sender.on('destroyed', () => {
+          const storedUnsubscribe = this.requestSubscriptions.get(subscriptionKey);
+          if (storedUnsubscribe) {
+            console.log(`[FriendsHandlers] Cleaning up subscription on window close: ${subscriptionKey}`);
+            // Fire and forget - window is already destroyed so we can't await
+            storedUnsubscribe().catch(err =>
+              console.error(`[FriendsHandlers] Error during cleanup: ${err}`)
+            );
+            this.requestSubscriptions.delete(subscriptionKey);
+          }
+        });
+
+        return { success: true };
+      } catch (error) {
+        console.error('[FriendsHandlers] Failed to subscribe to friend requests:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to subscribe',
+        };
+      }
+    });
+
+    /**
+     * Unsubscribe from friend request updates
+     */
+    this.handle(ipcMain, 'friends:unsubscribeFromRequests', async () => {
+      try {
+        // Call all stored unsubscribe functions
+        const unsubscribePromises = Array.from(this.requestSubscriptions.entries()).map(([key, unsubscribe]) => {
+          console.log(`[FriendsHandlers] Unsubscribing: ${key}`);
+          return unsubscribe();
+        });
+        await Promise.all(unsubscribePromises);
+        this.requestSubscriptions.clear();
+
+        // Also call repository unsubscribeAll as a fallback
+        await this.friendsRepository.unsubscribeAll();
+
+        return { success: true };
+      } catch (error) {
+        console.error('[FriendsHandlers] Failed to unsubscribe:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to unsubscribe',
+        };
+      }
+    });
   }
 
   /**
@@ -610,6 +700,19 @@ export class FriendsHandlers extends BaseHandler {
         }
       }
       this.presenceUnsubscribers.clear();
+    }
+
+    // Unsubscribe from all friend request subscriptions
+    if (this.requestSubscriptions.size > 0) {
+      console.log(`[FriendsHandlers] Unsubscribing from ${this.requestSubscriptions.size} friend request channels`);
+      const unsubscribePromises = Array.from(this.requestSubscriptions.values()).map(unsubscribe =>
+        unsubscribe()
+      );
+      await Promise.all(unsubscribePromises);
+      this.requestSubscriptions.clear();
+
+      // Also cleanup repository channels
+      await this.friendsRepository.unsubscribeAll();
     }
 
     console.log('[FriendsHandlers] Cleanup complete');

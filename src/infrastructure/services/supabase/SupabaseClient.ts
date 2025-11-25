@@ -141,6 +141,10 @@ export class SupabaseClient {
       console.error('❌ SupabaseClient: Failed to set session:', error.message);
       throw new Error(`Failed to set session: ${error.message}`);
     }
+
+    // Also set auth for Realtime subscriptions (required for RLS in main process)
+    console.log('🔐 SupabaseClient: Setting Realtime auth for RLS');
+    this.client.realtime.setAuth(accessToken);
   }
 
   /**

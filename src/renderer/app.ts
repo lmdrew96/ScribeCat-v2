@@ -32,6 +32,7 @@ import { StudyRoomsManager } from './managers/social/StudyRoomsManager.js';
 import { CreateRoomModal } from './components/CreateRoomModal.js';
 import { BrowseRoomsModal } from './components/BrowseRoomsModal.js';
 import { StudyRoomView } from './components/StudyRoomView.js';
+import { RealtimeNotificationManager } from './managers/RealtimeNotificationManager.js';
 import { CommandPalette } from './components/CommandPalette.js';
 import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
@@ -81,6 +82,7 @@ let studyRoomsManager: StudyRoomsManager;
 let createRoomModal: CreateRoomModal;
 let browseRoomsModal: BrowseRoomsModal;
 let studyRoomView: StudyRoomView;
+let realtimeNotificationManager: RealtimeNotificationManager;
 let commandPalette: CommandPalette;
 let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
@@ -255,6 +257,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Expose studyRoomsManager globally
   window.studyRoomsManager = studyRoomsManager;
+
+  // Initialize realtime notification manager
+  realtimeNotificationManager = new RealtimeNotificationManager();
 
   // Wire up study rooms UI events
   window.addEventListener('show-create-room-modal', () => {
@@ -774,6 +779,14 @@ function setupAuthUI(): void {
       // Initialize study rooms manager for this user
       await studyRoomsManager.initialize(user.id);
 
+      // Initialize realtime notification manager
+      realtimeNotificationManager.initialize(
+        studyRoomsManager,
+        friendsManager,
+        notificationTicker,
+        user.id
+      );
+
       // Set current user ID for study rooms UI components
       browseRoomsModal.setCurrentUserId(user.id);
       studyRoomView.setCurrentUserInfo(user.id, user.email, user.fullName || user.email);
@@ -833,6 +846,9 @@ function setupAuthUI(): void {
       // Clear study rooms manager
       studyRoomsManager.clear();
 
+      // Clear realtime notification manager
+      realtimeNotificationManager.clear();
+
       // Clear user ID from study rooms UI components
       browseRoomsModal.setCurrentUserId(null);
       studyRoomView.setCurrentUserId(null);
@@ -844,3 +860,40 @@ function setupAuthUI(): void {
     authScreen.show();
   });
 }
+
+// Debug helper for testing notifications
+(window as any).testNotification = () => {
+  console.log('🧪 Testing notification system...');
+
+  // Test 1: Check if notificationTicker is initialized
+  if (!notificationTicker) {
+    console.error('❌ notificationTicker is not defined');
+    return;
+  }
+  console.log('✅ notificationTicker is defined');
+
+  // Test 2: Check if container exists
+  const container = document.getElementById('notification-ticker-content');
+  if (!container) {
+    console.error('❌ notification-ticker-content element not found in DOM');
+    return;
+  }
+  console.log('✅ notification-ticker-content found in DOM');
+
+  // Test 3: Show a test notification
+  console.log('📢 Showing test notification...');
+  const id = notificationTicker.info('🎉 Test notification! If you see this, the UI is working.', 7000);
+  console.log('✅ Notification shown with ID:', id);
+
+  // Test 4: Check RealtimeNotificationManager
+  if (!realtimeNotificationManager) {
+    console.warn('⚠️ RealtimeNotificationManager not initialized (user may not be signed in)');
+  } else {
+    console.log('✅ RealtimeNotificationManager is initialized');
+  }
+
+  return '✅ Test complete - check if notification appeared';
+};
+
+// Log when ready
+console.log('💡 Debug helper ready. Run window.testNotification() in console to test notifications.');
