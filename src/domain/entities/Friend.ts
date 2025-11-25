@@ -8,6 +8,7 @@ export interface FriendData {
   readonly userId: string;
   readonly friendId: string;
   readonly friendEmail: string;
+  readonly friendUsername?: string; // Optional for existing users who haven't set it yet
   readonly friendFullName?: string;
   readonly friendAvatarUrl?: string;
   readonly createdAt: Date;
@@ -42,6 +43,7 @@ export class Friend {
     created_at: string | Date;
     // Joined user_profiles data
     email?: string;
+    username?: string;
     full_name?: string;
     avatar_url?: string;
     // Optional presence data
@@ -54,6 +56,7 @@ export class Friend {
       userId: row.user_id,
       friendId: row.friend_id,
       friendEmail: row.email || '',
+      friendUsername: row.username || '',
       friendFullName: row.full_name,
       friendAvatarUrl: row.avatar_url,
       createdAt: typeof row.created_at === 'string' ? new Date(row.created_at) : row.created_at,
@@ -82,6 +85,7 @@ export class Friend {
     if (!this.data.friendEmail) {
       throw new Error('Friend email is required');
     }
+    // Username is optional for existing users
     if (!this.data.createdAt) {
       throw new Error('Created at date is required');
     }
@@ -105,6 +109,10 @@ export class Friend {
 
   get friendEmail(): string {
     return this.data.friendEmail;
+  }
+
+  get friendUsername(): string | undefined {
+    return this.data.friendUsername;
   }
 
   get friendFullName(): string | undefined {
@@ -136,26 +144,47 @@ export class Friend {
   // ============================================================================
 
   /**
-   * Get display name for the friend (full name or email)
+   * Get display name for the friend (returns @username, or email if no username)
    */
   getDisplayName(): string {
-    if (this.data.friendFullName && this.data.friendFullName.trim()) {
-      return this.data.friendFullName;
+    if (this.data.friendUsername) {
+      return `@${this.data.friendUsername}`;
     }
-    return this.data.friendEmail;
+    // Fallback for users without username
+    return this.data.friendEmail.split('@')[0];
+  }
+
+  /**
+   * Get full display name with optional full name
+   * Returns: @username (Full Name), @username, or email-based display
+   */
+  getFullDisplayName(): string {
+    if (this.data.friendUsername) {
+      if (this.data.friendFullName && this.data.friendFullName.trim()) {
+        return `@${this.data.friendUsername} (${this.data.friendFullName})`;
+      }
+      return `@${this.data.friendUsername}`;
+    }
+    // Fallback for users without username
+    return this.data.friendFullName || this.data.friendEmail.split('@')[0];
   }
 
   /**
    * Get initials for avatar display
    */
   getInitials(): string {
-    const name = this.getDisplayName();
-    const parts = name.split(/[\s@]+/);
-
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (this.data.friendFullName) {
+      const parts = this.data.friendFullName.split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return this.data.friendFullName.substring(0, 2).toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    // Fallback to first two characters of username, or email if no username
+    if (this.data.friendUsername) {
+      return this.data.friendUsername.substring(0, 2).toUpperCase();
+    }
+    return this.data.friendEmail.substring(0, 2).toUpperCase();
   }
 
   /**

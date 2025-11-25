@@ -137,13 +137,14 @@ export class RendererSupabaseClient {
   /**
    * Sign up with email and password
    */
-  async signUpWithEmail(email: string, password: string, fullName?: string): Promise<AuthResult> {
+  async signUpWithEmail(email: string, password: string, username: string, fullName?: string): Promise<AuthResult> {
     try {
       const { data, error } = await this.client.auth.signUp({
         email,
         password,
         options: {
           data: {
+            username: username,
             full_name: fullName
           }
         }
@@ -327,6 +328,86 @@ export class RendererSupabaseClient {
   }
 
   /**
+   * Set username for existing user
+   * This runs in the renderer process where the auth session is properly maintained
+   */
+  async setUsername(username: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Validate username format
+      const usernameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_-]{2,19}$/;
+      if (!usernameRegex.test(username)) {
+        return {
+          success: false,
+          error: 'Invalid username format'
+        };
+      }
+
+      // Check if username is available
+      const { data: isAvailable, error: availabilityError } = await this.client.rpc('is_username_available', {
+        check_username: username
+      });
+
+      if (availabilityError) {
+        return {
+          success: false,
+          error: 'Failed to check username availability'
+        };
+      }
+
+      if (!isAvailable) {
+        return {
+          success: false,
+          error: 'Username is already taken or reserved'
+        };
+      }
+
+      // Get current user
+      const { data: { user }, error: userError } = await this.client.auth.getUser();
+
+      if (userError || !user) {
+        return {
+          success: false,
+          error: 'Not authenticated'
+        };
+      }
+
+      // Update user metadata with username
+      const { error: updateError } = await this.client.auth.updateUser({
+        data: {
+          username: username
+        }
+      });
+
+      if (updateError) {
+        return {
+          success: false,
+          error: updateError.message
+        };
+      }
+
+      // Update user_profiles table directly (in case trigger doesn't fire immediately)
+      const { error: profileError } = await this.client
+        .from('user_profiles')
+        .update({ username: username })
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.error('Error updating user profile:', profileError);
+        // Don't fail completely if profile update fails - metadata is source of truth
+        console.warn('Username set in metadata but profile update failed');
+      }
+
+      // Auth state change listener will automatically notify main process with updated user
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error setting username'
+      };
+    }
+  }
+
+  /**
    * Send password reset email
    * This runs in the renderer process where auth context exists
    */
@@ -400,6 +481,7 @@ export class RendererSupabaseClient {
     return {
       id: user.id,
       email: user.email!,
+      username: user.user_metadata?.username || undefined,
       fullName: user.user_metadata?.full_name || user.user_metadata?.name || undefined,
       avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined,
       googleId: user.app_metadata?.provider === 'google' ? user.id : undefined,

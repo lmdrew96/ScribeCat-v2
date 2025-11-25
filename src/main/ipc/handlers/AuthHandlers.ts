@@ -7,7 +7,8 @@ import {
   SignOutUseCase,
   GetCurrentUserUseCase
 } from '../../../application/use-cases/auth/index.js';
-import { SignInWithEmailParams, SignUpWithEmailParams } from '../../../shared/types.js';
+import { SetUsernameUseCase } from '../../../application/use-cases/auth/SetUsernameUseCase.js';
+import { SignInWithEmailParams, SignUpWithEmailParams, SetUsernameParams } from '../../../shared/types.js';
 import { SupabaseClient } from '../../../infrastructure/services/supabase/SupabaseClient.js';
 
 /**
@@ -79,6 +80,43 @@ export class AuthHandlers extends BaseHandler {
         success: true,
         accessToken
       };
+    });
+
+    // Check username availability
+    this.handle(ipcMain, 'auth:checkUsernameAvailability', async (event, username: string) => {
+      try {
+        const client = SupabaseClient.getInstance().getClient();
+        const { data, error } = await client.rpc('is_username_available', {
+          check_username: username
+        });
+
+        if (error) {
+          console.error('Username availability check error:', error);
+          return {
+            success: true,
+            available: false
+          };
+        }
+
+        return {
+          success: true,
+          available: data === true
+        };
+      } catch (error) {
+        console.error('Username availability check failed:', error);
+        return {
+          success: true,
+          available: false
+        };
+      }
+    });
+
+    // Set username for existing users
+    this.handle(ipcMain, 'auth:setUsername', async (event, username: string) => {
+      const params: SetUsernameParams = { username };
+      const setUsernameUseCase = new SetUsernameUseCase();
+      const result = await setUsernameUseCase.execute(params);
+      return result;
     });
   }
 }

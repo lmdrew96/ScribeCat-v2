@@ -40,15 +40,6 @@ export class AuthScreen {
 
       <!-- Email/Password Form -->
       <form id="auth-form" novalidate>
-        <div id="name-field" class="form-group hidden">
-          <label for="auth-name">Full Name</label>
-          <input
-            type="text"
-            id="auth-name"
-            placeholder="Your name"
-          />
-        </div>
-
         <div class="form-group">
           <label for="auth-email">Email</label>
           <input
@@ -56,6 +47,36 @@ export class AuthScreen {
             id="auth-email"
             placeholder="your@email.com"
             required
+          />
+        </div>
+
+        <div id="username-field" class="form-group hidden">
+          <label for="auth-username">Username</label>
+          <input
+            type="text"
+            id="auth-username"
+            placeholder="username"
+            minlength="3"
+            maxlength="20"
+            pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{2,19}"
+          />
+          <small id="username-hint" class="form-hint hidden">
+            3-20 characters, alphanumeric, underscore, or hyphen
+          </small>
+          <small id="username-available" class="form-hint form-hint-success hidden">
+            ✓ Username available
+          </small>
+          <small id="username-taken" class="form-hint form-hint-error hidden">
+            Username is already taken
+          </small>
+        </div>
+
+        <div id="name-field" class="form-group hidden">
+          <label for="auth-name">Full Name (Optional)</label>
+          <input
+            type="text"
+            id="auth-name"
+            placeholder="Your name"
           />
         </div>
 
@@ -154,6 +175,51 @@ export class AuthScreen {
       if (this.isSignUpMode) {
         passwordHint?.classList.remove('hidden');
       }
+    });
+
+    // Username validation
+    const usernameInput = this.modal?.querySelector('#auth-username') as HTMLInputElement;
+    const usernameHint = this.modal?.querySelector('#username-hint');
+    const usernameAvailable = this.modal?.querySelector('#username-available');
+    const usernameTaken = this.modal?.querySelector('#username-taken');
+
+    let usernameCheckTimeout: number | null = null;
+
+    usernameInput?.addEventListener('focus', () => {
+      if (this.isSignUpMode) {
+        usernameHint?.classList.remove('hidden');
+      }
+    });
+
+    usernameInput?.addEventListener('input', () => {
+      // Hide all feedback messages initially
+      usernameAvailable?.classList.add('hidden');
+      usernameTaken?.classList.add('hidden');
+
+      const username = usernameInput?.value.trim();
+      if (!username || username.length < 3) {
+        return;
+      }
+
+      // Validate format first
+      const usernameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_-]{2,19}$/;
+      if (!usernameRegex.test(username)) {
+        return;
+      }
+
+      // Debounced username availability check
+      if (usernameCheckTimeout) {
+        clearTimeout(usernameCheckTimeout);
+      }
+
+      usernameCheckTimeout = window.setTimeout(async () => {
+        const available = await this.checkUsernameAvailability(username);
+        if (available) {
+          usernameAvailable?.classList.remove('hidden');
+        } else {
+          usernameTaken?.classList.remove('hidden');
+        }
+      }, 500);
     });
   }
   /** Set up event listeners */
@@ -305,10 +371,12 @@ export class AuthScreen {
   private async handleFormSubmit(): Promise<void> {
     const emailInput = this.modal?.querySelector('#auth-email') as HTMLInputElement;
     const passwordInput = this.modal?.querySelector('#auth-password') as HTMLInputElement;
+    const usernameInput = this.modal?.querySelector('#auth-username') as HTMLInputElement;
     const nameInput = this.modal?.querySelector('#auth-name') as HTMLInputElement;
 
     const email = emailInput?.value.trim();
     const password = passwordInput?.value;
+    const username = usernameInput?.value.trim();
     const name = nameInput?.value.trim();
 
     if (!email || !password) {
@@ -316,16 +384,30 @@ export class AuthScreen {
       return;
     }
 
-    if (this.isSignUpMode && password.length < 8) {
-      this.showError('Password must be at least 8 characters');
-      return;
+    if (this.isSignUpMode) {
+      if (!username) {
+        this.showError('Username is required');
+        return;
+      }
+
+      if (password.length < 8) {
+        this.showError('Password must be at least 8 characters');
+        return;
+      }
+
+      // Validate username format
+      const usernameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_-]{2,19}$/;
+      if (!usernameRegex.test(username)) {
+        this.showError('Username must be 3-20 characters, start with alphanumeric, and contain only letters, numbers, underscores, or hyphens');
+        return;
+      }
     }
 
     this.showLoading(this.isSignUpMode ? 'Creating account...' : 'Signing in...');
 
     let result;
     if (this.isSignUpMode) {
-      result = await this.authManager.signUpWithEmail(email, password, name);
+      result = await this.authManager.signUpWithEmail(email, password, username, name);
     } else {
       result = await this.authManager.signInWithEmail(email, password);
     }
@@ -350,6 +432,7 @@ export class AuthScreen {
 
     const title = this.modal?.querySelector('#auth-title');
     const subtitle = this.modal?.querySelector('#auth-subtitle');
+    const usernameField = this.modal?.querySelector('#username-field');
     const nameField = this.modal?.querySelector('#name-field');
     const submitBtn = this.modal?.querySelector('#submit-btn');
     const toggleText = this.modal?.querySelector('#toggle-text');
@@ -358,6 +441,7 @@ export class AuthScreen {
     if (this.isSignUpMode) {
       if (title) title.textContent = 'Create Account';
       if (subtitle) subtitle.textContent = 'Join ScribeCat and sync your notes';
+      usernameField?.classList.remove('hidden');
       nameField?.classList.remove('hidden');
       if (submitBtn) submitBtn.textContent = 'Sign Up';
       if (toggleText) toggleText.textContent = 'Already have an account?';
@@ -365,6 +449,7 @@ export class AuthScreen {
     } else {
       if (title) title.textContent = 'Sign In to ScribeCat';
       if (subtitle) subtitle.textContent = 'Access cloud features and share your notes';
+      usernameField?.classList.add('hidden');
       nameField?.classList.add('hidden');
       if (submitBtn) submitBtn.textContent = 'Sign In';
       if (toggleText) toggleText.textContent = "Don't have an account?";
@@ -397,11 +482,28 @@ export class AuthScreen {
   private clearForm(): void {
     const emailInput = this.modal?.querySelector('#auth-email') as HTMLInputElement;
     const passwordInput = this.modal?.querySelector('#auth-password') as HTMLInputElement;
+    const usernameInput = this.modal?.querySelector('#auth-username') as HTMLInputElement;
     const nameInput = this.modal?.querySelector('#auth-name') as HTMLInputElement;
 
     if (emailInput) emailInput.value = '';
     if (passwordInput) passwordInput.value = '';
+    if (usernameInput) usernameInput.value = '';
     if (nameInput) nameInput.value = '';
+
+    // Hide all username feedback messages
+    this.modal?.querySelector('#username-available')?.classList.add('hidden');
+    this.modal?.querySelector('#username-taken')?.classList.add('hidden');
+  }
+
+  /** Check username availability */
+  private async checkUsernameAvailability(username: string): Promise<boolean> {
+    try {
+      const result = await window.scribeCat.auth.checkUsernameAvailability(username);
+      return result.available || false;
+    } catch (error) {
+      console.error('Failed to check username availability:', error);
+      return false;
+    }
   }
   /** Show error message */
   private showError(message: string): void {

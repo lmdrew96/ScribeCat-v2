@@ -302,11 +302,19 @@ export interface CanvasCourse {
 }
 
 /**
+ * Username validation constants
+ */
+export const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_-]{2,19}$/;
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 20;
+
+/**
  * User authentication and account types
  */
 export interface UserProfile {
   id: string;
   email: string;
+  username?: string; // Optional for existing users who haven't set it yet
   fullName?: string;
   avatarUrl?: string;
   googleId?: string;
@@ -330,7 +338,12 @@ export interface SignInWithEmailParams {
 export interface SignUpWithEmailParams {
   email: string;
   password: string;
+  username: string;
   fullName?: string;
+}
+
+export interface SetUsernameParams {
+  username: string;
 }
 
 export interface AuthResult {

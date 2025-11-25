@@ -4,16 +4,7 @@
  * Manages user authentication state and operations in the renderer process.
  */
 
-interface UserProfile {
-  id: string;
-  email: string;
-  fullName?: string;
-  avatarUrl?: string;
-  googleId?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  preferences?: Record<string, any>;
-}
+import type { UserProfile } from '../../shared/types.js';
 
 interface AuthResult {
   success: boolean;
@@ -25,6 +16,7 @@ interface AuthResult {
 export class AuthManager {
   private currentUser: UserProfile | null = null;
   private authStateListeners: Set<(user: UserProfile | null) => void> = new Set();
+  private setUsernameModal: any = null; // SetUsernameModal instance
 
   constructor() {
     // Check auth status on initialization
@@ -68,6 +60,7 @@ export class AuthManager {
         this.currentUser = {
           id: session.user.id,
           email: session.user.email!,
+          username: session.user.user_metadata?.username || undefined,
           fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name || undefined,
           avatarUrl: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || undefined,
           googleId: session.user.app_metadata?.provider === 'google' ? session.user.id : undefined,
@@ -76,6 +69,10 @@ export class AuthManager {
           preferences: session.user.user_metadata?.preferences || {}
         };
         this.notifyListeners();
+
+        // Check if username is missing and prompt user to set it
+        this.checkAndPromptForUsername();
+
         return true;
       } else {
         this.currentUser = null;
@@ -118,11 +115,11 @@ export class AuthManager {
    * Sign up with email and password
    * Uses RendererSupabaseClient directly since auth is handled in renderer
    */
-  async signUpWithEmail(email: string, password: string, fullName?: string): Promise<AuthResult> {
+  async signUpWithEmail(email: string, password: string, username: string, fullName?: string): Promise<AuthResult> {
     try {
       // Import and use RendererSupabaseClient directly
       const { RendererSupabaseClient } = await import('../services/RendererSupabaseClient.js');
-      const result = await RendererSupabaseClient.getInstance().signUpWithEmail(email, password, fullName);
+      const result = await RendererSupabaseClient.getInstance().signUpWithEmail(email, password, username, fullName);
 
       if (result.success && result.user) {
         this.currentUser = result.user;
@@ -227,10 +224,16 @@ export class AuthManager {
 
   /**
    * Get user display name
+   * Returns @username if available, otherwise email prefix
    */
   getUserDisplayName(): string {
     if (!this.currentUser) return 'Guest';
-    return this.currentUser.fullName || this.currentUser.email.split('@')[0];
+
+    if (this.currentUser.username) {
+      return `@${this.currentUser.username}`;
+    }
+
+    return this.currentUser.email.split('@')[0];
   }
 
   /**
@@ -245,6 +248,11 @@ export class AuthManager {
         return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
       }
       return this.currentUser.fullName.substring(0, 2).toUpperCase();
+    }
+
+    // Fallback to username or email
+    if (this.currentUser.username) {
+      return this.currentUser.username.substring(0, 2).toUpperCase();
     }
 
     return this.currentUser.email.substring(0, 2).toUpperCase();
@@ -274,6 +282,38 @@ export class AuthManager {
         listener(this.currentUser);
       } catch (error) {
         console.error('Error in auth state listener:', error);
+      }
+    });
+  }
+
+  /**
+   * Check if user needs to set username and prompt if necessary
+   * This is for existing users who signed up before username was required
+   */
+  private async checkAndPromptForUsername(): Promise<void> {
+    // Only prompt if user is authenticated and doesn't have a username
+    if (!this.currentUser || this.currentUser.username) {
+      return;
+    }
+
+    // Don't prompt if modal is already showing
+    if (this.setUsernameModal) {
+      return;
+    }
+
+    // Dynamically import SetUsernameModal to avoid circular dependencies
+    const { SetUsernameModal } = await import('../components/SetUsernameModal.js');
+
+    // Create and show the modal
+    this.setUsernameModal = new SetUsernameModal();
+    this.setUsernameModal.show(async (username: string) => {
+      // After username is set, refresh the user data
+      await this.checkAuthStatus();
+
+      // Clean up modal reference
+      if (this.setUsernameModal) {
+        this.setUsernameModal.destroy();
+        this.setUsernameModal = null;
       }
     });
   }

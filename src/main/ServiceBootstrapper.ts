@@ -46,6 +46,13 @@ import {
   GetSharedSessionsUseCase,
   AcceptShareInvitationUseCase
 } from '../application/use-cases/sharing/index.js';
+import {
+  SignInWithEmailUseCase,
+  SignUpWithEmailUseCase,
+  SignInWithGoogleUseCase,
+  SignOutUseCase,
+  GetCurrentUserUseCase
+} from '../application/use-cases/auth/index.js';
 import { RecordingManager } from './recording-manager.js';
 import type { GoogleDriveConfig } from '../shared/types.js';
 import Store from 'electron-store';
@@ -88,6 +95,13 @@ export interface Services {
   getSessionSharesUseCase: GetSessionSharesUseCase;
   getSharedSessionsUseCase: GetSharedSessionsUseCase;
   acceptShareInvitationUseCase: AcceptShareInvitationUseCase;
+
+  // Auth use cases
+  signInWithEmailUseCase: SignInWithEmailUseCase;
+  signUpWithEmailUseCase: SignUpWithEmailUseCase;
+  signInWithGoogleUseCase: SignInWithGoogleUseCase;
+  signOutUseCase: SignOutUseCase;
+  getCurrentUserUseCase: GetCurrentUserUseCase;
 
   // Managers
   syncManager: SyncManager | null;
@@ -140,6 +154,7 @@ export class ServiceBootstrapper {
     // Initialize use cases
     this.initializeUseCases();
     this.initializeSharingUseCases();
+    this.initializeAuthUseCases();
 
     // Initialize sync manager
     this.initializeSyncManager();
@@ -301,6 +316,20 @@ export class ServiceBootstrapper {
     this.services.acceptShareInvitationUseCase = new AcceptShareInvitationUseCase(shareRepo);
 
     console.log('Sharing use cases initialized');
+  }
+
+  /**
+   * Initialize auth use cases
+   */
+  private initializeAuthUseCases(): void {
+    // Auth use cases always available (they handle authentication)
+    this.services.signInWithEmailUseCase = new SignInWithEmailUseCase();
+    this.services.signUpWithEmailUseCase = new SignUpWithEmailUseCase();
+    this.services.signInWithGoogleUseCase = new SignInWithGoogleUseCase();
+    this.services.signOutUseCase = new SignOutUseCase();
+    this.services.getCurrentUserUseCase = new GetCurrentUserUseCase();
+
+    console.log('Auth use cases initialized');
   }
 
   /**

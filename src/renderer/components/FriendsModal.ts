@@ -92,11 +92,11 @@ export class FriendsModal {
             <div class="friends-tab-content" data-tab-content="find" style="display: none;">
               <div class="find-friends-search">
                 <div class="form-group">
-                  <label for="find-friends-email">Search by email</label>
+                  <label for="find-friends-email">Search by username or email</label>
                   <input
-                    type="email"
+                    type="text"
                     id="find-friends-email"
-                    placeholder="friend@example.com"
+                    placeholder="@username or email"
                     autocomplete="off"
                   />
                 </div>
@@ -104,7 +104,7 @@ export class FriendsModal {
               </div>
 
               <div id="find-friends-results" class="find-friends-results">
-                <p class="empty-state">Enter an email to find friends</p>
+                <p class="empty-state">Enter a username or email to find friends</p>
               </div>
             </div>
           </div>
@@ -276,8 +276,9 @@ export class FriendsModal {
       if (a.isOnline !== b.isOnline) {
         return a.isOnline ? -1 : 1;
       }
-      const nameA = a.friendFullName || a.friendEmail;
-      const nameB = b.friendFullName || b.friendEmail;
+      // Sort by username, fallback to email if no username
+      const nameA = a.friendUsername || a.friendEmail.split('@')[0];
+      const nameB = b.friendUsername || b.friendEmail.split('@')[0];
       return nameA.localeCompare(nameB);
     });
 
@@ -300,8 +301,14 @@ export class FriendsModal {
    * Render a single friend item
    */
   private renderFriendItem(friend: FriendData): string {
-    const displayName = friend.friendFullName || friend.friendEmail;
-    const initials = this.getInitials(displayName);
+    // Primary display: @username (or email if no username for existing users)
+    const primaryDisplay = friend.friendUsername ? `@${friend.friendUsername}` : friend.friendEmail.split('@')[0];
+    // Secondary display in status line if full name available
+    const fullName = friend.friendFullName || '';
+
+    // For initials, use full name if available, otherwise username or email
+    const initialsSource = friend.friendFullName || friend.friendUsername || friend.friendEmail;
+    const initials = this.getInitials(initialsSource);
 
     // Determine online status indicator
     const statusIndicator = this.getStatusIndicator(friend);
@@ -313,13 +320,13 @@ export class FriendsModal {
       <div class="friend-item" data-friend-id="${friend.friendId}">
         <div class="friend-avatar">
           ${friend.friendAvatarUrl ?
-            `<img src="${escapeHtml(friend.friendAvatarUrl)}" alt="${escapeHtml(displayName)}" />` :
+            `<img src="${escapeHtml(friend.friendAvatarUrl)}" alt="${escapeHtml(primaryDisplay)}" />` :
             `<div class="avatar-placeholder">${escapeHtml(initials)}</div>`
           }
           ${statusIndicator}
         </div>
         <div class="friend-info">
-          <div class="friend-name">${escapeHtml(displayName)}</div>
+          <div class="friend-name">${escapeHtml(primaryDisplay)}${fullName ? ` <span class="friend-fullname">(${escapeHtml(fullName)})</span>` : ''}</div>
           <div class="friend-status ${friend.isOnline ? 'status-online' : 'status-offline'}">${escapeHtml(statusText)}</div>
         </div>
         <div class="friend-actions">
@@ -671,8 +678,15 @@ export class FriendsModal {
    * Render a single search result
    */
   private renderSearchResult(user: SearchUserResult): string {
-    const displayName = user.fullName || user.email;
-    const initials = this.getInitials(displayName);
+    // Primary display: @username (or email if no username for existing users)
+    const primaryDisplay = user.username ? `@${user.username}` : user.email.split('@')[0];
+    // Secondary display: Full name if available
+    const secondaryDisplay = user.fullName || '';
+
+    // For initials, use full name if available, otherwise username or email
+    const initialsSource = user.fullName || user.username || user.email;
+    const initials = this.getInitials(initialsSource);
+
     let actionButton = '';
 
     if (user.isFriend) {
@@ -687,13 +701,13 @@ export class FriendsModal {
       <div class="search-result-item" data-user-id="${user.id}">
         <div class="search-result-avatar">
           ${user.avatarUrl ?
-            `<img src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(displayName)}" />` :
+            `<img src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(primaryDisplay)}" />` :
             `<div class="avatar-placeholder">${escapeHtml(initials)}</div>`
           }
         </div>
         <div class="search-result-info">
-          <div class="search-result-name">${escapeHtml(displayName)}</div>
-          <div class="search-result-email">${escapeHtml(user.email)}</div>
+          <div class="search-result-name">${escapeHtml(primaryDisplay)}</div>
+          ${secondaryDisplay ? `<div class="search-result-email">${escapeHtml(secondaryDisplay)}</div>` : ''}
         </div>
         <div class="search-result-actions">
           ${actionButton}

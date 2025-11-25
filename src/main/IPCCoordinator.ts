@@ -17,6 +17,7 @@ import { SessionHandlers } from './ipc/handlers/SessionHandlers.js';
 import { AudioHandlers } from './ipc/handlers/AudioHandlers.js';
 import { TranscriptionHandlers } from './ipc/handlers/TranscriptionHandlers.js';
 import { AIHandlers } from './ipc/handlers/AIHandlers.js';
+import { AuthHandlers } from './ipc/handlers/AuthHandlers.js';
 import { DriveHandlers } from './ipc/handlers/DriveHandlers.js';
 import { SettingsHandlers } from './ipc/handlers/SettingsHandlers.js';
 import { DialogHandlers } from './ipc/handlers/DialogHandlers.js';
@@ -96,6 +97,15 @@ export class IPCCoordinator {
     registry.add(new AIHandlers(
       () => this.services.aiService,
       this.getMainWindow
+    ));
+
+    // Add auth handlers
+    registry.add(new AuthHandlers(
+      this.services.signInWithEmailUseCase,
+      this.services.signUpWithEmailUseCase,
+      this.services.signInWithGoogleUseCase,
+      this.services.signOutUseCase,
+      this.services.getCurrentUserUseCase
     ));
 
     this.driveHandlers = new DriveHandlers(

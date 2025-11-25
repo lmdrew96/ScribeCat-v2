@@ -13,6 +13,7 @@ import { FriendRequest, FriendRequestStatus } from '../../../domain/entities/Fri
 export interface SearchUserResult {
   id: string;
   email: string;
+  username?: string; // Optional for existing users who haven't set it yet
   fullName?: string;
   avatarUrl?: string;
   isFriend: boolean;
@@ -60,6 +61,7 @@ export class SupabaseFriendsRepository {
           created_at,
           friend_profile:user_profiles!friendships_friend_id_fkey (
             email,
+            username,
             full_name,
             avatar_url
           )
@@ -84,6 +86,7 @@ export class SupabaseFriendsRepository {
           friend_id: row.friend_id,
           created_at: row.created_at,
           email: profile?.email || '',
+          username: profile?.username,
           full_name: profile?.full_name,
           avatar_url: profile?.avatar_url,
         });
@@ -454,16 +457,16 @@ export class SupabaseFriendsRepository {
   // ============================================================================
 
   /**
-   * Search for users by email
+   * Search for users by username or email
    * Returns users with their friend/request status relative to the searching user
    */
   async searchUsersByEmail(searchEmail: string, currentUserId: string, limit: number = 20): Promise<SearchUserResult[]> {
     try {
-      // Search for users by email (case-insensitive partial match)
+      // Search for users by username or email (case-insensitive partial match)
       const { data: users, error: usersError } = await this.getClient()
         .from('user_profiles')
-        .select('id, email, full_name, avatar_url')
-        .ilike('email', `%${searchEmail}%`)
+        .select('id, email, username, full_name, avatar_url')
+        .or(`username.ilike.%${searchEmail}%,email.ilike.%${searchEmail}%`)
         .neq('id', currentUserId) // Exclude current user
         .limit(limit);
 
@@ -509,6 +512,7 @@ export class SupabaseFriendsRepository {
       const results: SearchUserResult[] = users.map(user => ({
         id: user.id,
         email: user.email,
+        username: user.username,
         fullName: user.full_name,
         avatarUrl: user.avatar_url,
         isFriend: friendIds.has(user.id),
@@ -529,7 +533,7 @@ export class SupabaseFriendsRepository {
     try {
       const { data, error } = await this.getClient()
         .from('user_profiles')
-        .select('id, email, full_name, avatar_url')
+        .select('id, email, username, full_name, avatar_url')
         .eq('id', userId)
         .single();
 
@@ -545,6 +549,7 @@ export class SupabaseFriendsRepository {
       return {
         id: data.id,
         email: data.email,
+        username: data.username,
         fullName: data.full_name,
         avatarUrl: data.avatar_url,
         isFriend: false,
