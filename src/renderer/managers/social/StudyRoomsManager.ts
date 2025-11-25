@@ -32,6 +32,7 @@ export class StudyRoomsManager {
   private invitationsListeners: Set<InvitationsChangeListener> = new Set();
 
   private realtimeChannel: RealtimeChannel | null = null;
+  private invitationChannel: RealtimeChannel | null = null;
   private invitationUnsubscribe: (() => void) | null = null;
 
   // Debounce timers to prevent cascade reloads
@@ -628,22 +629,130 @@ export class StudyRoomsManager {
    */
   private async subscribeToInvitations(): Promise<void> {
     try {
-      logger.info('🔔 Setting up realtime invitation subscription for user:', this.userId);
-      console.log('🔔 StudyRoomsManager: Starting invitation subscription setup...');
+      logger.info('🔔 Setting up realtime invitation subscription for user:', this.currentUserId);
+      console.log('🔔 StudyRoomsManager: Starting DIRECT Supabase subscription in renderer...');
 
-      this.invitationUnsubscribe = await window.scribeCat.studyRooms.subscribeToInvitations(
-        (invitation, eventType) => {
-          logger.info('🎯 Received invitation event:', eventType, invitation);
-          console.log('🎯 StudyRoomsManager: Invitation event received!', { eventType, invitation });
-          this.handleInvitationChange(invitation, eventType);
+      if (!this.currentUserId) {
+        console.error('❌ No user ID available for subscription');
+        return;
+      }
+
+      // Use the renderer Supabase client directly for realtime
+      const rendererClient = RendererSupabaseClient.getInstance();
+      const client = rendererClient.getClient();
+
+      if (!client) {
+        console.error('❌ No Supabase client available in renderer');
+        return;
+      }
+
+      const channelName = `study-room-invitations:${this.currentUserId}`;
+
+      // Remove any existing subscription
+      if (this.invitationChannel) {
+        console.log('🔄 Removing existing invitation channel');
+        this.invitationChannel.unsubscribe();
+        client.removeChannel(this.invitationChannel);
+        this.invitationChannel = null;
+      }
+
+      console.log('📡 Creating direct Supabase realtime channel in renderer process');
+
+      // Create the realtime channel
+      this.invitationChannel = client
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'room_invitations',
+            filter: `invitee_id=eq.${this.currentUserId}`,
+          },
+          (payload) => {
+            console.log('🔥 NEW INVITATION REALTIME EVENT IN RENDERER:', payload);
+
+            // Convert payload to RoomInvitationData
+            const invitation: RoomInvitationData = {
+              id: payload.new.id,
+              roomId: payload.new.room_id,
+              roomName: payload.new.room_name,
+              inviterId: payload.new.inviter_id,
+              inviterEmail: payload.new.inviter_email,
+              inviterFullName: payload.new.inviter_full_name,
+              inviteeId: payload.new.invitee_id,
+              inviteeEmail: payload.new.invitee_email,
+              inviteeFullName: payload.new.invitee_full_name,
+              status: payload.new.status,
+              createdAt: payload.new.created_at,
+              updatedAt: payload.new.updated_at,
+            };
+
+            this.handleInvitationChange(invitation, 'INSERT');
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'room_invitations',
+            filter: `invitee_id=eq.${this.currentUserId}`,
+          },
+          (payload) => {
+            console.log('🔥 INVITATION UPDATE REALTIME EVENT IN RENDERER:', payload);
+
+            // Convert payload to RoomInvitationData
+            const invitation: RoomInvitationData = {
+              id: payload.new.id,
+              roomId: payload.new.room_id,
+              roomName: payload.new.room_name,
+              inviterId: payload.new.inviter_id,
+              inviterEmail: payload.new.inviter_email,
+              inviterFullName: payload.new.inviter_full_name,
+              inviteeId: payload.new.invitee_id,
+              inviteeEmail: payload.new.invitee_email,
+              inviteeFullName: payload.new.invitee_full_name,
+              status: payload.new.status,
+              createdAt: payload.new.created_at,
+              updatedAt: payload.new.updated_at,
+            };
+
+            this.handleInvitationChange(invitation, 'UPDATE');
+          }
+        );
+
+      // Subscribe and log status
+      this.invitationChannel.subscribe((status, err) => {
+        console.log('📡 Renderer invitation subscription status:', status);
+        if (err) {
+          console.error('❌ Renderer subscription error:', err);
         }
-      );
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to invitations in RENDERER process');
+          console.log('✅ Realtime WebSocket is now active and waiting for events');
+          console.log('📊 Current invitations in manager:', this.invitations);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error in renderer subscription');
+        } else if (status === 'TIMED_OUT') {
+          console.error('⏱️ Subscription timed out in renderer');
+        } else if (status === 'CLOSED') {
+          console.log('🔒 Subscription channel closed');
+        }
+      });
 
-      logger.info('✅ Subscribed to invitation real-time updates successfully');
-      console.log('✅ StudyRoomsManager: Subscription setup complete');
+      // Store unsubscribe function for cleanup
+      this.invitationUnsubscribe = () => {
+        if (this.invitationChannel) {
+          console.log('🔒 Unsubscribing from invitations');
+          this.invitationChannel.unsubscribe();
+          client.removeChannel(this.invitationChannel);
+          this.invitationChannel = null;
+        }
+      };
 
-      // Log current invitations for debugging
-      console.log('📊 Current invitations in manager:', this.invitations);
+      logger.info('✅ Direct Supabase subscription initiated in renderer');
+      console.log('✅ StudyRoomsManager: Direct renderer subscription setup complete');
     } catch (error) {
       logger.error('❌ Exception subscribing to invitation changes:', error);
       console.error('❌ StudyRoomsManager: Failed to subscribe to invitations:', error);
