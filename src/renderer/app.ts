@@ -895,5 +895,41 @@ function setupAuthUI(): void {
   return '✅ Test complete - check if notification appeared';
 };
 
+// Debug helper to manually trigger invitation refresh
+(window as any).debugInvitations = () => {
+  console.log('🔍 Debugging invitation system...');
+
+  if (!studyRoomsManager) {
+    console.error('❌ StudyRoomsManager not initialized');
+    return;
+  }
+
+  console.log('📊 Current invitations:', studyRoomsManager.getInvitations());
+  console.log('🔄 Manually refreshing invitations...');
+
+  // Force refresh invitations
+  window.scribeCat.studyRooms.getMyInvitations().then((invitations) => {
+    console.log('📨 Fresh invitations from database:', invitations);
+
+    // Check if any are new
+    const currentIds = new Set(studyRoomsManager.getInvitations().map(i => i.id));
+    const newInvitations = invitations.filter(i => !currentIds.has(i.id));
+
+    if (newInvitations.length > 0) {
+      console.log('🆕 New invitations found:', newInvitations);
+      console.log('⚠️ These invitations were NOT delivered via realtime!');
+      console.log('⚠️ This confirms Supabase realtime is not working.');
+    } else {
+      console.log('✅ No new invitations found');
+    }
+  }).catch(err => {
+    console.error('❌ Error fetching invitations:', err);
+  });
+
+  return 'Check console for results...';
+};
+
 // Log when ready
-console.log('💡 Debug helper ready. Run window.testNotification() in console to test notifications.');
+console.log('💡 Debug helpers ready:');
+console.log('  - window.testNotification() - Test notification UI');
+console.log('  - window.debugInvitations() - Check for missed realtime invitations');

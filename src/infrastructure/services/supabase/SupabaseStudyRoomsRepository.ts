@@ -989,21 +989,37 @@ export class SupabaseStudyRoomsRepository {
       );
 
     channel.subscribe((status, err) => {
-      console.log(`Invitation subscription status for user ${userId}:`, status);
+      console.log(`📡 Invitation subscription status for user ${userId}:`, status);
+      console.log(`📡 Full subscription details:`, {
+        status,
+        error: err,
+        channelName,
+        hasAuth: !!client.auth.session?.access_token,
+        authUserId: client.auth.session?.user?.id,
+        filter: `invitee_id=eq.${userId}`,
+        timestamp: new Date().toISOString()
+      });
+
       if (err) {
-        console.error(`Invitation subscription error details:`, err);
+        console.error(`❌ Invitation subscription error details:`, err);
       }
       if (status === 'SUBSCRIBED') {
-        console.log(`Successfully subscribed to invitations for user ${userId}`);
-        console.log(`🔍 Channel config:`, {
-          channelName,
-          hasAuth: !!client.auth.session?.access_token,
-          authUserId: client.auth.session?.user?.id
-        });
+        console.log(`✅ Successfully subscribed to invitations for user ${userId}`);
+        console.log(`✅ Channel is ready to receive realtime events`);
+
+        // Test the database for realtime capability
+        console.log(`🔍 Testing realtime capability - waiting for INSERT/UPDATE events on room_invitations table`);
+        console.log(`🔍 Filter: invitee_id=eq.${userId}`);
+        console.log(`🔍 If no events appear when invitations are sent, check:`);
+        console.log(`   1. Migration 045_enable_realtime_for_notifications.sql was applied`);
+        console.log(`   2. Table 'room_invitations' has REPLICA IDENTITY FULL`);
+        console.log(`   3. Table 'room_invitations' is in supabase_realtime publication`);
       } else if (status === 'TIMED_OUT') {
-        console.error(`Invitation subscription timed out for user ${userId}`);
+        console.error(`⏱️ Invitation subscription timed out for user ${userId}`);
       } else if (status === 'CHANNEL_ERROR') {
-        console.error(`Invitation subscription error for user ${userId}`);
+        console.error(`❌ Invitation subscription channel error for user ${userId}`);
+      } else if (status === 'CLOSED') {
+        console.warn(`🔒 Invitation subscription closed for user ${userId}`);
       }
     });
 
