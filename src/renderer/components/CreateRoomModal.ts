@@ -6,16 +6,22 @@
  */
 
 import type { StudyRoomsManager } from '../managers/social/StudyRoomsManager.js';
+import type { FriendsManager } from '../managers/social/FriendsManager.js';
+import type { FriendData } from '../../domain/entities/Friend.js';
 import { escapeHtml } from '../utils/formatting.js';
 
 export class CreateRoomModal {
   private modal: HTMLElement | null = null;
   private studyRoomsManager: StudyRoomsManager;
+  private friendsManager: FriendsManager;
   private sessions: any[] = [];
+  private friends: FriendData[] = [];
+  private selectedFriendIds: Set<string> = new Set();
   private onSuccess?: (roomId: string) => void;
 
-  constructor(studyRoomsManager: StudyRoomsManager) {
+  constructor(studyRoomsManager: StudyRoomsManager, friendsManager: FriendsManager) {
     this.studyRoomsManager = studyRoomsManager;
+    this.friendsManager = friendsManager;
   }
 
   /**
@@ -58,6 +64,29 @@ export class CreateRoomModal {
                   <option value="">No session (just chat and collaborate)</option>
                 </select>
                 <small>Optional: Share a session for friends to study together</small>
+              </div>
+
+              <div class="form-group invite-friends-section">
+                <div class="invite-friends-header">
+                  <label>Invite Friends (Optional)</label>
+                  <button type="button" id="toggle-invite-section" class="toggle-btn">
+                    <span id="toggle-icon">▶</span>
+                  </button>
+                </div>
+                <small>Select friends to invite to this room</small>
+
+                <div id="invite-friends-content" class="invite-friends-content" style="display: none;">
+                  <div class="invite-friends-actions">
+                    <button type="button" id="select-all-friends" class="btn-link">Select All</button>
+                    <span class="divider">|</span>
+                    <button type="button" id="clear-all-friends" class="btn-link">Clear</button>
+                    <span id="selected-count" class="selected-count">0 selected</span>
+                  </div>
+
+                  <div id="friends-list" class="friends-checkbox-list">
+                    <div class="loading">Loading friends...</div>
+                  </div>
+                </div>
               </div>
 
               <div class="form-group">
@@ -117,6 +146,18 @@ export class CreateRoomModal {
       }
     });
 
+    // Toggle invite friends section
+    const toggleBtn = document.getElementById('toggle-invite-section');
+    toggleBtn?.addEventListener('click', () => this.toggleInviteSection());
+
+    // Select all friends
+    const selectAllBtn = document.getElementById('select-all-friends');
+    selectAllBtn?.addEventListener('click', () => this.selectAllFriends());
+
+    // Clear all friends
+    const clearAllBtn = document.getElementById('clear-all-friends');
+    clearAllBtn?.addEventListener('click', () => this.clearAllFriends());
+
     // Form submission
     const form = document.getElementById('create-room-form') as HTMLFormElement;
     form?.addEventListener('submit', async (e) => {
@@ -134,8 +175,9 @@ export class CreateRoomModal {
     this.onSuccess = onSuccess;
     this.modal.style.display = 'flex';
 
-    // Load sessions
+    // Load sessions and friends
     await this.loadSessions();
+    this.loadFriends();
 
     // Reset form
     const form = document.getElementById('create-room-form') as HTMLFormElement;
@@ -153,6 +195,21 @@ export class CreateRoomModal {
     if (valueDisplay) {
       valueDisplay.textContent = '4';
     }
+
+    // Reset friend selection
+    this.selectedFriendIds.clear();
+    this.updateSelectedCount();
+
+    // Uncheck all friend checkboxes
+    document.querySelectorAll('#friends-list input[type="checkbox"]').forEach(checkbox => {
+      (checkbox as HTMLInputElement).checked = false;
+    });
+
+    // Collapse invite section
+    const inviteContent = document.getElementById('invite-friends-content');
+    const toggleIcon = document.getElementById('toggle-icon');
+    if (inviteContent) inviteContent.style.display = 'none';
+    if (toggleIcon) toggleIcon.textContent = '▶';
 
     // Hide message
     this.hideMessage();
@@ -210,6 +267,204 @@ export class CreateRoomModal {
   }
 
   /**
+   * Load friends list
+   */
+  private loadFriends(): void {
+    this.friends = this.friendsManager.getFriends();
+    this.renderFriendsList();
+  }
+
+  /**
+   * Render friends list with checkboxes
+   */
+  private renderFriendsList(): void {
+    const container = document.getElementById('friends-list');
+    if (!container) return;
+
+    if (this.friends.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <p>You don't have any friends to invite yet.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = this.friends
+      .map(friend => this.renderFriendCheckbox(friend))
+      .join('');
+
+    // Attach checkbox listeners
+    this.attachFriendCheckboxListeners();
+  }
+
+  /**
+   * Render a single friend checkbox item
+   */
+  private renderFriendCheckbox(friend: FriendData): string {
+    const displayName = friend.friendFullName || friend.friendEmail;
+    const username = friend.friendUsername ? `@${friend.friendUsername}` : '';
+    const initials = this.getInitials(displayName);
+    const isOnline = friend.isOnline ?? false;
+    const statusClass = isOnline ? 'online' : 'offline';
+    const isChecked = this.selectedFriendIds.has(friend.friendId);
+
+    return `
+      <div class="friend-checkbox-item">
+        <input
+          type="checkbox"
+          id="friend-${friend.friendId}"
+          data-friend-id="${friend.friendId}"
+          ${isChecked ? 'checked' : ''}
+        />
+        <label for="friend-${friend.friendId}">
+          <div class="friend-avatar-container">
+            <div class="friend-avatar">${initials}</div>
+            <span class="status-indicator ${statusClass}"></span>
+          </div>
+          <div class="friend-info">
+            <p class="friend-name">${escapeHtml(displayName)}</p>
+            <p class="friend-username">${escapeHtml(username || friend.friendEmail)}</p>
+          </div>
+        </label>
+      </div>
+    `;
+  }
+
+  /**
+   * Get initials from name
+   */
+  private getInitials(name: string): string {
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  /**
+   * Attach checkbox listeners
+   */
+  private attachFriendCheckboxListeners(): void {
+    document.querySelectorAll('#friends-list input[type="checkbox"]').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        const friendId = target.dataset.friendId;
+        if (!friendId) return;
+
+        if (target.checked) {
+          this.selectedFriendIds.add(friendId);
+        } else {
+          this.selectedFriendIds.delete(friendId);
+        }
+
+        this.updateSelectedCount();
+      });
+    });
+  }
+
+  /**
+   * Toggle invite friends section
+   */
+  private toggleInviteSection(): void {
+    const content = document.getElementById('invite-friends-content');
+    const icon = document.getElementById('toggle-icon');
+
+    if (!content || !icon) return;
+
+    const isVisible = content.style.display !== 'none';
+    content.style.display = isVisible ? 'none' : 'block';
+    icon.textContent = isVisible ? '▶' : '▼';
+  }
+
+  /**
+   * Select all friends
+   */
+  private selectAllFriends(): void {
+    this.friends.forEach(friend => {
+      this.selectedFriendIds.add(friend.friendId);
+    });
+
+    // Update all checkboxes
+    document.querySelectorAll('#friends-list input[type="checkbox"]').forEach(checkbox => {
+      (checkbox as HTMLInputElement).checked = true;
+    });
+
+    this.updateSelectedCount();
+  }
+
+  /**
+   * Clear all friend selections
+   */
+  private clearAllFriends(): void {
+    this.selectedFriendIds.clear();
+
+    // Update all checkboxes
+    document.querySelectorAll('#friends-list input[type="checkbox"]').forEach(checkbox => {
+      (checkbox as HTMLInputElement).checked = false;
+    });
+
+    this.updateSelectedCount();
+  }
+
+  /**
+   * Update selected count display
+   */
+  private updateSelectedCount(): void {
+    const countEl = document.getElementById('selected-count');
+    if (!countEl) return;
+
+    const count = this.selectedFriendIds.size;
+    countEl.textContent = `${count} selected`;
+  }
+
+  /**
+   * Send invitations to selected friends
+   */
+  private async sendInvitations(roomId: string): Promise<void> {
+    const friendIds = Array.from(this.selectedFriendIds);
+    const results = { succeeded: 0, failed: 0 };
+
+    console.log(`Sending invitations to ${friendIds.length} friends for room ${roomId}`);
+
+    // Send invitations sequentially (could be parallel with Promise.all but sequential is safer)
+    for (const friendId of friendIds) {
+      try {
+        console.log(`Sending invitation to friend: ${friendId}`);
+        await this.studyRoomsManager.sendInvitation(roomId, friendId);
+        results.succeeded++;
+        console.log(`Successfully sent invitation to friend: ${friendId}`);
+      } catch (error) {
+        console.error(`Failed to invite friend ${friendId}:`, error);
+        results.failed++;
+      }
+    }
+
+    console.log(`Invitation results: ${results.succeeded} succeeded, ${results.failed} failed`);
+
+    // Show feedback if there were any failures
+    if (results.failed > 0 && results.succeeded === 0) {
+      // All failed
+      this.showMessage(
+        `Room created but failed to send invitations (${results.failed} failed)`,
+        'error'
+      );
+    } else if (results.failed > 0) {
+      // Some failed
+      this.showMessage(
+        `Room created! Invited ${results.succeeded} friend${results.succeeded !== 1 ? 's' : ''}, ${results.failed} failed`,
+        'success'
+      );
+    } else if (results.succeeded > 0) {
+      // All succeeded - show success message
+      this.showMessage(
+        `Room created! Invited ${results.succeeded} friend${results.succeeded !== 1 ? 's' : ''}`,
+        'success'
+      );
+    }
+  }
+
+  /**
    * Handle room creation
    */
   private async handleCreateRoom(): Promise<void> {
@@ -247,6 +502,12 @@ export class CreateRoomModal {
         sessionId: sessionId || null, // null if no session selected
         maxParticipants: maxParticipants,
       });
+
+      // Send invitations if any friends were selected
+      if (this.selectedFriendIds.size > 0) {
+        createBtn.textContent = 'Inviting friends...';
+        await this.sendInvitations(room.id);
+      }
 
       this.showMessage('Room created successfully!', 'success');
 

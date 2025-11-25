@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize study rooms system
   studyRoomsManager = new StudyRoomsManager();
-  createRoomModal = new CreateRoomModal(studyRoomsManager);
+  createRoomModal = new CreateRoomModal(studyRoomsManager, friendsManager);
   createRoomModal.initialize();
   browseRoomsModal = new BrowseRoomsModal(studyRoomsManager);
   browseRoomsModal.initialize();
