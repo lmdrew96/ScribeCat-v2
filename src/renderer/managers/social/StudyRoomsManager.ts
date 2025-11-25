@@ -798,7 +798,7 @@ export class StudyRoomsManager {
         }
       }
 
-      console.log('🔔 Notifying', this.invitationListeners.length, 'invitation listeners');
+      console.log('🔔 Notifying', this.invitationsListeners.size, 'invitation listeners');
       this.notifyInvitationsListeners();
     } catch (error) {
       logger.error('Error handling invitation change:', error);
