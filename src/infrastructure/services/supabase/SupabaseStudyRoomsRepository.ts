@@ -5,7 +5,7 @@
  * Handles rooms, participants, and invitations using Supabase.
  */
 
-import { SupabaseClient as SupabaseClientType } from '@supabase/supabase-js';
+import { SupabaseClient as SupabaseClientType, RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseClient } from './SupabaseClient.js';
 import { StudyRoom } from '../../../domain/entities/StudyRoom.js';
 import { RoomParticipant } from '../../../domain/entities/RoomParticipant.js';
@@ -15,11 +15,21 @@ import { RoomInvitation, RoomInvitationStatus } from '../../../domain/entities/R
  * Repository for managing study rooms
  */
 export class SupabaseStudyRoomsRepository {
+  private channels: Map<string, RealtimeChannel> = new Map();
+
   /**
    * Get a fresh Supabase client with the current session
    */
   private getClient(): SupabaseClientType {
     return SupabaseClient.getInstance().getClient();
+  }
+
+  /**
+   * Get the base Supabase client for Realtime subscriptions
+   * This client has setSession() called on it for proper auth context
+   */
+  private getRealtimeClient(): SupabaseClientType {
+    return SupabaseClient.getInstance().getRealtimeClient();
   }
 
   // ============================================================================
@@ -897,5 +907,186 @@ export class SupabaseStudyRoomsRepository {
       console.error('Exception in cancelInvitation:', error);
       throw error;
     }
+  }
+
+  // ============================================================================
+  // Realtime Subscriptions
+  // ============================================================================
+
+  /**
+   * Subscribe to room invitations for a specific user
+   * Listens for INSERT and UPDATE events on room_invitations table
+   */
+  public subscribeToUserInvitations(
+    userId: string,
+    onInvitation: (invitation: RoomInvitation, event: 'INSERT' | 'UPDATE') => void
+  ): () => void {
+    const channelName = `user-invitations:${userId}`;
+    const client = this.getRealtimeClient();
+
+    console.log('📡 Creating Realtime invitation subscription for user:', userId);
+    console.log('🔑 Auth token present:', !!SupabaseClient.getInstance().getAccessToken());
+
+    // Remove existing subscription if any (prevents duplicates)
+    const existingChannel = this.channels.get(channelName);
+    if (existingChannel) {
+      console.log(`Removing existing invitation subscription for user ${userId}`);
+      existingChannel.unsubscribe().catch(err =>
+        console.error('Error unsubscribing existing channel:', err)
+      );
+      client.removeChannel(existingChannel);
+      this.channels.delete(channelName);
+    }
+
+    // Auth is already set via setSession() on the base client
+    // No need to call setAuth() per channel - it can cause conflicts
+
+    const channel = client
+      .channel(channelName)
+      // Listen for new invitations (INSERT)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'room_invitations',
+          filter: `invitee_id=eq.${userId}`,
+        },
+        async (payload) => {
+          console.log('🔥 NEW INVITATION EVENT:', payload);
+
+          // Fetch full invitation with profile data
+          const invitation = await this.getInvitationById(payload.new.id);
+          if (invitation) {
+            onInvitation(invitation, 'INSERT');
+          }
+        }
+      )
+      // Listen for invitation status changes (UPDATE)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'room_invitations',
+          filter: `invitee_id=eq.${userId}`,
+        },
+        async (payload) => {
+          console.log('🔥 INVITATION UPDATE EVENT:', payload);
+
+          // Fetch full invitation with profile data
+          const invitation = await this.getInvitationById(payload.new.id);
+          if (invitation) {
+            onInvitation(invitation, 'UPDATE');
+          }
+        }
+      );
+
+    channel.subscribe((status, err) => {
+      console.log(`Invitation subscription status for user ${userId}:`, status);
+      if (err) {
+        console.error(`Invitation subscription error details:`, err);
+      }
+      if (status === 'SUBSCRIBED') {
+        console.log(`Successfully subscribed to invitations for user ${userId}`);
+        console.log(`🔍 Channel config:`, {
+          channelName,
+          hasAuth: !!client.auth.session?.access_token,
+          authUserId: client.auth.session?.user?.id
+        });
+      } else if (status === 'TIMED_OUT') {
+        console.error(`Invitation subscription timed out for user ${userId}`);
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error(`Invitation subscription error for user ${userId}`);
+      }
+    });
+
+    this.channels.set(channelName, channel);
+
+    // Return unsubscribe function
+    return async () => {
+      await channel.unsubscribe();
+      client.removeChannel(channel);
+      this.channels.delete(channelName);
+      console.log(`Unsubscribed from invitations for user ${userId}`);
+    };
+  }
+
+  /**
+   * Get invitation by ID with full profile data
+   * Helper method for realtime subscription
+   */
+  private async getInvitationById(invitationId: string): Promise<RoomInvitation | null> {
+    try {
+      const { data, error } = await this.getClient()
+        .from('room_invitations')
+        .select(`
+          id,
+          room_id,
+          inviter_id,
+          invitee_id,
+          status,
+          created_at,
+          updated_at,
+          room_name,
+          inviter_profile:user_profiles!room_invitations_inviter_id_fkey (
+            email,
+            full_name,
+            avatar_url
+          ),
+          invitee_profile:user_profiles!room_invitations_invitee_id_fkey (
+            email,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('id', invitationId)
+        .single();
+
+      if (error || !data) {
+        console.error('Error fetching invitation:', error);
+        return null;
+      }
+
+      const inviterProfile = Array.isArray(data.inviter_profile) ? data.inviter_profile[0] : data.inviter_profile;
+      const inviteeProfile = Array.isArray(data.invitee_profile) ? data.invitee_profile[0] : data.invitee_profile;
+
+      return RoomInvitation.fromDatabase({
+        id: data.id,
+        room_id: data.room_id,
+        inviter_id: data.inviter_id,
+        invitee_id: data.invitee_id,
+        status: data.status,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        room_name: data.room_name,
+        inviter_email: inviterProfile?.email,
+        inviter_full_name: inviterProfile?.full_name,
+        inviter_avatar_url: inviterProfile?.avatar_url,
+        invitee_email: inviteeProfile?.email,
+        invitee_full_name: inviteeProfile?.full_name,
+        invitee_avatar_url: inviteeProfile?.avatar_url,
+      });
+    } catch (error) {
+      console.error('Exception in getInvitationById:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Unsubscribe from all room-related subscriptions
+   */
+  public async unsubscribeAll(): Promise<void> {
+    const client = this.getRealtimeClient();
+    const unsubscribePromises = Array.from(this.channels.values()).map(channel =>
+      channel.unsubscribe()
+    );
+    await Promise.all(unsubscribePromises);
+
+    this.channels.forEach((channel) => {
+      client.removeChannel(channel);
+    });
+    this.channels.clear();
+    console.log('Unsubscribed from all room channels');
   }
 }
