@@ -3,6 +3,7 @@
  * Manages multiplayer game sessions, questions, and scoring
  */
 
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { GameSession, GameType } from '../../../domain/entities/GameSession.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
 import { PlayerScore, LeaderboardEntry } from '../../../domain/entities/PlayerScore.js';
@@ -14,13 +15,18 @@ import { JeopardyGame } from '../../components/games/JeopardyGame.js';
 import { HotSeatChallengeGame } from '../../components/games/HotSeatChallengeGame.js';
 import { LightningChainGame } from '../../components/games/LightningChainGame.js';
 import { TimeSync } from '../../services/TimeSync.js';
+import { RendererSupabaseClient } from '../../services/RendererSupabaseClient.js';
 
 export class MultiplayerGamesManager {
   private currentGame: MultiplayerGame | null = null;
   private currentGameSession: GameSession | null = null;
   private currentUserId: string | null = null;
-  private unsubscribers: Array<() => void> = [];
   private reconnectAttempts: number = 0;
+
+  // Direct Supabase Realtime channels (renderer process)
+  private gameSessionChannel: RealtimeChannel | null = null;
+  private gameQuestionsChannel: RealtimeChannel | null = null;
+  private gameScoresChannel: RealtimeChannel | null = null;
   private readonly MAX_RECONNECT_ATTEMPTS = 5;
   private reconnectTimeout: number | null = null;
   private isReconnecting: boolean = false;
@@ -560,127 +566,267 @@ export class MultiplayerGamesManager {
 
   /**
    * Subscribe to real-time game updates
+   * Uses direct Supabase Realtime subscriptions in renderer process
+   * (WebSockets don't work in Electron's main process - no browser APIs)
    */
   private subscribeToGameUpdates(gameSessionId: string): void {
-    // Subscribe to game session updates
-    const sessionUnsubscribe = window.scribeCat.games.subscribeToGameSession(
-      gameSessionId,
-      async (sessionData) => {
-        const gameSession = GameSession.fromJSON(sessionData);
-        const previousIndex = this.currentGameSession?.currentQuestionIndex;
-        const previousStatus = this.currentGameSession?.status;
-        const currentQuestion = this.currentGame ? (this.currentGame as any).state?.currentQuestion : null;
+    console.log('📡 MultiplayerGamesManager: Setting up direct Supabase subscriptions in renderer');
 
-        console.log(`[MultiplayerGamesManager] Session update: ${previousStatus} -> ${gameSession.status}, index: ${previousIndex} -> ${gameSession.currentQuestionIndex}, hasQuestion: ${!!currentQuestion}`);
+    const rendererClient = RendererSupabaseClient.getInstance();
+    const client = rendererClient.getClient();
 
-        this.currentGameSession = gameSession;
+    if (!client) {
+      console.error('❌ MultiplayerGamesManager: No Supabase client available in renderer');
+      return;
+    }
 
-        // Check if we need to fetch a question:
-        // For Jeopardy: check selectedQuestionId
-        // For other games: check question index
-        const isJeopardy = gameSession.gameType === 'jeopardy';
-        const selectedQuestionId = gameSession.selectedQuestionId;
-        const previousSelectedId = (this.currentGame as any)?.state?.selectedQuestionId;
+    // Cleanup existing subscriptions
+    this.cleanupGameChannels();
 
-        const questionIndexChanged = previousIndex !== undefined && previousIndex !== gameSession.currentQuestionIndex;
-        const selectedQuestionChanged = isJeopardy && selectedQuestionId && selectedQuestionId !== previousSelectedId;
-        const gameJustStarted = previousStatus === 'waiting' && gameSession.status === 'in_progress';
-        const missingQuestion = gameSession.status === 'in_progress' && !currentQuestion;
-        const needsQuestionFetch = questionIndexChanged || selectedQuestionChanged || gameJustStarted || missingQuestion;
+    // ========================================
+    // 1. Subscribe to game session updates
+    // ========================================
+    const sessionChannelName = `game-session:${gameSessionId}`;
+    this.gameSessionChannel = client
+      .channel(sessionChannelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'game_sessions',
+          filter: `id=eq.${gameSessionId}`,
+        },
+        async (payload) => {
+          console.log('🔥 MultiplayerGamesManager: Game session update received:', payload);
 
-        if (needsQuestionFetch) {
-          console.log(`[MultiplayerGamesManager] Fetching question - indexChanged: ${questionIndexChanged}, selectedChanged: ${selectedQuestionChanged}, gameJustStarted: ${gameJustStarted}, missingQuestion: ${missingQuestion}`);
+          const gameSession = GameSession.fromDatabase(payload.new as any);
+          const previousIndex = this.currentGameSession?.currentQuestionIndex;
+          const previousStatus = this.currentGameSession?.status;
+          const currentQuestion = this.currentGame ? (this.currentGame as any).state?.currentQuestion : null;
 
-          // Small delay to ensure the database write has fully propagated
-          await new Promise(resolve => setTimeout(resolve, 150));
+          console.log(`[MultiplayerGamesManager] Session update: ${previousStatus} -> ${gameSession.status}, index: ${previousIndex} -> ${gameSession.currentQuestionIndex}, hasQuestion: ${!!currentQuestion}`);
 
-          let fetchedQuestion: GameQuestion | null = null;
+          this.currentGameSession = gameSession;
 
-          if (isJeopardy && selectedQuestionId) {
-            // Jeopardy: Fetch selected question by ID
-            const questionResult = await window.scribeCat.games.getGameQuestion(gameSessionId, selectedQuestionId);
-            if (questionResult.success && questionResult.question) {
-              fetchedQuestion = GameQuestion.fromJSON(questionResult.question);
-              console.log(`[MultiplayerGamesManager] Fetched Jeopardy question ${selectedQuestionId}:`, fetchedQuestion.id);
+          // Check if we need to fetch a question:
+          // For Jeopardy: check selectedQuestionId
+          // For other games: check question index
+          const isJeopardy = gameSession.gameType === 'jeopardy';
+          const selectedQuestionId = gameSession.selectedQuestionId;
+          const previousSelectedId = (this.currentGame as any)?.state?.selectedQuestionId;
+
+          const questionIndexChanged = previousIndex !== undefined && previousIndex !== gameSession.currentQuestionIndex;
+          // For Jeopardy: detect when selectedQuestionId changes (including becoming null to return to board)
+          const selectedQuestionChanged = isJeopardy && selectedQuestionId !== previousSelectedId;
+          const gameJustStarted = previousStatus === 'waiting' && gameSession.status === 'in_progress';
+          const missingQuestion = gameSession.status === 'in_progress' && !currentQuestion;
+          const needsQuestionFetch = questionIndexChanged || selectedQuestionChanged || gameJustStarted || missingQuestion;
+
+          if (needsQuestionFetch) {
+            console.log(`[MultiplayerGamesManager] Fetching question - indexChanged: ${questionIndexChanged}, selectedChanged: ${selectedQuestionChanged}, gameJustStarted: ${gameJustStarted}, missingQuestion: ${missingQuestion}`);
+
+            // Small delay to ensure the database write has fully propagated
+            await new Promise(resolve => setTimeout(resolve, 150));
+
+            let fetchedQuestion: GameQuestion | null = null;
+
+            if (isJeopardy && selectedQuestionId) {
+              // Jeopardy: Fetch selected question by ID
+              const questionResult = await window.scribeCat.games.getGameQuestion(gameSessionId, selectedQuestionId);
+              if (questionResult.success && questionResult.question) {
+                fetchedQuestion = GameQuestion.fromJSON(questionResult.question);
+                console.log(`[MultiplayerGamesManager] Fetched Jeopardy question ${selectedQuestionId}:`, fetchedQuestion.id);
+              }
+            } else if (isJeopardy && !selectedQuestionId) {
+              // Jeopardy with no selected question: Show board, don't fetch any question
+              console.log(`[MultiplayerGamesManager] Jeopardy game - no question selected, showing board`);
+              fetchedQuestion = null;
+            } else {
+              // Sequential games: Fetch current question by index
+              const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
+              fetchedQuestion = questionResult.success && questionResult.question
+                ? GameQuestion.fromJSON(questionResult.question)
+                : null;
+              console.log(`[MultiplayerGamesManager] Fetched question for index ${gameSession.currentQuestionIndex}:`, fetchedQuestion?.id);
             }
-          } else {
-            // Sequential games: Fetch current question by index
-            const questionResult = await window.scribeCat.games.getCurrentQuestion(gameSessionId);
-            fetchedQuestion = questionResult.success && questionResult.question
-              ? GameQuestion.fromJSON(questionResult.question)
-              : null;
-            console.log(`[MultiplayerGamesManager] Fetched question for index ${gameSession.currentQuestionIndex}:`, fetchedQuestion?.id);
-          }
 
-          if (this.currentGame) {
-            const questionStartedAt = gameSession.questionStartedAt?.getTime();
+            if (this.currentGame) {
+              const questionStartedAt = gameSession.questionStartedAt?.getTime();
 
+              // Build state update - for Jeopardy, include currentPlayerId in same update
+              // as currentQuestion so Daily Double check has the correct player ID
+              const stateUpdate: any = {
+                session: gameSession,
+                currentQuestion: fetchedQuestion,
+                hasAnswered: false,
+                gameStarted: gameSession.status === 'in_progress',
+                gameEnded: gameSession.hasEnded(),
+                questionStartedAt,
+              };
+
+              if (isJeopardy) {
+                stateUpdate.selectedQuestionId = gameSession.selectedQuestionId || null;
+                stateUpdate.currentPlayerId = gameSession.currentPlayerId || null;
+                stateUpdate.round = gameSession.round || 'regular';
+              }
+
+              this.currentGame.updateState(stateUpdate);
+            }
+          } else if (this.currentGame) {
+            // Just update session state without changing question
             this.currentGame.updateState({
               session: gameSession,
-              currentQuestion: fetchedQuestion,
-              hasAnswered: false,
               gameStarted: gameSession.status === 'in_progress',
               gameEnded: gameSession.hasEnded(),
-              questionStartedAt,
             });
 
-            // Update Jeopardy-specific state
+            // Update Jeopardy state even without question change
             if (isJeopardy) {
               (this.currentGame as any).updateState({
-                selectedQuestionId: gameSession.selectedQuestionId || null,
-                currentPlayerId: gameSession.currentPlayerId || null,
-                round: gameSession.round || 'regular',
+                currentPlayerId: (payload.new as any).current_player_id || null,
+                round: (payload.new as any).round || 'regular',
               });
             }
           }
-        } else if (this.currentGame) {
-          // Just update session state without changing question
-          this.currentGame.updateState({
-            session: gameSession,
-            gameStarted: gameSession.status === 'in_progress',
-            gameEnded: gameSession.hasEnded(),
-          });
+        }
+      );
 
-          // Update Jeopardy state even without question change
-          if (isJeopardy) {
-            (this.currentGame as any).updateState({
-              currentPlayerId: (sessionData as any).current_player_id || null,
-              round: (sessionData as any).round || 'regular',
-            });
+    this.gameSessionChannel.subscribe((status, err) => {
+      console.log(`📡 MultiplayerGamesManager: Game session subscription status: ${status}`);
+      if (err) {
+        console.error('❌ MultiplayerGamesManager: Game session subscription error:', err);
+      }
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ MultiplayerGamesManager: Game session subscribed in RENDERER process');
+      }
+    });
+
+    // ========================================
+    // 2. Subscribe to new questions
+    // ========================================
+    const questionsChannelName = `game-questions:${gameSessionId}`;
+    this.gameQuestionsChannel = client
+      .channel(questionsChannelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'game_questions',
+          filter: `game_session_id=eq.${gameSessionId}`,
+        },
+        (payload) => {
+          console.log('🔥 MultiplayerGamesManager: New game question received:', payload);
+
+          const question = GameQuestion.fromDatabase(payload.new as any);
+
+          if (this.currentGame && this.currentGameSession) {
+            // Check if this is the current question
+            if (question.questionIndex === this.currentGameSession.currentQuestionIndex) {
+              this.currentGame.updateState({
+                currentQuestion: question,
+                hasAnswered: false,
+              });
+            }
           }
         }
+      );
+
+    this.gameQuestionsChannel.subscribe((status, err) => {
+      console.log(`📡 MultiplayerGamesManager: Game questions subscription status: ${status}`);
+      if (err) {
+        console.error('❌ MultiplayerGamesManager: Game questions subscription error:', err);
       }
-    );
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ MultiplayerGamesManager: Game questions subscribed in RENDERER process');
+      }
+    });
 
-    // Subscribe to new questions
-    const questionsUnsubscribe = window.scribeCat.games.subscribeToGameQuestions(
-      gameSessionId,
-      async (questionData) => {
-        const question = GameQuestion.fromJSON(questionData);
+    // ========================================
+    // 3. Subscribe to new scores
+    // ========================================
+    const scoresChannelName = `game-scores:${gameSessionId}`;
+    this.gameScoresChannel = client
+      .channel(scoresChannelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'player_scores',
+          filter: `game_session_id=eq.${gameSessionId}`,
+        },
+        async (payload) => {
+          console.log('🔥 MultiplayerGamesManager: New player score received:', payload);
+          // Reload leaderboard when new scores come in
+          await this.refreshLeaderboard(gameSessionId);
 
-        if (this.currentGame && this.currentGameSession) {
-          // Check if this is the current question
-          if (question.questionIndex === this.currentGameSession.currentQuestionIndex) {
-            this.currentGame.updateState({
-              currentQuestion: question,
-              hasAnswered: false,
-            });
+          // For Jeopardy: emit answer result event so all clients can show feedback
+          // and handle rebuzz when answer is wrong
+          const scoreData = payload.new as any;
+          if (this.currentGameSession?.gameType === 'jeopardy' && scoreData) {
+            const isCorrect = scoreData.is_correct === true;
+            const userId = scoreData.user_id;
+            const questionId = scoreData.question_id;
+
+            console.log(`[MultiplayerGamesManager] Jeopardy answer result - user: ${userId}, correct: ${isCorrect}`);
+
+            // Emit event for all clients to handle answer feedback/rebuzz
+            window.dispatchEvent(
+              new CustomEvent('game:jeopardy:answer-result', {
+                detail: {
+                  userId,
+                  questionId,
+                  isCorrect,
+                  pointsEarned: scoreData.points_earned,
+                },
+              })
+            );
           }
         }
-      }
-    );
+      );
 
-    // Subscribe to new scores
-    const scoresUnsubscribe = window.scribeCat.games.subscribeToGameScores(
-      gameSessionId,
-      async (scoreData) => {
-        console.log('[MultiplayerGamesManager] New score received, refreshing leaderboard:', scoreData);
-        // Reload leaderboard when new scores come in
-        await this.refreshLeaderboard(gameSessionId);
+    this.gameScoresChannel.subscribe((status, err) => {
+      console.log(`📡 MultiplayerGamesManager: Game scores subscription status: ${status}`);
+      if (err) {
+        console.error('❌ MultiplayerGamesManager: Game scores subscription error:', err);
       }
-    );
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ MultiplayerGamesManager: Game scores subscribed in RENDERER process');
+      }
+    });
 
-    this.unsubscribers.push(sessionUnsubscribe, questionsUnsubscribe, scoresUnsubscribe);
+    console.log('📡 MultiplayerGamesManager: All game subscriptions set up (direct renderer)');
+  }
+
+  /**
+   * Cleanup game realtime channels
+   */
+  private cleanupGameChannels(): void {
+    const rendererClient = RendererSupabaseClient.getInstance();
+    const client = rendererClient.getClient();
+
+    if (this.gameSessionChannel) {
+      console.log('🔒 MultiplayerGamesManager: Cleaning up game session channel');
+      this.gameSessionChannel.unsubscribe();
+      if (client) client.removeChannel(this.gameSessionChannel);
+      this.gameSessionChannel = null;
+    }
+
+    if (this.gameQuestionsChannel) {
+      console.log('🔒 MultiplayerGamesManager: Cleaning up game questions channel');
+      this.gameQuestionsChannel.unsubscribe();
+      if (client) client.removeChannel(this.gameQuestionsChannel);
+      this.gameQuestionsChannel = null;
+    }
+
+    if (this.gameScoresChannel) {
+      console.log('🔒 MultiplayerGamesManager: Cleaning up game scores channel');
+      this.gameScoresChannel.unsubscribe();
+      if (client) client.removeChannel(this.gameScoresChannel);
+      this.gameScoresChannel = null;
+    }
   }
 
   /**
@@ -779,9 +925,6 @@ export class MultiplayerGamesManager {
 
       if (result.success) {
         console.log(`[MultiplayerGamesManager] Answer submitted successfully for user ${this.currentUserId}`);
-        console.log('[DEBUG MultiplayerGamesManager] Submit result:', result);
-        console.log('[DEBUG MultiplayerGamesManager] Score data:', result.score);
-        console.log('[DEBUG MultiplayerGamesManager] isCorrect:', result.score?.isCorrect);
 
         this.currentGame.updateState({ hasAnswered: true });
 
@@ -791,8 +934,6 @@ export class MultiplayerGamesManager {
           questionId: currentQuestion.id,
           userId: this.currentUserId,
         });
-
-        console.log('[DEBUG MultiplayerGamesManager] getCorrectAnswer result:', correctAnswerResult);
 
         if (correctAnswerResult.success && correctAnswerResult.result) {
           // Emit event with correct answer data and player's result
@@ -805,12 +946,8 @@ export class MultiplayerGamesManager {
               },
             })
           );
-          console.log('[MultiplayerGamesManager] Answer reveal data emitted:', {
-            correctAnswerIndex: correctAnswerResult.result.correctAnswerIndex,
-            wasCorrect: result.score?.isCorrect,
-          });
         } else {
-          console.log('[DEBUG MultiplayerGamesManager] getCorrectAnswer failed or returned null:', correctAnswerResult);
+          console.warn('[MultiplayerGamesManager] getCorrectAnswer failed or returned null');
         }
       } else {
         console.error('[MultiplayerGamesManager] Answer submission failed:', result.error);
@@ -842,14 +979,15 @@ export class MultiplayerGamesManager {
 
       console.log('[MultiplayerGamesManager] Game started successfully');
 
-      // For Jeopardy, set the initial current player (first participant)
+      // For Jeopardy, set the initial current player (host goes first)
       if (this.currentGameSession.gameType === 'jeopardy' && this.currentParticipants.length > 0) {
-        const firstPlayer = this.currentParticipants[0];
-        console.log('[MultiplayerGamesManager] Setting initial Jeopardy player:', firstPlayer.userName);
+        // Find the host to be the first player (don't rely on array order which can differ between clients)
+        const hostPlayer = this.currentParticipants.find(p => p.isHost) || this.currentParticipants[0];
+        console.log('[MultiplayerGamesManager] Setting initial Jeopardy player (host):', hostPlayer.userName);
 
         await window.scribeCat.games.jeopardy.setCurrentPlayer({
           gameSessionId: this.currentGameSession.id,
-          userId: firstPlayer.userId,
+          userId: hostPlayer.userId,
         });
       }
 
@@ -1380,11 +1518,8 @@ export class MultiplayerGamesManager {
     this.reconnectAttempts = 0;
     this.isReconnecting = false;
 
-    // Unsubscribe from all subscriptions
-    for (const unsubscribe of this.unsubscribers) {
-      unsubscribe();
-    }
-    this.unsubscribers = [];
+    // Cleanup game realtime channels (direct renderer subscriptions)
+    this.cleanupGameChannels();
 
     // Cleanup current game
     if (this.currentGame) {

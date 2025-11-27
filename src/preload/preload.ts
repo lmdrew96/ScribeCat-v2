@@ -514,48 +514,10 @@ const electronAPI = {
       ipcRenderer.invoke('games:get-leaderboard', gameSessionId),
     getPlayerScores: (gameSessionId: string, userId: string) =>
       ipcRenderer.invoke('games:get-player-scores', gameSessionId, userId),
-    subscribeToGameSession: (gameSessionId: string, onUpdate: (sessionData: any) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, data: any) => {
-        onUpdate(data);
-      };
-      ipcRenderer.on(`games:session-update:${gameSessionId}`, handler);
-      ipcRenderer.invoke('games:subscribe-session', gameSessionId);
-      return () => {
-        ipcRenderer.removeListener(`games:session-update:${gameSessionId}`, handler);
-      };
-    },
-    subscribeToGameQuestions: (gameSessionId: string, onQuestion: (questionData: any) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, data: any) => {
-        onQuestion(data);
-      };
-      ipcRenderer.on(`games:question-update:${gameSessionId}`, handler);
-      ipcRenderer.invoke('games:subscribe-questions', gameSessionId);
-      return () => {
-        ipcRenderer.removeListener(`games:question-update:${gameSessionId}`, handler);
-      };
-    },
-    subscribeToGameScores: (gameSessionId: string, onScore: (scoreData: any) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, data: any) => {
-        onScore(data);
-      };
-      ipcRenderer.on(`games:score-update:${gameSessionId}`, handler);
-      ipcRenderer.invoke('games:subscribe-scores', gameSessionId);
-      return () => {
-        ipcRenderer.removeListener(`games:score-update:${gameSessionId}`, handler);
-      };
-    },
-    subscribeToRoomGames: (roomId: string, onGameSession: (sessionData: any) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, data: any) => {
-        onGameSession(data);
-      };
-      ipcRenderer.on(`games:room-game-update:${roomId}`, handler);
-      ipcRenderer.invoke('games:subscribe-room-games', roomId);
-      return () => {
-        ipcRenderer.removeListener(`games:room-game-update:${roomId}`, handler);
-      };
-    },
-    unsubscribeAll: () =>
-      ipcRenderer.invoke('games:unsubscribe-all'),
+
+    // NOTE: Realtime subscriptions are handled directly in the renderer process
+    // via RendererSupabaseClient (WebSockets don't work in Electron's main process).
+    // See MultiplayerGamesManager.subscribeToGameUpdates() and JeopardyGame.subscribeToBuzzers()
 
     // Jeopardy-specific methods
     jeopardy: {
@@ -588,16 +550,23 @@ const electronAPI = {
         timeTakenMs?: number;
       }) =>
         ipcRenderer.invoke('games:jeopardy:submit-answer', params),
-      subscribeToBuzzers: (questionId: string, onBuzzer: (buzzer: any) => void) => {
-        const handler = (_event: Electron.IpcRendererEvent, data: any) => {
-          onBuzzer(data);
-        };
-        ipcRenderer.on(`games:buzzer-press:${questionId}`, handler);
-        ipcRenderer.invoke('games:jeopardy:subscribe-buzzers', questionId);
-        return () => {
-          ipcRenderer.removeListener(`games:buzzer-press:${questionId}`, handler);
-        };
-      },
+      skipQuestion: (params: { gameSessionId: string; questionId: string }) =>
+        ipcRenderer.invoke('games:jeopardy:skip-question', params),
+      clearBuzzers: (questionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:clear-buzzers', questionId),
+      // Final Jeopardy methods
+      submitFJWager: (params: { gameSessionId: string; userId: string; wagerAmount: number }) =>
+        ipcRenderer.invoke('games:jeopardy:submit-fj-wager', params),
+      allFJWagersSubmitted: (gameSessionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:all-fj-wagers-submitted', gameSessionId),
+      getFJWagers: (gameSessionId: string) =>
+        ipcRenderer.invoke('games:jeopardy:get-fj-wagers', gameSessionId),
+      getPlayerFJWager: (params: { gameSessionId: string; userId: string }) =>
+        ipcRenderer.invoke('games:jeopardy:get-player-fj-wager', params),
+      allFJAnswersSubmitted: (params: { gameSessionId: string; questionId: string }) =>
+        ipcRenderer.invoke('games:jeopardy:all-fj-answers-submitted', params),
+      // NOTE: Buzzer and FJ wager subscriptions are handled directly in JeopardyGame
+      // via RendererSupabaseClient (WebSockets don't work in Electron's main process)
     }
   },
   power: {

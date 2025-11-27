@@ -5,10 +5,12 @@
  * Coordinates with FriendsModal and handles IPC communication with main process.
  */
 
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { createLogger } from '../../../shared/logger.js';
 import type { FriendData } from '../../../domain/entities/Friend.js';
 import type { FriendRequestData } from '../../../domain/entities/FriendRequest.js';
 import type { SearchUserResult } from '../../../infrastructure/services/supabase/SupabaseFriendsRepository.js';
+import { RendererSupabaseClient } from '../../services/RendererSupabaseClient.js';
 
 const logger = createLogger('FriendsManager');
 
@@ -30,9 +32,10 @@ export class FriendsManager {
   // Presence tracking
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
+  private presenceChannel: RealtimeChannel | null = null;
 
   // Friend request realtime subscription
-  private requestUnsubscribe: (() => void) | null = null;
+  private friendRequestChannel: RealtimeChannel | null = null;
 
   constructor() {
     logger.info('FriendsManager initialized');
@@ -521,9 +524,17 @@ export class FriendsManager {
         await this.updatePresence('offline');
       }
 
-      // Unsubscribe from presence updates
-      if (this.currentUserId) {
-        await window.scribeCat.friends.unsubscribeFromPresence(this.currentUserId);
+      // Unsubscribe from presence updates (direct channel cleanup)
+      if (this.presenceChannel) {
+        logger.info('🔒 FriendsManager: Unsubscribing from presence channel');
+        const rendererClient = RendererSupabaseClient.getInstance();
+        const client = rendererClient.getClient();
+
+        this.presenceChannel.unsubscribe();
+        if (client) {
+          client.removeChannel(this.presenceChannel);
+        }
+        this.presenceChannel = null;
       }
 
       logger.info('Presence tracking stopped');
@@ -580,25 +591,85 @@ export class FriendsManager {
 
   /**
    * Subscribe to real-time presence updates from friends
+   * Uses direct Supabase Realtime subscription in renderer process
+   * (WebSockets don't work in Electron's main process - no browser APIs)
    */
   private async subscribeToPresenceUpdates(): Promise<void> {
     if (!this.currentUserId) return;
 
     try {
-      // Listen for presence updates from IPC
-      window.scribeCat.friends.onPresenceUpdate((data) => {
-        this.handlePresenceUpdate(data.friendId, {
-          status: data.presence.status,
-          activity: data.presence.activity,
-          lastSeen: new Date(data.presence.lastSeen),
-        });
+      logger.info('📡 FriendsManager: Setting up direct Supabase presence subscription in renderer');
+
+      const rendererClient = RendererSupabaseClient.getInstance();
+      const client = rendererClient.getClient();
+
+      if (!client) {
+        logger.error('❌ FriendsManager: No Supabase client available in renderer');
+        return;
+      }
+
+      const channelName = `presence:user:${this.currentUserId}`;
+
+      // Remove existing subscription if any
+      if (this.presenceChannel) {
+        logger.info('🔄 Removing existing presence channel');
+        this.presenceChannel.unsubscribe();
+        client.removeChannel(this.presenceChannel);
+        this.presenceChannel = null;
+      }
+
+      // Create new channel for presence updates
+      this.presenceChannel = client
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_presence',
+          },
+          (payload) => {
+            logger.debug('🔥 FriendsManager: Presence change received:', payload);
+
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const data = payload.new as {
+                user_id: string;
+                status: 'online' | 'away' | 'offline';
+                activity?: string;
+                last_seen: string;
+              };
+
+              // Check if this is a friend's update (we have the friends list locally)
+              const isFriend = this.friends.some(f => f.friendId === data.user_id);
+
+              if (isFriend) {
+                logger.info(`📡 FriendsManager: Friend ${data.user_id} presence updated: ${data.status}`);
+                this.handlePresenceUpdate(data.user_id, {
+                  status: data.status,
+                  activity: data.activity,
+                  lastSeen: new Date(data.last_seen),
+                });
+              }
+            }
+          }
+        );
+
+      // Subscribe and log status
+      this.presenceChannel.subscribe((status, err) => {
+        logger.info('📡 FriendsManager: Presence subscription status:', status);
+        if (err) {
+          logger.error('❌ FriendsManager: Presence subscription error:', err);
+        }
+        if (status === 'SUBSCRIBED') {
+          logger.info('✅ FriendsManager: Successfully subscribed to presence in RENDERER process');
+        } else if (status === 'CHANNEL_ERROR') {
+          logger.error('❌ FriendsManager: Presence channel error');
+        } else if (status === 'TIMED_OUT') {
+          logger.error('⏱️ FriendsManager: Presence subscription timed out');
+        }
       });
 
-      const result = await window.scribeCat.friends.subscribeToPresence(this.currentUserId);
-
-      if (result.success) {
-        logger.info('Subscribed to friends presence updates');
-      }
+      logger.info('Subscribed to friends presence updates (direct renderer subscription)');
     } catch (error) {
       logger.error('Failed to subscribe to presence updates:', error);
     }
@@ -663,21 +734,158 @@ export class FriendsManager {
 
   /**
    * Subscribe to real-time friend request updates
+   * Uses direct Supabase Realtime subscription in renderer process
+   * (WebSockets don't work in Electron's main process - no browser APIs)
    */
   private async subscribeToRequests(): Promise<void> {
+    if (!this.currentUserId) return;
+
     try {
-      logger.info('Setting up realtime friend request subscription');
+      logger.info('📡 FriendsManager: Setting up direct Supabase friend request subscription in renderer');
 
-      this.requestUnsubscribe = await window.scribeCat.friends.subscribeToRequests(
-        (friendRequest, eventType) => {
-          logger.info('Received friend request event:', eventType, friendRequest);
-          this.handleRequestChange(friendRequest, eventType);
+      const rendererClient = RendererSupabaseClient.getInstance();
+      const client = rendererClient.getClient();
+
+      if (!client) {
+        logger.error('❌ FriendsManager: No Supabase client available in renderer');
+        return;
+      }
+
+      const channelName = `user-friend-requests:${this.currentUserId}`;
+
+      // Remove existing subscription if any
+      if (this.friendRequestChannel) {
+        logger.info('🔄 Removing existing friend request channel');
+        this.friendRequestChannel.unsubscribe();
+        client.removeChannel(this.friendRequestChannel);
+        this.friendRequestChannel = null;
+      }
+
+      // Create new channel for friend request updates
+      this.friendRequestChannel = client
+        .channel(channelName)
+        // Listen for new friend requests (INSERT)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'friend_requests',
+            filter: `recipient_id=eq.${this.currentUserId}`,
+          },
+          async (payload) => {
+            logger.info('🔥 FriendsManager: New friend request received:', payload);
+
+            // Fetch full friend request with profile data
+            const friendRequest = await this.fetchFriendRequestById(payload.new.id as string);
+            if (friendRequest) {
+              this.handleRequestChange(friendRequest, 'INSERT');
+            }
+          }
+        )
+        // Listen for friend request status changes (UPDATE)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'friend_requests',
+            filter: `recipient_id=eq.${this.currentUserId}`,
+          },
+          async (payload) => {
+            logger.info('🔥 FriendsManager: Friend request updated:', payload);
+
+            // Fetch full friend request with profile data
+            const friendRequest = await this.fetchFriendRequestById(payload.new.id as string);
+            if (friendRequest) {
+              this.handleRequestChange(friendRequest, 'UPDATE');
+            }
+          }
+        );
+
+      // Subscribe and log status
+      this.friendRequestChannel.subscribe((status, err) => {
+        logger.info('📡 FriendsManager: Friend request subscription status:', status);
+        if (err) {
+          logger.error('❌ FriendsManager: Friend request subscription error:', err);
         }
-      );
+        if (status === 'SUBSCRIBED') {
+          logger.info('✅ FriendsManager: Successfully subscribed to friend requests in RENDERER process');
+        } else if (status === 'CHANNEL_ERROR') {
+          logger.error('❌ FriendsManager: Friend request channel error');
+        } else if (status === 'TIMED_OUT') {
+          logger.error('⏱️ FriendsManager: Friend request subscription timed out');
+        }
+      });
 
-      logger.info('Subscribed to friend request real-time updates');
+      logger.info('Subscribed to friend request real-time updates (direct renderer subscription)');
     } catch (error) {
       logger.error('Exception subscribing to friend request changes:', error);
+    }
+  }
+
+  /**
+   * Fetch friend request by ID with full profile data
+   * Helper method for realtime subscription - runs in renderer using RendererSupabaseClient
+   */
+  private async fetchFriendRequestById(requestId: string): Promise<FriendRequestData | null> {
+    try {
+      const rendererClient = RendererSupabaseClient.getInstance();
+      const client = rendererClient.getClient();
+
+      const { data, error } = await client
+        .from('friend_requests')
+        .select(`
+          id,
+          sender_id,
+          recipient_id,
+          status,
+          created_at,
+          updated_at,
+          sender_profile:user_profiles!friend_requests_sender_id_fkey (
+            email,
+            full_name,
+            avatar_url
+          ),
+          recipient_profile:user_profiles!friend_requests_recipient_id_fkey (
+            email,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('id', requestId)
+        .single();
+
+      if (error) {
+        logger.error('Error fetching friend request by ID:', error);
+        return null;
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      // Map to FriendRequestData
+      const senderProfile = data.sender_profile as { email?: string; full_name?: string; avatar_url?: string } | null;
+      const recipientProfile = data.recipient_profile as { email?: string; full_name?: string; avatar_url?: string } | null;
+
+      return {
+        id: data.id,
+        senderId: data.sender_id,
+        recipientId: data.recipient_id,
+        status: data.status,
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+        senderEmail: senderProfile?.email,
+        senderFullName: senderProfile?.full_name,
+        senderAvatarUrl: senderProfile?.avatar_url,
+        recipientEmail: recipientProfile?.email,
+        recipientFullName: recipientProfile?.full_name,
+        recipientAvatarUrl: recipientProfile?.avatar_url,
+      };
+    } catch (error) {
+      logger.error('Exception fetching friend request by ID:', error);
+      return null;
     }
   }
 
@@ -685,9 +893,16 @@ export class FriendsManager {
    * Unsubscribe from real-time friend request updates
    */
   private unsubscribeFromRequests(): void {
-    if (this.requestUnsubscribe) {
-      this.requestUnsubscribe();
-      this.requestUnsubscribe = null;
+    if (this.friendRequestChannel) {
+      logger.info('🔒 FriendsManager: Unsubscribing from friend request channel');
+      const rendererClient = RendererSupabaseClient.getInstance();
+      const client = rendererClient.getClient();
+
+      this.friendRequestChannel.unsubscribe();
+      if (client) {
+        client.removeChannel(this.friendRequestChannel);
+      }
+      this.friendRequestChannel = null;
       logger.info('Unsubscribed from friend request real-time updates');
     }
   }

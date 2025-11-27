@@ -1058,6 +1058,40 @@ export class SupabaseGamesRepository implements IGameRepository {
   }
 
   /**
+   * Skip/clear current Jeopardy question (when no one else wants to answer)
+   * This marks the question as answered and returns to the board
+   */
+  public async skipJeopardyQuestion(params: {
+    gameSessionId: string;
+    questionId: string;
+  }): Promise<void> {
+    const { error } = await this.getClient().rpc('skip_jeopardy_question', {
+      p_game_session_id: params.gameSessionId,
+      p_question_id: params.questionId,
+    });
+
+    if (error) {
+      console.error('Failed to skip Jeopardy question:', error);
+      throw new Error(`Failed to skip Jeopardy question: ${error.message}`);
+    }
+  }
+
+  /**
+   * Clear all buzzer presses for a question (used for rebuzz)
+   * This is called when a player answers incorrectly and others can buzz in again
+   */
+  public async clearBuzzerPresses(questionId: string): Promise<void> {
+    const { error } = await this.getClient().rpc('clear_buzzer_presses', {
+      p_question_id: questionId,
+    });
+
+    if (error) {
+      console.error('Failed to clear buzzer presses:', error);
+      throw new Error(`Failed to clear buzzer presses: ${error.message}`);
+    }
+  }
+
+  /**
    * Subscribe to buzzer presses for a question
    */
   public subscribeToBuzzerPresses(
@@ -1110,6 +1144,164 @@ export class SupabaseGamesRepository implements IGameRepository {
       client.removeChannel(channel);
       this.channels.delete(channelName);
       console.log(`Unsubscribed from buzzer presses ${questionId}`);
+    };
+  }
+
+  // ============================================================================
+  // Final Jeopardy Operations
+  // ============================================================================
+
+  /**
+   * Submit a Final Jeopardy wager
+   */
+  public async submitFinalJeopardyWager(
+    gameSessionId: string,
+    userId: string,
+    wagerAmount: number
+  ): Promise<boolean> {
+    const { data, error } = await this.getClient().rpc('submit_final_jeopardy_wager', {
+      p_game_session_id: gameSessionId,
+      p_user_id: userId,
+      p_wager_amount: wagerAmount,
+    });
+
+    if (error) {
+      console.error('Failed to submit Final Jeopardy wager:', error);
+      throw new Error(`Failed to submit Final Jeopardy wager: ${error.message}`);
+    }
+
+    return data === true;
+  }
+
+  /**
+   * Check if all players have submitted Final Jeopardy wagers
+   */
+  public async allFinalJeopardyWagersSubmitted(gameSessionId: string): Promise<boolean> {
+    const { data, error } = await this.getClient().rpc('all_final_jeopardy_wagers_submitted', {
+      p_game_session_id: gameSessionId,
+    });
+
+    if (error) {
+      console.error('Failed to check FJ wagers:', error);
+      throw new Error(`Failed to check FJ wagers: ${error.message}`);
+    }
+
+    return data === true;
+  }
+
+  /**
+   * Get all Final Jeopardy wagers for a game
+   */
+  public async getFinalJeopardyWagers(
+    gameSessionId: string
+  ): Promise<Array<{ userId: string; wagerAmount: number; submittedAt: Date }>> {
+    const { data, error } = await this.getClient().rpc('get_final_jeopardy_wagers', {
+      p_game_session_id: gameSessionId,
+    });
+
+    if (error) {
+      console.error('Failed to get FJ wagers:', error);
+      throw new Error(`Failed to get FJ wagers: ${error.message}`);
+    }
+
+    return (data || []).map((row: any) => ({
+      userId: row.user_id,
+      wagerAmount: row.wager_amount,
+      submittedAt: new Date(row.submitted_at),
+    }));
+  }
+
+  /**
+   * Get a specific player's Final Jeopardy wager
+   */
+  public async getPlayerFinalJeopardyWager(
+    gameSessionId: string,
+    userId: string
+  ): Promise<number | null> {
+    const { data, error } = await this.getClient().rpc('get_player_final_jeopardy_wager', {
+      p_game_session_id: gameSessionId,
+      p_user_id: userId,
+    });
+
+    if (error) {
+      console.error('Failed to get player FJ wager:', error);
+      throw new Error(`Failed to get player FJ wager: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Check if all players have answered Final Jeopardy
+   */
+  public async allFinalJeopardyAnswersSubmitted(
+    gameSessionId: string,
+    questionId: string
+  ): Promise<boolean> {
+    const { data, error } = await this.getClient().rpc('all_final_jeopardy_answers_submitted', {
+      p_game_session_id: gameSessionId,
+      p_question_id: questionId,
+    });
+
+    if (error) {
+      console.error('Failed to check FJ answers:', error);
+      throw new Error(`Failed to check FJ answers: ${error.message}`);
+    }
+
+    return data === true;
+  }
+
+  /**
+   * Subscribe to Final Jeopardy wager submissions
+   */
+  public subscribeToFinalJeopardyWagers(
+    gameSessionId: string,
+    onWager: (wager: { userId: string; wagerAmount: number }) => void
+  ): () => Promise<void> {
+    const channelName = `fj-wagers:${gameSessionId}`;
+    const client = this.getRealtimeClient();
+
+    console.log('📡 Creating Realtime FJ wagers subscription:', gameSessionId);
+
+    // Remove existing subscription if any
+    const existingChannel = this.channels.get(channelName);
+    if (existingChannel) {
+      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
+      client.removeChannel(existingChannel);
+      this.channels.delete(channelName);
+    }
+
+    const channel = client.channel(channelName).on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'final_jeopardy_wagers',
+        filter: `game_session_id=eq.${gameSessionId}`,
+      },
+      (payload) => {
+        console.log('FJ wager update:', payload);
+        const data = payload.new as any;
+        if (data) {
+          onWager({
+            userId: data.user_id,
+            wagerAmount: data.wager_amount,
+          });
+        }
+      }
+    );
+
+    channel.subscribe((status) => {
+      console.log(`FJ wagers subscription status for ${gameSessionId}:`, status);
+    });
+
+    this.channels.set(channelName, channel);
+
+    return async () => {
+      await channel.unsubscribe();
+      client.removeChannel(channel);
+      this.channels.delete(channelName);
+      console.log(`Unsubscribed from FJ wagers ${gameSessionId}`);
     };
   }
 }

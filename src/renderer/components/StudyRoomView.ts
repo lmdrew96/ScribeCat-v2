@@ -5,6 +5,7 @@
  * Shows participants, session content, chat (Phase 3), and room controls.
  */
 
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { StudyRoomsManager } from '../managers/social/StudyRoomsManager.js';
 import type { FriendsManager } from '../managers/social/FriendsManager.js';
 import type { StudyRoomData } from '../../domain/entities/StudyRoom.js';
@@ -41,7 +42,7 @@ export class StudyRoomView {
   private onExit?: () => void;
   private currentSession: Session | null = null;
   private isGameActive: boolean = false;
-  private roomGameUnsubscribe: (() => void) | null = null;
+  private roomGameChannel: RealtimeChannel | null = null;
   private gamePollingInterval: number | null = null;
   private static readonly GAME_POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 
@@ -347,10 +348,7 @@ export class StudyRoomView {
     if (!this.container) return;
 
     // Cleanup room game subscription and polling
-    if (this.roomGameUnsubscribe) {
-      this.roomGameUnsubscribe();
-      this.roomGameUnsubscribe = null;
-    }
+    this.cleanupRoomGameChannel();
     this.stopGamePolling();
 
     // Cleanup chat panel
@@ -1328,39 +1326,85 @@ export class StudyRoomView {
   /**
    * Subscribe to room game changes to detect when host starts a new game
    * NOTE: This is primarily for non-host participants to detect when a game starts
+   * Uses direct Supabase Realtime in renderer (WebSockets don't work in main process)
    */
   private subscribeToRoomGames(): void {
     if (!this.currentRoomId) return;
 
-    // Subscribe to game sessions for this room
-    this.roomGameUnsubscribe = window.scribeCat.games.subscribeToRoomGames(
-      this.currentRoomId,
-      async (gameSessionData) => {
-        console.log('[StudyRoomView] Room game update:', gameSessionData?.id, 'status:', gameSessionData?.status);
+    // Cleanup any existing subscription
+    this.cleanupRoomGameChannel();
 
-        // Check if current user is the host - hosts don't join via subscription
-        // They create/start games via handleStartGame()
-        const room = this.studyRoomsManager.getRoomById(this.currentRoomId!);
-        const isHost = room?.hostId === this.currentUserId;
+    const rendererClient = RendererSupabaseClient.getInstance();
+    const client = rendererClient.getClient();
 
-        if (isHost) {
-          console.log('[StudyRoomView] Ignoring room game update - current user is host');
-          return;
-        }
+    if (!client) {
+      console.error('[StudyRoomView] No Supabase client available for room games subscription');
+      return;
+    }
 
-        // If a game started and we're not already in one, join it
-        if (gameSessionData && !this.isGameActive) {
-          if (gameSessionData.status === 'in_progress' || gameSessionData.status === 'waiting') {
-            await this.joinExistingGame(gameSessionData);
+    console.log(`[StudyRoomView] Setting up direct room games subscription for room: ${this.currentRoomId}`);
+
+    const channelName = `room-games:${this.currentRoomId}`;
+    this.roomGameChannel = client
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT and UPDATE
+          schema: 'public',
+          table: 'game_sessions',
+          filter: `room_id=eq.${this.currentRoomId}`,
+        },
+        async (payload) => {
+          const gameSessionData = payload.new as any;
+          console.log('[StudyRoomView] Room game update via Realtime:', gameSessionData?.id, 'status:', gameSessionData?.status);
+
+          // Check if current user is the host - hosts don't join via subscription
+          // They create/start games via handleStartGame()
+          const room = this.studyRoomsManager.getRoomById(this.currentRoomId!);
+          const isHost = room?.hostId === this.currentUserId;
+
+          if (isHost) {
+            console.log('[StudyRoomView] Ignoring room game update - current user is host');
+            return;
+          }
+
+          // If a game started and we're not already in one, join it
+          if (gameSessionData && !this.isGameActive) {
+            if (gameSessionData.status === 'in_progress' || gameSessionData.status === 'waiting') {
+              await this.joinExistingGame(gameSessionData);
+            }
+          }
+
+          // If game ended, hide the game container
+          if (gameSessionData && gameSessionData.status === 'completed') {
+            this.hideGameContainer();
           }
         }
-
-        // If game ended, hide the game container
-        if (gameSessionData && gameSessionData.status === 'completed') {
-          this.hideGameContainer();
+      )
+      .subscribe((status, err) => {
+        console.log(`[StudyRoomView] Room games subscription status: ${status}`);
+        if (err) {
+          console.error('[StudyRoomView] Room games subscription error:', err);
         }
-      }
-    );
+        if (status === 'SUBSCRIBED') {
+          console.log(`[StudyRoomView] Room games subscription active for room: ${this.currentRoomId}`);
+        }
+      });
+  }
+
+  /**
+   * Cleanup room game realtime channel
+   */
+  private cleanupRoomGameChannel(): void {
+    if (this.roomGameChannel) {
+      console.log('[StudyRoomView] Cleaning up room game channel');
+      const rendererClient = RendererSupabaseClient.getInstance();
+      const client = rendererClient.getClient();
+      this.roomGameChannel.unsubscribe();
+      if (client) client.removeChannel(this.roomGameChannel);
+      this.roomGameChannel = null;
+    }
   }
 
   /**

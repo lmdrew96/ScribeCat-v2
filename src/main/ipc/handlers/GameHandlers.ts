@@ -8,11 +8,12 @@ import { SupabaseGamesRepository } from '../../../infrastructure/services/supaba
 
 const gamesRepo = new SupabaseGamesRepository();
 
-// Store unsubscribe functions for cleanup
-const subscriptions = new Map<string, () => Promise<void>>();
-
 /**
  * Register all game-related IPC handlers
+ *
+ * NOTE: Realtime subscriptions for games are handled directly in the renderer process
+ * via RendererSupabaseClient (WebSockets don't work in Electron's main process).
+ * See MultiplayerGamesManager.subscribeToGameUpdates() and JeopardyGame.subscribeToBuzzers()
  */
 export function registerGameHandlers(): void {
   // ============================================================================
@@ -158,11 +159,8 @@ export function registerGameHandlers(): void {
   // ============================================================================
 
   ipcMain.handle('games:submit-answer', async (event, params) => {
-    console.log('[DEBUG GameHandlers] submitAnswer params:', params);
-    console.log('[DEBUG GameHandlers] timeTakenMs:', params.timeTakenMs);
     try {
       const score = await gamesRepo.submitAnswer(params);
-      console.log('[DEBUG GameHandlers] Score created:', score.toJSON());
       return { success: true, score: score.toJSON() };
     } catch (error: any) {
       console.error('Failed to submit answer:', error);
@@ -186,115 +184,6 @@ export function registerGameHandlers(): void {
       return { success: true, scores: scores.map((s) => s.toJSON()) };
     } catch (error: any) {
       console.error('Failed to get player scores:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  // ============================================================================
-  // Real-time Subscription Handlers
-  // ============================================================================
-
-  ipcMain.handle('games:subscribe-session', (event, gameSessionId: string) => {
-    try {
-      const subscriptionKey = `session:${gameSessionId}`;
-
-      // Clean up existing subscription if any
-      const existing = subscriptions.get(subscriptionKey);
-      if (existing) {
-        existing().catch(console.error);
-      }
-
-      const unsubscribe = gamesRepo.subscribeToGameSession(gameSessionId, (gameSession) => {
-        event.sender.send(`games:session-update:${gameSessionId}`, gameSession.toJSON());
-      });
-
-      subscriptions.set(subscriptionKey, unsubscribe);
-      return { success: true };
-    } catch (error: any) {
-      console.error('Failed to subscribe to game session:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('games:subscribe-questions', (event, gameSessionId: string) => {
-    try {
-      const subscriptionKey = `questions:${gameSessionId}`;
-
-      // Clean up existing subscription if any
-      const existing = subscriptions.get(subscriptionKey);
-      if (existing) {
-        existing().catch(console.error);
-      }
-
-      const unsubscribe = gamesRepo.subscribeToGameQuestions(gameSessionId, (question) => {
-        event.sender.send(`games:question-update:${gameSessionId}`, question.toClientJSON(false));
-      });
-
-      subscriptions.set(subscriptionKey, unsubscribe);
-      return { success: true };
-    } catch (error: any) {
-      console.error('Failed to subscribe to game questions:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('games:subscribe-scores', (event, gameSessionId: string) => {
-    try {
-      const subscriptionKey = `scores:${gameSessionId}`;
-
-      // Clean up existing subscription if any
-      const existing = subscriptions.get(subscriptionKey);
-      if (existing) {
-        existing().catch(console.error);
-      }
-
-      const unsubscribe = gamesRepo.subscribeToGameScores(gameSessionId, (score) => {
-        event.sender.send(`games:score-update:${gameSessionId}`, score.toJSON());
-      });
-
-      subscriptions.set(subscriptionKey, unsubscribe);
-      return { success: true };
-    } catch (error: any) {
-      console.error('Failed to subscribe to game scores:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('games:subscribe-room-games', (event, roomId: string) => {
-    try {
-      const subscriptionKey = `room-games:${roomId}`;
-
-      // Clean up existing subscription if any
-      const existing = subscriptions.get(subscriptionKey);
-      if (existing) {
-        existing().catch(console.error);
-      }
-
-      const unsubscribe = gamesRepo.subscribeToRoomGames(roomId, (gameSession) => {
-        event.sender.send(`games:room-game-update:${roomId}`, gameSession?.toJSON());
-      });
-
-      subscriptions.set(subscriptionKey, unsubscribe);
-      return { success: true };
-    } catch (error: any) {
-      console.error('Failed to subscribe to room games:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('games:unsubscribe-all', async () => {
-    try {
-      // Unsubscribe all stored subscriptions
-      for (const [key, unsubscribe] of subscriptions.entries()) {
-        await unsubscribe().catch(console.error);
-      }
-      subscriptions.clear();
-
-      // Also unsubscribe at repository level
-      await gamesRepo.unsubscribeAll();
-      return { success: true };
-    } catch (error: any) {
-      console.error('Failed to unsubscribe from games:', error);
       return { success: false, error: error.message };
     }
   });
@@ -403,24 +292,76 @@ export function registerGameHandlers(): void {
     }
   });
 
-  ipcMain.handle('games:jeopardy:subscribe-buzzers', (event, questionId: string) => {
+  ipcMain.handle('games:jeopardy:skip-question', async (event, params) => {
     try {
-      const subscriptionKey = `buzzers:${questionId}`;
-
-      // Clean up existing subscription if any
-      const existing = subscriptions.get(subscriptionKey);
-      if (existing) {
-        existing().catch(console.error);
-      }
-
-      const unsubscribe = gamesRepo.subscribeToBuzzerPresses(questionId, (buzzer) => {
-        event.sender.send(`games:buzzer-press:${questionId}`, buzzer);
-      });
-
-      subscriptions.set(subscriptionKey, unsubscribe);
+      await gamesRepo.skipJeopardyQuestion(params);
       return { success: true };
     } catch (error: any) {
-      console.error('Failed to subscribe to buzzer presses:', error);
+      console.error('Failed to skip Jeopardy question:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:clear-buzzers', async (event, questionId: string) => {
+    try {
+      await gamesRepo.clearBuzzerPresses(questionId);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to clear buzzer presses:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ============================================================================
+  // Final Jeopardy Handlers
+  // ============================================================================
+
+  ipcMain.handle('games:jeopardy:submit-fj-wager', async (event, params: { gameSessionId: string; userId: string; wagerAmount: number }) => {
+    try {
+      const success = await gamesRepo.submitFinalJeopardyWager(params.gameSessionId, params.userId, params.wagerAmount);
+      return { success };
+    } catch (error: any) {
+      console.error('Failed to submit FJ wager:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:all-fj-wagers-submitted', async (event, gameSessionId: string) => {
+    try {
+      const allSubmitted = await gamesRepo.allFinalJeopardyWagersSubmitted(gameSessionId);
+      return { success: true, allSubmitted };
+    } catch (error: any) {
+      console.error('Failed to check FJ wagers:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:get-fj-wagers', async (event, gameSessionId: string) => {
+    try {
+      const wagers = await gamesRepo.getFinalJeopardyWagers(gameSessionId);
+      return { success: true, wagers };
+    } catch (error: any) {
+      console.error('Failed to get FJ wagers:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:get-player-fj-wager', async (event, params: { gameSessionId: string; userId: string }) => {
+    try {
+      const wager = await gamesRepo.getPlayerFinalJeopardyWager(params.gameSessionId, params.userId);
+      return { success: true, wager };
+    } catch (error: any) {
+      console.error('Failed to get player FJ wager:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('games:jeopardy:all-fj-answers-submitted', async (event, params: { gameSessionId: string; questionId: string }) => {
+    try {
+      const allSubmitted = await gamesRepo.allFinalJeopardyAnswersSubmitted(params.gameSessionId, params.questionId);
+      return { success: true, allSubmitted };
+    } catch (error: any) {
+      console.error('Failed to check FJ answers:', error);
       return { success: false, error: error.message };
     }
   });

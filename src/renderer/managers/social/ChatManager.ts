@@ -3,7 +3,9 @@
  * Manages chat operations for study rooms
  */
 
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { ChatMessage } from '../../../domain/entities/ChatMessage.js';
+import { RendererSupabaseClient } from '../../services/RendererSupabaseClient.js';
 
 export interface ChatMessageDisplay {
   id: string;
@@ -18,7 +20,8 @@ export class ChatManager {
   private messages: Map<string, ChatMessage[]> = new Map();
   private currentUserId: string | null = null;
   private currentUserName: string | null = null;
-  private unsubscribeFn: (() => void) | null = null;
+  private chatChannel: RealtimeChannel | null = null;
+  private currentRoomId: string | null = null;
 
   /**
    * Initialize chat manager with current user
@@ -77,6 +80,8 @@ export class ChatManager {
 
   /**
    * Subscribe to new messages in a room
+   * Uses direct Supabase Realtime subscription in renderer process
+   * (WebSockets don't work in Electron's main process - no browser APIs)
    */
   public subscribeToRoom(
     roomId: string,
@@ -86,30 +91,94 @@ export class ChatManager {
     // Unsubscribe from previous room if any
     this.unsubscribe();
 
-    // Subscribe to new messages and typing events
-    this.unsubscribeFn = window.scribeCat.chat.subscribeToRoom(
-      roomId,
-      (messageData) => {
-        const message = ChatMessage.create(messageData);
-        this.addMessage(roomId, message);
-        onMessage(message);
-      },
-      onTyping ? (userId, userName, isTyping) => {
-        // Don't show typing indicator for current user
-        if (userId !== this.currentUserId) {
-          onTyping(userId, userName, isTyping);
+    console.log('📡 ChatManager: Setting up direct Supabase subscription in renderer for room:', roomId);
+
+    const rendererClient = RendererSupabaseClient.getInstance();
+    const client = rendererClient.getClient();
+
+    if (!client) {
+      console.error('❌ ChatManager: No Supabase client available in renderer');
+      return;
+    }
+
+    this.currentRoomId = roomId;
+    const channelName = `room-chat:${roomId}`;
+
+    // Create the realtime channel
+    this.chatChannel = client
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          console.log('🔥 ChatManager: New message received via realtime:', payload);
+
+          // Map payload to ChatMessage
+          const messageData = {
+            id: payload.new.id,
+            roomId: payload.new.room_id,
+            userId: payload.new.user_id,
+            message: payload.new.message,
+            createdAt: new Date(payload.new.created_at),
+          };
+
+          const message = ChatMessage.create(messageData);
+          this.addMessage(roomId, message);
+          onMessage(message);
         }
-      } : undefined
-    );
+      );
+
+    // Subscribe to typing status broadcasts if callback provided
+    if (onTyping) {
+      this.chatChannel.on(
+        'broadcast',
+        { event: 'typing-status' },
+        (payload: { payload: { userId: string; userName: string; isTyping: boolean } }) => {
+          const { userId, userName, isTyping } = payload.payload;
+          // Don't show typing indicator for current user
+          if (userId !== this.currentUserId) {
+            onTyping(userId, userName, isTyping);
+          }
+        }
+      );
+    }
+
+    // Subscribe and log status
+    this.chatChannel.subscribe((status, err) => {
+      console.log('📡 ChatManager: Subscription status:', status);
+      if (err) {
+        console.error('❌ ChatManager: Subscription error:', err);
+      }
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ ChatManager: Successfully subscribed to chat in RENDERER process');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('❌ ChatManager: Channel error');
+      } else if (status === 'TIMED_OUT') {
+        console.error('⏱️ ChatManager: Subscription timed out');
+      }
+    });
   }
 
   /**
    * Unsubscribe from current room
    */
   public unsubscribe(): void {
-    if (this.unsubscribeFn) {
-      this.unsubscribeFn();
-      this.unsubscribeFn = null;
+    if (this.chatChannel) {
+      console.log('🔒 ChatManager: Unsubscribing from chat channel');
+      const rendererClient = RendererSupabaseClient.getInstance();
+      const client = rendererClient.getClient();
+
+      this.chatChannel.unsubscribe();
+      if (client) {
+        client.removeChannel(this.chatChannel);
+      }
+      this.chatChannel = null;
+      this.currentRoomId = null;
     }
   }
 
@@ -190,18 +259,33 @@ export class ChatManager {
 
   /**
    * Broadcast typing status to other users in the room
+   * Uses direct channel broadcast (no IPC needed since we own the channel)
    */
   public async broadcastTyping(roomId: string, isTyping: boolean): Promise<void> {
     if (!this.currentUserId || !this.currentUserName) {
       throw new Error('Chat manager not initialized');
     }
 
-    await window.scribeCat.chat.broadcastTyping(
-      roomId,
-      this.currentUserId,
-      this.currentUserName,
-      isTyping
-    );
+    // Use direct channel broadcast if we have an active channel for this room
+    if (this.chatChannel && this.currentRoomId === roomId) {
+      await this.chatChannel.send({
+        type: 'broadcast',
+        event: 'typing-status',
+        payload: {
+          userId: this.currentUserId,
+          userName: this.currentUserName,
+          isTyping,
+        },
+      });
+    } else {
+      // Fallback to IPC if channel not available (shouldn't happen normally)
+      await window.scribeCat.chat.broadcastTyping(
+        roomId,
+        this.currentUserId,
+        this.currentUserName,
+        isTyping
+      );
+    }
   }
 
   /**
