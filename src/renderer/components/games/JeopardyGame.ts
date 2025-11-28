@@ -642,7 +642,19 @@ export class JeopardyGame extends MultiplayerGame {
       categories[category].sort((a, b) => a.points - b.points);
     }
 
-    const categoryNames = Object.keys(categories);
+    // Ensure exactly 6 categories for standard Jeopardy board
+    const REQUIRED_CATEGORIES = 6;
+    let categoryNames = Object.keys(categories);
+
+    // If fewer than 6 categories, pad with empty placeholders
+    while (categoryNames.length < REQUIRED_CATEGORIES) {
+      const emptyCategory = `Category ${categoryNames.length + 1}`;
+      categories[emptyCategory] = [];
+      categoryNames.push(emptyCategory);
+    }
+
+    // If more than 6, take only first 6
+    categoryNames = categoryNames.slice(0, REQUIRED_CATEGORIES);
     const currentPlayer = participants.find(p => p.userId === currentPlayerId);
     const isMyTurn = currentPlayer?.isCurrentUser ?? false;
 
@@ -670,7 +682,7 @@ export class JeopardyGame extends MultiplayerGame {
 
             <!-- Question grid -->
             <div class="jeopardy-grid">
-              ${this.renderQuestionGrid(categories, isMyTurn)}
+              ${this.renderQuestionGrid(categories, categoryNames, isMyTurn)}
             </div>
           </div>
         </div>
@@ -683,13 +695,12 @@ export class JeopardyGame extends MultiplayerGame {
   /**
    * Render question grid
    */
-  private renderQuestionGrid(categories: Record<string, any[]>, isMyTurn: boolean): string {
-    const categoryNames = Object.keys(categories);
-    const maxRows = 5; // Standard Jeopardy has 5 rows
+  private renderQuestionGrid(categories: Record<string, any[]>, categoryNames: string[], isMyTurn: boolean): string {
+    const QUESTIONS_PER_CATEGORY = 5; // Standard Jeopardy has 5 rows
 
     let gridHtml = '';
 
-    for (let row = 0; row < maxRows; row++) {
+    for (let row = 0; row < QUESTIONS_PER_CATEGORY; row++) {
       for (const category of categoryNames) {
         const question = categories[category][row];
 

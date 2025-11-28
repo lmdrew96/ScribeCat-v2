@@ -340,10 +340,10 @@ ${transcriptionText}`;
         break;
 
       case 'jeopardy':
-        // For Jeopardy, questionCount should be (numCategories * 5) + 1 for Final Jeopardy
-        // Default to 5 categories if not specified
+        // For Jeopardy, always use 6 categories x 5 questions + 1 Final Jeopardy
+        // Standard Jeopardy board is always 6x5
         const categoryList = options?.categories || [];
-        const numCategories = categoryList.length > 0 ? Math.min(Math.max(categoryList.length, 3), 6) : 5;
+        const numCategories = 6; // Always 6 categories for standard Jeopardy board
         const regularQuestions = numCategories * 5; // 5 questions per category (100-500 points)
         const totalWithFinal = regularQuestions + 1; // +1 for Final Jeopardy
 
@@ -355,7 +355,7 @@ BOARD STRUCTURE:
 - Questions will be worth 100, 200, 300, 400, and 500 points based on difficulty
 - Plus 1 Final Jeopardy question (different category)
 
-${categoryList.length > 0 ? `CATEGORIES TO USE: ${categoryList.join(', ')}` : `Create ${numCategories} distinct, relevant categories from the transcription content.`}
+${categoryList.length >= 6 ? `CATEGORIES TO USE: ${categoryList.slice(0, 6).join(', ')}` : categoryList.length > 0 ? `Use these categories and create additional ones to reach 6 total: ${categoryList.join(', ')}` : `Create 6 distinct, relevant categories from the transcription content.`}
 
 JEOPARDY FORMAT:
 - Questions are phrased as answers/clues (e.g., "This psychologist is known for classical conditioning")
