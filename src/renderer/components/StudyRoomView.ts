@@ -44,7 +44,9 @@ export class StudyRoomView {
   private isGameActive: boolean = false;
   private roomGameChannel: RealtimeChannel | null = null;
   private gamePollingInterval: number | null = null;
+  private participantTimeInterval: ReturnType<typeof setInterval> | null = null;
   private static readonly GAME_POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
+  private static readonly PARTICIPANT_TIME_UPDATE_MS = 30000; // Update participant times every 30 seconds
 
   // Collaborative editor
   private notesEditor: Editor | null = null;
@@ -87,6 +89,13 @@ export class StudyRoomView {
    */
   public initialize(): void {
     this.createView();
+  }
+
+  /**
+   * Get current room ID (for cleanup purposes)
+   */
+  public getCurrentRoomId(): string | null {
+    return this.currentRoomId;
   }
 
   /**
@@ -351,6 +360,9 @@ export class StudyRoomView {
     this.cleanupRoomGameChannel();
     this.stopGamePolling();
 
+    // Cleanup participant time interval
+    this.stopParticipantTimeInterval();
+
     // Cleanup chat panel
     if (this.chatPanel) {
       this.chatPanel.destroy();
@@ -384,6 +396,9 @@ export class StudyRoomView {
       // Render header and participants
       this.renderHeader();
       this.renderParticipants();
+
+      // Start participant time update interval
+      this.startParticipantTimeInterval();
 
       // Load session content
       await this.loadSessionContent();
@@ -463,9 +478,10 @@ export class StudyRoomView {
     const displayName = participant.userFullName || participant.userEmail;
     const initials = this.getInitials(displayName);
     const isHost = this.isParticipantHost(participant.userId);
+    const joinedAtISO = new Date(participant.joinedAt).toISOString();
 
     return `
-      <div class="participant-item ${isCurrentUser ? 'current-user' : ''}" data-user-id="${participant.userId}">
+      <div class="participant-item ${isCurrentUser ? 'current-user' : ''}" data-user-id="${participant.userId}" data-joined-at="${joinedAtISO}">
         <div class="participant-avatar">${initials}</div>
         <div class="participant-info">
           <p class="participant-name">
@@ -475,7 +491,7 @@ export class StudyRoomView {
           </p>
           <p class="participant-status">
             <span class="status-indicator active"></span>
-            Active • ${this.getTimeInRoom(participant.joinedAt)}
+            Active • <span class="participant-time">${this.getTimeInRoom(participant.joinedAt)}</span>
           </p>
         </div>
         ${this.canKickParticipant(participant.userId) ? `
@@ -1134,6 +1150,45 @@ export class StudyRoomView {
       return `${diffHours}h ${remainingMins}m`;
     }
     return `${diffMins}m`;
+  }
+
+  /**
+   * Update participant time displays without full re-render
+   * Called by interval to keep times current
+   */
+  private updateParticipantTimes(): void {
+    const participantItems = document.querySelectorAll('.participant-item[data-joined-at]');
+    participantItems.forEach(item => {
+      const joinedAt = item.getAttribute('data-joined-at');
+      if (joinedAt) {
+        const timeSpan = item.querySelector('.participant-time');
+        if (timeSpan) {
+          timeSpan.textContent = this.getTimeInRoom(new Date(joinedAt));
+        }
+      }
+    });
+  }
+
+  /**
+   * Start the participant time update interval
+   */
+  private startParticipantTimeInterval(): void {
+    // Clear any existing interval
+    this.stopParticipantTimeInterval();
+
+    this.participantTimeInterval = setInterval(() => {
+      this.updateParticipantTimes();
+    }, StudyRoomView.PARTICIPANT_TIME_UPDATE_MS);
+  }
+
+  /**
+   * Stop the participant time update interval
+   */
+  private stopParticipantTimeInterval(): void {
+    if (this.participantTimeInterval) {
+      clearInterval(this.participantTimeInterval);
+      this.participantTimeInterval = null;
+    }
   }
 
   /**

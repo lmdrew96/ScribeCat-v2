@@ -22,9 +22,15 @@ export class BrowseRoomsModal {
   constructor(studyRoomsManager: StudyRoomsManager) {
     this.studyRoomsManager = studyRoomsManager;
 
-    // Listen for changes
-    this.studyRoomsManager.addRoomsListener(() => this.refreshCurrentTab());
-    this.studyRoomsManager.addInvitationsListener(() => this.refreshCurrentTab());
+    // Listen for changes - update ALL badges, then refresh current tab content
+    this.studyRoomsManager.addRoomsListener(() => {
+      this.updateAllBadges();
+      this.refreshCurrentTab();
+    });
+    this.studyRoomsManager.addInvitationsListener(() => {
+      this.updateAllBadges();
+      this.refreshCurrentTab();
+    });
   }
 
   /**
@@ -216,6 +222,36 @@ export class BrowseRoomsModal {
       case 'active':
         this.renderActiveRooms();
         break;
+    }
+  }
+
+  /**
+   * Update all tab badges regardless of current tab
+   * Called when data changes to ensure all badges stay in sync
+   */
+  private updateAllBadges(): void {
+    // My Rooms badge
+    const rooms = this.studyRoomsManager.getRooms();
+    const myRoomsBadge = document.getElementById('my-rooms-count-badge');
+    if (myRoomsBadge) {
+      myRoomsBadge.textContent = rooms.length.toString();
+      myRoomsBadge.style.display = rooms.length > 0 ? 'inline-block' : 'none';
+    }
+
+    // Invitations badge
+    const invitations = this.studyRoomsManager.getPendingInvitations();
+    const invitationsBadge = document.getElementById('invitations-count-badge');
+    if (invitationsBadge) {
+      invitationsBadge.textContent = invitations.length.toString();
+      invitationsBadge.style.display = invitations.length > 0 ? 'inline-block' : 'none';
+    }
+
+    // Active Rooms badge
+    const activeRooms = this.studyRoomsManager.getActiveRooms();
+    const activeBadge = document.getElementById('active-rooms-count-badge');
+    if (activeBadge) {
+      activeBadge.textContent = activeRooms.length.toString();
+      activeBadge.style.display = activeRooms.length > 0 ? 'inline-block' : 'none';
     }
   }
 

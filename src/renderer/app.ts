@@ -682,6 +682,19 @@ window.addEventListener('beforeunload', async (event) => {
     await friendsManager.stopPresenceTracking();
   }
 
+  // Leave any active study room (so other participants see us leave)
+  if (studyRoomView && studyRoomsManager) {
+    const currentRoomId = studyRoomView.getCurrentRoomId();
+    if (currentRoomId) {
+      console.log('[App] Leaving study room before window close:', currentRoomId);
+      try {
+        await studyRoomsManager.leaveRoom(currentRoomId);
+      } catch (error) {
+        console.error('[App] Failed to leave room on close:', error);
+      }
+    }
+  }
+
   // Clean up hot reload listener if it exists
   if ((window.scribeCat as any).dev) {
     (window.scribeCat as any).dev.removeHotReloadListener();
