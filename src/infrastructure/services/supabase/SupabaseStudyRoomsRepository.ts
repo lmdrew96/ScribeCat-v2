@@ -245,6 +245,142 @@ export class SupabaseStudyRoomsRepository {
   }
 
   /**
+   * Get rooms the user can rejoin (previously left but room is still active)
+   */
+  async getRejoinableRooms(userId: string): Promise<StudyRoom[]> {
+    try {
+      // Step 1: Get room IDs where user has inactive participant record (left the room)
+      const { data: leftParticipations, error: leftError } = await this.getClient()
+        .from('room_participants')
+        .select('room_id')
+        .eq('user_id', userId)
+        .eq('is_active', false)
+        .not('left_at', 'is', null);
+
+      if (leftError) {
+        console.error('Error fetching left participations:', leftError);
+        throw new Error(`Failed to fetch left participations: ${leftError.message}`);
+      }
+
+      if (!leftParticipations || leftParticipations.length === 0) {
+        console.log('No left participations found for user:', userId);
+        return [];
+      }
+
+      const leftRoomIds = leftParticipations.map(p => p.room_id);
+      console.log('Found left room IDs:', leftRoomIds);
+
+      // Step 2: Get room IDs where user is currently active (to exclude)
+      const { data: activeParticipations, error: activeError } = await this.getClient()
+        .from('room_participants')
+        .select('room_id')
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      if (activeError) {
+        console.error('Error fetching active participations:', activeError);
+      }
+
+      const activeRoomIds = new Set((activeParticipations || []).map(p => p.room_id));
+
+      // Filter out rooms where user is currently active
+      const rejoinableRoomIds = leftRoomIds.filter(id => !activeRoomIds.has(id));
+
+      if (rejoinableRoomIds.length === 0) {
+        console.log('No rejoinable rooms after filtering active participations');
+        return [];
+      }
+
+      console.log('Rejoinable room IDs after filtering:', rejoinableRoomIds);
+
+      // Step 3: Fetch the actual room data for these rooms
+      const { data: roomsData, error: roomsError } = await this.getClient()
+        .from('study_rooms')
+        .select(`
+          id,
+          name,
+          host_id,
+          session_id,
+          max_participants,
+          is_active,
+          created_at,
+          updated_at,
+          closed_at,
+          host_profile:user_profiles!study_rooms_host_id_fkey (
+            email,
+            full_name,
+            avatar_url
+          )
+        `)
+        .in('id', rejoinableRoomIds)
+        .eq('is_active', true);
+
+      if (roomsError) {
+        console.error('Error fetching room data:', roomsError);
+        throw new Error(`Failed to fetch room data: ${roomsError.message}`);
+      }
+
+      if (!roomsData || roomsData.length === 0) {
+        console.log('No active rooms found for rejoinable IDs');
+        return [];
+      }
+
+      console.log('Found rejoinable rooms:', roomsData.length);
+
+      // Step 4: Get participant counts
+      const { data: participantCounts, error: countError } = await this.getClient()
+        .from('room_participants')
+        .select('room_id')
+        .in('room_id', rejoinableRoomIds)
+        .eq('is_active', true);
+
+      if (countError) {
+        console.error('Error fetching participant counts:', countError);
+      }
+
+      const countMap = new Map<string, number>();
+      if (participantCounts) {
+        participantCounts.forEach(row => {
+          const currentCount = countMap.get(row.room_id) || 0;
+          countMap.set(row.room_id, currentCount + 1);
+        });
+      }
+
+      // Step 5: Build final room objects
+      const rooms: StudyRoom[] = [];
+      for (const roomData of roomsData) {
+        const hostProfile = Array.isArray(roomData.host_profile)
+          ? roomData.host_profile[0]
+          : roomData.host_profile;
+
+        rooms.push(StudyRoom.fromDatabase({
+          id: roomData.id,
+          name: roomData.name,
+          host_id: roomData.host_id,
+          session_id: roomData.session_id,
+          max_participants: roomData.max_participants,
+          is_active: roomData.is_active,
+          created_at: roomData.created_at,
+          updated_at: roomData.updated_at,
+          closed_at: roomData.closed_at,
+          host_email: hostProfile?.email,
+          host_full_name: hostProfile?.full_name,
+          host_avatar_url: hostProfile?.avatar_url,
+          participant_count: countMap.get(roomData.id) || 0,
+        }));
+      }
+
+      // Sort by created_at descending
+      rooms.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      return rooms;
+    } catch (error) {
+      console.error('Exception in getRejoinableRooms:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get a specific room by ID
    */
   async getRoomById(roomId: string): Promise<StudyRoom | null> {

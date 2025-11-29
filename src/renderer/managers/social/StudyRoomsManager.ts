@@ -23,6 +23,7 @@ export type InvitationsChangeListener = (invitations: RoomInvitationData[]) => v
  */
 export class StudyRoomsManager {
   private rooms: StudyRoomData[] = [];
+  private rejoinableRooms: StudyRoomData[] = [];
   private participants: Map<string, RoomParticipantData[]> = new Map();
   private invitations: RoomInvitationData[] = [];
   private currentUserId: string | null = null;
@@ -63,6 +64,7 @@ export class StudyRoomsManager {
   clear(): void {
     this.currentUserId = null;
     this.rooms = [];
+    this.rejoinableRooms = [];
     this.participants.clear();
     this.invitations = [];
 
@@ -134,6 +136,25 @@ export class StudyRoomsManager {
   }
 
   /**
+   * Load rooms user can rejoin (previously left but still active)
+   */
+  async loadRejoinableRooms(): Promise<void> {
+    try {
+      const result = await window.scribeCat.studyRooms.getRejoinableRooms();
+
+      if (result.success) {
+        this.rejoinableRooms = result.rooms || [];
+        this.notifyRoomsListeners();
+        logger.info(`Loaded ${this.rejoinableRooms.length} rejoinable rooms`);
+      } else {
+        logger.error('Failed to load rejoinable rooms:', result.error);
+      }
+    } catch (error) {
+      logger.error('Exception loading rejoinable rooms:', error);
+    }
+  }
+
+  /**
    * Get all rooms
    */
   getRooms(): StudyRoomData[] {
@@ -145,6 +166,13 @@ export class StudyRoomsManager {
    */
   getActiveRooms(): StudyRoomData[] {
     return this.rooms.filter(r => r.isActive);
+  }
+
+  /**
+   * Get rooms user can rejoin (previously left but still active)
+   */
+  getRejoinableRooms(): StudyRoomData[] {
+    return [...this.rejoinableRooms];
   }
 
   /**
@@ -937,6 +965,7 @@ export class StudyRoomsManager {
     await Promise.all([
       this.loadRooms(),
       this.loadInvitations(),
+      this.loadRejoinableRooms(),
     ]);
   }
 }

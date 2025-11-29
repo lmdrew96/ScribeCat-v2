@@ -10,7 +10,7 @@ import type { StudyRoomData } from '../../domain/entities/StudyRoom.js';
 import type { RoomInvitationData } from '../../domain/entities/RoomInvitation.js';
 import { escapeHtml } from '../utils/formatting.js';
 
-type TabType = 'my-rooms' | 'invitations' | 'active';
+type TabType = 'my-rooms' | 'invitations' | 'rejoin' | 'active';
 
 export class BrowseRoomsModal {
   private modal: HTMLElement | null = null;
@@ -70,6 +70,10 @@ export class BrowseRoomsModal {
               <span>Invitations</span>
               <span class="rooms-tab-badge" id="invitations-count-badge" style="display: none;">0</span>
             </button>
+            <button class="rooms-tab" data-tab="rejoin">
+              <span>Rejoin</span>
+              <span class="rooms-tab-badge" id="rejoin-count-badge" style="display: none;">0</span>
+            </button>
             <button class="rooms-tab" data-tab="active">
               <span>Active</span>
               <span class="rooms-tab-badge" id="active-rooms-count-badge">0</span>
@@ -97,6 +101,16 @@ export class BrowseRoomsModal {
               </div>
               <div id="invitations-container" class="invitations-container">
                 <p class="empty-state">No pending invitations</p>
+              </div>
+            </div>
+
+            <!-- Rejoin Tab -->
+            <div class="rooms-tab-content" data-tab-content="rejoin" style="display: none;">
+              <div class="tab-header">
+                <p class="tab-description">Rooms you previously left that are still active</p>
+              </div>
+              <div id="rejoin-rooms-container" class="rooms-container">
+                <p class="empty-state">No rooms to rejoin</p>
               </div>
             </div>
 
@@ -219,6 +233,9 @@ export class BrowseRoomsModal {
       case 'invitations':
         this.renderInvitations();
         break;
+      case 'rejoin':
+        this.renderRejoinRooms();
+        break;
       case 'active':
         this.renderActiveRooms();
         break;
@@ -244,6 +261,14 @@ export class BrowseRoomsModal {
     if (invitationsBadge) {
       invitationsBadge.textContent = invitations.length.toString();
       invitationsBadge.style.display = invitations.length > 0 ? 'inline-block' : 'none';
+    }
+
+    // Rejoin badge
+    const rejoinRooms = this.studyRoomsManager.getRejoinableRooms();
+    const rejoinBadge = document.getElementById('rejoin-count-badge');
+    if (rejoinBadge) {
+      rejoinBadge.textContent = rejoinRooms.length.toString();
+      rejoinBadge.style.display = rejoinRooms.length > 0 ? 'inline-block' : 'none';
     }
 
     // Active Rooms badge
@@ -312,6 +337,33 @@ export class BrowseRoomsModal {
 
     // Attach invitation action listeners
     this.attachInvitationListeners();
+  }
+
+  /**
+   * Render Rejoin Rooms tab
+   */
+  private renderRejoinRooms(): void {
+    const container = document.getElementById('rejoin-rooms-container');
+    if (!container) return;
+
+    const rooms = this.studyRoomsManager.getRejoinableRooms();
+
+    // Update badge
+    const badge = document.getElementById('rejoin-count-badge');
+    if (badge) {
+      badge.textContent = rooms.length.toString();
+      badge.style.display = rooms.length > 0 ? 'inline-block' : 'none';
+    }
+
+    if (rooms.length === 0) {
+      container.innerHTML = '<p class="empty-state">No rooms to rejoin</p>';
+      return;
+    }
+
+    container.innerHTML = rooms.map(room => this.renderRejoinRoomCard(room)).join('');
+
+    // Attach rejoin action listeners
+    this.attachRejoinListeners();
   }
 
   /**
@@ -427,6 +479,86 @@ export class BrowseRoomsModal {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Render a rejoin room card
+   */
+  private renderRejoinRoomCard(room: StudyRoomData): string {
+    const participantCount = room.participantCount || 0;
+    const isFull = participantCount >= room.maxParticipants;
+
+    return `
+      <div class="room-card" data-room-id="${room.id}">
+        <div class="room-card-header">
+          <div class="room-info">
+            <h3>${escapeHtml(room.name)}</h3>
+            <p class="room-host">
+              Host: ${escapeHtml(room.hostFullName || room.hostEmail)}
+            </p>
+          </div>
+          <div class="room-status">
+            <span class="status-badge ${isFull ? 'status-full' : 'status-open'}">${isFull ? 'Full' : 'Open'}</span>
+          </div>
+        </div>
+        <div class="room-card-body">
+          <div class="room-details">
+            <span class="room-detail">
+              <i class="icon-users"></i>
+              ${participantCount}/${room.maxParticipants} participants
+            </span>
+            <span class="room-detail">
+              <i class="icon-clock"></i>
+              Created ${this.getTimeAgo(room.createdAt)}
+            </span>
+          </div>
+        </div>
+        <div class="room-card-actions">
+          ${!isFull ? `
+            <button class="btn-primary btn-sm" data-action="rejoin" data-room-id="${room.id}">
+              Rejoin Room
+            </button>
+          ` : `
+            <span class="text-muted">Room is full</span>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Attach rejoin action listeners
+   */
+  private attachRejoinListeners(): void {
+    document.querySelectorAll('[data-action="rejoin"]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const roomId = (e.target as HTMLElement).dataset.roomId;
+        if (!roomId) return;
+
+        try {
+          (e.target as HTMLButtonElement).disabled = true;
+          (e.target as HTMLButtonElement).textContent = 'Rejoining...';
+
+          // Join the room directly - RLS policy allows rejoining
+          await this.studyRoomsManager.joinRoom(roomId);
+
+          // Refresh data and switch to My Rooms tab
+          await this.studyRoomsManager.refresh();
+          this.switchTab('my-rooms');
+
+          // Close modal and enter the room
+          if (this.onJoinRoom) {
+            this.close();
+            this.onJoinRoom(roomId);
+          }
+        } catch (error) {
+          console.error('Failed to rejoin room:', error);
+          alert('Failed to rejoin room. Please try again.');
+          (e.target as HTMLButtonElement).disabled = false;
+          (e.target as HTMLButtonElement).textContent = 'Rejoin Room';
+        }
+      });
+    });
   }
 
   /**

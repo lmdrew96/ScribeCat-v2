@@ -113,6 +113,28 @@ export class StudyRoomsHandlers extends BaseHandler {
       }
     });
 
+    this.handle(ipcMain, 'rooms:getRejoinableRooms', async (_event) => {
+      if (!this.currentUserId) {
+        return { success: false, rooms: [], error: 'Not authenticated' };
+      }
+
+      try {
+        const rooms = await this.repository.getRejoinableRooms(this.currentUserId);
+
+        return {
+          success: true,
+          rooms: rooms.map(r => r.toJSON()),
+        };
+      } catch (error) {
+        console.error('Error fetching rejoinable rooms:', error);
+        return {
+          success: false,
+          rooms: [],
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    });
+
     this.handle(ipcMain, 'rooms:getRoomById', async (_event, roomId: string) => {
       if (!this.currentUserId) {
         return { success: false, error: 'Not authenticated' };

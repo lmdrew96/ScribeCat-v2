@@ -370,6 +370,8 @@ const electronAPI = {
       ipcRenderer.invoke('rooms:createRoom', params),
     getUserRooms: () =>
       ipcRenderer.invoke('rooms:getUserRooms'),
+    getRejoinableRooms: () =>
+      ipcRenderer.invoke('rooms:getRejoinableRooms'),
     getRoomById: (roomId: string) =>
       ipcRenderer.invoke('rooms:getRoomById', roomId),
     closeRoom: (roomId: string) =>

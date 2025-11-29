@@ -15,6 +15,7 @@ import { ChatPanel } from './ChatPanel.js';
 import { InviteFriendsModal } from './InviteFriendsModal.js';
 import { escapeHtml, formatTimestamp } from '../utils/formatting.js';
 import { ErrorModal } from '../utils/ErrorModal.js';
+import { ModalDialog } from './shared/ModalDialog.js';
 import { SupabaseClient } from '../../infrastructure/services/supabase/SupabaseClient.js';
 import { RendererSupabaseClient } from '../services/RendererSupabaseClient.js';
 import { Editor } from '@tiptap/core';
@@ -1089,7 +1090,7 @@ export class StudyRoomView {
   }
 
   /**
-   * Exit room with retry logic
+   * Exit room - shows appropriate dialog based on user role
    */
   private async exitRoom(): Promise<void> {
     if (!this.currentRoomId || !this.currentUserId) {
@@ -1106,60 +1107,104 @@ export class StudyRoomView {
     const isHost = room.hostId === this.currentUserId;
 
     if (isHost) {
-      const confirmClose = confirm(
-        'You are the host. Close the room for everyone?\n\n(OK = Close room for all | Cancel = Leave room open and exit)'
-      );
-
-      if (confirmClose === null) return; // Cancelled
-
-      if (confirmClose) {
-        // Close room with retry logic
-        try {
-          await this.retryWithBackoff(
-            () => this.studyRoomsManager.closeRoom(this.currentRoomId!),
-            3,
-            500
-          );
-        } catch (error) {
-          console.error('Failed to close room after retries:', error);
-          alert('Failed to close room after multiple attempts. Please try again.');
-          return;
-        }
-      } else {
-        // Leave room with retry logic
-        try {
-          await this.retryWithBackoff(
-            () => this.studyRoomsManager.leaveRoom(this.currentRoomId!),
-            3,
-            500
-          );
-        } catch (error) {
-          console.error('Failed to leave room after retries:', error);
-          alert('Failed to leave room after multiple attempts. Please try again.');
-          return;
-        }
-      }
+      this.showHostExitDialog();
     } else {
-      // Leave room with retry logic
-      try {
-        await this.retryWithBackoff(
-          () => this.studyRoomsManager.leaveRoom(this.currentRoomId!),
-          3,
-          500
-        );
-      } catch (error) {
-        console.error('Failed to leave room after retries:', error);
-        alert('Failed to leave room after multiple attempts. Please try again.');
-        return;
-      }
+      this.showNonHostExitDialog();
     }
+  }
 
-    // Hide view
-    this.hide();
+  /**
+   * Show exit dialog for hosts with 3 options: Cancel, Exit, Exit & Close
+   */
+  private showHostExitDialog(): void {
+    const modal = new ModalDialog({
+      title: 'Exit Study Room',
+      content: 'You are the host. What would you like to do?',
+      buttons: [
+        {
+          text: 'Cancel',
+          type: 'secondary',
+          onClick: () => {
+            // Stay in room - do nothing
+          }
+        },
+        {
+          text: 'Exit',
+          type: 'secondary',
+          onClick: () => this.performLeaveRoom()
+        },
+        {
+          text: 'Exit & Close',
+          type: 'danger',
+          onClick: () => this.performCloseRoom()
+        }
+      ],
+      closeOnOverlay: false,
+      closeOnEscape: true
+    });
+    modal.show();
+  }
 
-    // Call exit callback
-    if (this.onExit) {
-      this.onExit();
+  /**
+   * Show exit dialog for non-hosts with confirmation
+   */
+  private showNonHostExitDialog(): void {
+    const modal = new ModalDialog({
+      title: 'Leave Study Room',
+      content: 'Are you sure you want to leave? You can rejoin later without a new invitation.',
+      buttons: [
+        {
+          text: 'Cancel',
+          type: 'secondary',
+          onClick: () => {
+            // Stay in room - do nothing
+          }
+        },
+        {
+          text: 'Leave',
+          type: 'primary',
+          onClick: () => this.performLeaveRoom()
+        }
+      ],
+      closeOnOverlay: true,
+      closeOnEscape: true
+    });
+    modal.show();
+  }
+
+  /**
+   * Leave room (for both hosts and non-hosts)
+   */
+  private async performLeaveRoom(): Promise<void> {
+    try {
+      await this.retryWithBackoff(
+        () => this.studyRoomsManager.leaveRoom(this.currentRoomId!),
+        3,
+        500
+      );
+      this.hide();
+      if (this.onExit) this.onExit();
+    } catch (error) {
+      console.error('Failed to leave room after retries:', error);
+      ModalDialog.alert('Error', 'Failed to leave room. Please try again.');
+    }
+  }
+
+  /**
+   * Close room for everyone (host only)
+   */
+  private async performCloseRoom(): Promise<void> {
+    try {
+      await this.retryWithBackoff(
+        () => this.studyRoomsManager.closeRoom(this.currentRoomId!),
+        3,
+        500
+      );
+      this.hide();
+      if (this.onExit) this.onExit();
+    } catch (error) {
+      console.error('Failed to close room after retries:', error);
+      ModalDialog.alert('Error', 'Failed to close room. Please try again.');
     }
   }
 
