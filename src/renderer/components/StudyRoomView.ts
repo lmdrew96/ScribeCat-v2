@@ -159,15 +159,9 @@ export class StudyRoomView {
 
       <!-- Main Content -->
       <div class="study-room-main">
-        <!-- Sidebar (Participants) -->
-        <div class="study-room-sidebar">
-          <div class="sidebar-header">
-            <h3>Participants</h3>
-            <span id="participants-count" class="count-badge">0</span>
-          </div>
-          <div id="participants-list" class="participants-list">
-            <div class="loading">Loading participants...</div>
-          </div>
+        <!-- Chat Panel -->
+        <div class="study-room-chat" id="study-room-chat-container">
+          <!-- Chat panel will be initialized here -->
         </div>
 
         <!-- Session Content -->
@@ -257,9 +251,15 @@ export class StudyRoomView {
           </div>
         </div>
 
-        <!-- Chat Panel (Phase 3 - Placeholder) -->
-        <div class="study-room-chat" id="study-room-chat-container">
-          <!-- Chat panel will be initialized here -->
+        <!-- Sidebar (Participants) -->
+        <div class="study-room-sidebar">
+          <div class="sidebar-header">
+            <h3>Participants</h3>
+            <span id="participants-count" class="count-badge">0</span>
+          </div>
+          <div id="participants-list" class="participants-list">
+            <div class="loading">Loading participants...</div>
+          </div>
         </div>
       </div>
     `;

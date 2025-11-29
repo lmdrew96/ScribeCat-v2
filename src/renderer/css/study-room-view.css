@@ -81,13 +81,13 @@
   position: relative;
 }
 
-/* Left Sidebar - Participants */
+/* Right Sidebar - Participants */
 .study-room-sidebar {
   width: 280px;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
-  border-right: 1px solid var(--border);
+  border-left: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -567,13 +567,13 @@
   padding: 20px;
 }
 
-/* Right Panel - Chat */
+/* Left Panel - Chat */
 .study-room-chat {
   width: 380px;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
-  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   flex-shrink: 0;
   transition: width 0.3s ease;
   overflow: hidden;
