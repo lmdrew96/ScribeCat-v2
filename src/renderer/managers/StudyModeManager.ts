@@ -809,6 +809,13 @@ export class StudyModeManager {
    * Show study mode view
    */
   public async show(filterSharedOnly: boolean = false): Promise<void> {
+    // Guard: Don't show study mode if user is currently in a study room
+    const studyRoomView = document.getElementById('study-room-view');
+    if (studyRoomView && !studyRoomView.classList.contains('hidden')) {
+      logger.warn('Cannot show study mode while in a study room');
+      return;
+    }
+
     // Reload sessions to get latest data
     await this.loadSessions();
 

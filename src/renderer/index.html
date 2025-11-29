@@ -489,7 +489,11 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- Study Room View (populated dynamically by StudyRoomView.ts) -->
+        <div id="study-room-view" class="study-room-view hidden">
+        </div>
+
         <!-- Bottom Status Bar -->
         <footer class="status-bar">
             <div class="status-left">
@@ -513,7 +517,12 @@
             </div>
         </footer>
     </div>
-    
+
+    <!-- Game Modal (outside #app so position:fixed works correctly) -->
+    <div id="multiplayer-game-backdrop" class="multiplayer-game-backdrop"></div>
+    <div id="multiplayer-game-container" class="multiplayer-game-container">
+    </div>
+
     <!-- Floating AI Chat Button -->
     <button id="floating-chat-btn" class="floating-chat-btn" title="Open Nugget" aria-label="Open Nugget">
         <img src="assets/AskNugget-cat.PNG" alt="Nugget" class="chat-btn-icon">

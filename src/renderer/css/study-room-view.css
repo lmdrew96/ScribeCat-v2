@@ -1,21 +1,12 @@
 /* ===== Study Room View Styles ===== */
 
 .study-room-view {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 133.33vw;
-  height: 133.33vh;
-  background-color: var(--bg-primary);
-  z-index: 10200; /* Above modals (10100) */
+  flex: 1;
   display: flex;
   flex-direction: column;
+  background-color: var(--bg-primary);
   overflow: hidden;
   -webkit-app-region: no-drag; /* Override parent drag regions */
-  transform: scale(0.75);
-  transform-origin: top left;
 }
 
 /* Header */
@@ -88,7 +79,6 @@
   overflow: hidden;
   min-height: 0;
   position: relative;
-  z-index: -1; /* Negative to force ALL children below header */
 }
 
 /* Left Sidebar - Participants */
@@ -99,8 +89,6 @@
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   flex-shrink: 0;
-  position: relative;
-  z-index: 0; /* Explicitly below header */
 }
 
 .sidebar-header {
@@ -237,8 +225,6 @@
   flex-direction: column;
   min-width: 0;
   background: var(--bg-primary);
-  position: relative;
-  z-index: 0; /* Explicitly below header */
   overflow: hidden; /* Prevent overflow at container level */
 }
 
@@ -589,8 +575,6 @@
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
   flex-shrink: 0;
-  position: relative;
-  z-index: 0; /* Explicitly below header */
   transition: width 0.3s ease;
   overflow: hidden;
 }
@@ -1088,12 +1072,11 @@
    ============================================================================ */
 
 /* Use ID selector for maximum specificity */
-/* Note: Values scaled up by 1.333x to compensate for .study-room-view scale(0.75) */
 #session-notes .study-editor-toolbar {
   display: flex;
   align-items: center;
-  gap: 5px !important;
-  padding: 11px 16px !important;
+  gap: 4px !important;
+  padding: 8px 12px !important;
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
@@ -1102,18 +1085,18 @@
 }
 
 #session-notes .study-editor-toolbar .toolbar-btn {
-  min-width: 43px !important;
-  height: 43px !important;
-  padding: 5px 11px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  padding: 4px 8px !important;
   background-color: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 4px;
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px !important;
+  font-size: 14px !important;
   font-weight: 500;
   transition: all 0.2s ease;
   position: relative;
@@ -1137,15 +1120,15 @@
 
 #session-notes .study-editor-toolbar .toolbar-divider {
   width: 1px;
-  height: 32px !important;
+  height: 24px !important;
   background-color: var(--border);
-  margin: 0 5px !important;
+  margin: 0 4px !important;
 }
 
 #session-notes .study-editor-toolbar .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 3px !important;
+  gap: 2px !important;
 }
 
 /* Toolbar Dropdowns */
@@ -1190,13 +1173,13 @@
 
 /* Font Size Selector */
 #session-notes .study-font-size-select {
-  height: 43px !important;
-  padding: 5px 11px !important;
+  height: 32px !important;
+  padding: 4px 8px !important;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 5px;
-  font-size: 17px !important;
+  border-radius: 4px;
+  font-size: 13px !important;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1235,7 +1218,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px;
+  font-size: 14px;
 }
 
 #session-notes .toolbar-btn .bold-icon {
@@ -1258,25 +1241,25 @@
 #session-notes .toolbar-btn .list-icon {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 16px;
+  gap: 4px;
+  font-size: 12px;
 }
 
 #session-notes .toolbar-btn .list-bullet,
 #session-notes .toolbar-btn .list-number {
-  font-size: 19px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 #session-notes .toolbar-btn .list-lines {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 #session-notes .toolbar-btn .list-lines span {
-  width: 11px;
-  height: 3px;
+  width: 8px;
+  height: 2px;
   background-color: currentColor;
   border-radius: 1px;
 }
@@ -1285,34 +1268,34 @@
 #session-notes .toolbar-btn .align-icon {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   align-items: flex-start;
 }
 
 #session-notes .toolbar-btn .align-icon span {
-  height: 3px;
+  height: 2px;
   background-color: currentColor;
   border-radius: 1px;
 }
 
-#session-notes .toolbar-btn .align-left span:nth-child(1) { width: 16px; }
-#session-notes .toolbar-btn .align-left span:nth-child(2) { width: 13px; }
-#session-notes .toolbar-btn .align-left span:nth-child(3) { width: 19px; }
+#session-notes .toolbar-btn .align-left span:nth-child(1) { width: 12px; }
+#session-notes .toolbar-btn .align-left span:nth-child(2) { width: 10px; }
+#session-notes .toolbar-btn .align-left span:nth-child(3) { width: 14px; }
 
 #session-notes .toolbar-btn .align-center {
   align-items: center;
 }
-#session-notes .toolbar-btn .align-center span:nth-child(1) { width: 16px; }
-#session-notes .toolbar-btn .align-center span:nth-child(2) { width: 13px; }
-#session-notes .toolbar-btn .align-center span:nth-child(3) { width: 19px; }
+#session-notes .toolbar-btn .align-center span:nth-child(1) { width: 12px; }
+#session-notes .toolbar-btn .align-center span:nth-child(2) { width: 10px; }
+#session-notes .toolbar-btn .align-center span:nth-child(3) { width: 14px; }
 
 #session-notes .toolbar-btn .align-right {
   align-items: flex-end;
 }
-#session-notes .toolbar-btn .align-right span:nth-child(1) { width: 16px; }
-#session-notes .toolbar-btn .align-right span:nth-child(2) { width: 13px; }
-#session-notes .toolbar-btn .align-right span:nth-child(3) { width: 19px; }
+#session-notes .toolbar-btn .align-right span:nth-child(1) { width: 12px; }
+#session-notes .toolbar-btn .align-right span:nth-child(2) { width: 10px; }
+#session-notes .toolbar-btn .align-right span:nth-child(3) { width: 14px; }
 
 #session-notes .toolbar-btn .align-justify span {
-  width: 19px;
+  width: 14px;
 }

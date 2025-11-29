@@ -48,6 +48,9 @@ export class StudyRoomView {
   private static readonly GAME_POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
   private static readonly PARTICIPANT_TIME_UPDATE_MS = 30000; // Update participant times every 30 seconds
 
+  // Track which view user came from (for returning after exit)
+  private previousView: 'recording' | 'study-mode' = 'recording';
+
   // Collaborative editor
   private notesEditor: Editor | null = null;
   private collaborationAdapter: CollaborationAdapter;
@@ -122,145 +125,144 @@ export class StudyRoomView {
    * Create the view structure
    */
   private createView(): void {
-    const viewHTML = `
-      <div id="study-room-view" class="study-room-view" style="display: none;">
-        <!-- Header -->
-        <div class="study-room-header">
-          <button class="btn-icon back-btn" id="exit-room-btn" title="Exit Room">
-            ←
+    // Get the existing static container from index.html
+    this.container = document.getElementById('study-room-view');
+
+    if (!this.container) {
+      console.error('StudyRoomView: Container #study-room-view not found in DOM');
+      return;
+    }
+
+    // Populate the container with the view structure
+    this.container.innerHTML = `
+      <!-- Header -->
+      <div class="study-room-header">
+        <button class="btn-icon back-btn" id="exit-room-btn" title="Exit Room">
+          ←
+        </button>
+        <div class="room-title-info">
+          <h2 id="room-title">Study Room</h2>
+          <p id="room-subtitle">Loading...</p>
+        </div>
+        <div class="room-actions">
+          <button class="btn-primary btn-sm" id="start-game-btn" style="display: none;">
+            🎮 Start Game
           </button>
-          <div class="room-title-info">
-            <h2 id="room-title">Study Room</h2>
-            <p id="room-subtitle">Loading...</p>
+          <button class="btn-secondary btn-sm" id="invite-friends-btn">
+            Invite Friends
+          </button>
+          <button class="btn-secondary btn-sm" id="room-settings-btn">
+            Settings
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="study-room-main">
+        <!-- Sidebar (Participants) -->
+        <div class="study-room-sidebar">
+          <div class="sidebar-header">
+            <h3>Participants</h3>
+            <span id="participants-count" class="count-badge">0</span>
           </div>
-          <div class="room-actions">
-            <button class="btn-primary btn-sm" id="start-game-btn" style="display: none;">
-              🎮 Start Game
-            </button>
-            <button class="btn-secondary btn-sm" id="invite-friends-btn">
-              Invite Friends
-            </button>
-            <button class="btn-secondary btn-sm" id="room-settings-btn">
-              Settings
-            </button>
+          <div id="participants-list" class="participants-list">
+            <div class="loading">Loading participants...</div>
           </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="study-room-main">
-          <!-- Sidebar (Participants) -->
-          <div class="study-room-sidebar">
-            <div class="sidebar-header">
-              <h3>Participants</h3>
-              <span id="participants-count" class="count-badge">0</span>
-            </div>
-            <div id="participants-list" class="participants-list">
-              <div class="loading">Loading participants...</div>
+        <!-- Session Content -->
+        <div class="study-room-content">
+          <div class="content-header">
+            <h3>Shared Session</h3>
+          </div>
+
+          <!-- Session Info Bar -->
+          <div class="session-info-bar" id="session-info-bar" style="display: none;">
+            <div class="session-info-content">
+              <span class="session-course-badge" id="session-course-badge">No Course</span>
+              <span class="session-title" id="session-title-display">Session Title</span>
+              <span class="session-meta-separator">•</span>
+              <span class="session-date" id="session-date-display">Date</span>
+              <span class="session-meta-separator">•</span>
+              <span class="session-duration" id="session-duration-display">Duration</span>
             </div>
           </div>
 
-          <!-- Session Content -->
-          <div class="study-room-content">
-            <div class="content-header">
-              <h3>Shared Session</h3>
-            </div>
+          <!-- Audio Player -->
+          <div class="audio-player-container" id="audio-player-container" style="display: none;">
+            <div class="audio-player">
+              <audio id="session-audio" preload="metadata" style="display: none;">
+                Your browser does not support the audio element.
+              </audio>
 
-            <!-- Session Info Bar -->
-            <div class="session-info-bar" id="session-info-bar" style="display: none;">
-              <div class="session-info-content">
-                <span class="session-course-badge" id="session-course-badge">No Course</span>
-                <span class="session-title" id="session-title-display">Session Title</span>
-                <span class="session-meta-separator">•</span>
-                <span class="session-date" id="session-date-display">Date</span>
-                <span class="session-meta-separator">•</span>
-                <span class="session-duration" id="session-duration-display">Duration</span>
-              </div>
-            </div>
+              <!-- Custom Audio Controls -->
+              <div class="custom-audio-controls">
+                <!-- Play/Pause Button -->
+                <button class="audio-control-btn play-pause-btn" id="play-pause-btn" title="Play/Pause">
+                  <span class="play-icon">▶</span>
+                </button>
 
-            <!-- Audio Player -->
-            <div class="audio-player-container" id="audio-player-container" style="display: none;">
-              <div class="audio-player">
-                <audio id="session-audio" preload="metadata" style="display: none;">
-                  Your browser does not support the audio element.
-                </audio>
-
-                <!-- Custom Audio Controls -->
-                <div class="custom-audio-controls">
-                  <!-- Play/Pause Button -->
-                  <button class="audio-control-btn play-pause-btn" id="play-pause-btn" title="Play/Pause">
-                    <span class="play-icon">▶</span>
-                  </button>
-
-                  <!-- Time Display -->
-                  <div class="audio-time-display">
-                    <span id="current-time">0:00</span>
-                    <span class="time-separator">/</span>
-                    <span id="total-duration">0:00</span>
-                  </div>
-
-                  <!-- Progress Bar -->
-                  <div class="audio-progress-container" id="audio-progress-container">
-                    <div class="audio-progress-bar">
-                      <div class="audio-progress-buffered" id="audio-progress-buffered"></div>
-                      <div class="audio-progress-played" id="audio-progress-played"></div>
-                      <div class="audio-progress-handle" id="audio-progress-handle"></div>
-                    </div>
-                  </div>
-
-                  <!-- Volume Control -->
-                  <button class="audio-control-btn volume-btn" id="volume-btn" title="Mute/Unmute">
-                    <span class="volume-icon">🔊</span>
-                  </button>
+                <!-- Time Display -->
+                <div class="audio-time-display">
+                  <span id="current-time">0:00</span>
+                  <span class="time-separator">/</span>
+                  <span id="total-duration">0:00</span>
                 </div>
 
-                <div class="playback-controls">
-                  <label>Speed:</label>
-                  <button class="speed-btn" data-speed="0.5">0.5x</button>
-                  <button class="speed-btn" data-speed="0.75">0.75x</button>
-                  <button class="speed-btn active" data-speed="1">1x</button>
-                  <button class="speed-btn" data-speed="1.25">1.25x</button>
-                  <button class="speed-btn" data-speed="1.5">1.5x</button>
-                  <button class="speed-btn" data-speed="2">2x</button>
+                <!-- Progress Bar -->
+                <div class="audio-progress-container" id="audio-progress-container">
+                  <div class="audio-progress-bar">
+                    <div class="audio-progress-buffered" id="audio-progress-buffered"></div>
+                    <div class="audio-progress-played" id="audio-progress-played"></div>
+                    <div class="audio-progress-handle" id="audio-progress-handle"></div>
+                  </div>
                 </div>
+
+                <!-- Volume Control -->
+                <button class="audio-control-btn volume-btn" id="volume-btn" title="Mute/Unmute">
+                  <span class="volume-icon">🔊</span>
+                </button>
               </div>
-            </div>
 
-            <!-- Content Tabs (same structure as individual session view) -->
-            <div class="session-content-tabs">
-              <button class="content-tab active" data-tab="notes">✍️ Notes</button>
-              <button class="content-tab" data-tab="transcription">📝 Transcription</button>
-            </div>
-
-            <!-- Notes Panel -->
-            <div class="session-content-panel active" data-panel="notes">
-              <div class="content-panel-inner" id="session-notes">
-                <p class="empty-state">Loading session notes...</p>
-              </div>
-            </div>
-
-            <!-- Transcription Panel -->
-            <div class="session-content-panel" data-panel="transcription">
-              <div class="content-panel-inner" id="session-transcript">
-                <p class="empty-state">Loading transcript...</p>
+              <div class="playback-controls">
+                <label>Speed:</label>
+                <button class="speed-btn" data-speed="0.5">0.5x</button>
+                <button class="speed-btn" data-speed="0.75">0.75x</button>
+                <button class="speed-btn active" data-speed="1">1x</button>
+                <button class="speed-btn" data-speed="1.25">1.25x</button>
+                <button class="speed-btn" data-speed="1.5">1.5x</button>
+                <button class="speed-btn" data-speed="2">2x</button>
               </div>
             </div>
           </div>
 
-          <!-- Chat Panel (Phase 3 - Placeholder) -->
-          <div class="study-room-chat" id="study-room-chat-container">
-            <!-- Chat panel will be initialized here -->
+          <!-- Content Tabs (same structure as individual session view) -->
+          <div class="session-content-tabs">
+            <button class="content-tab active" data-tab="notes">✍️ Notes</button>
+            <button class="content-tab" data-tab="transcription">📝 Transcription</button>
+          </div>
+
+          <!-- Notes Panel -->
+          <div class="session-content-panel active" data-panel="notes">
+            <div class="content-panel-inner" id="session-notes">
+              <p class="empty-state">Loading session notes...</p>
+            </div>
+          </div>
+
+          <!-- Transcription Panel -->
+          <div class="session-content-panel" data-panel="transcription">
+            <div class="content-panel-inner" id="session-transcript">
+              <p class="empty-state">Loading transcript...</p>
+            </div>
           </div>
         </div>
 
-        <!-- Multiplayer Game Container -->
-        <div class="multiplayer-game-container" id="multiplayer-game-container" style="display: none;">
-          <!-- Game UI will be rendered here -->
+        <!-- Chat Panel (Phase 3 - Placeholder) -->
+        <div class="study-room-chat" id="study-room-chat-container">
+          <!-- Chat panel will be initialized here -->
         </div>
       </div>
     `;
-
-    document.body.insertAdjacentHTML('beforeend', viewHTML);
-    this.container = document.getElementById('study-room-view');
 
     this.attachEventListeners();
   }
@@ -316,6 +318,14 @@ export class StudyRoomView {
     this.currentRoomId = roomId;
     this.onExit = onExit;
 
+    // Track which view user came from (for returning after exit)
+    const studyModeView = document.getElementById('study-mode-view');
+    const mainContent = document.querySelector('.main-content') as HTMLElement;
+
+    this.previousView = studyModeView && !studyModeView.classList.contains('hidden')
+      ? 'study-mode'
+      : 'recording';
+
     // Check if user is in room
     const isInRoom = await this.studyRoomsManager.isUserInRoom(roomId);
 
@@ -334,8 +344,10 @@ export class StudyRoomView {
       }
     }
 
-    // Show view
-    this.container.style.display = 'flex';
+    // Hide both main-content and study-mode-view, show study room view
+    mainContent?.classList.add('hidden');
+    studyModeView?.classList.add('hidden');
+    this.container.classList.remove('hidden');
 
     // Load room data
     await this.loadRoomData();
@@ -382,7 +394,21 @@ export class StudyRoomView {
 
     this.collaborationAdapter.disable();
 
-    this.container.style.display = 'none';
+    // Hide study room view using class toggle
+    this.container.classList.add('hidden');
+
+    // Restore previous view
+    const studyModeView = document.getElementById('study-mode-view');
+    const mainContent = document.querySelector('.main-content') as HTMLElement;
+
+    if (this.previousView === 'study-mode') {
+      studyModeView?.classList.remove('hidden');
+      mainContent?.classList.add('hidden');
+    } else {
+      mainContent?.classList.remove('hidden');
+      studyModeView?.classList.add('hidden');
+    }
+
     this.currentRoomId = null;
   }
 
@@ -1294,35 +1320,36 @@ export class StudyRoomView {
   }
 
   /**
-   * Show game container and hide normal room UI
+   * Show game modal (overlays study room)
    */
   private showGameContainer(): void {
     this.isGameActive = true;
     this.stopGamePolling(); // Stop polling once game is detected
 
     const gameContainer = document.getElementById('multiplayer-game-container');
-    const mainContent = document.querySelector('.study-room-main') as HTMLElement;
+    const gameBackdrop = document.getElementById('multiplayer-game-backdrop');
 
-    if (gameContainer) gameContainer.style.display = 'block';
-    if (mainContent) mainContent.style.display = 'none';
+    gameBackdrop?.classList.add('active');
+    gameContainer?.classList.add('active');
 
     this.renderHeader();
   }
 
   /**
-   * Hide game container and show normal room UI
+   * Hide game modal
    */
   private hideGameContainer(): void {
     this.isGameActive = false;
 
     const gameContainer = document.getElementById('multiplayer-game-container');
-    const mainContent = document.querySelector('.study-room-main') as HTMLElement;
+    const gameBackdrop = document.getElementById('multiplayer-game-backdrop');
+
+    gameBackdrop?.classList.remove('active');
+    gameContainer?.classList.remove('active');
 
     if (gameContainer) {
-      gameContainer.style.display = 'none';
       gameContainer.innerHTML = '';
     }
-    if (mainContent) mainContent.style.display = 'flex';
 
     this.renderHeader();
   }
