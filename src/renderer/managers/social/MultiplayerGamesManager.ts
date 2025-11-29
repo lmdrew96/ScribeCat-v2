@@ -16,6 +16,8 @@ import { HotSeatChallengeGame } from '../../components/games/HotSeatChallengeGam
 import { LightningChainGame } from '../../components/games/LightningChainGame.js';
 import { TimeSync } from '../../services/TimeSync.js';
 import { RendererSupabaseClient } from '../../services/RendererSupabaseClient.js';
+import { ChatPanel } from '../../components/ChatPanel.js';
+import { ChatManager } from './ChatManager.js';
 
 export class MultiplayerGamesManager {
   private currentGame: MultiplayerGame | null = null;
@@ -36,6 +38,10 @@ export class MultiplayerGamesManager {
   private questionPollInterval: number | null = null;
   private static readonly WAITING_POLL_INTERVAL_MS = 2000; // Poll every 2 seconds while waiting
   private static readonly QUESTION_POLL_INTERVAL_MS = 1000; // Poll every 1 second during gameplay
+
+  // Lobby chat
+  private chatManager: ChatManager | null = null;
+  private lobbyChatPanel: ChatPanel | null = null;
 
   // Bound event handlers - stored as properties so we can properly remove them
   private boundHandleAnswerSubmit = this.handleAnswerSubmit.bind(this);
@@ -61,6 +67,13 @@ export class MultiplayerGamesManager {
     this.checkAndReconnectActiveGame().catch(err => {
       console.error('Failed to reconnect to active game:', err);
     });
+  }
+
+  /**
+   * Set chat manager for lobby chat functionality
+   */
+  public setChatManager(chatManager: ChatManager): void {
+    this.chatManager = chatManager;
   }
 
   /**
@@ -533,12 +546,58 @@ export class MultiplayerGamesManager {
     // This ensures participants see the game start even if subscription misses the update
     if (this.currentGameSession!.status === 'waiting') {
       this.startWaitingPoll(gameSessionId);
+      // Initialize lobby chat panel
+      await this.initializeLobbyChatPanel();
     }
 
     // If game is already "in_progress", start question polling
     // This ensures late joiners or mid-game reconnects can detect question changes
     if (this.currentGameSession!.status === 'in_progress') {
       this.startQuestionPoll(gameSessionId);
+    }
+  }
+
+  /**
+   * Initialize lobby chat panel for waiting screen
+   */
+  private async initializeLobbyChatPanel(): Promise<void> {
+    if (!this.chatManager || !this.currentGameSession || !this.currentUserId) {
+      console.log('Cannot initialize lobby chat: missing dependencies');
+      return;
+    }
+
+    const chatContainer = document.getElementById('game-lobby-chat');
+    if (!chatContainer) {
+      console.log('Lobby chat container not found');
+      return;
+    }
+
+    // Build participants list for chat
+    const participants = this.currentParticipants.map(p => ({
+      userId: p.userId,
+      userName: p.userFullName || p.userEmail.split('@')[0]
+    }));
+
+    // Create and initialize chat panel
+    this.lobbyChatPanel = new ChatPanel(this.chatManager);
+    await this.lobbyChatPanel.init(
+      chatContainer,
+      this.currentGameSession.roomId,
+      this.currentUserId,
+      participants
+    );
+
+    console.log('Lobby chat panel initialized');
+  }
+
+  /**
+   * Destroy lobby chat panel
+   */
+  private destroyLobbyChatPanel(): void {
+    if (this.lobbyChatPanel) {
+      this.lobbyChatPanel.destroy();
+      this.lobbyChatPanel = null;
+      console.log('Lobby chat panel destroyed');
     }
   }
 
@@ -979,6 +1038,9 @@ export class MultiplayerGamesManager {
 
       console.log('[MultiplayerGamesManager] Game started successfully');
 
+      // Destroy lobby chat panel since game is starting
+      this.destroyLobbyChatPanel();
+
       // For Jeopardy, set the initial current player (host goes first)
       if (this.currentGameSession.gameType === 'jeopardy' && this.currentParticipants.length > 0) {
         // Find the host to be the first player (don't rely on array order which can differ between clients)
@@ -1333,6 +1395,9 @@ export class MultiplayerGamesManager {
 
           console.log('[MultiplayerGamesManager] Waiting poll detected game start, fetched question:', currentQuestion?.id);
 
+          // Destroy lobby chat panel since game is starting
+          this.destroyLobbyChatPanel();
+
           if (this.currentGame) {
             // For late joiners who join mid-game via waiting poll,
             // use the game's startedAt timestamp for first question sync
@@ -1502,6 +1567,9 @@ export class MultiplayerGamesManager {
    * Cleanup resources
    */
   public async cleanup(): Promise<void> {
+    // Destroy lobby chat panel if exists
+    this.destroyLobbyChatPanel();
+
     // Stop waiting poll
     this.stopWaitingPoll();
 

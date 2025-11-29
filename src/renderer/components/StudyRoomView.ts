@@ -67,6 +67,7 @@ export class StudyRoomView {
     this.collaborationAdapter = new CollaborationAdapter();
     this.sessionPlaybackManager = new SessionPlaybackManager();
     this.gamesManager = new MultiplayerGamesManager();
+    this.gamesManager.setChatManager(this.chatManager);
 
     // Listen for participant changes
     this.studyRoomsManager.addParticipantsListener((roomId) => {

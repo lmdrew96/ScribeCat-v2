@@ -237,34 +237,41 @@ export abstract class MultiplayerGame {
     }
 
     return `
-      <div class="game-waiting-screen">
-        <div class="waiting-header">
-          <div class="waiting-header-content">
-            <div class="waiting-icon">${headerIcon}</div>
-            <div>
-              <h3>${headerTitle}</h3>
-              <p class="waiting-subtitle">${headerSubtitle}</p>
+      <div class="game-lobby-wrapper">
+        <div class="game-lobby-content">
+          <div class="game-waiting-screen">
+            <div class="waiting-header">
+              <div class="waiting-header-content">
+                <div class="waiting-icon">${headerIcon}</div>
+                <div>
+                  <h3>${headerTitle}</h3>
+                  <p class="waiting-subtitle">${headerSubtitle}</p>
+                </div>
+              </div>
+              ${this.renderExitButton()}
             </div>
-          </div>
-          ${this.renderExitButton()}
-        </div>
 
-        <div class="waiting-participants">
-          <h4>Players (${participants.length})</h4>
-          <div class="participants-grid">
-            ${participantsList}
+            <div class="waiting-participants">
+              <h4>Players (${participants.length})</h4>
+              <div class="participants-grid">
+                ${participantsList}
+              </div>
+            </div>
+
+            ${
+              isHost
+                ? `
+              <button class="btn-primary start-game-btn" id="start-game-btn" ${!questionsReady ? 'disabled' : ''}>
+                ${questionsReady ? 'Start Game' : 'Generating Questions...'}
+              </button>
+            `
+                : `<p class="waiting-message">${!questionsReady ? 'Generating questions...' : 'Waiting for host to start the game...'}</p>`
+            }
           </div>
         </div>
-
-        ${
-          isHost
-            ? `
-          <button class="btn-primary start-game-btn" id="start-game-btn" ${!questionsReady ? 'disabled' : ''}>
-            ${questionsReady ? 'Start Game' : 'Generating Questions...'}
-          </button>
-        `
-            : `<p class="waiting-message">${!questionsReady ? 'Generating questions...' : 'Waiting for host to start the game...'}</p>`
-        }
+        <div class="game-lobby-chat" id="game-lobby-chat">
+          <!-- Chat panel initialized by MultiplayerGamesManager -->
+        </div>
       </div>
     `;
   }
