@@ -52,6 +52,9 @@ export class StudyRoomView {
   // Track which view user came from (for returning after exit)
   private previousView: 'recording' | 'study-mode' = 'recording';
 
+  // Track if user is voluntarily leaving (to avoid showing "room closed" notification)
+  private isLeavingVoluntarily: boolean = false;
+
   // Collaborative editor
   private notesEditor: Editor | null = null;
   private collaborationAdapter: CollaborationAdapter;
@@ -73,6 +76,19 @@ export class StudyRoomView {
     // Listen for participant changes
     this.studyRoomsManager.addParticipantsListener((roomId) => {
       if (roomId === this.currentRoomId) {
+        // Check if current user was removed (room closed by host or kicked)
+        // Skip this check if user is voluntarily leaving
+        if (this.currentUserId && this.isVisible() && !this.isLeavingVoluntarily) {
+          const activeParticipants = this.studyRoomsManager.getActiveParticipants(roomId);
+          const isStillInRoom = activeParticipants.some(p => p.userId === this.currentUserId);
+
+          // If I'm no longer in the active participants list, I was forced out
+          if (!isStillInRoom) {
+            this.handleForcedExit();
+            return;
+          }
+        }
+
         this.renderParticipants();
         // Update chat panel with new participants (fixes "Unknown" user names)
         this.updateChatParticipants().catch(err =>
@@ -83,7 +99,14 @@ export class StudyRoomView {
 
     // Listen for room changes
     this.studyRoomsManager.addRoomsListener(() => {
-      if (this.currentRoomId) {
+      if (this.currentRoomId && this.isVisible() && !this.isLeavingVoluntarily) {
+        // Check if the room still exists and is active
+        const room = this.studyRoomsManager.getRoomById(this.currentRoomId);
+        if (!room || !room.isActive) {
+          // Room was closed or no longer accessible
+          this.handleForcedExit();
+          return;
+        }
         this.renderHeader();
       }
     });
@@ -319,6 +342,7 @@ export class StudyRoomView {
 
     this.currentRoomId = roomId;
     this.onExit = onExit;
+    this.isLeavingVoluntarily = false; // Reset flag when entering a room
 
     // Track which view user came from (for returning after exit)
     const studyModeView = document.getElementById('study-mode-view');
@@ -412,6 +436,29 @@ export class StudyRoomView {
     }
 
     this.currentRoomId = null;
+  }
+
+  /**
+   * Check if the view is currently visible
+   */
+  private isVisible(): boolean {
+    return this.container !== null && !this.container.classList.contains('hidden');
+  }
+
+  /**
+   * Handle being forced out of the room (host closed room or participant was removed)
+   */
+  private handleForcedExit(): void {
+    // Show notification to the user
+    if (typeof window !== 'undefined' && window.notificationTicker) {
+      window.notificationTicker.info('The host has closed this study room', 5000);
+    }
+
+    // Exit the room view
+    this.hide();
+    if (this.onExit) {
+      this.onExit();
+    }
   }
 
   /**
@@ -1176,6 +1223,8 @@ export class StudyRoomView {
    * Leave room (for both hosts and non-hosts)
    */
   private async performLeaveRoom(): Promise<void> {
+    // Mark as voluntary exit to prevent "room closed" notification
+    this.isLeavingVoluntarily = true;
     try {
       await this.retryWithBackoff(
         () => this.studyRoomsManager.leaveRoom(this.currentRoomId!),
@@ -1187,6 +1236,8 @@ export class StudyRoomView {
     } catch (error) {
       console.error('Failed to leave room after retries:', error);
       ModalDialog.alert('Error', 'Failed to leave room. Please try again.');
+    } finally {
+      this.isLeavingVoluntarily = false;
     }
   }
 
@@ -1194,6 +1245,8 @@ export class StudyRoomView {
    * Close room for everyone (host only)
    */
   private async performCloseRoom(): Promise<void> {
+    // Mark as voluntary exit to prevent "room closed" notification for the host
+    this.isLeavingVoluntarily = true;
     try {
       await this.retryWithBackoff(
         () => this.studyRoomsManager.closeRoom(this.currentRoomId!),
@@ -1205,6 +1258,8 @@ export class StudyRoomView {
     } catch (error) {
       console.error('Failed to close room after retries:', error);
       ModalDialog.alert('Error', 'Failed to close room. Please try again.');
+    } finally {
+      this.isLeavingVoluntarily = false;
     }
   }
 

@@ -448,10 +448,12 @@ export class SupabaseStudyRoomsRepository {
 
   /**
    * Close a room (host only)
+   * This also marks all active participants as left so they receive realtime updates
    */
   async closeRoom(roomId: string, hostId: string): Promise<void> {
     try {
-      const { error } = await this.getClient()
+      // First, close the room
+      const { error: roomError } = await this.getClient()
         .from('study_rooms')
         .update({
           is_active: false,
@@ -460,9 +462,25 @@ export class SupabaseStudyRoomsRepository {
         .eq('id', roomId)
         .eq('host_id', hostId);
 
-      if (error) {
-        console.error('Error closing room:', error);
-        throw new Error(`Failed to close room: ${error.message}`);
+      if (roomError) {
+        console.error('Error closing room:', roomError);
+        throw new Error(`Failed to close room: ${roomError.message}`);
+      }
+
+      // Then, mark all active participants as left
+      // This triggers realtime events so other participants are notified
+      const { error: participantsError } = await this.getClient()
+        .from('room_participants')
+        .update({
+          left_at: new Date().toISOString(),
+          is_active: false,
+        })
+        .eq('room_id', roomId)
+        .eq('is_active', true);
+
+      if (participantsError) {
+        // Log but don't throw - the room is already closed
+        console.error('Error marking participants as left:', participantsError);
       }
     } catch (error) {
       console.error('Exception in closeRoom:', error);
