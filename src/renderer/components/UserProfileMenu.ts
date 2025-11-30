@@ -174,17 +174,29 @@ export class UserProfileMenu {
       const user = this.authManager.getCurrentUser();
 
       // Update button avatar
-      const buttonInitials = this.button?.querySelector('#profile-initials');
-      if (buttonInitials) {
-        buttonInitials.textContent = initials;
+      const profileAvatar = this.button?.querySelector('.profile-avatar');
+      if (profileAvatar) {
+        if (user?.avatarUrl) {
+          profileAvatar.innerHTML = `<img src="${user.avatarUrl}" alt="Profile" class="profile-avatar-img">`;
+        } else {
+          profileAvatar.innerHTML = `<span id="profile-initials">${initials}</span>`;
+        }
       }
 
-      // Update menu header
-      const menuInitials = this.menu?.querySelector('#profile-menu-initials');
+      // Update menu header avatar
+      const menuAvatar = this.menu?.querySelector('.profile-menu-avatar');
+      if (menuAvatar) {
+        if (user?.avatarUrl) {
+          menuAvatar.innerHTML = `<img src="${user.avatarUrl}" alt="Profile" class="profile-avatar-img">`;
+        } else {
+          menuAvatar.innerHTML = `<span id="profile-menu-initials">${initials}</span>`;
+        }
+      }
+
+      // Update menu text info
       const menuName = this.menu?.querySelector('#profile-menu-name');
       const menuEmail = this.menu?.querySelector('#profile-menu-email');
 
-      if (menuInitials) menuInitials.textContent = initials;
       if (menuName) menuName.textContent = displayName;
       if (menuEmail && user) menuEmail.textContent = user.email;
     } else {

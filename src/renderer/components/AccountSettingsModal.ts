@@ -8,6 +8,7 @@
 import { AuthManager } from '../managers/AuthManager.js';
 import { RendererSupabaseClient } from '../services/RendererSupabaseClient.js';
 import { createLogger } from '../../shared/logger.js';
+import { compressAvatarImage, isSupportedImageType } from '../utils/imageCompression.js';
 
 const logger = createLogger('AccountSettingsModal');
 
@@ -61,6 +62,25 @@ export class AccountSettingsModal {
           <!-- Profile Section -->
           <div class="account-section">
             <h3 class="account-section-title">Profile</h3>
+
+            <!-- Avatar Upload -->
+            <div class="avatar-upload-container">
+              <div class="avatar-preview" id="avatar-preview">
+                <span id="avatar-initials"></span>
+              </div>
+              <div class="avatar-upload-content">
+                <div class="avatar-actions">
+                  <input type="file" id="avatar-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+                  <button type="button" id="upload-avatar-btn" class="auth-btn auth-btn-secondary">
+                    Upload Photo
+                  </button>
+                  <button type="button" id="remove-avatar-btn" class="auth-btn auth-btn-secondary hidden">
+                    Remove
+                  </button>
+                </div>
+                <p class="avatar-hint">Square image recommended, max 5MB</p>
+              </div>
+            </div>
 
             <form id="profile-form">
               <div class="form-group">
@@ -138,6 +158,16 @@ export class AccountSettingsModal {
     // Delete account button
     const deleteAccountBtn = this.modal?.querySelector('#delete-account-btn');
     deleteAccountBtn?.addEventListener('click', () => this.handleDeleteAccount());
+
+    // Avatar upload button
+    const uploadAvatarBtn = this.modal?.querySelector('#upload-avatar-btn');
+    const avatarInput = this.modal?.querySelector('#avatar-input') as HTMLInputElement;
+    uploadAvatarBtn?.addEventListener('click', () => avatarInput?.click());
+    avatarInput?.addEventListener('change', () => this.handleAvatarUpload());
+
+    // Avatar remove button
+    const removeAvatarBtn = this.modal?.querySelector('#remove-avatar-btn');
+    removeAvatarBtn?.addEventListener('click', () => this.handleAvatarRemove());
   }
 
   /**
@@ -196,6 +226,48 @@ export class AccountSettingsModal {
     if (fullNameInput) {
       fullNameInput.value = user.fullName || '';
     }
+
+    // Update avatar preview
+    this.updateAvatarPreview(user.avatarUrl, user.fullName, user.email);
+  }
+
+  /**
+   * Update avatar preview display
+   */
+  private updateAvatarPreview(avatarUrl?: string, fullName?: string, email?: string): void {
+    const avatarPreview = this.modal?.querySelector('#avatar-preview') as HTMLElement;
+    const avatarInitials = this.modal?.querySelector('#avatar-initials') as HTMLElement;
+    const removeBtn = this.modal?.querySelector('#remove-avatar-btn') as HTMLElement;
+
+    if (!avatarPreview || !avatarInitials) return;
+
+    if (avatarUrl) {
+      // Show avatar image
+      avatarPreview.innerHTML = `<img src="${avatarUrl}" alt="Profile avatar">`;
+      removeBtn?.classList.remove('hidden');
+    } else {
+      // Show initials
+      const initials = this.getInitials(fullName, email);
+      avatarPreview.innerHTML = `<span id="avatar-initials">${initials}</span>`;
+      removeBtn?.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Get initials from name or email
+   */
+  private getInitials(fullName?: string, email?: string): string {
+    if (fullName) {
+      const parts = fullName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return fullName.substring(0, 2).toUpperCase();
+    }
+    if (email) {
+      return email.substring(0, 2).toUpperCase();
+    }
+    return '?';
   }
 
   /**
@@ -236,6 +308,135 @@ export class AccountSettingsModal {
       // Re-enable button
       updateBtn.disabled = false;
       updateBtn.textContent = 'Update Profile';
+    }
+  }
+
+  /**
+   * Handle avatar upload
+   */
+  private async handleAvatarUpload(): Promise<void> {
+    const avatarInput = this.modal?.querySelector('#avatar-input') as HTMLInputElement;
+    const avatarPreview = this.modal?.querySelector('#avatar-preview') as HTMLElement;
+    const uploadBtn = this.modal?.querySelector('#upload-avatar-btn') as HTMLButtonElement;
+
+    if (!avatarInput?.files?.length) return;
+
+    const file = avatarInput.files[0];
+
+    // Validate file type
+    if (!isSupportedImageType(file)) {
+      this.showError('Please select a valid image file (JPEG, PNG, WebP, or GIF)');
+      avatarInput.value = '';
+      return;
+    }
+
+    // Validate file size (max 5MB before compression)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      this.showError('Image is too large. Please select an image under 5MB.');
+      avatarInput.value = '';
+      return;
+    }
+
+    // Show loading state
+    avatarPreview?.classList.add('avatar-uploading');
+    if (uploadBtn) {
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Uploading...';
+    }
+
+    this.hideError();
+    this.hideSuccess();
+
+    try {
+      // Compress the image
+      logger.info('Compressing avatar image...');
+      const compressed = await compressAvatarImage(file);
+      logger.info(`Avatar compressed to ${compressed.size} bytes`);
+
+      // Upload to Supabase
+      logger.info('Uploading avatar to storage...');
+      const supabaseClient = RendererSupabaseClient.getInstance();
+      const result = await supabaseClient.uploadAvatar(compressed.blob, 'image/jpeg');
+
+      if (result.success && result.avatarUrl) {
+        this.showSuccess('Profile photo updated');
+        logger.info('Avatar uploaded successfully');
+
+        // Update preview
+        const user = this.authManager.getCurrentUser();
+        this.updateAvatarPreview(result.avatarUrl, user?.fullName, user?.email);
+
+        // Refresh auth state to propagate change
+        await this.authManager.checkAuthStatus();
+      } else {
+        this.showError(result.error || 'Failed to upload avatar');
+        logger.error('Failed to upload avatar:', result.error);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.showError(`Error uploading photo: ${message}`);
+      logger.error('Error uploading avatar:', error);
+    } finally {
+      // Reset state
+      avatarPreview?.classList.remove('avatar-uploading');
+      if (uploadBtn) {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload Photo';
+      }
+      avatarInput.value = '';
+    }
+  }
+
+  /**
+   * Handle avatar removal
+   */
+  private async handleAvatarRemove(): Promise<void> {
+    const avatarPreview = this.modal?.querySelector('#avatar-preview') as HTMLElement;
+    const removeBtn = this.modal?.querySelector('#remove-avatar-btn') as HTMLButtonElement;
+
+    const confirmed = confirm('Remove your profile photo?');
+    if (!confirmed) return;
+
+    // Show loading state
+    avatarPreview?.classList.add('avatar-uploading');
+    if (removeBtn) {
+      removeBtn.disabled = true;
+      removeBtn.textContent = 'Removing...';
+    }
+
+    this.hideError();
+    this.hideSuccess();
+
+    try {
+      const supabaseClient = RendererSupabaseClient.getInstance();
+      const result = await supabaseClient.removeAvatar();
+
+      if (result.success) {
+        this.showSuccess('Profile photo removed');
+        logger.info('Avatar removed successfully');
+
+        // Update preview to show initials
+        const user = this.authManager.getCurrentUser();
+        this.updateAvatarPreview(undefined, user?.fullName, user?.email);
+
+        // Refresh auth state to propagate change
+        await this.authManager.checkAuthStatus();
+      } else {
+        this.showError(result.error || 'Failed to remove avatar');
+        logger.error('Failed to remove avatar:', result.error);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.showError(`Error removing photo: ${message}`);
+      logger.error('Error removing avatar:', error);
+    } finally {
+      // Reset state
+      avatarPreview?.classList.remove('avatar-uploading');
+      if (removeBtn) {
+        removeBtn.disabled = false;
+        removeBtn.textContent = 'Remove';
+      }
     }
   }
 

@@ -463,6 +463,146 @@ export class RendererSupabaseClient {
   }
 
   /**
+   * Upload avatar image to Supabase Storage
+   * @param blob - Compressed image blob
+   * @param mimeType - MIME type of the image (e.g., 'image/jpeg')
+   */
+  async uploadAvatar(blob: Blob, mimeType: string = 'image/jpeg'): Promise<{ success: boolean; avatarUrl?: string; error?: string }> {
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await this.client.auth.getUser();
+
+      if (userError || !user) {
+        return {
+          success: false,
+          error: 'Not authenticated'
+        };
+      }
+
+      // Determine file extension from MIME type
+      const extMap: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif'
+      };
+      const extension = extMap[mimeType] || 'jpg';
+      const storagePath = `${user.id}/avatar.${extension}`;
+
+      // Upload to storage bucket
+      const { error: uploadError } = await this.client.storage
+        .from('avatars')
+        .upload(storagePath, blob, {
+          contentType: mimeType,
+          upsert: true,
+          cacheControl: '3600'
+        });
+
+      if (uploadError) {
+        console.error('Avatar upload error:', uploadError);
+        return {
+          success: false,
+          error: uploadError.message
+        };
+      }
+
+      // Get public URL
+      const { data: urlData } = this.client.storage
+        .from('avatars')
+        .getPublicUrl(storagePath);
+
+      // Add cache-busting timestamp to prevent stale avatars
+      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      // Update user metadata with new avatar URL
+      const { error: updateError } = await this.client.auth.updateUser({
+        data: {
+          avatar_url: avatarUrl
+        }
+      });
+
+      if (updateError) {
+        console.error('Error updating user metadata with avatar:', updateError);
+        return {
+          success: false,
+          error: updateError.message
+        };
+      }
+
+      return {
+        success: true,
+        avatarUrl
+      };
+    } catch (error) {
+      console.error('Avatar upload exception:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error uploading avatar'
+      };
+    }
+  }
+
+  /**
+   * Remove avatar image from Supabase Storage and clear user metadata
+   */
+  async removeAvatar(): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await this.client.auth.getUser();
+
+      if (userError || !user) {
+        return {
+          success: false,
+          error: 'Not authenticated'
+        };
+      }
+
+      // List and delete all files in user's avatar folder
+      const { data: files, error: listError } = await this.client.storage
+        .from('avatars')
+        .list(user.id);
+
+      if (listError) {
+        console.error('Error listing avatar files:', listError);
+        // Continue anyway - might not have uploaded an avatar yet
+      }
+
+      if (files && files.length > 0) {
+        const filePaths = files.map(f => `${user.id}/${f.name}`);
+        const { error: deleteError } = await this.client.storage
+          .from('avatars')
+          .remove(filePaths);
+
+        if (deleteError) {
+          console.error('Error deleting avatar files:', deleteError);
+          // Continue anyway - clear metadata regardless
+        }
+      }
+
+      // Clear avatar URL from user metadata
+      const { error: updateError } = await this.client.auth.updateUser({
+        data: {
+          avatar_url: null
+        }
+      });
+
+      if (updateError) {
+        return {
+          success: false,
+          error: updateError.message
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error removing avatar'
+      };
+    }
+  }
+
+  /**
    * Convert Supabase Session to AuthSession
    */
   private convertToAuthSession(session: Session): AuthSession {

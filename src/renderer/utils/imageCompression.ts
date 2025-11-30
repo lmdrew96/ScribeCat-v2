@@ -200,3 +200,111 @@ export function getRecommendedOptions(file: File): CompressionOptions {
     format: 'image/jpeg'
   };
 }
+
+/**
+ * Compress an image specifically for avatar upload
+ * - Square crop (center)
+ * - 256x256 max dimensions
+ * - Max 256KB output size
+ */
+export async function compressAvatarImage(file: File): Promise<{
+  blob: Blob;
+  dataUrl: string;
+  width: number;
+  height: number;
+  size: number;
+}> {
+  if (!isSupportedImageType(file)) {
+    throw new Error('Unsupported image type. Please use JPEG, PNG, WebP, or GIF.');
+  }
+
+  const MAX_SIZE = 256 * 1024; // 256KB
+  const AVATAR_SIZE = 256;
+
+  logger.info(`Compressing avatar: ${file.name} (${formatFileSize(file.size)})`);
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error('Failed to read file'));
+
+    reader.onload = (e) => {
+      const img = new window.Image();
+
+      img.onerror = () => reject(new Error('Failed to load image'));
+
+      img.onload = async () => {
+        try {
+          // Create canvas for square crop and resize
+          const canvas = document.createElement('canvas');
+          canvas.width = AVATAR_SIZE;
+          canvas.height = AVATAR_SIZE;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          // Calculate center crop dimensions
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+
+          // Enable high quality scaling
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          // Draw center-cropped, resized image
+          ctx.drawImage(
+            img,
+            sx, sy, minDim, minDim, // Source: center square
+            0, 0, AVATAR_SIZE, AVATAR_SIZE // Dest: full canvas
+          );
+
+          // Try compression at different quality levels
+          let quality = 0.85;
+          let blob: Blob | null = null;
+          let dataUrl: string = '';
+
+          while (quality >= 0.3) {
+            dataUrl = canvas.toDataURL('image/jpeg', quality);
+            blob = await new Promise<Blob | null>((res) => {
+              canvas.toBlob((b) => res(b), 'image/jpeg', quality);
+            });
+
+            if (blob && blob.size <= MAX_SIZE) {
+              break;
+            }
+
+            quality -= 0.1;
+            logger.debug(`Avatar too large at quality ${(quality + 0.1).toFixed(1)}, trying ${quality.toFixed(1)}`);
+          }
+
+          if (!blob) {
+            reject(new Error('Failed to compress avatar'));
+            return;
+          }
+
+          logger.info(
+            `Avatar compressed: ${formatFileSize(file.size)} → ${formatFileSize(blob.size)} at quality ${quality.toFixed(1)}`
+          );
+
+          resolve({
+            blob,
+            dataUrl,
+            width: AVATAR_SIZE,
+            height: AVATAR_SIZE,
+            size: blob.size
+          });
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      img.src = e.target?.result as string;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
