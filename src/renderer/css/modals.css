@@ -41,15 +41,15 @@
 .modal-content {
   position: relative !important;
   background-color: var(--bg-secondary);
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-neo-xl);
+  box-shadow: var(--shadow-neo-xl);
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease;
-  border: 1px solid var(--border);
+  border: var(--border-thick) solid var(--border-color-neo);
   z-index: 1 !important;
 }
 
@@ -69,38 +69,69 @@
 }
 
 .modal-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 20px 24px;
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background-color: var(--accent);
+  border-radius: calc(var(--radius-neo-xl) - 4px) calc(var(--radius-neo-xl) - 4px) 0 0;
 }
 
 .modal-header h2 {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Different modal types get different accent colors */
+#settings-modal .modal-header {
+  background-color: var(--accent);
+}
+
+#friends-modal .modal-header {
+  background-color: var(--accent-secondary);
+}
+
+#help-modal .modal-header {
+  background-color: var(--success);
+}
+
+#share-modal .modal-header,
+#export-modal .modal-header {
+  background-color: var(--record-color);
 }
 
 .close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  border: none;
-  background-color: transparent;
-  color: var(--text-secondary);
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-neo-md);
+  border: var(--border-medium) solid var(--border-color-neo);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .close-btn:hover {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
+}
+
+.close-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
 .modal-body {
@@ -120,27 +151,31 @@
 
 .modal-body::-webkit-scrollbar-thumb {
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .modal-footer {
   padding: 20px;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  background-color: var(--bg-tertiary);
+  border-radius: 0 0 var(--radius-neo-xl) var(--radius-neo-xl);
 }
 
 /* Settings Sections */
 
-/* Collapsible Settings Groups */
+/* Collapsible Settings Groups - Neobrutalism Style */
 .settings-group {
   margin-bottom: 20px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   background-color: var(--bg-secondary);
   overflow: hidden;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .settings-group-header {
@@ -150,18 +185,32 @@
   padding: 16px 20px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
+  background-color: var(--bg-tertiary);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
+  border-left: 5px solid var(--accent);
+}
+
+/* Alternating accent colors for settings groups */
+.settings-group:nth-child(2n) .settings-group-header {
+  border-left-color: var(--accent-secondary);
+}
+
+.settings-group:nth-child(3n) .settings-group-header {
+  border-left-color: var(--success);
 }
 
 .settings-group-header:hover {
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-secondary);
 }
 
 .settings-group-header h2 {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .settings-group-header .chevron-icon {
@@ -276,20 +325,21 @@
 
 .text-input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
   font-family: 'Courier New', monospace;
-  transition: all 0.2s ease;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.1);
 }
 
 .text-input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+  box-shadow: var(--shadow-neo-sm), inset 2px 2px 0 rgba(0, 0, 0, 0.1);
+  transform: translate(-1px, -1px);
 }
 
 .text-input:read-only {
@@ -464,77 +514,67 @@
   font-weight: 500;
 }
 
-/* Buttons */
+/* Buttons - Neobrutalism Style */
 .primary-btn,
 .secondary-btn {
-  padding: var(--space-md) var(--space-xl);
-  border-radius: var(--radius-md);
+  padding: 14px 28px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 800;
   cursor: pointer;
-  transition: all var(--transition-base);
-  border: none;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+  border: var(--border-thick) solid var(--border-color-neo);
   position: relative;
-  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.primary-btn::before,
-.secondary-btn::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.2);
-  transform: translate(-50%, -50%);
-  transition: width var(--transition-slow), height var(--transition-slow);
-}
-
+/* Primary buttons are pill-shaped for playfulness */
 .primary-btn {
   background-color: var(--accent);
-  color: white;
-  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-neo-md);
+  border-radius: var(--radius-neo-pill);
 }
 
 .primary-btn:hover {
   background-color: var(--accent-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.primary-btn:hover::before {
-  width: 300px;
-  height: 300px;
+  transform: translate(-3px, -3px);
+  box-shadow: var(--shadow-neo-lg);
 }
 
 .primary-btn:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-sm);
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
+/* Secondary buttons are more rectangular */
 .secondary-btn {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  box-shadow: var(--shadow-neo-sm);
+  border-radius: var(--radius-neo-md);
 }
 
 .secondary-btn:hover {
-  background-color: var(--bg-primary);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.secondary-btn:hover::before {
-  width: 300px;
-  height: 300px;
+  background-color: var(--accent-secondary);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .secondary-btn:active {
-  transform: translateY(0);
-  box-shadow: none;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
+}
+
+/* Danger/destructive button variant */
+.danger-btn {
+  background-color: var(--record-color);
+  color: var(--text-primary);
+  border-radius: var(--radius-neo-md);
+}
+
+.danger-btn:hover {
+  background-color: var(--record-hover);
 }
 
 /* ===== Help Modal Styles ===== */
@@ -543,59 +583,58 @@
   max-height: 85vh;
 }
 
-/* Tab Navigation */
+/* Tab Navigation - Neobrutalism Style */
 .tab-navigation {
   display: flex;
   gap: 8px;
   padding: 12px;
   background-color: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border);
-  border-radius: 8px 8px 0 0;
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
 }
 
 .tab-btn {
   flex: 1;
-  padding: 10px 20px;
-  background-color: transparent;
+  padding: 12px 20px;
+  background-color: var(--bg-secondary);
   color: var(--text-secondary);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: all var(--transition-base);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
   position: relative;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .tab-btn:hover {
   color: var(--text-primary);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-tertiary);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .tab-btn.active {
-  color: var(--accent);
-  background-color: var(--bg-secondary);
-  border-color: var(--accent);
-  font-weight: 600;
+  color: white;
+  background-color: var(--accent);
+  font-weight: 700;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: var(--accent);
+  display: none;
 }
 
 .tab-btn.secondary.active {
-  color: var(--accent-secondary);
-  border-color: var(--accent-secondary);
+  background-color: var(--accent-secondary);
+  color: white;
 }
 
 .tab-btn.secondary.active::after {
-  background-color: var(--accent-secondary);
+  display: none;
 }
 
 /* Tab Content */
@@ -954,15 +993,15 @@
   height: 10px;
   border-radius: 50%;
   border: 2px solid var(--bg-secondary);
-  background: #6b7280;
+  background: var(--text-tertiary);
 }
 
 .friend-checkbox-item .status-indicator.online {
-  background: #10b981;
+  background: var(--success);
 }
 
 .friend-checkbox-item .status-indicator.offline {
-  background: #6b7280;
+  background: var(--text-tertiary);
 }
 
 .friend-checkbox-item .friend-info {

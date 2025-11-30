@@ -3,32 +3,53 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  padding: 12px;
+  padding-right: 18px; /* Extra padding to account for shadow */
+  gap: 12px;
+  background-color: var(--bg-primary);
 }
 
-/* Left Panel: Notes Editor */
+/* Left Panel: Notes Editor - Floating Card Style */
 .left-panel {
-  flex: 2;
-  min-width: 400px;
+  flex: 2 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-primary);
-  border-right: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-neo-xl);
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-lg);
+  overflow: hidden;
+}
+
+/* Right Panel: Transcription - Floating Card Style */
+.right-panel {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-neo-xl);
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-lg);
+  overflow: hidden;
 }
 
 .panel-header {
-  padding: 15px 20px;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  background-color: var(--bg-tertiary);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   min-height: 60px;
+  border-radius: var(--radius-neo-xl) var(--radius-neo-xl) 0 0;
 }
 
 .panel-header h2 {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
   margin: 0;
   flex-shrink: 1;
@@ -36,6 +57,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Left panel header accent */
+.left-panel .panel-header {
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius-neo-xl) var(--radius-neo-xl) 0 0;
+}
+
+/* Right panel header accent */
+.right-panel .panel-header {
+  border-left: 5px solid var(--accent-secondary);
 }
 
 .course-select-dropdown {
@@ -44,24 +78,26 @@
   padding: 8px 12px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .course-select-dropdown:hover {
-  border-color: var(--accent);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .course-select-dropdown:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+  box-shadow: var(--shadow-neo-md);
 }
 
-/* Session Title Input */
+/* Session Title Input - Neobrutalism Style */
 .session-title-input {
   min-width: 150px;
   max-width: 250px;
@@ -69,39 +105,43 @@
   padding: 8px 12px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
   font-family: inherit;
-  transition: all 0.2s ease;
+  font-weight: 600;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.1);
 }
 
 .session-title-input:hover {
-  border-color: var(--accent);
+  box-shadow: var(--shadow-neo-sm), inset 2px 2px 0 rgba(0, 0, 0, 0.1);
 }
 
 .session-title-input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+  box-shadow: var(--shadow-neo-sm), inset 2px 2px 0 rgba(0, 0, 0, 0.1);
+  transform: translate(-1px, -1px);
 }
 
 .session-title-input::placeholder {
   color: var(--text-tertiary);
 }
 
-/* Formatting Toolbar */
+/* Formatting Toolbar - Floating Rounded Style */
 .formatting-toolbar {
   display: flex; /* Always visible */
   align-items: center;
-  gap: 1px;
-  padding: 4px 8px;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  gap: 4px;
+  padding: 10px 16px;
+  margin: 12px;
+  background-color: var(--bg-tertiary);
+  border: var(--border-thin) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   flex-wrap: wrap;
   max-height: 200px;
   overflow: visible;
-  /* Removed opacity to prevent stacking context - palettes need z-index relative to document root */
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* Legacy visible class for backwards compatibility */
@@ -115,16 +155,16 @@
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 0px;
+  gap: 2px;
   padding: 0;
 }
 
 .toolbar-btn {
-  min-width: 26px;
-  height: 26px;
+  min-width: 30px;
+  height: 30px;
   padding: 0;
-  border-radius: 2px;
-  border: none;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid transparent;
   background-color: transparent;
   color: var(--text-primary);
   cursor: pointer;
@@ -132,17 +172,23 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  transition: background-color 0.1s ease;
+  font-weight: 700;
+  transition: all 0.1s ease;
   position: relative;
 }
 
 .toolbar-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color-neo);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translate(-1px, -1px);
 }
 
 .toolbar-btn.active {
-  background-color: rgba(0, 122, 204, 0.25);
-  color: var(--accent);
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--border-color-neo);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
 /* Button Icons */
@@ -485,8 +531,8 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 5px 8px;
-  background-color: rgba(0, 0, 0, 0.95);
-  color: white;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 400;
   white-space: nowrap;
@@ -495,7 +541,7 @@
   opacity: 0;
   transition: opacity 0.15s ease;
   z-index: 1000;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .toolbar-btn:hover::after {
@@ -504,10 +550,11 @@
 }
 
 .toolbar-divider {
-  width: 1px;
+  width: 2px;
   height: 24px;
-  background-color: rgba(255, 255, 255, 0.1);
-  margin: 0 4px;
+  background-color: var(--border-color-neo);
+  margin: 0 6px;
+  border-radius: 1px;
 }
 
 /* Select Wrapper for Dropdown Arrows */
@@ -542,13 +589,13 @@
 }
 
 .toolbar-select:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-tertiary);
+  border-color: var(--border);
 }
 
 .toolbar-select:focus {
   outline: none;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-tertiary);
   border-color: var(--accent);
 }
 
@@ -580,11 +627,11 @@
 }
 
 #text-color-indicator {
-  background-color: #ffffff;
+  background-color: var(--text-primary);
 }
 
 #highlight-color-indicator {
-  background-color: #ffff00;
+  background-color: var(--accent-secondary);
 }
 
 .color-picker-hidden {
@@ -683,8 +730,8 @@
 
 /* Tiptap Highlight */
 .tiptap-content mark {
-  background-color: rgba(255, 255, 0, 0.4);
-  color: var(--text-primary);
+  background-color: var(--accent-secondary);
+  color: var(--bg-primary);
   padding: 0.125em 0.25em;
   border-radius: 2px;
 }
@@ -752,13 +799,13 @@
   width: 100%;
   margin: 1rem 0;
   overflow: hidden;
-  border: 1px solid #666666;
+  border: 1px solid var(--border);
 }
 
 .tiptap-content table tbody td,
 .tiptap-content table tbody th {
   min-width: 1em;
-  border: 1px solid #666666;
+  border: 1px solid var(--border);
   padding: 8px 12px;
   vertical-align: top;
   box-sizing: border-box;
@@ -1350,25 +1397,18 @@
   color: var(--text-tertiary);
 }
 
-/* Right Panel: Transcription */
-.right-panel {
-  flex: 1;
-  min-width: 350px;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-primary);
-}
-
-/* Recording Controls Bar - New unified location */
+/* Recording Controls Bar - Floating Pill Style */
 .recording-controls-bar {
-  padding: 16px 20px;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  margin: 12px;
+  background-color: var(--bg-tertiary);
+  border: var(--border-thin) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-pill);
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: nowrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .transcription-container {
@@ -1388,13 +1428,30 @@
 }
 
 .transcription-entry {
-  padding: 12px;
+  padding: 16px 18px;
   background-color: var(--bg-secondary);
-  border-radius: 6px;
-  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-neo-lg);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-left: 8px solid var(--accent);
   font-size: 14px;
   line-height: 1.5;
   animation: slideIn 0.3s ease;
+  box-shadow: var(--shadow-neo-sm);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+/* Alternating colors for transcription entries */
+.transcription-entry:nth-child(2n) {
+  border-left-color: var(--accent-secondary);
+}
+
+.transcription-entry:nth-child(3n) {
+  border-left-color: var(--success);
+}
+
+.transcription-entry:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 @keyframes slideIn {
@@ -1410,8 +1467,12 @@
 
 .transcription-entry .timestamp {
   color: var(--accent);
-  font-weight: 600;
-  margin-right: 8px;
+  font-weight: 700;
+  margin-right: 10px;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 /* Flowing transcription style */

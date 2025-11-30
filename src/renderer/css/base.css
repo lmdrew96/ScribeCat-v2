@@ -44,6 +44,38 @@
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
   --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
   --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.25);
+
+  /* ===== Neobrutalism Design System ===== */
+
+  /* Border Thickness */
+  --border-thin: 2px;
+  --border-medium: 3px;
+  --border-thick: 4px;
+
+  /* Border color - defaults to white/light for dark themes */
+  --border-color-neo: rgba(255, 255, 255, 0.9);
+
+  /* Chunky Rounded Corners */
+  --radius-neo-sm: 8px;
+  --radius-neo-md: 12px;
+  --radius-neo-lg: 16px;
+  --radius-neo-xl: 20px;
+  --radius-neo-pill: 100px;
+
+  /* Hard Offset Shadows (no blur) - use slightly darker for dark themes */
+  --shadow-neo-sm: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  --shadow-neo-md: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  --shadow-neo-lg: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  --shadow-neo-xl: 8px 8px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Light themes need pure black borders and shadows for maximum contrast */
+[data-theme-variant="light"] {
+  --border-color-neo: #000000;
+  --shadow-neo-sm: 3px 3px 0 #000000;
+  --shadow-neo-md: 4px 4px 0 #000000;
+  --shadow-neo-lg: 6px 6px 0 #000000;
+  --shadow-neo-xl: 8px 8px 0 #000000;
 }
 
 /* ===== Custom Fonts ===== */

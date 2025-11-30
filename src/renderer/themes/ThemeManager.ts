@@ -74,6 +74,9 @@ export class ThemeManager {
     const root = document.documentElement;
     const colors = theme.colors;
 
+    // Set theme variant attribute for CSS selectors (dark/light)
+    root.setAttribute('data-theme-variant', theme.variant);
+
     // Update all CSS variables
     root.style.setProperty('--bg-primary', colors.bgPrimary);
     root.style.setProperty('--bg-secondary', colors.bgSecondary);

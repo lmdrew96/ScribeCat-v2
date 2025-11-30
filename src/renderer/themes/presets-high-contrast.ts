@@ -283,35 +283,35 @@ export const highContrastThemes: Theme[] = [
     name: 'High Contrast Green',
     category: 'high-contrast',
     variant: 'dark',
-    description: 'Black and green - classic terminal style, reduces eye strain',
+    description: 'Black and green - classic terminal style, maximum visibility',
     colors: {
-      // Pure black backgrounds
+      // Pure black backgrounds with distinct levels
       bgPrimary: '#000000',
-      bgSecondary: '#001a00',
-      bgTertiary: '#002a00',
+      bgSecondary: '#0a1a0a',
+      bgTertiary: '#1a2a1a',
 
       // Bright lime accent
       accent: '#00ff00',
-      accentHover: '#00ee00',
+      accentHover: '#33ff33',
       accentSecondary: '#00ffcc',
-      accentSecondaryHover: '#00eebb',
+      accentSecondaryHover: '#33ffdd',
 
-      // Green text on black
-      textPrimary: '#00ff00',
-      textSecondary: '#00ee00',
-      textTertiary: '#00cc00',
+      // WHITE text for maximum contrast on both dark bg AND bright green accents
+      textPrimary: '#ffffff',
+      textSecondary: '#e0e0e0',
+      textTertiary: '#b0b0b0',
 
-      // Bright yellow for recording
+      // Bright yellow for recording (high visibility)
       recordColor: '#ffff00',
-      recordHover: '#ffee00',
+      recordHover: '#ffff66',
 
       // Bright cyan for success
       success: '#00ffcc',
 
-      // Green border
-      border: '#004400',
+      // Bright green border for maximum visibility
+      border: '#00ff00',
 
-      shadow: 'rgba(0, 0, 0, 0.8)'
+      shadow: 'rgba(0, 255, 0, 0.3)'
     }
   }
 ];

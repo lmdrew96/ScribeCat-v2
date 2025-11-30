@@ -235,12 +235,14 @@ export class LayoutManager {
       this.rightPanel.style.display = 'none';
       this.divider.style.display = 'none';
     } else {
-      // Both panels visible - use width percentages
+      // Both panels visible - use flex-grow ratios instead of fixed percentages
+      // This allows panels to shrink if needed while maintaining proportions
       this.leftPanel.style.display = '';
       this.rightPanel.style.display = '';
       this.divider.style.display = '';
-      this.leftPanel.style.flex = `0 0 ${layout.leftPanelWidth}%`;
-      this.rightPanel.style.flex = `0 0 ${layout.rightPanelWidth}%`;
+      // Use flex-grow ratio based on percentages, with flex-shrink: 1 to allow shrinking
+      this.leftPanel.style.flex = `${layout.leftPanelWidth} 1 0`;
+      this.rightPanel.style.flex = `${layout.rightPanelWidth} 1 0`;
     }
 
     this.currentLayout = { ...layout };
