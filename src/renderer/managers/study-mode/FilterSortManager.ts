@@ -8,6 +8,7 @@
 import type { Session } from '../../../domain/entities/Session.js';
 import { SearchFilter } from '../../../domain/search/SearchFilter.js';
 import { createLogger } from '../../../shared/logger.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 const logger = createLogger('FilterSortManager');
 
@@ -20,41 +21,44 @@ export interface SortConfig {
   description: string;
 }
 
+// Helper to create sort icons - call at runtime to get HTML
+const getSortIcon = (iconName: string): string => getIconHTML(iconName as any, { size: 14 });
+
 export const SORT_OPTIONS: Record<SortOption, SortConfig> = {
   newest: {
     option: 'newest',
     label: 'Newest First',
-    icon: '🕐',
+    icon: 'clock',
     description: 'Most recent sessions first'
   },
   oldest: {
     option: 'oldest',
     label: 'Oldest First',
-    icon: '🕑',
+    icon: 'clockHour',
     description: 'Oldest sessions first'
   },
   'a-z': {
     option: 'a-z',
     label: 'A-Z',
-    icon: '🔤',
+    icon: 'chevronDown',
     description: 'Sort by title (A to Z)'
   },
   'z-a': {
     option: 'z-a',
     label: 'Z-A',
-    icon: '🔡',
+    icon: 'chevronUp',
     description: 'Sort by title (Z to A)'
   },
   longest: {
     option: 'longest',
     label: 'Longest',
-    icon: '⏱️',
+    icon: 'timer',
     description: 'Longest duration first'
   },
   shortest: {
     option: 'shortest',
     label: 'Shortest',
-    icon: '⏰',
+    icon: 'timer',
     description: 'Shortest duration first'
   }
 };
@@ -103,7 +107,7 @@ export class FilterSortManager {
     const notificationTicker = (window as any).notificationTicker;
     if (notificationTicker) {
       const config = SORT_OPTIONS[sort];
-      notificationTicker.info(`${config.icon} ${config.label}`, 2000);
+      notificationTicker.info(`Sorted by: ${config.label}`, 2000);
     }
   }
 
@@ -141,7 +145,7 @@ export class FilterSortManager {
 
     const notificationTicker = (window as any).notificationTicker;
     if (notificationTicker) {
-      notificationTicker.info('🔍 Filters cleared', 2000);
+      notificationTicker.info('Filters cleared', 2000);
     }
   }
 
@@ -233,9 +237,9 @@ export class FilterSortManager {
         <!-- Sort Dropdown -->
         <div class="dropdown-container">
           <button class="control-btn sort-btn" id="sort-dropdown-btn">
-            <span class="btn-icon">📊</span>
+            <span class="btn-icon">${getIconHTML('chart', { size: 14 })}</span>
             <span class="btn-label">Sort</span>
-            <span class="dropdown-arrow">▼</span>
+            <span class="dropdown-arrow">${getIconHTML('chevronDown', { size: 12 })}</span>
           </button>
           <div class="dropdown-menu" id="sort-dropdown-menu" style="display: none;">
             ${this.getAllSortOptions().map(config => `
@@ -243,9 +247,9 @@ export class FilterSortManager {
                 class="dropdown-item ${config.option === this.currentSort ? 'active' : ''}"
                 data-sort="${config.option}"
               >
-                <span class="item-icon">${config.icon}</span>
+                <span class="item-icon">${getSortIcon(config.icon)}</span>
                 <span class="item-label">${config.label}</span>
-                ${config.option === this.currentSort ? '<span class="check-mark">✓</span>' : ''}
+                ${config.option === this.currentSort ? `<span class="check-mark">${getIconHTML('check', { size: 12 })}</span>` : ''}
               </button>
             `).join('')}
           </div>
@@ -254,26 +258,26 @@ export class FilterSortManager {
         <!-- Filter Dropdown -->
         <div class="dropdown-container">
           <button class="control-btn filter-btn" id="filter-dropdown-btn">
-            <span class="btn-icon">🔍</span>
+            <span class="btn-icon">${getIconHTML('search', { size: 14 })}</span>
             <span class="btn-label">Filter</span>
             ${badgeHtml}
-            <span class="dropdown-arrow">▼</span>
+            <span class="dropdown-arrow">${getIconHTML('chevronDown', { size: 12 })}</span>
           </button>
           <div class="dropdown-menu" id="filter-dropdown-menu" style="display: none;">
             <div class="dropdown-section">
               <div class="section-label">Content</div>
-              ${this.createFilterCheckbox('hasTranscription', '📝 Has Transcription')}
-              ${this.createFilterCheckbox('hasNotes', '✏️ Has Notes')}
-              ${this.createFilterCheckbox('hasSummary', '📋 Has Summary')}
+              ${this.createFilterCheckbox('hasTranscription', `${getIconHTML('file', { size: 12 })} Has Transcription`)}
+              ${this.createFilterCheckbox('hasNotes', `${getIconHTML('pencil', { size: 12 })} Has Notes`)}
+              ${this.createFilterCheckbox('hasSummary', `${getIconHTML('clipboard', { size: 12 })} Has Summary`)}
             </div>
             <div class="dropdown-section">
               <div class="section-label">Type</div>
-              ${this.createFilterCheckbox('isMultiSession', '📚 Study Sets Only')}
+              ${this.createFilterCheckbox('isMultiSession', `${getIconHTML('library', { size: 12 })} Study Sets Only`)}
             </div>
             ${activeCount > 0 ? `
               <div class="dropdown-divider"></div>
               <button class="dropdown-item clear-filters-btn" id="clear-filters-btn">
-                <span class="item-icon">🗑️</span>
+                <span class="item-icon">${getIconHTML('trash', { size: 14 })}</span>
                 <span class="item-label">Clear All Filters</span>
               </button>
             ` : ''}

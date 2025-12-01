@@ -6,6 +6,7 @@
 
 import { AuthManager } from '../managers/AuthManager.js';
 import { AccountSettingsModal } from './AccountSettingsModal.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 export class UserProfileMenu {
   private authManager: AuthManager;
@@ -83,18 +84,18 @@ export class UserProfileMenu {
 
       <div class="profile-menu-items">
         <button id="profile-menu-account" class="profile-menu-item">
-          <span class="profile-menu-icon">👤</span>
+          <span class="profile-menu-icon">${getIconHTML('settings', { size: 16 })}</span>
           <span>Account Settings</span>
         </button>
 
         <button id="profile-menu-sync" class="profile-menu-item">
-          <span class="profile-menu-icon">🔄</span>
+          <span class="profile-menu-icon">${getIconHTML('sync', { size: 16 })}</span>
           <span>Sync Status</span>
           <span id="sync-status-badge" class="status-badge">Synced</span>
         </button>
 
         <button id="profile-menu-shared" class="profile-menu-item">
-          <span class="profile-menu-icon">👥</span>
+          <span class="profile-menu-icon">${getIconHTML('users', { size: 16 })}</span>
           <span>Shared Sessions</span>
         </button>
       </div>
@@ -103,7 +104,7 @@ export class UserProfileMenu {
 
       <div class="profile-menu-items">
         <button id="profile-menu-signout" class="profile-menu-item profile-menu-item-danger">
-          <span class="profile-menu-icon">🚪</span>
+          <span class="profile-menu-icon">${getIconHTML('arrowRight', { size: 16 })}</span>
           <span>Sign Out</span>
         </button>
       </div>

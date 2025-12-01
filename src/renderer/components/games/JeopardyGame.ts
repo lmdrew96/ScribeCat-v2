@@ -13,6 +13,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { MultiplayerGame, GameState } from './MultiplayerGame.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 import { RendererSupabaseClient } from '../../services/RendererSupabaseClient.js';
 
 interface JeopardyGameState extends GameState {
@@ -1053,7 +1054,7 @@ export class JeopardyGame extends MultiplayerGame {
           id="buzz-btn"
           ${!buzzerEnabled ? 'disabled' : ''}
         >
-          <span class="buzzer-icon">🔔</span>
+          <span class="buzzer-icon">${getIconHTML('bell', { size: 24 })}</span>
           <span class="buzzer-text">${buzzerEnabled ? 'BUZZ IN!' : 'Buzzer Locked'}</span>
         </button>
         ${myBuzzerRank ? `<p class="buzzer-rank">You buzzed in ${this.ordinal(myBuzzerRank)}</p>` : ''}
@@ -1731,7 +1732,7 @@ export class JeopardyGame extends MultiplayerGame {
 
         <div class="final-jeopardy-screen fj-question-phase">
           <div class="fj-timer ${timerClass}">
-            <span class="fj-timer-icon">⏱️</span>
+            <span class="fj-timer-icon">${getIconHTML('timer', { size: 24 })}</span>
             <span class="fj-timer-value">${timerDisplay}</span>
             <span class="fj-timer-label">seconds</span>
           </div>
@@ -1743,7 +1744,7 @@ export class JeopardyGame extends MultiplayerGame {
 
           ${fjMyAnswerSubmitted ? `
             <div class="fj-answer-submitted">
-              <div class="fj-check-icon">✓</div>
+              <div class="fj-check-icon">${getIconHTML('check', { size: 32 })}</div>
               <p>Your answer is locked in!</p>
               <p class="fj-waiting-text">Waiting for other players or timer...</p>
             </div>

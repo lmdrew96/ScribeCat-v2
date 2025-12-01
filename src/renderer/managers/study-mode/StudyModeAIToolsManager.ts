@@ -9,6 +9,7 @@ import { AISummaryManager } from '../../services/AISummaryManager.js';
 import { SmartSuggestionEngine, type SuggestionAction } from '../../ai/SmartSuggestionEngine.js';
 import { ContentAnalyzer } from '../../ai/ContentAnalyzer.js';
 import { createLogger } from '../../../shared/logger.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 const logger = createLogger('StudyModeAIToolsManager');
 
@@ -149,20 +150,21 @@ export class StudyModeAIToolsManager {
    * Get metadata for an action
    */
   private getActionMetadata(action: SuggestionAction): { icon: string; label: string } {
+    const iconSize = 16;
     const metadata: Record<SuggestionAction, { icon: string; label: string }> = {
-      'summary': { icon: '📄', label: 'Summary' },
-      'concept': { icon: '💡', label: 'Key Concepts' },
-      'flashcards': { icon: '🃏', label: 'Flashcards' },
-      'quiz': { icon: '📝', label: 'Quiz' },
-      'weak_spots': { icon: '🎯', label: 'Weak Spots' },
-      'eli5': { icon: '🤔', label: 'ELI5' },
-      'study_plan': { icon: '📅', label: 'Study Plan' },
-      'concept_map': { icon: '🗺️', label: 'Concept Map' },
-      'bookmark': { icon: '🔖', label: 'Bookmark' },
-      'highlight': { icon: '⭐', label: 'Highlight' },
-      'note_prompt': { icon: '📝', label: 'Note' }
+      'summary': { icon: getIconHTML('file', { size: iconSize }), label: 'Summary' },
+      'concept': { icon: getIconHTML('lightbulb', { size: iconSize }), label: 'Key Concepts' },
+      'flashcards': { icon: getIconHTML('layers', { size: iconSize }), label: 'Flashcards' },
+      'quiz': { icon: getIconHTML('clipboard', { size: iconSize }), label: 'Quiz' },
+      'weak_spots': { icon: getIconHTML('target', { size: iconSize }), label: 'Weak Spots' },
+      'eli5': { icon: getIconHTML('helpCircle', { size: iconSize }), label: 'ELI5' },
+      'study_plan': { icon: getIconHTML('calendar', { size: iconSize }), label: 'Study Plan' },
+      'concept_map': { icon: getIconHTML('map', { size: iconSize }), label: 'Concept Map' },
+      'bookmark': { icon: getIconHTML('bookmark', { size: iconSize }), label: 'Bookmark' },
+      'highlight': { icon: getIconHTML('star', { size: iconSize }), label: 'Highlight' },
+      'note_prompt': { icon: getIconHTML('pencil', { size: iconSize }), label: 'Note' }
     };
-    return metadata[action] || { icon: '🤖', label: 'Nugget Tool' };
+    return metadata[action] || { icon: getIconHTML('bot', { size: iconSize }), label: 'Nugget Tool' };
   }
 
   /**

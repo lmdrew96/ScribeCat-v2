@@ -5,6 +5,7 @@
 
 import { ChatManager } from '../managers/social/ChatManager.js';
 import { ChatMessage } from '../../domain/entities/ChatMessage.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 export class ChatPanel {
   private container: HTMLElement | null = null;
@@ -66,7 +67,7 @@ export class ChatPanel {
     this.container.innerHTML = `
       <div class="chat-header">
         <button class="chat-toggle-btn" id="chat-toggle-btn" title="Collapse Chat">
-          <span class="toggle-icon">◀</span>
+          <span class="toggle-icon">${getIconHTML('chevronLeft', { size: 16 })}</span>
         </button>
         <h3>Chat</h3>
       </div>
@@ -504,7 +505,7 @@ export class ChatPanel {
     // Update toggle button icon
     const toggleBtn = this.container?.querySelector('#chat-toggle-btn .toggle-icon');
     if (toggleBtn) {
-      toggleBtn.textContent = this.isCollapsed ? '▶' : '◀';
+      toggleBtn.innerHTML = this.isCollapsed ? getIconHTML('chevronRight', { size: 16 }) : getIconHTML('chevronLeft', { size: 16 });
     }
 
     // Save preference to localStorage

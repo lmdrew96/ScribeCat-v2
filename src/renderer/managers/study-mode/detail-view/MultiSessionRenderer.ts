@@ -7,6 +7,7 @@
 import { Session } from '../../../../domain/entities/Session.js';
 import { formatDuration, escapeHtml } from '../../../utils/formatting.js';
 import { TranscriptionRenderer } from './TranscriptionRenderer.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class MultiSessionRenderer {
   /**
@@ -29,22 +30,22 @@ export class MultiSessionRenderer {
       <div class="session-detail-container multi-session">
         <!-- Back Button -->
         <button class="back-to-list-btn secondary-btn">
-          ← Back to Sessions
+          ${getIconHTML('arrowLeft', { size: 14 })} Back to Sessions
         </button>
 
         <!-- Multi-Session Header -->
         <div class="session-detail-header">
           <div class="session-detail-title-row">
-            <span class="multi-session-badge">📚 Study Set</span>
+            <span class="multi-session-badge">${getIconHTML('library', { size: 14 })} Study Set</span>
             <h2 class="session-detail-title">${escapeHtml(session.title)}</h2>
           </div>
           <div class="session-detail-meta">
-            <span>📅 Created ${formattedDate}</span>
-            <span>📑 ${childSessions.length} Sessions</span>
+            <span>${getIconHTML('calendar', { size: 14 })} Created ${formattedDate}</span>
+            <span>${getIconHTML('layers', { size: 14 })} ${childSessions.length} Sessions</span>
           </div>
           <div class="session-detail-actions">
             <button class="session-action-btn delete-session-detail-btn" data-session-id="${session.id}" title="Delete this study set">
-              <span class="action-icon">🗑️</span>
+              <span class="action-icon">${getIconHTML('trash', { size: 16 })}</span>
               <span class="action-label">Delete</span>
             </button>
             <div id="collaborators-panel-container"></div>
@@ -69,7 +70,7 @@ export class MultiSessionRenderer {
           <!-- Right Column: AI Study Tools -->
           <div class="session-detail-right">
             <div class="ai-study-tools">
-              <h3 class="study-tools-title">🤖 Nugget Study Tools</h3>
+              <h3 class="study-tools-title">${getIconHTML('bot', { size: 18 })} Nugget Study Tools</h3>
 
               <!-- AI Study Tools Grid (3x3) -->
               <div class="study-tool-section">
@@ -77,43 +78,43 @@ export class MultiSessionRenderer {
                 <div class="study-tool-buttons">
                   <!-- Row 1: Content Analysis -->
                   <button class="study-tool-btn" id="generate-summary-btn">
-                    <span class="tool-icon">📝</span>
+                    <span class="tool-icon">${getIconHTML('file', { size: 16 })}</span>
                     <span class="tool-label">Summary</span>
                   </button>
                   <button class="study-tool-btn" id="extract-concepts-btn">
-                    <span class="tool-icon">💡</span>
+                    <span class="tool-icon">${getIconHTML('lightbulb', { size: 16 })}</span>
                     <span class="tool-label">Key Concepts</span>
                   </button>
                   <button class="study-tool-btn" id="weak-spots-btn">
-                    <span class="tool-icon">🎯</span>
+                    <span class="tool-icon">${getIconHTML('target', { size: 16 })}</span>
                     <span class="tool-label">Weak Spots</span>
                   </button>
 
                   <!-- Row 2: Active Learning -->
                   <button class="study-tool-btn" id="generate-flashcards-btn">
-                    <span class="tool-icon">🎴</span>
+                    <span class="tool-icon">${getIconHTML('layers', { size: 16 })}</span>
                     <span class="tool-label">Flashcards</span>
                   </button>
                   <button class="study-tool-btn" id="generate-quiz-btn">
-                    <span class="tool-icon">❓</span>
+                    <span class="tool-icon">${getIconHTML('clipboard', { size: 16 })}</span>
                     <span class="tool-label">Quiz</span>
                   </button>
                   <button class="study-tool-btn" id="learn-mode-btn">
-                    <span class="tool-icon">📚</span>
+                    <span class="tool-icon">${getIconHTML('library', { size: 16 })}</span>
                     <span class="tool-label">Learn Mode</span>
                   </button>
 
                   <!-- Row 3: Advanced Tools -->
                   <button class="study-tool-btn" id="eli5-explainer-btn">
-                    <span class="tool-icon">👶</span>
+                    <span class="tool-icon">${getIconHTML('helpCircle', { size: 16 })}</span>
                     <span class="tool-label">ELI5 Explainer</span>
                   </button>
                   <button class="study-tool-btn" id="concept-map-btn">
-                    <span class="tool-icon">🗺️</span>
+                    <span class="tool-icon">${getIconHTML('map', { size: 16 })}</span>
                     <span class="tool-label">Concept Map</span>
                   </button>
                   <button class="study-tool-btn" id="study-plan-btn">
-                    <span class="tool-icon">📅</span>
+                    <span class="tool-icon">${getIconHTML('calendar', { size: 16 })}</span>
                     <span class="tool-label">Study Plan</span>
                   </button>
                 </div>
@@ -129,7 +130,7 @@ export class MultiSessionRenderer {
 
         <!-- Scroll to Top Button (shows when scrolled down) -->
         <button class="scroll-to-top-btn" id="scroll-to-top-btn" title="Return to top" style="display: none;">
-          <span class="scroll-top-icon">↑</span>
+          <span class="scroll-top-icon">${getIconHTML('chevronUp', { size: 18 })}</span>
         </button>
       </div>
     `;
@@ -167,21 +168,21 @@ export class MultiSessionRenderer {
       <div class="tab-session-info">
         <h3>${escapeHtml(session.title)}</h3>
         <div class="session-meta">
-          <span>📅 ${formattedDate} at ${formattedTime}</span>
-          <span>⏱️ ${duration}</span>
+          <span>${getIconHTML('calendar', { size: 14 })} ${formattedDate} at ${formattedTime}</span>
+          <span>${getIconHTML('timer', { size: 14 })} ${duration}</span>
         </div>
       </div>
 
       <!-- Audio Player -->
       <div class="audio-player-container">
-        <h4>🎧 Recording</h4>
+        <h4>${getIconHTML('headphones', { size: 16 })} Recording</h4>
         <div class="audio-player">
           <audio id="session-audio" preload="metadata" style="display: none;" data-recording-path="${session.recordingPath}">
             Your browser does not support the audio element.
           </audio>
           <div class="custom-audio-controls">
             <button class="audio-control-btn play-pause-btn" id="play-pause-btn" title="Play/Pause">
-              <span class="play-icon">▶</span>
+              <span class="play-icon">${getIconHTML('play', { size: 16 })}</span>
             </button>
             <div class="audio-time-display">
               <span id="current-time">0:00</span>
@@ -196,7 +197,7 @@ export class MultiSessionRenderer {
               </div>
             </div>
             <button class="audio-control-btn volume-btn" id="volume-btn" title="Mute/Unmute">
-              <span class="volume-icon">🔊</span>
+              <span class="volume-icon">${getIconHTML('volume', { size: 16 })}</span>
             </button>
           </div>
           <div class="playback-controls">
@@ -214,8 +215,8 @@ export class MultiSessionRenderer {
       <!-- Sub-tabs for Transcription and Notes -->
       <div class="session-content-tabs">
         <div class="content-tab-buttons">
-          <button class="content-tab-btn active" data-content-tab="transcription">📝 Transcription</button>
-          <button class="content-tab-btn" data-content-tab="notes">📓 Notes</button>
+          <button class="content-tab-btn active" data-content-tab="transcription">${getIconHTML('file', { size: 14 })} Transcription</button>
+          <button class="content-tab-btn" data-content-tab="notes">${getIconHTML('notes', { size: 14 })} Notes</button>
         </div>
 
         <!-- Transcription Tab Content -->

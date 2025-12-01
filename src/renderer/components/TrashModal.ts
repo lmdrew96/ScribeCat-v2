@@ -9,6 +9,7 @@
 import { SessionData } from '../../domain/entities/Session.js';
 import { createLogger } from '../../shared/logger.js';
 import { escapeHtml } from '../utils/formatting.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 const logger = createLogger('TrashModal');
 
@@ -182,10 +183,10 @@ export class TrashModal {
           </div>
           <div class="trash-session-actions">
             <button class="auth-btn auth-btn-secondary trash-restore-btn" data-session-id="${session.id}">
-              ↩️ Restore
+              ${getIconHTML('undo', { size: 14 })} Restore
             </button>
             <button class="auth-btn auth-btn-danger trash-delete-btn" data-session-id="${session.id}">
-              🗑️ Delete Forever
+              ${getIconHTML('trash', { size: 14 })} Delete Forever
             </button>
           </div>
         </div>

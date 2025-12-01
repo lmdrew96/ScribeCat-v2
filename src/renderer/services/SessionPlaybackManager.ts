@@ -7,6 +7,7 @@
  */
 
 import { formatDuration } from '../utils/formatting.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 export class SessionPlaybackManager {
   private isDragging: boolean = false;
@@ -69,7 +70,7 @@ export class SessionPlaybackManager {
     // Update play/pause button icon
     const playHandler = () => {
       const icon = playPauseBtn.querySelector('.play-icon');
-      if (icon) icon.textContent = '⏸';
+      if (icon) icon.innerHTML = getIconHTML('pause', { size: 16 });
       playPauseBtn.classList.add('playing');
 
       // Start tracking playback time
@@ -80,7 +81,7 @@ export class SessionPlaybackManager {
 
     const pauseHandler = () => {
       const icon = playPauseBtn.querySelector('.play-icon');
-      if (icon) icon.textContent = '▶';
+      if (icon) icon.innerHTML = getIconHTML('play', { size: 16 });
       playPauseBtn.classList.remove('playing');
 
       // Stop tracking and save playback time
@@ -95,7 +96,9 @@ export class SessionPlaybackManager {
         audioElement.muted = !audioElement.muted;
         const icon = volumeBtn.querySelector('.volume-icon');
         if (icon) {
-          icon.textContent = audioElement.muted ? '🔇' : '🔊';
+          icon.innerHTML = audioElement.muted
+            ? getIconHTML('volumeMuted', { size: 16 })
+            : getIconHTML('volume', { size: 16 });
         }
       };
       volumeBtn.addEventListener('click', volumeHandler);

@@ -4,6 +4,10 @@
  */
 
 import { GameType, GameLength } from '../../domain/entities/GameSession.js';
+import { getIconHTML } from '../utils/iconMap.js';
+
+// Game icon helper
+const gameIcon = (name: string, size = 32): string => getIconHTML(name as any, { size });
 
 export interface GameSelectionResult {
   gameType: GameType;
@@ -51,10 +55,10 @@ export class GameSelectionModal {
             <p class="modal-subtitle">Select a multiplayer game to play with your study group</p>
 
             <div class="game-types-grid">
-              ${this.renderGameTypeCard('quiz_battle', '⚡', 'Quiz Battle', 'Race to answer questions correctly. Speed and accuracy earn points!')}
-              ${this.renderGameTypeCard('jeopardy', '🎯', 'Jeopardy', 'Answer questions by category with buzzer mechanic. Strategic and competitive!')}
-              ${this.renderGameTypeCard('hot_seat_challenge', '🔥', 'Hot Seat Challenge', 'Take turns in the hot seat. Other players can challenge your answers!')}
-              ${this.renderGameTypeCard('lightning_chain', '⚡🔗', 'Lightning Chain', 'Team up against the clock. Cooperative time challenge!')}
+              ${this.renderGameTypeCard('quiz_battle', gameIcon('zap'), 'Quiz Battle', 'Race to answer questions correctly. Speed and accuracy earn points!')}
+              ${this.renderGameTypeCard('jeopardy', gameIcon('target'), 'Jeopardy', 'Answer questions by category with buzzer mechanic. Strategic and competitive!')}
+              ${this.renderGameTypeCard('hot_seat_challenge', gameIcon('flame'), 'Hot Seat Challenge', 'Take turns in the hot seat. Other players can challenge your answers!')}
+              ${this.renderGameTypeCard('lightning_chain', gameIcon('zap') + gameIcon('link', 24), 'Lightning Chain', 'Team up against the clock. Cooperative time challenge!')}
             </div>
 
             <div class="game-settings">
@@ -131,7 +135,7 @@ export class GameSelectionModal {
         <div class="game-icon">${icon}</div>
         <div class="game-title">${title}</div>
         <div class="game-description">${description}</div>
-        ${isSelected ? '<div class="game-selected-badge">✓</div>' : ''}
+        ${isSelected ? `<div class="game-selected-badge">${getIconHTML('check', { size: 16 })}</div>` : ''}
       </div>
     `;
   }
@@ -170,10 +174,10 @@ export class GameSelectionModal {
       <p class="modal-subtitle">Select a multiplayer game to play with your study group</p>
 
       <div class="game-types-grid">
-        ${this.renderGameTypeCard('quiz_battle', '⚡', 'Quiz Battle', 'Race to answer questions correctly. Speed and accuracy earn points!')}
-        ${this.renderGameTypeCard('jeopardy', '🎯', 'Jeopardy', 'Answer questions by category with buzzer mechanic. Strategic and competitive!')}
-        ${this.renderGameTypeCard('hot_seat_challenge', '🔥', 'Hot Seat Challenge', 'Take turns in the hot seat. Other players can challenge your answers!')}
-        ${this.renderGameTypeCard('lightning_chain', '⚡🔗', 'Lightning Chain', 'Team up against the clock. Cooperative time challenge!')}
+        ${this.renderGameTypeCard('quiz_battle', gameIcon('zap'), 'Quiz Battle', 'Race to answer questions correctly. Speed and accuracy earn points!')}
+        ${this.renderGameTypeCard('jeopardy', gameIcon('target'), 'Jeopardy', 'Answer questions by category with buzzer mechanic. Strategic and competitive!')}
+        ${this.renderGameTypeCard('hot_seat_challenge', gameIcon('flame'), 'Hot Seat Challenge', 'Take turns in the hot seat. Other players can challenge your answers!')}
+        ${this.renderGameTypeCard('lightning_chain', gameIcon('zap') + gameIcon('link', 24), 'Lightning Chain', 'Team up against the clock. Cooperative time challenge!')}
       </div>
 
       <div class="game-settings">

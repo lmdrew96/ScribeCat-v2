@@ -3,6 +3,8 @@
  * Handles view switching and UI state management
  */
 
+import { getIconHTML } from '../utils/iconMap.js';
+
 export class ViewManager {
   private recordBtn: HTMLButtonElement;
   private pauseBtn: HTMLButtonElement;
@@ -86,7 +88,7 @@ export class ViewManager {
       this.pauseBtn.title = 'Resume Recording';
       const pauseIcon = this.pauseBtn.querySelector('.pause-icon');
       if (pauseIcon) {
-        pauseIcon.textContent = '▶';
+        pauseIcon.innerHTML = getIconHTML('play', { size: 16 });
       }
       
       // Update status
@@ -100,7 +102,7 @@ export class ViewManager {
       this.pauseBtn.title = 'Pause Recording';
       const pauseIcon = this.pauseBtn.querySelector('.pause-icon');
       if (pauseIcon) {
-        pauseIcon.textContent = '⏸';
+        pauseIcon.innerHTML = getIconHTML('pause', { size: 16 });
       }
       
       // Update status

@@ -45,6 +45,7 @@ import { StudySetTitleModal } from '../components/StudySetTitleModal.js';
 import { createLogger } from '../../shared/logger.js';
 import { config } from '../../config.js';
 import { SupabaseStorageService } from '../../infrastructure/services/supabase/SupabaseStorageService.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 const logger = createLogger('StudyModeManager');
 
@@ -835,7 +836,7 @@ export class StudyModeManager {
     // Update title
     const titleElement = this.studyModeView.querySelector('.study-mode-header h2');
     if (titleElement) {
-      titleElement.textContent = filterSharedOnly ? '👥 Shared Sessions' : '📚 Study Mode';
+      titleElement.innerHTML = filterSharedOnly ? `${getIconHTML('users', { size: 20 })} Shared Sessions` : `${getIconHTML('library', { size: 20 })} Study Mode`;
     }
 
     // Populate course filter (still needed for legacy UI)

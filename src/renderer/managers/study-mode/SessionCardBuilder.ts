@@ -7,6 +7,7 @@
 import type { Session } from '../../../domain/entities/Session.js';
 import { SyncStatus } from '../../../domain/entities/Session.js';
 import { formatDuration, escapeHtml, formatCourseTitle } from '../../utils/formatting.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 export class SessionCardBuilder {
   /**
@@ -30,9 +31,9 @@ export class SessionCardBuilder {
             />
             <h3 class="session-title" data-session-id="${session.id}">
               ${escapeHtml(session.title)}
-              ${session.isMultiSessionStudySet && session.isMultiSessionStudySet() ? ' 📚' : ''}
+              ${session.isMultiSessionStudySet && session.isMultiSessionStudySet() ? ` ${getIconHTML('library', { size: 14 })}` : ''}
             </h3>
-            ${isShared ? `<span class="shared-badge" title="Shared ${session.permissionLevel === 'owner' ? 'by you' : 'with you'}">${session.permissionLevel === 'owner' ? '👥 Shared' : session.permissionLevel === 'editor' ? '✏️ Editor' : '👁️ Viewer'}</span>` : ''}
+            ${isShared ? `<span class="shared-badge" title="Shared ${session.permissionLevel === 'owner' ? 'by you' : 'with you'}">${session.permissionLevel === 'owner' ? `${getIconHTML('users', { size: 12 })} Shared` : session.permissionLevel === 'editor' ? `${getIconHTML('pencil', { size: 12 })} Editor` : `${getIconHTML('eye', { size: 12 })} Viewer`}</span>` : ''}
             ${syncStatusIndicator}
           </div>
           <button class="session-options-btn" data-session-id="${session.id}" title="Options">⋮</button>
@@ -101,28 +102,28 @@ export class SessionCardBuilder {
         <div class="session-options-menu hidden" data-session-id="${session.id}">
           ${isEditable
             ? `<div class="option-item edit-title-option" data-session-id="${session.id}">
-                ✏️ Edit Title
+                ${getIconHTML('pencil', { size: 14 })} Edit Title
               </div>`
             : ''}
           <div class="option-item open-session-option" data-session-id="${session.id}">
-            👁️ Open
+            ${getIconHTML('eye', { size: 14 })} Open
           </div>
           <div class="option-item export-session-option" data-session-id="${session.id}">
-            📤 Export
+            ${getIconHTML('share', { size: 14 })} Export
           </div>
           ${isEditable
             ? `<div class="option-item share-session-option" data-session-id="${session.id}">
-                👥 Share
+                ${getIconHTML('users', { size: 14 })} Share
               </div>`
             : ''}
           ${!isShared || session.permissionLevel === 'owner'
             ? `<div class="option-item delete-session-option" data-session-id="${session.id}">
-                🗑️ Delete
+                ${getIconHTML('trash', { size: 14 })} Delete
               </div>`
             : ''}
           ${isShared && session.permissionLevel !== 'owner'
             ? `<div class="option-item leave-session-option" data-session-id="${session.id}">
-                🚪 Leave Session
+                ${getIconHTML('arrowRight', { size: 14 })} Leave Session
               </div>`
             : ''}
         </div>
@@ -138,13 +139,13 @@ export class SessionCardBuilder {
 
     switch (syncStatus) {
       case SyncStatus.SYNCED:
-        return '<span class="sync-status synced" title="Synced to cloud">☁️</span>';
+        return `<span class="sync-status synced" title="Synced to cloud">${getIconHTML('cloud', { size: 14 })}</span>`;
       case SyncStatus.PENDING:
-        return '<span class="sync-status pending" title="Pending sync">⏳</span>';
+        return `<span class="sync-status pending" title="Pending sync">${getIconHTML('cloudUpload', { size: 14 })}</span>`;
       case SyncStatus.ERROR:
-        return '<span class="sync-status error" title="Sync error">❌</span>';
+        return `<span class="sync-status error" title="Sync error">${getIconHTML('error', { size: 14 })}</span>`;
       case SyncStatus.LOCAL_ONLY:
-        return '<span class="sync-status local" title="Local only">💾</span>';
+        return `<span class="sync-status local" title="Local only">${getIconHTML('save', { size: 14 })}</span>`;
       default:
         return '';
     }

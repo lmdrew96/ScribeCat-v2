@@ -5,6 +5,7 @@
  */
 
 import { formatTimestamp, escapeHtml } from '../../../utils/formatting.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class TranscriptionRenderer {
   /**
@@ -56,8 +57,8 @@ export class TranscriptionRenderer {
               : 'No matches'}
           </span>
           <div class="search-navigation">
-            <button class="search-nav-btn search-prev-btn" title="Previous match" ${totalMatches <= 1 ? 'disabled' : ''}>↑</button>
-            <button class="search-nav-btn search-next-btn" title="Next match" ${totalMatches <= 1 ? 'disabled' : ''}>↓</button>
+            <button class="search-nav-btn search-prev-btn" title="Previous match" ${totalMatches <= 1 ? 'disabled' : ''}>${getIconHTML('chevronUp', { size: 14 })}</button>
+            <button class="search-nav-btn search-next-btn" title="Next match" ${totalMatches <= 1 ? 'disabled' : ''}>${getIconHTML('chevronDown', { size: 14 })}</button>
           </div>
         </div>
       </div>

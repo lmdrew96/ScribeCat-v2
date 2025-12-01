@@ -7,6 +7,7 @@
 import { Session } from '../../../../domain/entities/Session.js';
 import { formatDuration, escapeHtml, formatCourseTitle } from '../../../utils/formatting.js';
 import { TranscriptionRenderer } from './TranscriptionRenderer.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class SingleSessionRenderer {
   /**
@@ -75,43 +76,43 @@ export class SingleSessionRenderer {
       <div class="session-detail-container">
         <!-- Back Button -->
         <button class="back-to-list-btn secondary-btn">
-          ← Back to Sessions
+          ${getIconHTML('arrowLeft', { size: 14 })} Back to Sessions
         </button>
 
         <!-- Session Header -->
         <div class="session-detail-header">
           <div class="session-detail-title-row">
             <h2 class="session-detail-title" data-session-id="${session.id}">${escapeHtml(session.title)}</h2>
-            ${isEditable ? `<button class="edit-title-btn-detail" data-session-id="${session.id}" title="Edit title">✏️</button>` : ''}
+            ${isEditable ? `<button class="edit-title-btn-detail" data-session-id="${session.id}" title="Edit title">${getIconHTML('pencil', { size: 14 })}</button>` : ''}
             <div class="course-badge-container">
               ${courseTagsHtml || '<span class="course-badge no-course">No Course</span>'}
-              ${isEditable ? `<button class="edit-course-btn-detail" data-session-id="${session.id}" title="Edit course">✏️</button>` : ''}
+              ${isEditable ? `<button class="edit-course-btn-detail" data-session-id="${session.id}" title="Edit course">${getIconHTML('pencil', { size: 14 })}</button>` : ''}
             </div>
           </div>
           <div class="session-detail-meta">
-            <span>📅 ${formattedDate} at ${formattedTime}</span>
-            <span>⏱️ ${duration}</span>
+            <span>${getIconHTML('calendar', { size: 14 })} ${formattedDate} at ${formattedTime}</span>
+            <span>${getIconHTML('timer', { size: 14 })} ${duration}</span>
           </div>
           <div class="session-detail-actions">
             ${isEditable ? `
             <button class="session-action-btn share-session-btn" data-session-id="${session.id}" title="Share this session">
-              <span class="action-icon">👥</span>
+              <span class="action-icon">${getIconHTML('users', { size: 16 })}</span>
               <span class="action-label">Share</span>
             </button>
             ` : ''}
             <button class="session-action-btn export-session-detail-btn" data-session-id="${session.id}" title="Export this session">
-              <span class="action-icon">📤</span>
+              <span class="action-icon">${getIconHTML('cloudUpload', { size: 16 })}</span>
               <span class="action-label">Export</span>
             </button>
             ${isEditable && session.recordingPath ? `
             <button class="session-action-btn retranscribe-session-btn" data-session-id="${session.id}" title="Re-transcribe this session">
-              <span class="action-icon">🔄</span>
+              <span class="action-icon">${getIconHTML('retranscribe', { size: 16 })}</span>
               <span class="action-label">Re-transcribe</span>
             </button>
             ` : ''}
             ${isEditable ? `
             <button class="session-action-btn delete-session-detail-btn" data-session-id="${session.id}" title="Delete this session">
-              <span class="action-icon">🗑️</span>
+              <span class="action-icon">${getIconHTML('trash', { size: 16 })}</span>
               <span class="action-label">Delete</span>
             </button>
             ` : ''}
@@ -125,7 +126,7 @@ export class SingleSessionRenderer {
           <div class="session-detail-left">
             <!-- Audio Player -->
             <div class="audio-player-container">
-              <h3>🎧 Recording</h3>
+              <h3>${getIconHTML('headphones', { size: 16 })} Recording</h3>
               <div class="audio-player">
                 <audio id="session-audio" preload="metadata" style="display: none;" data-recording-path="${session.recordingPath}">
                   Your browser does not support the audio element.
@@ -135,7 +136,7 @@ export class SingleSessionRenderer {
                 <div class="custom-audio-controls">
                   <!-- Play/Pause Button -->
                   <button class="audio-control-btn play-pause-btn" id="play-pause-btn" title="Play/Pause">
-                    <span class="play-icon">▶</span>
+                    <span class="play-icon">${getIconHTML('play', { size: 16 })}</span>
                   </button>
 
                   <!-- Time Display -->
@@ -156,7 +157,7 @@ export class SingleSessionRenderer {
 
                   <!-- Volume Control -->
                   <button class="audio-control-btn volume-btn" id="volume-btn" title="Mute/Unmute">
-                    <span class="volume-icon">🔊</span>
+                    <span class="volume-icon">${getIconHTML('volume', { size: 16 })}</span>
                   </button>
                 </div>
 
@@ -174,9 +175,9 @@ export class SingleSessionRenderer {
 
             <!-- Content Tabs -->
             <div class="session-content-tabs">
-              <button class="content-tab active" data-tab="transcription">📝 Transcription</button>
-              <button class="content-tab" data-tab="notes">✍️ Notes</button>
-              <button class="content-tab ai-tools-tab" data-tab="ai-tools">🤖 Nugget Tools</button>
+              <button class="content-tab active" data-tab="transcription">${getIconHTML('file', { size: 14 })} Transcription</button>
+              <button class="content-tab" data-tab="notes">${getIconHTML('pencil', { size: 14 })} Notes</button>
+              <button class="content-tab ai-tools-tab" data-tab="ai-tools">${getIconHTML('bot', { size: 14 })} Nugget Tools</button>
             </div>
 
             <!-- Transcription Content -->
@@ -191,14 +192,14 @@ export class SingleSessionRenderer {
               ${isEditable ? `
               <div class="notes-edit-controls">
                 <button class="edit-notes-btn secondary-btn" data-session-id="${session.id}">
-                  ✏️ Edit Notes
+                  ${getIconHTML('pencil', { size: 14 })} Edit Notes
                 </button>
                 <div class="notes-edit-actions hidden">
                   <button class="save-notes-btn primary-btn" data-session-id="${session.id}">
-                    💾 Save
+                    ${getIconHTML('save', { size: 14 })} Save
                   </button>
                   <button class="cancel-edit-notes-btn secondary-btn" data-session-id="${session.id}">
-                    ✖️ Cancel
+                    ${getIconHTML('close', { size: 14 })} Cancel
                   </button>
                 </div>
               </div>
@@ -217,7 +218,7 @@ export class SingleSessionRenderer {
             <!-- AI Tools Panel (visible in small window mode as a tab) -->
             <div class="session-content-panel ai-tools-panel" data-panel="ai-tools">
               <div class="ai-study-tools-tab-content">
-                <h3 class="study-tools-title">🤖 Nugget Study Tools</h3>
+                <h3 class="study-tools-title">${getIconHTML('bot', { size: 18 })} Nugget Study Tools</h3>
 
                 <!-- AI Tools container for small screens - will be populated by StudyModeAIToolsManager -->
                 <div class="study-tool-section study-tool-section-tab">
@@ -229,7 +230,7 @@ export class SingleSessionRenderer {
                 <!-- Study Content Area for tab version -->
                 <div class="study-content-area study-content-area-tab" id="study-content-area-tab">
                   <div class="study-placeholder">
-                    <div class="placeholder-icon">🎓</div>
+                    <div class="placeholder-icon">${getIconHTML('graduation', { size: 32 })}</div>
                     <p>Select an AI tool above to get started</p>
                     <p class="placeholder-hint">AI-powered tools help you learn and retain information better</p>
                   </div>
@@ -241,7 +242,7 @@ export class SingleSessionRenderer {
           <!-- Right Column: AI Study Tools (managed by StudyModeAIToolsManager) -->
           <div class="session-detail-right">
             <div class="ai-study-tools">
-              <h3 class="study-tools-title">🤖 Nugget Study Tools</h3>
+              <h3 class="study-tools-title">${getIconHTML('bot', { size: 18 })} Nugget Study Tools</h3>
 
               <!-- AI Study Tools Grid (3x3) -->
               <div class="study-tool-section">
@@ -249,43 +250,43 @@ export class SingleSessionRenderer {
                 <div class="study-tool-buttons">
                   <!-- Row 1: Content Analysis -->
                   <button class="study-tool-btn" id="generate-summary-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">📝</span>
+                    <span class="tool-icon">${getIconHTML('file', { size: 16 })}</span>
                     <span class="tool-label">Summary</span>
                   </button>
                   <button class="study-tool-btn" id="extract-concepts-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">💡</span>
+                    <span class="tool-icon">${getIconHTML('lightbulb', { size: 16 })}</span>
                     <span class="tool-label">Key Concepts</span>
                   </button>
                   <button class="study-tool-btn" id="weak-spots-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">🎯</span>
+                    <span class="tool-icon">${getIconHTML('target', { size: 16 })}</span>
                     <span class="tool-label">Weak Spots</span>
                   </button>
 
                   <!-- Row 2: Active Learning -->
                   <button class="study-tool-btn" id="generate-flashcards-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">🎴</span>
+                    <span class="tool-icon">${getIconHTML('layers', { size: 16 })}</span>
                     <span class="tool-label">Flashcards</span>
                   </button>
                   <button class="study-tool-btn" id="generate-quiz-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">❓</span>
+                    <span class="tool-icon">${getIconHTML('clipboard', { size: 16 })}</span>
                     <span class="tool-label">Quiz</span>
                   </button>
                   <button class="study-tool-btn" id="learn-mode-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">📚</span>
+                    <span class="tool-icon">${getIconHTML('library', { size: 16 })}</span>
                     <span class="tool-label">Learn Mode</span>
                   </button>
 
                   <!-- Row 3: Advanced Tools -->
                   <button class="study-tool-btn" id="eli5-explainer-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">👶</span>
+                    <span class="tool-icon">${getIconHTML('helpCircle', { size: 16 })}</span>
                     <span class="tool-label">ELI5 Explainer</span>
                   </button>
                   <button class="study-tool-btn" id="concept-map-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">🗺️</span>
+                    <span class="tool-icon">${getIconHTML('map', { size: 16 })}</span>
                     <span class="tool-label">Concept Map</span>
                   </button>
                   <button class="study-tool-btn" id="study-plan-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">📅</span>
+                    <span class="tool-icon">${getIconHTML('calendar', { size: 16 })}</span>
                     <span class="tool-label">Study Plan</span>
                   </button>
                 </div>
@@ -294,7 +295,7 @@ export class SingleSessionRenderer {
               <!-- Study Content Area -->
               <div class="study-content-area" id="study-content-area">
                 <div class="study-placeholder">
-                  <div class="placeholder-icon">🎓</div>
+                  <div class="placeholder-icon">${getIconHTML('graduation', { size: 32 })}</div>
                   <p>Select a study tool above to get started</p>
                   <p class="placeholder-hint">AI-powered tools help you learn and retain information better</p>
                 </div>
@@ -305,7 +306,7 @@ export class SingleSessionRenderer {
 
         <!-- Scroll to Top Button (shows when scrolled down) -->
         <button class="scroll-to-top-btn" id="scroll-to-top-btn" title="Return to top" style="display: none;">
-          <span class="scroll-top-icon">↑</span>
+          <span class="scroll-top-icon">${getIconHTML('chevronUp', { size: 18 })}</span>
         </button>
       </div>
     `;

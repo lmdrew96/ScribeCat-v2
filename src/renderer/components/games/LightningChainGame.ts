@@ -13,6 +13,7 @@
  */
 
 import { MultiplayerGame, GameState } from './MultiplayerGame.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
 import { TimeSync } from '../../services/TimeSync.js';
 
@@ -223,7 +224,7 @@ export class LightningChainGame extends MultiplayerGame {
    * Get game icon
    */
   protected getGameIcon(): string {
-    return '⚡🔗';
+    return getIconHTML('zap', { size: 24 }) + getIconHTML('link', { size: 20 });
   }
 
   /**
@@ -236,7 +237,7 @@ export class LightningChainGame extends MultiplayerGame {
     const questionsCompleted = this.state.session.currentQuestionIndex;
     const teamWon = questionsCompleted >= totalQuestions && teamTimer > 0;
 
-    const icon = teamWon ? '🏆' : '⏰';
+    const icon = teamWon ? getIconHTML('trophy', { size: 48, color: 'gold' }) : getIconHTML('clock', { size: 48 });
     const message = teamWon
       ? `Team Victory! You completed all ${totalQuestions} questions with ${teamTimer} seconds remaining!`
       : 'Time\'s Up! The team ran out of time. Better luck next time!';
@@ -291,7 +292,7 @@ export class LightningChainGame extends MultiplayerGame {
             <div class="timer-bar-fill" style="width: ${percentage}%"></div>
           </div>
         </div>
-        ${isUrgent ? '<div class="timer-warning">⚠️ Time running out!</div>' : ''}
+        ${isUrgent ? `<div class="timer-warning">${getIconHTML('warning', { size: 16 })} Time running out!</div>` : ''}
       </div>
     `;
   }
@@ -327,7 +328,7 @@ export class LightningChainGame extends MultiplayerGame {
       : `
         <div class="buzz-section">
           <button class="btn-buzz" id="buzz-btn">
-            ⚡ Buzz In
+            ${getIconHTML('zap', { size: 18 })} Buzz In
           </button>
           <p class="buzz-hint">Be the first to buzz and answer!</p>
         </div>

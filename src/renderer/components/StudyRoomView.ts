@@ -14,6 +14,7 @@ import { ChatManager } from '../managers/social/ChatManager.js';
 import { ChatPanel } from './ChatPanel.js';
 import { InviteFriendsModal } from './InviteFriendsModal.js';
 import { escapeHtml, formatTimestamp } from '../utils/formatting.js';
+import { getIconHTML } from '../utils/iconMap.js';
 import { ErrorModal } from '../utils/ErrorModal.js';
 import { ModalDialog } from './shared/ModalDialog.js';
 import { SupabaseClient } from '../../infrastructure/services/supabase/SupabaseClient.js';
@@ -163,7 +164,7 @@ export class StudyRoomView {
       <!-- Header -->
       <div class="study-room-header">
         <button class="btn-icon back-btn" id="exit-room-btn" title="Exit Room">
-          ←
+          ${getIconHTML('arrowLeft', { size: 18 })}
         </button>
         <div class="room-title-info">
           <h2 id="room-title">Study Room</h2>
@@ -171,7 +172,7 @@ export class StudyRoomView {
         </div>
         <div class="room-actions">
           <button class="btn-primary btn-sm" id="start-game-btn" style="display: none;">
-            🎮 Start Game
+            ${getIconHTML('gamepad', { size: 16 })} Start Game
           </button>
           <button class="btn-secondary btn-sm" id="invite-friends-btn">
             Invite Friends
@@ -218,7 +219,7 @@ export class StudyRoomView {
               <div class="custom-audio-controls">
                 <!-- Play/Pause Button -->
                 <button class="audio-control-btn play-pause-btn" id="play-pause-btn" title="Play/Pause">
-                  <span class="play-icon">▶</span>
+                  <span class="play-icon">${getIconHTML('play', { size: 16 })}</span>
                 </button>
 
                 <!-- Time Display -->
@@ -239,7 +240,7 @@ export class StudyRoomView {
 
                 <!-- Volume Control -->
                 <button class="audio-control-btn volume-btn" id="volume-btn" title="Mute/Unmute">
-                  <span class="volume-icon">🔊</span>
+                  <span class="volume-icon">${getIconHTML('volume', { size: 16 })}</span>
                 </button>
               </div>
 
@@ -257,8 +258,8 @@ export class StudyRoomView {
 
           <!-- Content Tabs (same structure as individual session view) -->
           <div class="session-content-tabs">
-            <button class="content-tab active" data-tab="notes">✍️ Notes</button>
-            <button class="content-tab" data-tab="transcription">📝 Transcription</button>
+            <button class="content-tab active" data-tab="notes">${getIconHTML('pencil', { size: 14 })} Notes</button>
+            <button class="content-tab" data-tab="transcription">${getIconHTML('file', { size: 14 })} Transcription</button>
           </div>
 
           <!-- Notes Panel -->

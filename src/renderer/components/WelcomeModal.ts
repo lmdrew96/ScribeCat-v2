@@ -18,6 +18,7 @@
  */
 
 import { FocusManager } from '../utils/FocusManager.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 interface WelcomeSlide {
   title: string;
@@ -30,61 +31,70 @@ interface WelcomeSlide {
   };
 }
 
+// Helper to generate icon HTML for welcome modal content
+const welcomeIcon = (name: string, size = 18): string => getIconHTML(name as any, { size });
+
 export class WelcomeModal {
   private static readonly STORAGE_KEY = 'scribecat_welcome_completed';
-  private static readonly slides: WelcomeSlide[] = [
-    {
-      title: 'Welcome to ScribeCat! 🐱',
-      content: `
-        <p>Your intelligent study companion for transcription and note-taking.</p>
-        <p>ScribeCat helps you capture lectures, meetings, and study sessions with powerful AI-powered tools to help you learn better.</p>
-        <ul style="text-align: left; margin: 16px 0; line-height: 1.8;">
-          <li>🎙️ <strong>Record & Transcribe</strong> - Real-time transcription</li>
-          <li>📝 <strong>Smart Notes</strong> - AI-enhanced note-taking</li>
-          <li>🧠 <strong>AI Study Tools</strong> - Flashcards, quizzes, summaries</li>
-          <li>📊 <strong>Analytics</strong> - Track your progress</li>
-        </ul>
-      `,
-      icon: '🐱'
-    },
-    {
-      title: 'Record Your First Session',
-      content: `
-        <p>Getting started is easy!</p>
-        <div style="text-align: left; margin: 16px 0; line-height: 1.8;">
-          <p><strong>1. Click the red record button</strong> or press <kbd style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">Shift+Space</kbd></p>
-          <p><strong>2. Your audio is transcribed in real-time</strong> - watch the words appear!</p>
-          <p><strong>3. Take notes</strong> in the editor while recording</p>
-          <p><strong>4. Click stop</strong> when you're done - your session is auto-saved</p>
-        </div>
-        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; margin-top: 16px;">
-          <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
-            💡 <strong>Pro tip:</strong> Use the Command Palette (<kbd style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">Cmd+K</kbd>) to quickly access any feature!
-          </p>
-        </div>
-      `,
-      icon: '🎙️'
-    },
-    {
-      title: 'Supercharge Your Learning with Nugget',
-      content: `
-        <p>Nugget, your AI study companion, helps you study smarter, not harder!</p>
-        <div style="text-align: left; margin: 16px 0; line-height: 1.8;">
-          <p><strong>💬 Ask Questions</strong> - Chat with Nugget about your content</p>
-          <p><strong>🎴 Generate Flashcards</strong> - Automatic spaced repetition cards</p>
-          <p><strong>📝 Create Quizzes</strong> - Test your understanding</p>
-          <p><strong>📚 Get Summaries</strong> - Quick overviews of long sessions</p>
-          <p><strong>🗓️ Make Study Plans</strong> - Personalized schedules</p>
-        </div>
-        <div style="background: var(--accent); color: white; padding: 12px; border-radius: 8px; margin-top: 16px;">
-          <p style="margin: 0; font-size: 13px;">
-            ✨ Nugget's suggestions appear automatically as you work - no need to ask!
-          </p>
-        </div>
-      `,
-      icon: '🤖'
-    }
-  ];
+  private static slides: WelcomeSlide[] = [];
+
+  private static initSlides(): void {
+    if (this.slides.length > 0) return;
+
+    this.slides = [
+      {
+        title: 'Welcome to ScribeCat! 🐱',
+        content: `
+          <p>Your intelligent study companion for transcription and note-taking.</p>
+          <p>ScribeCat helps you capture lectures, meetings, and study sessions with powerful AI-powered tools to help you learn better.</p>
+          <ul style="text-align: left; margin: 16px 0; line-height: 1.8;">
+            <li>${welcomeIcon('mic')} <strong>Record & Transcribe</strong> - Real-time transcription</li>
+            <li>${welcomeIcon('pencil')} <strong>Smart Notes</strong> - AI-enhanced note-taking</li>
+            <li>${welcomeIcon('brain')} <strong>AI Study Tools</strong> - Flashcards, quizzes, summaries</li>
+            <li>${welcomeIcon('chart')} <strong>Analytics</strong> - Track your progress</li>
+          </ul>
+        `,
+        icon: '🐱'
+      },
+      {
+        title: 'Record Your First Session',
+        content: `
+          <p>Getting started is easy!</p>
+          <div style="text-align: left; margin: 16px 0; line-height: 1.8;">
+            <p><strong>1. Click the red record button</strong> or press <kbd style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">Shift+Space</kbd></p>
+            <p><strong>2. Your audio is transcribed in real-time</strong> - watch the words appear!</p>
+            <p><strong>3. Take notes</strong> in the editor while recording</p>
+            <p><strong>4. Click stop</strong> when you're done - your session is auto-saved</p>
+          </div>
+          <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; margin-top: 16px;">
+            <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
+              ${welcomeIcon('lightbulb')} <strong>Pro tip:</strong> Use the Command Palette (<kbd style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">Cmd+K</kbd>) to quickly access any feature!
+            </p>
+          </div>
+        `,
+        icon: 'mic'
+      },
+      {
+        title: 'Supercharge Your Learning with Nugget',
+        content: `
+          <p>Nugget, your AI study companion, helps you study smarter, not harder!</p>
+          <div style="text-align: left; margin: 16px 0; line-height: 1.8;">
+            <p><strong>${welcomeIcon('bot')} Ask Questions</strong> - Chat with Nugget about your content</p>
+            <p><strong>${welcomeIcon('layers')} Generate Flashcards</strong> - Automatic spaced repetition cards</p>
+            <p><strong>${welcomeIcon('clipboard')} Create Quizzes</strong> - Test your understanding</p>
+            <p><strong>${welcomeIcon('library')} Get Summaries</strong> - Quick overviews of long sessions</p>
+            <p><strong>${welcomeIcon('calendar')} Make Study Plans</strong> - Personalized schedules</p>
+          </div>
+          <div style="background: var(--accent); color: white; padding: 12px; border-radius: 8px; margin-top: 16px;">
+            <p style="margin: 0; font-size: 13px;">
+              ✨ Nugget's suggestions appear automatically as you work - no need to ask!
+            </p>
+          </div>
+        `,
+        icon: 'bot'
+      }
+    ];
+  }
 
   private overlay: HTMLElement | null = null;
   private currentSlide: number = 0;
@@ -119,6 +129,7 @@ export class WelcomeModal {
       return null;
     }
 
+    this.initSlides();
     const modal = new WelcomeModal();
     modal.render();
     return modal;
@@ -128,6 +139,7 @@ export class WelcomeModal {
    * Force show the welcome modal (even if completed)
    */
   public static forceShow(): WelcomeModal {
+    this.initSlides();
     const modal = new WelcomeModal();
     modal.render();
     return modal;
@@ -197,11 +209,17 @@ export class WelcomeModal {
     `;
 
     // Header with icon and title
+    // Check if icon is an emoji (contains unicode emoji) or an icon key
+    const isEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(slide.icon);
+    const iconContent = isEmoji
+      ? slide.icon
+      : getIconHTML(slide.icon as any, { size: 64, strokeWidth: 1.5 });
+
     const header = document.createElement('div');
     header.style.cssText = 'text-align: center; margin-bottom: 24px;';
     header.innerHTML = `
-      <div style="font-size: 64px; margin-bottom: 16px; animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);">
-        ${slide.icon}
+      <div style="font-size: 64px; margin-bottom: 16px; animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); display: flex; justify-content: center; align-items: center;">
+        ${iconContent}
       </div>
       <h2 id="welcome-modal-title" style="margin: 0; font-size: 28px; color: var(--text-primary);">
         ${slide.title}
@@ -233,7 +251,7 @@ export class WelcomeModal {
       nav.appendChild(skipBtn);
     } else {
       const backBtn = document.createElement('button');
-      backBtn.textContent = '← Back';
+      backBtn.innerHTML = `${getIconHTML('arrowLeft', { size: 14 })} Back`;
       backBtn.className = 'secondary-btn';
       backBtn.addEventListener('click', () => this.previousSlide());
       nav.appendChild(backBtn);
@@ -246,7 +264,7 @@ export class WelcomeModal {
 
     // Next/Finish button
     const nextBtn = document.createElement('button');
-    nextBtn.textContent = isLastSlide ? 'Get Started! 🚀' : 'Next →';
+    nextBtn.innerHTML = isLastSlide ? 'Get Started! 🚀' : `Next ${getIconHTML('arrowRight', { size: 14 })}`;
     nextBtn.className = 'primary-btn';
     nextBtn.addEventListener('click', () => {
       if (isLastSlide) {

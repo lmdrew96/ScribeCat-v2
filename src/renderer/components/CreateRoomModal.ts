@@ -9,6 +9,7 @@ import type { StudyRoomsManager } from '../managers/social/StudyRoomsManager.js'
 import type { FriendsManager } from '../managers/social/FriendsManager.js';
 import type { FriendData } from '../../domain/entities/Friend.js';
 import { escapeHtml } from '../utils/formatting.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 export class CreateRoomModal {
   private modal: HTMLElement | null = null;
@@ -70,7 +71,7 @@ export class CreateRoomModal {
                 <div class="invite-friends-header">
                   <label>Invite Friends (Optional)</label>
                   <button type="button" id="toggle-invite-section" class="toggle-btn">
-                    <span id="toggle-icon">▶</span>
+                    <span id="toggle-icon">${getIconHTML('chevronRight', { size: 14 })}</span>
                   </button>
                 </div>
                 <small>Select friends to invite to this room</small>
@@ -209,7 +210,7 @@ export class CreateRoomModal {
     const inviteContent = document.getElementById('invite-friends-content');
     const toggleIcon = document.getElementById('toggle-icon');
     if (inviteContent) inviteContent.style.display = 'none';
-    if (toggleIcon) toggleIcon.textContent = '▶';
+    if (toggleIcon) toggleIcon.innerHTML = getIconHTML('chevronRight', { size: 14 });
 
     // Hide message
     this.hideMessage();
@@ -374,7 +375,9 @@ export class CreateRoomModal {
 
     const isVisible = content.style.display !== 'none';
     content.style.display = isVisible ? 'none' : 'block';
-    icon.textContent = isVisible ? '▶' : '▼';
+    icon.innerHTML = isVisible
+      ? getIconHTML('chevronRight', { size: 14 })
+      : getIconHTML('chevronDown', { size: 14 });
   }
 
   /**

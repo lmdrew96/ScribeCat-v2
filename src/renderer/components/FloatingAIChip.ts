@@ -7,6 +7,7 @@
 
 import { ContentAnalyzer, SuggestionTrigger } from '../ai/ContentAnalyzer.js';
 import { escapeHtml } from '../utils/formatting.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 export interface LiveSuggestionsOptions {
   onSuggestionClick?: (suggestion: SuggestionTrigger) => void;
@@ -109,7 +110,7 @@ export class LiveSuggestionsPanel {
         </div>
         <div class="chip-panel-content">
           <div class="chip-empty-state">
-            <div class="chip-empty-icon">🎙️</div>
+            <div class="chip-empty-icon">${getIconHTML('mic', { size: 32 })}</div>
             <p>Keep recording! I'll suggest helpful actions as I analyze your content.</p>
           </div>
         </div>
@@ -195,18 +196,19 @@ export class LiveSuggestionsPanel {
    * Get icon for action type
    */
   private getActionIcon(action: string): string {
+    const iconSize = 16;
     const icons: Record<string, string> = {
-      'bookmark': '🔖',
-      'note_prompt': '📝',
-      'highlight': '✨',
-      'break': '☕',
-      'flashcards': '🃏',
-      'quiz': '📝',
-      'summary': '📄',
-      'eli5': '🤔',
-      'notes': '✏️'
+      'bookmark': getIconHTML('bookmark', { size: iconSize }),
+      'note_prompt': getIconHTML('pencil', { size: iconSize }),
+      'highlight': getIconHTML('star', { size: iconSize }),
+      'break': getIconHTML('coffee', { size: iconSize }),
+      'flashcards': getIconHTML('layers', { size: iconSize }),
+      'quiz': getIconHTML('clipboard', { size: iconSize }),
+      'summary': getIconHTML('file', { size: iconSize }),
+      'eli5': getIconHTML('helpCircle', { size: iconSize }),
+      'notes': getIconHTML('pencil', { size: iconSize })
     };
-    return icons[action] || '💡';
+    return icons[action] || getIconHTML('lightbulb', { size: iconSize });
   }
 
   /**

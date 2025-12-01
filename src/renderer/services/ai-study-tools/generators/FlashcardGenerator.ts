@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 type StudyMode = 'review' | 'learn';
 
@@ -274,8 +275,8 @@ ${transcriptionText}`;
               ${card.session ? `<span class="flashcard-session-badge">${escapeHtml(card.session)}</span>` : ''}
             </div>
             <div class="flashcard-nav">
-              <button class="flashcard-nav-btn" id="prev-card-btn" ${currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
-              <button class="flashcard-nav-btn" id="next-card-btn" ${currentIndex === flashcards.length - 1 ? 'disabled' : ''}>Next →</button>
+              <button class="flashcard-nav-btn" id="prev-card-btn" ${currentIndex === 0 ? 'disabled' : ''}>${getIconHTML('arrowLeft', { size: 14 })} Previous</button>
+              <button class="flashcard-nav-btn" id="next-card-btn" ${currentIndex === flashcards.length - 1 ? 'disabled' : ''}>Next ${getIconHTML('arrowRight', { size: 14 })}</button>
             </div>
           </div>
 

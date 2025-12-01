@@ -20,6 +20,7 @@ import {
   Library,
   BookMarked,
   Folder,
+  FolderOpen,
   AlignLeft,
 
   // Study & Learning
@@ -38,6 +39,9 @@ import {
   Volume2,
   VolumeX,
   Music,
+  Headphones,
+  Play,
+  Pause,
 
   // UI Actions & Controls
   Check,
@@ -53,6 +57,19 @@ import {
   Palette,
   Settings,
   Search,
+  Bell,
+  BellOff,
+
+  // Navigation & Arrows
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowLeftRight,
+  Undo2,
+  Redo2,
 
   // Cloud & Sync
   Cloud,
@@ -82,12 +99,18 @@ import {
   Flame,
   Medal,
   Lock,
+  Crown,
 
   // Progress & Status
   Zap,
   Rocket,
   AlertTriangle,
   Info,
+
+  // Games
+  Gamepad2,
+  Dices,
+  BarChart3,
 
   // Special & Misc
   Globe,
@@ -129,6 +152,7 @@ export const ICONS = {
   library: Library,
   bookMarked: BookMarked,
   folder: Folder,
+  folderOpen: FolderOpen,
   paragraph: AlignLeft,
 
   // Study & Learning Tools
@@ -153,6 +177,9 @@ export const ICONS = {
   volume: Volume2,
   volumeMuted: VolumeX,
   audio: Music,
+  headphones: Headphones,
+  play: Play,
+  pause: Pause,
 
   // UI Actions
   check: Check,
@@ -176,6 +203,21 @@ export const ICONS = {
   theme: Palette,
   settings: Settings,
   search: Search,
+  bell: Bell,
+  bellOff: BellOff,
+  notification: Bell,
+
+  // Navigation & Arrows
+  chevronLeft: ChevronLeft,
+  chevronRight: ChevronRight,
+  chevronUp: ChevronUp,
+  chevronDown: ChevronDown,
+  arrowLeft: ArrowLeft,
+  arrowRight: ArrowRight,
+  arrowLeftRight: ArrowLeftRight,
+  undo: Undo2,
+  redo: Redo2,
+  restore: Undo2,
 
   // Cloud & Storage
   cloud: Cloud,
@@ -217,6 +259,14 @@ export const ICONS = {
   medal: Medal,
   lock: Lock,
   locked: Lock,
+  crown: Crown,
+
+  // Games
+  gamepad: Gamepad2,
+  game: Gamepad2,
+  dice: Dices,
+  chart: BarChart3,
+  barChart: BarChart3,
 
   // Progress & Energy
   zap: Zap,

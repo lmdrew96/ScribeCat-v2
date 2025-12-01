@@ -6,6 +6,7 @@
 
 import { marked } from 'marked';
 import { createLogger } from '../../shared/logger.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 const logger = createLogger('HelpModal');
 
@@ -242,16 +243,16 @@ export class HelpModal {
       </p>
       <div class="tutorial-buttons" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 30px;">
         <button class="tutorial-launch-btn primary-btn" data-tutorial="recording-basics" style="padding: 12px 16px; cursor: pointer;">
-          🎙️ Recording Basics
+          ${getIconHTML('mic', { size: 16 })} Recording Basics
         </button>
         <button class="tutorial-launch-btn primary-btn" data-tutorial="ai-tools-intro" style="padding: 12px 16px; cursor: pointer;">
-          🤖 Nugget Tools Introduction
+          ${getIconHTML('bot', { size: 16 })} Nugget Tools Introduction
         </button>
         <button class="tutorial-launch-btn primary-btn" data-tutorial="study-mode" style="padding: 12px 16px; cursor: pointer;">
-          📚 Study Mode Tour
+          ${getIconHTML('library', { size: 16 })} Study Mode Tour
         </button>
         <button class="tutorial-launch-btn primary-btn" data-tutorial="keyboard-shortcuts" style="padding: 12px 16px; cursor: pointer;">
-          ⌨️ Keyboard Shortcuts
+          ${getIconHTML('settings', { size: 16 })} Keyboard Shortcuts
         </button>
       </div>
 
@@ -285,7 +286,7 @@ export class HelpModal {
 
       <h2>Study Mode</h2>
       <p>
-        Access Study Mode by clicking the 📚 button in the top right. Here you can:
+        Access Study Mode by clicking the ${getIconHTML('library', { size: 14 })} button in the top right. Here you can:
       </p>
       <ul>
         <li>View all your saved sessions</li>

@@ -8,6 +8,7 @@
 import { GameSession } from '../../../domain/entities/GameSession.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
 import { PlayerScore, LeaderboardEntry } from '../../../domain/entities/PlayerScore.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 export interface GameParticipant {
   userId: string;
@@ -290,16 +291,16 @@ export abstract class MultiplayerGame {
 
     if (rank === 1) {
       message = 'You won! Excellent work!';
-      icon = '🏆';
+      icon = getIconHTML('trophy', { size: 48, color: 'gold' });
     } else if (rank === 2) {
       message = '2nd place! Great job!';
-      icon = '🥈';
+      icon = getIconHTML('medal', { size: 48, color: 'silver' });
     } else if (rank === 3) {
       message = '3rd place! Well done!';
-      icon = '🥉';
+      icon = getIconHTML('medal', { size: 48, color: '#cd7f32' });
     } else {
       message = 'Thanks for playing!';
-      icon = '🎮';
+      icon = getIconHTML('gamepad', { size: 48 });
     }
 
     return `
@@ -360,13 +361,14 @@ export abstract class MultiplayerGame {
    * Get game icon emoji
    */
   protected getGameIcon(): string {
+    const iconSize = 24;
     const icons: Record<string, string> = {
-      quiz_battle: '⚡',
-      jeopardy: '🎯',
-      hot_seat_challenge: '🔥',
-      lightning_chain: '⚡🔗',
+      quiz_battle: getIconHTML('zap', { size: iconSize }),
+      jeopardy: getIconHTML('target', { size: iconSize }),
+      hot_seat_challenge: getIconHTML('flame', { size: iconSize }),
+      lightning_chain: getIconHTML('zap', { size: iconSize }) + getIconHTML('link', { size: iconSize - 4 }),
     };
-    return icons[this.state.session.gameType] || '🎮';
+    return icons[this.state.session.gameType] || getIconHTML('gamepad', { size: iconSize });
   }
 
   /**

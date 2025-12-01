@@ -13,6 +13,7 @@ import { MultiplayerGame, GameState, GameParticipant } from './MultiplayerGame.j
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
 import { TimeSync } from '../../services/TimeSync.js';
 import { GameTimer } from '../../services/GameTimer.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 interface HotSeatGameState extends GameState {
   currentTurnPlayer?: string; // Player ID of current hot seat player
@@ -340,7 +341,7 @@ export class HotSeatChallengeGame extends MultiplayerGame {
             id="challenge-btn"
             ${this.challenged || !this.answerSubmitted ? 'disabled' : ''}
           >
-            ${this.challenged ? 'Challenge Submitted!' : '⚠️ Challenge'}
+            ${this.challenged ? 'Challenge Submitted!' : `${getIconHTML('warning', { size: 16 })} Challenge`}
           </button>
           <p class="challenge-hint">Challenge if you think they chose wrong!</p>
         </div>

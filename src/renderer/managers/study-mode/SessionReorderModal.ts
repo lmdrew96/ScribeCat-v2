@@ -7,6 +7,7 @@
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { formatDuration, escapeHtml } from '../../utils/formatting.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 export class SessionReorderModal {
   private modal: HTMLElement | null = null;
@@ -51,7 +52,7 @@ export class SessionReorderModal {
 
           <div class="modal-body">
             <div class="reorder-instructions">
-              <p>📚 Drag sessions to reorder them. The combined study set will follow this order.</p>
+              <p>${getIconHTML('library', { size: 16 })} Drag sessions to reorder them. The combined study set will follow this order.</p>
             </div>
 
             <div class="title-input-group">
@@ -95,13 +96,13 @@ export class SessionReorderModal {
 
       return `
         <div class="reorder-session-item" data-index="${index}" draggable="true">
-          <div class="drag-handle">☰</div>
+          <div class="drag-handle">${getIconHTML('chevronUp', { size: 12 })}${getIconHTML('chevronDown', { size: 12 })}</div>
           <div class="session-order-number">${index + 1}</div>
           <div class="session-info">
             <div class="session-title">${escapeHtml(session.title)}</div>
             <div class="session-meta">
-              <span>📅 ${formattedDate}</span>
-              <span>⏱️ ${duration}</span>
+              <span>${getIconHTML('calendar', { size: 12 })} ${formattedDate}</span>
+              <span>${getIconHTML('timer', { size: 12 })} ${duration}</span>
             </div>
           </div>
         </div>
