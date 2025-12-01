@@ -60,7 +60,7 @@
   font-size: 60px;
   font-weight: 600;
   color: var(--text-primary);
-  font-family: 'GalaxyCaterpillar', Georgia, serif;
+  font-family: var(--font-title);
 }
 
 .header-actions {

@@ -15,8 +15,9 @@
   gap: 8px;
   background: var(--bg-secondary, #2d2d2d);
   padding: 4px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color, #444444);
+  border-radius: var(--radius-neo-lg);
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .view-mode-btn {
@@ -25,23 +26,35 @@
   gap: 8px;
   padding: 10px 16px;
   background: none;
-  border: none;
-  border-radius: 8px;
+  border: var(--border-thin) solid transparent;
+  border-radius: var(--radius-neo-md);
   color: var(--text-secondary, #aaaaaa);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .view-mode-btn:hover {
   background: var(--bg-tertiary, #3d3d3d);
   color: var(--text-primary, #ffffff);
+  border-color: var(--border-color-neo);
+  transform: translate(-2px, -2px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
+}
+
+.view-mode-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
 }
 
 .view-mode-btn.active {
   background: var(--accent, #00bcd4);
   color: var(--bg-primary, #1d1d1d);
+  border-color: var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .view-mode-icon {
@@ -77,17 +90,25 @@
   width: 40px;
   height: 40px;
   background: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border-color, #444444);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   color: var(--text-secondary, #aaaaaa);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .timeline-nav-btn:hover {
   background: var(--bg-tertiary, #3d3d3d);
   color: var(--text-primary, #ffffff);
   border-color: var(--accent, #00bcd4);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
+}
+
+.timeline-nav-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
 .timeline-month-year {
@@ -98,9 +119,10 @@
 
 .timeline-calendar {
   background: var(--bg-secondary, #2d2d2d);
-  border-radius: 16px;
+  border-radius: var(--radius-neo-xl);
   padding: 16px;
-  border: 1px solid var(--border-color, #444444);
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .timeline-weekdays {
@@ -129,15 +151,16 @@
 .timeline-day {
   aspect-ratio: 1;
   background: var(--bg-tertiary, #3d3d3d);
-  border-radius: 12px;
+  border-radius: var(--radius-neo-md);
   padding: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   position: relative;
+  border: var(--border-thin) solid transparent;
 }
 
 .timeline-day-other-month {
@@ -145,12 +168,15 @@
 }
 
 .timeline-day-today {
-  border: 2px solid var(--accent, #00bcd4);
+  border: var(--border-medium) solid var(--accent, #00bcd4);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .timeline-day-has-sessions:hover {
   background: var(--bg-quaternary, #4d4d4d);
-  transform: scale(1.05);
+  border-color: var(--border-color-neo);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .timeline-day-number {
@@ -187,9 +213,10 @@
 .timeline-session-list {
   margin-top: 24px;
   background: var(--bg-secondary, #2d2d2d);
-  border-radius: 16px;
+  border-radius: var(--radius-neo-xl);
   padding: 16px;
-  border: 1px solid var(--border-color, #444444);
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .timeline-session-list-header {
@@ -198,7 +225,9 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color, #444444);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
+  border-left: 5px solid var(--accent);
+  padding-left: 12px;
 }
 
 .timeline-session-list-header h3 {
@@ -209,11 +238,13 @@
 
 .timeline-session-count {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary, #aaaaaa);
   background: var(--bg-tertiary, #3d3d3d);
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
+  text-transform: uppercase;
 }
 
 .timeline-session-items {
@@ -227,14 +258,17 @@
   gap: 16px;
   padding: 12px;
   background: var(--bg-tertiary, #3d3d3d);
-  border-radius: 12px;
+  border-radius: var(--radius-neo-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  border: var(--border-thin) solid transparent;
 }
 
 .timeline-session-item:hover {
   background: var(--bg-quaternary, #4d4d4d);
+  border-color: var(--border-color-neo);
   transform: translateX(4px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .timeline-session-time {
@@ -283,20 +317,21 @@
 
 .grid-card {
   background: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border-color, #444444);
-  border-radius: 16px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-xl);
   padding: 20px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .grid-card:hover {
   border-color: var(--accent, #00bcd4);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-lg);
 }
 
 .grid-card-header {
@@ -376,10 +411,11 @@
 
 .list-view {
   background: var(--bg-secondary, #2d2d2d);
-  border-radius: 16px;
-  border: 1px solid var(--border-color, #444444);
+  border-radius: var(--radius-neo-xl);
+  border: var(--border-medium) solid var(--border-color-neo);
   overflow: visible;
   margin: 20px;
+  box-shadow: var(--shadow-neo-md);
 }
 
 .list-table {
@@ -389,7 +425,7 @@
 
 .list-table thead {
   background: var(--bg-tertiary, #3d3d3d);
-  border-bottom: 2px solid var(--border-color, #444444);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
 }
 
 .list-table th {
@@ -403,13 +439,14 @@
 }
 
 .list-row {
-  border-bottom: 1px solid var(--border-color, #444444);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .list-row:hover {
   background: var(--bg-tertiary, #3d3d3d);
+  transform: translateX(4px);
 }
 
 .list-row td {
@@ -517,18 +554,21 @@
 
 .board-column {
   background: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border-color, #444444);
-  border-radius: 16px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-xl);
   padding: 16px;
   display: flex;
   flex-direction: column;
   min-height: 400px;
+  box-shadow: var(--shadow-neo-md);
 }
 
 .board-column-header {
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color, #444444);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
+  border-left: 5px solid var(--accent);
+  padding-left: 12px;
 }
 
 .board-column-title {
@@ -551,11 +591,12 @@
 
 .board-column-count {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   background: var(--bg-tertiary, #3d3d3d);
   color: var(--text-secondary, #aaaaaa);
   padding: 4px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .board-column-description {
@@ -579,16 +620,18 @@
 
 .board-card {
   background: var(--bg-tertiary, #3d3d3d);
-  border: 1px solid var(--border-color, #444444);
-  border-radius: 12px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   padding: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .board-card:hover {
   border-color: var(--accent, #00bcd4);
-  transform: translateY(-2px);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .board-card-title {

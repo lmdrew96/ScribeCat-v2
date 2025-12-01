@@ -12,16 +12,22 @@
 /* Share form */
 .share-form {
   padding: 20px;
-  background: var(--background-secondary);
-  border-radius: 8px;
+  background: var(--bg-secondary, #2d2d2d);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   margin-bottom: 24px;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .share-form h3 {
   margin: 0 0 16px 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: var(--border-thin) solid var(--accent);
+  padding-bottom: 12px;
 }
 
 .share-form .form-group {
@@ -40,18 +46,22 @@
 .share-form select {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--background-primary);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
+  background: var(--bg-tertiary, #3d3d3d);
   color: var(--text-primary);
   font-size: 14px;
-  transition: border-color 0.2s;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.1);
 }
 
 .share-form input[type="email"]:focus,
 .share-form select:focus {
   outline: none;
-  border-color: var(--accent-primary);
+  border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .share-form #share-submit-btn {
@@ -62,20 +72,21 @@
 .share-form .message {
   margin-top: 12px;
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
+  font-weight: 600;
 }
 
 .share-form .message.success {
-  background: rgba(76, 175, 80, 0.1);
-  color: #4CAF50;
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  background: #4CAF50;
+  color: #ffffff;
+  border: var(--border-medium) solid #388E3C;
 }
 
 .share-form .message.error {
-  background: rgba(244, 67, 54, 0.1);
-  color: #F44336;
-  border: 1px solid rgba(244, 67, 54, 0.3);
+  background: #F44336;
+  color: #ffffff;
+  border: var(--border-medium) solid #D32F2F;
 }
 
 /* Share list */
@@ -88,8 +99,10 @@
 .invitations-list h3 {
   margin: 0 0 12px 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .shares-container,
@@ -105,14 +118,17 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: var(--background-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  transition: border-color 0.2s;
+  background: var(--bg-secondary, #2d2d2d);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .share-item:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--accent);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .share-user {
@@ -132,14 +148,16 @@
 .share-avatar-placeholder {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  background: var(--accent-primary);
+  border-radius: var(--radius-neo-md);
+  background: var(--accent);
+  border: var(--border-medium) solid var(--border-color-neo);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 18px;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .share-info {
@@ -172,17 +190,25 @@
 
 .share-permission-select {
   padding: 6px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--background-primary);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-sm);
+  background: var(--bg-tertiary, #3d3d3d);
   color: var(--text-primary);
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: var(--shadow-neo-sm);
+  transition: all 0.15s ease;
 }
 
 .share-permission-select:focus {
   outline: none;
-  border-color: var(--accent-primary);
+  border-color: var(--accent);
+}
+
+.share-permission-select:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .remove-share-btn,
@@ -197,10 +223,17 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: var(--background-secondary);
-  border: 1px solid var(--border-color);
-  border-left: 3px solid var(--accent-secondary);
-  border-radius: 8px;
+  background: var(--bg-secondary, #2d2d2d);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius-neo-lg);
+  box-shadow: var(--shadow-neo-sm);
+  transition: all 0.15s ease;
+}
+
+.invitation-item:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .invitation-info {
@@ -222,11 +255,15 @@
 }
 
 .invitation-permission {
-  padding: 2px 8px;
-  background: rgba(var(--accent-primary-rgb), 0.1);
-  color: var(--accent-primary);
-  border-radius: 4px;
-  font-weight: 500;
+  padding: 4px 10px;
+  background: var(--accent);
+  color: #ffffff;
+  border: var(--border-thin) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
 }
 
 .invitation-expiry {
@@ -253,11 +290,12 @@
 /* Error state */
 .error {
   padding: 12px;
-  background: rgba(244, 67, 54, 0.1);
-  color: #F44336;
-  border: 1px solid rgba(244, 67, 54, 0.3);
-  border-radius: 6px;
+  background: #F44336;
+  color: #ffffff;
+  border: var(--border-medium) solid #D32F2F;
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
+  font-weight: 600;
 }
 
 /* Responsive */

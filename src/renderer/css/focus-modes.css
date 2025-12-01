@@ -93,11 +93,11 @@ body.focus-study .content-area {
   gap: 12px;
   padding: 12px 16px;
   background: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border, #404040);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
+  box-shadow: var(--shadow-neo-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   opacity: 0;
   transform: translateY(10px);
   pointer-events: none;
@@ -110,9 +110,8 @@ body.focus-study .content-area {
 }
 
 .focus-mode-indicator:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-  border-color: var(--accent, #007acc);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .focus-mode-icon {
@@ -165,10 +164,10 @@ body.focus-study .content-area {
   transform: translate(-50%, -50%);
   z-index: 9500;
   background: var(--bg-primary, #1e1e1e);
-  border: 1px solid var(--border, #404040);
-  border-radius: 12px;
+  border: var(--border-thick) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-xl);
   padding: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-neo-lg);
   min-width: 500px;
   max-width: 600px;
 }
@@ -183,9 +182,11 @@ body.focus-study .content-area {
 
 .focus-mode-selector-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary, #ffffff);
   margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .focus-mode-selector-subtitle {
@@ -203,24 +204,25 @@ body.focus-study .content-area {
 .focus-mode-option {
   padding: 16px;
   background: var(--bg-secondary, #2d2d2d);
-  border: 2px solid transparent;
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .focus-mode-option:hover {
-  background: var(--bg-tertiary, #3d3d3d);
-  border-color: var(--accent, #007acc);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .focus-mode-option.active {
-  background: var(--bg-tertiary, #3d3d3d);
-  border-color: var(--accent, #007acc);
-  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.2);
+  background: var(--accent, #007acc);
+  color: #ffffff;
+  box-shadow: var(--shadow-neo-md);
 }
 
 .focus-mode-option-icon {
@@ -250,17 +252,18 @@ body.focus-study .content-area {
   justify-content: flex-end;
   gap: 8px;
   padding-top: 16px;
-  border-top: 1px solid var(--border, #404040);
+  border-top: var(--border-medium) solid var(--border-color-neo);
 }
 
 .focus-mode-selector-btn {
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-neo-sm);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
+  transition: all 0.15s ease;
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .focus-mode-selector-btn-cancel {
@@ -269,8 +272,8 @@ body.focus-study .content-area {
 }
 
 .focus-mode-selector-btn-cancel:hover {
-  background: var(--bg-tertiary, #3d3d3d);
-  color: var(--text-primary, #ffffff);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .focus-mode-selector-btn-apply {
@@ -279,7 +282,13 @@ body.focus-study .content-area {
 }
 
 .focus-mode-selector-btn-apply:hover {
-  background: #006bb3;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
+}
+
+.focus-mode-selector-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
 /* Overlay for focus mode selector */

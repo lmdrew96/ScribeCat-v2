@@ -10,8 +10,10 @@
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: var(--bg-secondary, #2d2d2d);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  box-shadow: var(--shadow-neo-md);
 }
 
 /* ===== SUGGESTION CHIPS ===== */
@@ -30,27 +32,28 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 20px;
+  background: var(--bg-tertiary, #3d3d3d);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-pill);
   font-size: 13px;
-  font-weight: 500;
-  color: #1a1a1a;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .suggestion-chip:hover {
-  background: #4a90e2;
-  color: white;
-  border-color: #4a90e2;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background: var(--accent);
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .suggestion-chip:active {
-  transform: translateY(0);
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
 .chip-icon {
@@ -61,23 +64,24 @@
   font-size: 13px;
 }
 
-/* ===== DARK MODE ===== */
-@media (prefers-color-scheme: dark) {
-  .inline-ai-chat {
-    background: var(--background-secondary-dark, #1e1e1e) !important;
-  }
+/* ===== LIGHT THEME ===== */
+[data-theme*="light"] .inline-ai-chat {
+  background: #ffffff;
+  border-color: #000000;
+  box-shadow: 6px 6px 0 #000000;
+}
 
-  .suggestion-chip {
-    background: var(--background-primary-dark, #2d2d2d) !important;
-    border-color: var(--border-color-dark, #444444) !important;
-    color: var(--text-primary-dark, #ffffff) !important;
-  }
+[data-theme*="light"] .suggestion-chip {
+  background: #f5f5f5;
+  border-color: #000000;
+  color: #1e1e1e;
+  box-shadow: 3px 3px 0 #000000;
+}
 
-  .suggestion-chip:hover {
-    background: var(--primary-color, #4a90e2) !important;
-    color: white !important;
-    border-color: var(--primary-color, #4a90e2) !important;
-  }
+[data-theme*="light"] .suggestion-chip:hover {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 4px 4px 0 #000000;
 }
 
 /* ===== ANIMATIONS ===== */

@@ -14,20 +14,22 @@
 /* Tabs */
 .friends-tabs {
   display: flex;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   padding: 0 1rem;
   gap: 0.5rem;
 }
 
 .friends-tab {
   padding: 0.75rem 1rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
+  background: var(--bg-tertiary, #3d3d3d);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-bottom: none;
+  border-radius: var(--radius-neo-md) var(--radius-neo-md) 0 0;
   cursor: pointer;
   font-size: 0.95rem;
+  font-weight: 600;
   color: var(--text-secondary, #666);
-  transition: all 0.2s;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -35,27 +37,31 @@
 
 .friends-tab:hover {
   color: var(--text-primary, #333);
-  background: var(--hover-bg, #f5f5f5);
+  background: var(--bg-quaternary, #1d1d1d);
+  transform: translateY(-2px);
 }
 
 .friends-tab.active {
-  color: var(--primary-color, #007bff);
-  border-bottom-color: var(--primary-color, #007bff);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--border-color-neo);
 }
 
 .friends-tab-badge {
-  background: var(--primary-color, #007bff);
-  color: white;
+  background: var(--bg-secondary, #2d2d2d);
+  color: var(--text-primary);
   padding: 0.15rem 0.5rem;
-  border-radius: 10px;
+  border-radius: var(--radius-neo-sm);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   min-width: 20px;
   text-align: center;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .friends-tab.active .friends-tab-badge {
-  background: var(--primary-dark, #0056b3);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Tab Content */
@@ -76,14 +82,16 @@
   display: flex;
   align-items: center;
   padding: 0.75rem;
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 8px;
-  transition: all 0.2s;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .friend-item:hover {
-  background: var(--hover-bg, #f5f5f5);
-  border-color: var(--border-hover, #ccc);
+  background: var(--bg-tertiary, #3d3d3d);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .friend-avatar {
@@ -103,20 +111,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-color, #007bff);
+  background: var(--accent);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md) !important;
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1.1rem;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .status-indicator {
   position: absolute;
   bottom: 2px;
   right: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid white;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
   background: #ccc;
 }
 
@@ -193,14 +204,17 @@
   display: flex;
   align-items: center;
   padding: 0.75rem;
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 8px;
-  transition: all 0.2s;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius-neo-lg);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .request-item:hover {
-  background: var(--hover-bg, #f5f5f5);
-  border-color: var(--border-hover, #ccc);
+  background: var(--bg-tertiary, #3d3d3d);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .request-avatar {
@@ -269,15 +283,21 @@
 .find-friends-search input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 6px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 1rem;
-  transition: border-color 0.2s;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.1);
+  background: var(--bg-tertiary, #3d3d3d);
+  color: var(--text-primary);
 }
 
 .find-friends-search input:focus {
   outline: none;
-  border-color: var(--primary-color, #007bff);
+  border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .find-friends-results {
@@ -290,14 +310,16 @@
   display: flex;
   align-items: center;
   padding: 0.75rem;
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 8px;
-  transition: all 0.2s;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .search-result-item:hover {
-  background: var(--hover-bg, #f5f5f5);
-  border-color: var(--border-hover, #ccc);
+  background: var(--bg-tertiary, #3d3d3d);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .search-result-avatar {
@@ -349,21 +371,22 @@
 /* Message */
 .message {
   padding: 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--radius-neo-md);
   margin-top: 0.5rem;
   font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .message.success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: #4CAF50;
+  color: #ffffff;
+  border: var(--border-medium) solid #388E3C;
 }
 
 .message.error {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: #F44336;
+  color: #ffffff;
+  border: var(--border-medium) solid #D32F2F;
 }
 
 /* Empty State */

@@ -13,7 +13,7 @@
 .study-mode-header {
   padding: 20px;
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -67,9 +67,10 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   background-color: var(--bg-tertiary);
 }
 
@@ -101,7 +102,7 @@
 .study-mode-controls {
   padding: 20px;
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -142,19 +143,21 @@
   gap: 8px;
   padding: 10px 16px;
   background: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border-color, #444444);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   color: var(--text-secondary, #aaaaaa);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .control-btn:hover {
-  background: var(--bg-tertiary, #3d3d3d);
-  color: var(--text-primary, #ffffff);
-  border-color: var(--accent, #00bcd4);
+  background: var(--accent);
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .btn-icon {
@@ -179,10 +182,11 @@
   height: 20px;
   padding: 0 6px;
   background: var(--accent, #00bcd4);
-  color: var(--bg-primary, #1d1d1d);
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
-  border-radius: 10px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
   margin-left: 4px;
 }
 
@@ -193,9 +197,9 @@
   right: 0;
   min-width: 220px;
   background: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border-color, #444444);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  box-shadow: var(--shadow-neo-lg);
   z-index: 1000;
   overflow: hidden;
 }
@@ -210,19 +214,21 @@
   border: none;
   color: var(--text-primary, #ffffff);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .dropdown-item:hover {
-  background: var(--bg-tertiary, #3d3d3d);
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .dropdown-item.active {
-  background: rgba(0, 188, 212, 0.1);
+  background: rgba(0, 188, 212, 0.2);
   color: var(--accent, #00bcd4);
+  font-weight: 700;
 }
 
 .item-icon {
@@ -247,7 +253,7 @@
 }
 
 .dropdown-section:not(:last-child) {
-  border-bottom: 1px solid var(--border-color, #444444);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
 }
 
 .section-label {
@@ -260,8 +266,8 @@
 }
 
 .dropdown-divider {
-  height: 1px;
-  background: var(--border-color, #444444);
+  height: 2px;
+  background: var(--border-color-neo);
   margin: 4px 0;
 }
 
@@ -306,7 +312,7 @@
 .study-mode-filters {
   padding: 15px 20px;
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -317,7 +323,7 @@
 .bulk-actions-bar {
   padding: 12px 20px;
   background-color: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -382,16 +388,18 @@
   padding: 10px 14px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  transition: all 0.15s ease;
 }
 
 .filter-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .filter-input::placeholder {
@@ -403,21 +411,24 @@
   padding: 10px 14px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .filter-select:hover {
-  border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .filter-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* Session List Container - Phase 3 compatible */
@@ -474,22 +485,23 @@
 /* Session Card */
 .session-card {
   background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   padding: 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   display: flex;
   flex-direction: column;
   gap: 12px;
   animation: fadeInUp 0.3s ease;
   position: relative;
-  overflow: visible; /* Allow tooltips to overflow */
+  overflow: visible;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .session-card.selected {
   border-color: var(--accent);
-  background-color: rgba(0, 122, 204, 0.1);
+  background-color: rgba(0, 122, 204, 0.15);
 }
 
 .session-card-checkbox {
@@ -516,8 +528,8 @@
 
 .session-card:hover {
   border-color: var(--accent);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px var(--shadow);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-lg);
 }
 
 /* Session Card Header */
@@ -552,16 +564,16 @@
   flex-shrink: 0;
   width: 28px;
   height: 28px;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  background-color: transparent;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
+  background-color: var(--bg-tertiary);
   color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   opacity: 0;
 }
 
@@ -570,9 +582,10 @@
 }
 
 .edit-title-btn:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--border);
-  color: var(--text-primary);
+  background-color: var(--accent);
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .course-badge-container {
@@ -586,9 +599,10 @@
   padding: 4px 10px;
   background-color: var(--accent);
   color: white;
-  border-radius: 12px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   max-width: 200px;
@@ -741,8 +755,9 @@
   align-items: center;
   gap: 2px;
   padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
+  border-radius: var(--radius-neo-sm);
+  font-weight: 600;
+  border: var(--border-thin) solid transparent;
 }
 
 .sync-indicator.synced {
@@ -786,7 +801,7 @@
   gap: 8px;
   margin-top: 8px;
   padding-top: 12px;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-thin) solid var(--border-color-neo);
 }
 
 .session-actions .action-btn {
@@ -945,10 +960,11 @@
   margin-top: 24px;
   padding: 20px;
   background-color: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
+  border-radius: var(--radius-neo-lg);
+  border: var(--border-medium) solid var(--border-color-neo);
   max-width: 500px;
   text-align: left;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .empty-state-tips h4 {
@@ -1034,8 +1050,8 @@
   margin-top: 16px;
   padding: 12px 16px;
   background-color: rgba(231, 76, 60, 0.1);
-  border: 1px solid rgba(231, 76, 60, 0.3);
-  border-radius: var(--radius-md);
+  border: var(--border-medium) solid rgba(231, 76, 60, 0.5);
+  border-radius: var(--radius-neo-md);
   max-width: 500px;
 }
 
@@ -1056,35 +1072,37 @@
   padding: 10px 20px;
   background-color: var(--accent);
   color: white;
-  border: none;
-  border-radius: var(--radius-md);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .retry-btn:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .report-btn {
   padding: 10px 20px;
   background-color: transparent;
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .report-btn:hover {
   background-color: var(--bg-tertiary);
-  border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 /* Success State */
@@ -1152,7 +1170,7 @@
   gap: 12px;
   padding: 12px 16px;
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
 }
 
 .notes-edit-actions {
@@ -1165,43 +1183,48 @@
 .cancel-edit-notes-btn {
   padding: 8px 16px;
   font-size: 13px;
-  font-weight: 500;
-  border-radius: 6px;
+  font-weight: 600;
+  border-radius: var(--radius-neo-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .edit-notes-btn {
   background-color: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  border: var(--border-medium) solid var(--border-color-neo);
   color: var(--text-primary);
 }
 
 .edit-notes-btn:hover {
-  background-color: var(--bg-primary);
-  border-color: var(--accent);
+  background-color: var(--accent);
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .save-notes-btn {
   background-color: var(--accent);
-  border: 1px solid var(--accent);
+  border: var(--border-medium) solid var(--border-color-neo);
   color: white;
 }
 
 .save-notes-btn:hover {
-  background-color: var(--accent-hover);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .cancel-edit-notes-btn {
   background-color: transparent;
-  border: 1px solid var(--border);
+  border: var(--border-medium) solid var(--border-color-neo);
   color: var(--text-secondary);
 }
 
 .cancel-edit-notes-btn:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--record-color);
-  color: var(--record-color);
+  background-color: var(--record-color);
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 /* Notes Content Areas */
@@ -1381,9 +1404,10 @@
   flex-direction: column;
   gap: 0;
   background-color: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   overflow: visible;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .study-editor-container .study-notes-editor {
@@ -1397,7 +1421,7 @@
   gap: 4px;
   padding: 8px 12px;
   background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   flex-wrap: wrap;
   position: relative;
   z-index: 10;
@@ -1407,23 +1431,25 @@
   min-width: 32px;
   height: 32px;
   padding: 4px 8px;
-  background-color: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+  border: var(--border-thin) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-sm);
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  font-weight: 600;
+  transition: all 0.15s ease;
   position: relative;
 }
 
 .study-editor-toolbar .toolbar-btn:hover:not(:disabled) {
-  background-color: var(--bg-tertiary);
-  border-color: var(--border);
+  background-color: var(--accent);
+  color: #ffffff;
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .study-editor-toolbar .toolbar-btn.active {
@@ -1457,9 +1483,9 @@
   margin-top: 4px;
   padding: 8px;
   background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
+  box-shadow: var(--shadow-neo-md);
   display: none;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
@@ -1490,21 +1516,24 @@
   padding: 4px 8px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: var(--border-thin) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-sm);
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .study-font-size-select:hover {
-  border-color: var(--accent);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .study-font-size-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* Study Notes Editor */
@@ -1616,18 +1645,21 @@
   margin-bottom: 30px;
   padding: 20px;
   background-color: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
+  border-radius: var(--radius-neo-lg);
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* Section Title */
 .section-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Shared Sessions List */
@@ -1656,9 +1688,10 @@
   padding: 4px 10px;
   background-color: var(--accent-secondary);
   color: var(--text-primary);
-  border-radius: 12px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1671,22 +1704,22 @@
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-neo-sm);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .permission-badge.viewer {
   background-color: rgba(52, 152, 219, 0.2);
   color: #3498db;
-  border: 1px solid rgba(52, 152, 219, 0.3);
+  border: var(--border-thin) solid #3498db;
 }
 
 .permission-badge.editor {
   background-color: rgba(46, 204, 113, 0.2);
   color: #2ecc71;
-  border: 1px solid rgba(46, 204, 113, 0.3);
+  border: var(--border-thin) solid #2ecc71;
 }
 
 /* ===== Multi-Session Study Set Styles ===== */
@@ -1710,16 +1743,17 @@
   padding: 4px 12px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-radius: 12px;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   margin-right: 12px;
 }
 
 /* Session Tabs Container */
 .session-tabs-container {
   margin: 20px 0;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
 }
 
 .session-tabs {
@@ -1751,24 +1785,25 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: var(--bg-secondary);
-  border: 2px solid transparent;
-  border-radius: 8px 8px 0 0;
+  background: var(--bg-tertiary);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-bottom: none;
+  border-radius: var(--radius-neo-md) var(--radius-neo-md) 0 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .session-tab:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-hover);
+  background: var(--bg-quaternary, #1d1d1d);
+  transform: translateY(-2px);
 }
 
 .session-tab.active {
-  background: var(--bg-primary);
-  border-color: var(--accent);
-  border-bottom-color: var(--bg-primary);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--border-color-neo);
   position: relative;
   z-index: 1;
 }
@@ -1781,13 +1816,15 @@
   height: 24px;
   background: var(--accent);
   color: white;
-  border-radius: 50%;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .session-tab.active .tab-number {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #ffffff;
+  color: var(--accent);
 }
 
 .session-tab .tab-title {
@@ -1813,7 +1850,7 @@
 .tab-session-info {
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
 }
 
 .tab-session-info h3 {
@@ -1848,8 +1885,9 @@
 
 .reorder-modal {
   background: var(--bg-primary);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-xl);
+  box-shadow: var(--shadow-neo-xl);
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
@@ -1860,7 +1898,7 @@
 
 .modal-header {
   padding: 24px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1874,8 +1912,8 @@
 }
 
 .modal-close-btn {
-  background: none;
-  border: none;
+  background: var(--bg-tertiary);
+  border: var(--border-thin) solid var(--border-color-neo);
   font-size: 28px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -1885,13 +1923,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-neo-sm);
+  transition: all 0.15s ease;
 }
 
 .modal-close-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--accent);
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .modal-body {
@@ -1903,8 +1943,8 @@
 .reorder-instructions {
   padding: 12px 16px;
   background: rgba(102, 126, 234, 0.1);
-  border-left: 3px solid var(--accent);
-  border-radius: 4px;
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius-neo-sm);
   margin-bottom: 20px;
 }
 
@@ -1930,17 +1970,19 @@
   width: 100%;
   padding: 12px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   color: var(--text-primary);
   font-size: 16px;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  transition: all 0.15s ease;
 }
 
 .study-set-title-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* Session Reorder List */
@@ -1956,15 +1998,17 @@
   gap: 12px;
   padding: 16px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   cursor: move;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .reorder-session-item:hover {
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .reorder-session-item.dragging {
@@ -1990,8 +2034,9 @@
   height: 32px;
   background: var(--accent);
   color: white;
-  border-radius: 50%;
-  font-weight: 600;
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
+  font-weight: 700;
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -2019,7 +2064,7 @@
 
 .modal-footer {
   padding: 24px;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -2027,23 +2072,24 @@
 
 .btn {
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-neo-md);
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
+  transition: all 0.15s ease;
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .btn-secondary {
   background: var(--bg-secondary);
   color: var(--text-primary);
-  border: 2px solid var(--border);
 }
 
 .btn-secondary:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-hover);
+  background: var(--bg-tertiary);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .btn-primary {
@@ -2052,9 +2098,8 @@
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #5568d3 0%, #633a8f 100%);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  transform: translateY(-1px);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 /* Notification Styles */
@@ -2063,9 +2108,10 @@
   top: 20px;
   right: 20px;
   padding: 16px 24px;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  font-weight: 500;
+  border-radius: var(--radius-neo-md);
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-lg);
+  font-weight: 600;
   font-size: 14px;
   z-index: 10001;
   max-width: 400px;
@@ -2150,42 +2196,45 @@
   flex-direction: row;
   flex-wrap: nowrap;
   gap: 8px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   padding-bottom: 0;
   margin-bottom: 16px;
 }
 
 .content-tab-btn {
   padding: 8px 16px;
-  background: transparent;
-  border: none;
-  border-bottom: 3px solid transparent;
+  background: var(--bg-tertiary);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-bottom: none;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  margin-bottom: -2px;
+  font-weight: 600;
+  transition: all 0.15s;
+  margin-bottom: -3px;
+  border-radius: var(--radius-neo-sm) var(--radius-neo-sm) 0 0;
 }
 
 .content-tab-btn:hover {
   color: var(--text-primary);
-  background: var(--bg-secondary);
+  background: var(--bg-quaternary, #1d1d1d);
+  transform: translateY(-2px);
 }
 
 .content-tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  background-color: var(--accent);
+  color: #ffffff;
 }
 
 .content-tab-panel {
   display: none;
   animation: fadeIn 0.2s;
   background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   padding: 24px;
   min-height: 400px;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .content-tab-panel.active {

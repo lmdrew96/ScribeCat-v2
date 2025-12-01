@@ -8,9 +8,9 @@
   position: fixed;
   z-index: 10000;
   background: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border-color, #444444);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  box-shadow: var(--shadow-neo-lg);
   min-width: 220px;
   overflow: hidden;
   animation: menuFadeIn 0.2s ease;
@@ -29,8 +29,9 @@
 
 .quick-actions-menu-header {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #444444);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
   background: var(--bg-tertiary, #3d3d3d);
+  border-left: 5px solid var(--accent);
 }
 
 .quick-actions-menu-title {
@@ -51,11 +52,12 @@
   gap: 12px;
   padding: 10px 16px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .quick-action-item:hover {
   background: var(--bg-tertiary, #3d3d3d);
+  transform: translateX(4px);
 }
 
 .quick-action-icon {
@@ -76,8 +78,9 @@
   color: var(--text-tertiary, #666666);
   background: var(--bg-quaternary, #1d1d1d);
   padding: 3px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-neo-sm);
   font-family: monospace;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .quick-action-divider {
@@ -117,13 +120,13 @@
 .keyboard-shortcuts-modal {
   position: relative;
   background: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border-color, #444444);
-  border-radius: 20px;
+  border: var(--border-thick) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-xl);
   width: 90%;
   max-width: 900px;
   max-height: 85vh;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-neo-xl);
   display: flex;
   flex-direction: column;
   animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -145,8 +148,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 32px;
-  border-bottom: 1px solid var(--border-color, #444444);
-  background: var(--bg-tertiary, #3d3d3d);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
+  background: var(--accent);
+  border-radius: calc(var(--radius-neo-xl) - 4px) calc(var(--radius-neo-xl) - 4px) 0 0;
 }
 
 .keyboard-shortcuts-header h2 {
@@ -162,17 +166,25 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 8px;
-  color: var(--text-secondary, #aaaaaa);
+  background: var(--bg-secondary);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .close-shortcuts-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--bg-tertiary);
   color: var(--text-primary, #ffffff);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
+}
+
+.close-shortcuts-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
 .keyboard-shortcuts-content {
@@ -195,11 +207,13 @@
 
 .shortcuts-category-name {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary, #ffffff);
   margin: 0;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--accent, #00bcd4);
+  border-bottom: var(--border-medium) solid var(--accent, #00bcd4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .shortcuts-list {
@@ -229,13 +243,13 @@ kbd {
   height: 28px;
   padding: 0 8px;
   background: var(--bg-tertiary, #3d3d3d);
-  border: 1px solid var(--border, #404040);
-  border-radius: 6px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-sm);
   font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary, #ffffff);
-  box-shadow: 0 2px 0 var(--border, #404040);
+  box-shadow: 3px 3px 0 var(--border-color-neo);
 }
 
 /* Light theme kbd styling - high contrast with dark text on light background */
@@ -255,7 +269,7 @@ kbd {
 
 .keyboard-shortcuts-footer {
   padding: 16px 32px;
-  border-top: 1px solid var(--border-color, #444444);
+  border-top: var(--border-thin) solid var(--border-color-neo);
   background: var(--bg-tertiary, #3d3d3d);
   text-align: center;
 }

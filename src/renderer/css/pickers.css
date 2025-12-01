@@ -7,10 +7,11 @@
 .folder-picker-breadcrumb {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 12px;
   background-color: var(--bg-tertiary);
-  border-radius: 6px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   margin-bottom: 15px;
   overflow-x: auto;
   flex-wrap: wrap;
@@ -19,23 +20,26 @@
 .breadcrumb-item {
   padding: 6px 12px;
   background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-sm);
   font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .breadcrumb-item:hover {
   background-color: var(--bg-primary);
-  border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .breadcrumb-item.active {
   background-color: var(--accent);
-  border-color: var(--accent);
+  border-color: var(--border-color-neo);
   color: white;
   cursor: default;
 }
@@ -52,10 +56,11 @@
 .folder-picker-list {
   max-height: 400px;
   overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   background-color: var(--bg-tertiary);
   margin-bottom: 15px;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .folder-picker-list::-webkit-scrollbar {
@@ -76,9 +81,9 @@
   align-items: center;
   gap: 12px;
   padding: 12px 15px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .folder-item:last-child {
@@ -87,11 +92,14 @@
 
 .folder-item:hover {
   background-color: var(--bg-secondary);
+  transform: translateX(4px);
+  border-left: 4px solid var(--accent);
 }
 
 .folder-item.selected {
-  background-color: rgba(0, 122, 204, 0.2);
-  border-left: 3px solid var(--accent);
+  background-color: var(--accent);
+  color: #ffffff;
+  border-left: 5px solid var(--border-color-neo);
 }
 
 .folder-icon {
@@ -110,20 +118,28 @@
 
 .folder-select-btn {
   padding: 6px 12px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background-color: var(--bg-primary);
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-medium) solid var(--border-color-neo);
+  background-color: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   flex-shrink: 0;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .folder-select-btn:hover {
   background-color: var(--accent);
-  border-color: var(--accent);
   color: white;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
+}
+
+.folder-select-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
 .folder-picker-actions {
@@ -133,7 +149,9 @@
 .folder-picker-selected {
   padding: 12px;
   background-color: var(--bg-tertiary);
-  border-radius: 6px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius-neo-md);
   font-size: 13px;
   color: var(--text-secondary);
   margin-bottom: 15px;

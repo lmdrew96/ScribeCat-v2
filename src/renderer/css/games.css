@@ -50,8 +50,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
 }
 
 .game-title {
@@ -67,25 +67,30 @@
 .game-title h3 {
   margin: 0;
   font-size: 18px;
+  font-weight: 700;
   color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .game-status {
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 6px 14px;
+  border-radius: var(--radius-neo-sm);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   text-transform: uppercase;
+  border: var(--border-thin) solid var(--border-color-neo);
+  letter-spacing: 0.5px;
 }
 
 .game-status.waiting {
-  background: var(--warning-bg);
-  color: var(--warning-text);
+  background: #f59e0b;
+  color: #ffffff;
 }
 
 .game-status.in_progress {
-  background: var(--success-bg);
-  color: var(--success-text);
+  background: #10b981;
+  color: #ffffff;
 }
 
 .game-status.completed {
@@ -125,25 +130,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 18px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .btn-exit:hover {
-  background: var(--error-bg);
-  color: var(--error-text);
-  transform: scale(1.05);
+  background: var(--danger-color, #ef5350);
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .btn-exit:active {
-  transform: scale(0.95);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--border-color-neo);
 }
 
 /* Progress Bar */
@@ -160,9 +168,10 @@
 }
 
 .game-progress-bar {
-  height: 8px;
+  height: 10px;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border: var(--border-thin) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-sm);
   overflow: hidden;
 }
 
@@ -179,15 +188,20 @@
 /* Leaderboard */
 .game-leaderboard {
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   padding: 20px;
   margin-top: 24px;
+  box-shadow: var(--shadow-neo-md);
 }
 
 .game-leaderboard h4 {
   margin: 0 0 16px 0;
   font-size: 18px;
+  font-weight: 700;
   color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .leaderboard-list {
@@ -202,25 +216,33 @@
   gap: 12px;
   padding: 12px;
   background: var(--bg-primary);
-  border-radius: 8px;
-  transition: transform 0.2s;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
+}
+
+.leaderboard-item:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .leaderboard-item.current-user {
   background: var(--accent-bg);
-  border: 2px solid var(--accent-primary);
+  border: var(--border-medium) solid var(--accent);
+  border-left: 5px solid var(--accent);
 }
 
 .leaderboard-rank {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
   min-width: 40px;
   text-align: center;
 }
 
 .leaderboard-name {
   flex: 1;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -262,22 +284,25 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
-  border-radius: 12px;
-  border: 1px solid var(--border);
+  border-radius: var(--radius-neo-lg);
+  border: var(--border-medium) solid var(--border-color-neo);
   overflow: hidden;
+  box-shadow: var(--shadow-neo-md);
 }
 
 /* Lobby chat panel styling overrides */
 .game-lobby-chat .chat-header {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   background: var(--bg-tertiary);
 }
 
 .game-lobby-chat .chat-header h3 {
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .game-lobby-chat .chat-toggle-btn {
@@ -294,7 +319,7 @@
 
 .game-lobby-chat .chat-input-container {
   padding: 12px;
-  border-top: 1px solid var(--border);
+  border-top: var(--border-medium) solid var(--border-color-neo);
   background: var(--bg-primary);
 }
 
@@ -362,42 +387,54 @@
   gap: 8px;
   padding: 16px;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
+  box-shadow: var(--shadow-neo-sm);
+  transition: all 0.15s ease;
+}
+
+.waiting-participant:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .participant-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: var(--accent-primary);
+  border-radius: var(--radius-neo-md);
+  background: var(--accent);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 18px;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .participant-avatar img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--radius-neo-md);
   object-fit: cover;
 }
 
 .participant-name {
   font-size: 14px;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
 .host-badge {
-  padding: 2px 8px;
-  background: var(--accent-primary);
+  padding: 3px 10px;
+  background: var(--accent);
   color: white;
-  border-radius: 4px;
+  border-radius: var(--radius-neo-sm);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   margin-left: 4px;
+  border: var(--border-thin) solid var(--border-color-neo);
+  text-transform: uppercase;
 }
 
 .waiting-message {
@@ -459,9 +496,11 @@
 
 .quiz-battle-question-container {
   background: var(--bg-secondary);
-  border-radius: 16px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   padding: 32px;
   margin-bottom: 24px;
+  box-shadow: var(--shadow-neo-md);
 }
 
 /* Timer */
@@ -516,7 +555,7 @@
 
 .question-text {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 16px;
   line-height: 1.4;
@@ -524,13 +563,15 @@
 
 .question-category {
   display: inline-block;
-  padding: 6px 16px;
-  background: var(--accent-bg);
-  color: var(--accent-primary);
-  border-radius: 20px;
+  padding: 8px 18px;
+  background: var(--accent);
+  color: #ffffff;
+  border-radius: var(--radius-neo-sm);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 12px;
+  border: var(--border-thin) solid var(--border-color-neo);
+  text-transform: uppercase;
 }
 
 .question-difficulty {
@@ -542,31 +583,32 @@
 }
 
 .difficulty-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 6px 14px;
+  border-radius: var(--radius-neo-sm);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .difficulty-easy {
-  background: #dcfce7;
-  color: #166534;
+  background: #22c55e;
+  color: #ffffff;
 }
 
 .difficulty-medium {
-  background: #fef3c7;
-  color: #92400e;
+  background: #f59e0b;
+  color: #ffffff;
 }
 
 .difficulty-hard {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #ef4444;
+  color: #ffffff;
 }
 
 .question-points {
   color: var(--text-secondary);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Quiz Options */
@@ -583,21 +625,22 @@
   gap: 12px;
   padding: 16px 20px;
   background: var(--bg-primary);
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
   text-align: left;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .quiz-option:hover:not(.disabled) {
-  border-color: var(--accent-primary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-lg);
 }
 
 .quiz-option.selected {
-  border-color: var(--accent-primary);
+  border-color: var(--accent);
   background: var(--accent-bg);
 }
 
@@ -653,13 +696,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: var(--accent-primary);
+  width: 34px;
+  height: 34px;
+  background: var(--accent);
   color: white;
-  border-radius: 50%;
+  border-radius: var(--radius-neo-sm);
   font-weight: 700;
   flex-shrink: 0;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .quiz-option.correct .option-letter {
@@ -674,20 +718,23 @@
   flex: 1;
   color: var(--text-primary);
   font-size: 16px;
+  font-weight: 500;
 }
 
 /* Answer Feedback */
 .answer-feedback {
   margin-top: 24px;
-  padding: 20px;
+  padding: 24px;
   background: var(--bg-primary);
-  border-radius: 12px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   text-align: center;
+  box-shadow: var(--shadow-neo-md);
 }
 
 .feedback-message {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 8px;
 }
@@ -711,12 +758,12 @@
 
 .answer-feedback.answer-reveal.correct {
   background: #dcfce7;
-  border-color: #22c55e;
+  border: var(--border-medium) solid #22c55e;
 }
 
 .answer-feedback.answer-reveal.incorrect {
   background: #fee2e2;
-  border-color: #ef4444;
+  border: var(--border-medium) solid #ef4444;
 }
 
 @keyframes slideIn {
@@ -770,10 +817,12 @@
 
 .correct-answer-info {
   margin-top: 12px;
-  padding: 12px;
+  padding: 14px;
   background: rgba(255, 255, 255, 0.6);
-  border-radius: 8px;
+  border: var(--border-thin) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 15px;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
@@ -883,14 +932,16 @@
 
 .quiz-feedback {
   margin-top: 24px;
-  padding: 20px;
+  padding: 24px;
   background: var(--bg-primary);
-  border-radius: 12px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .quiz-feedback-result {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 12px;
 }
 
@@ -1906,36 +1957,40 @@
   margin-bottom: 24px;
   background: var(--bg-secondary);
   padding: 16px;
-  border-radius: 16px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .bingo-cell {
   aspect-ratio: 1;
   background: var(--bg-primary);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
   position: relative;
   padding: 8px;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .bingo-cell:hover:not(.free-space) {
-  border-color: var(--accent-primary);
-  transform: scale(1.05);
+  border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .bingo-cell.marked {
   background: var(--accent-bg);
-  border-color: var(--accent-primary);
+  border-color: var(--accent);
 }
 
 .bingo-cell.free-space {
-  background: var(--accent-primary);
+  background: var(--accent);
   color: white;
   font-weight: 700;
   cursor: default;
@@ -1944,7 +1999,7 @@
 .cell-content {
   text-align: center;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -1957,9 +2012,11 @@
 
 .bingo-info {
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   padding: 20px;
   text-align: center;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .bingo-stats {
@@ -1993,8 +2050,9 @@
   width: 100%;
   height: 400px;
   background: var(--bg-secondary);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-xl);
+  box-shadow: var(--shadow-neo-lg);
   transition: transform 0.6s;
   transform-style: preserve-3d;
 }
@@ -2014,7 +2072,7 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
-  border-radius: 16px;
+  border-radius: var(--radius-neo-xl);
 }
 
 .flashcard-front {
@@ -2030,13 +2088,14 @@
   font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 16px;
+  letter-spacing: 0.5px;
 }
 
 .flashcard-content {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   text-align: center;
   line-height: 1.4;
@@ -2044,12 +2103,13 @@
 
 .flashcard-category {
   margin-top: 20px;
-  padding: 6px 16px;
-  background: var(--accent-primary);
+  padding: 8px 18px;
+  background: var(--accent);
   color: white;
-  border-radius: 20px;
+  border-radius: var(--radius-neo-sm);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .flashcard-explanation {
@@ -2065,33 +2125,37 @@
 .btn-flip {
   display: block;
   margin: 24px auto 0;
-  padding: 12px 32px;
-  background: var(--accent-primary);
+  padding: 14px 36px;
+  background: var(--accent);
   color: white;
-  border: none;
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .btn-flip:hover {
   background: var(--accent-hover);
-  transform: scale(1.05);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .flashcard-controls {
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   padding: 24px;
   text-align: center;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .understanding-check p {
   margin-bottom: 16px;
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .understanding-buttons {
@@ -2104,12 +2168,13 @@
   flex: 1;
   max-width: 200px;
   padding: 16px 24px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .btn-understanding.needs-review {
@@ -2120,6 +2185,8 @@
 .btn-understanding.needs-review:hover {
   border-color: #f59e0b;
   background: #fef3c7;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .btn-understanding.understood {
@@ -2130,6 +2197,8 @@
 .btn-understanding.understood:hover {
   border-color: #22c55e;
   background: #dcfce7;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .flashcard-next p {
@@ -2166,22 +2235,23 @@
 .game-type-card {
   padding: 24px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
   text-align: center;
   position: relative;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .game-type-card:hover {
-  border-color: var(--accent-primary);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-lg);
 }
 
 .game-type-card.selected {
-  border-color: var(--accent-primary);
+  border-color: var(--accent);
   background: var(--accent-bg);
 }
 
@@ -2207,15 +2277,16 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 24px;
-  height: 24px;
-  background: var(--accent-primary);
+  width: 26px;
+  height: 26px;
+  background: var(--accent);
   color: white;
-  border-radius: 50%;
+  border-radius: var(--radius-neo-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .game-settings {
@@ -2243,23 +2314,26 @@
   flex: 1;
   padding: 12px 16px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 600;
+  transition: all 0.15s ease;
+  font-weight: 700;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .count-btn:hover,
 .difficulty-btn:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .count-btn.selected,
 .difficulty-btn.selected {
-  background: var(--accent-primary);
+  background: var(--accent);
   color: white;
-  border-color: var(--accent-primary);
+  border-color: var(--border-color-neo);
 }
 
 .modal-actions {
@@ -2281,9 +2355,9 @@
 .loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid var(--bg-tertiary);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
+  border: var(--border-thick) solid var(--bg-tertiary);
+  border-top-color: var(--accent);
+  border-radius: var(--radius-neo-md);
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
 }
@@ -2316,11 +2390,12 @@
 .reconnecting-content,
 .error-content {
   background: var(--bg-secondary);
-  border-radius: 16px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-xl);
   padding: 40px;
   text-align: center;
   max-width: 400px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-neo-lg);
 }
 
 .reconnecting-content h3,
@@ -2328,6 +2403,7 @@
   margin: 16px 0 12px 0;
   color: var(--text-primary);
   font-size: 24px;
+  font-weight: 700;
 }
 
 .reconnecting-content p,
@@ -2342,7 +2418,7 @@
 }
 
 .connection-error-overlay .error-content {
-  border: 2px solid var(--error-color);
+  border: var(--border-medium) solid var(--error-color);
 }
 
 .connection-error-overlay h3 {
@@ -2350,20 +2426,22 @@
 }
 
 .close-game-btn {
-  padding: 12px 32px;
-  background: var(--accent-primary);
+  padding: 14px 36px;
+  background: var(--accent);
   color: white;
-  border: none;
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .close-game-btn:hover {
   background: var(--accent-hover);
-  transform: scale(1.05);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 /* Responsive */

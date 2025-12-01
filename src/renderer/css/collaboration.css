@@ -10,9 +10,10 @@
 /* Collaborators Panel */
 .collaborators-panel {
   background: var(--background-tertiary, #2a2a2a);
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  padding: 14px;
+  box-shadow: var(--shadow-neo-md);
 }
 
 .collaborators-header {
@@ -20,14 +21,16 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color, #444);
+  padding-bottom: 10px;
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
 }
 
 .collaborators-title {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
   color: var(--text-primary, #ffffff);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Connection Status */
@@ -36,9 +39,10 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  padding: 5px 10px;
+  border-radius: var(--radius-neo-sm);
+  background: var(--bg-secondary, #2d2d2d);
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .status-icon {
@@ -48,7 +52,7 @@
 
 .status-text {
   color: var(--text-secondary, #b0b0b0);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .status-connected .status-text {
@@ -87,14 +91,18 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px;
-  border-radius: 6px;
+  padding: 10px;
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
   background: var(--background-secondary, #1e1e1e);
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .collaborator-item:hover {
   background: var(--background-primary, #151515);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .collaborator-item.user-inactive {
@@ -112,22 +120,24 @@
 .user-avatar-img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--radius-neo-md);
   object-fit: cover;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .user-avatar-initials {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--radius-neo-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
   color: white;
   text-transform: uppercase;
   user-select: none;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .user-status-indicator {
@@ -136,8 +146,8 @@
   right: -2px;
   width: 12px;
   height: 12px;
-  border-radius: 50%;
-  border: 2px solid var(--background-tertiary, #2a2a2a);
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 /* User Info */
@@ -151,7 +161,7 @@
 
 .user-name {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary, #ffffff);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -171,19 +181,18 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius-neo-sm);
   font-size: 12px;
-  font-weight: 500;
-  background: rgba(76, 175, 80, 0.1);
-  color: #4CAF50;
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  font-weight: 700;
+  background: #4CAF50;
+  color: #ffffff;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .collaboration-badge.offline {
-  background: rgba(158, 158, 158, 0.1);
-  color: #9e9e9e;
-  border-color: rgba(158, 158, 158, 0.3);
+  background: #9e9e9e;
+  color: #ffffff;
 }
 
 .collaboration-badge-icon {
@@ -210,15 +219,16 @@
   position: absolute;
   top: -1.8em;
   left: 0;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 3px 8px;
+  border-radius: var(--radius-neo-sm);
   background-color: currentColor;
   color: white;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
   user-select: none;
   pointer-events: none;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 /* Remote Selection Styles */
@@ -251,15 +261,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-neo-sm);
   background: #4CAF50;
   color: white;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
+  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 /* Collaboration Panel Container (sidebar) */
@@ -267,7 +278,7 @@
   width: 280px;
   height: 100%;
   background: var(--background-secondary, #1e1e1e);
-  border-left: 1px solid var(--border-color, #444);
+  border-left: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   flex-direction: column;
   transition: transform 0.3s ease;
@@ -279,7 +290,7 @@
 
 .collaboration-sidebar-header {
   padding: 16px;
-  border-bottom: 1px solid var(--border-color, #444);
+  border-bottom: var(--border-medium) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -287,25 +298,31 @@
 
 .collaboration-sidebar-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary, #ffffff);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .collaboration-sidebar-close {
-  background: none;
-  border: none;
+  background: var(--bg-tertiary, #3d3d3d);
+  border: var(--border-medium) solid var(--border-color-neo);
   color: var(--text-secondary, #b0b0b0);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  border-radius: var(--radius-neo-sm);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .collaboration-sidebar-close:hover {
-  background: var(--background-tertiary, #2a2a2a);
+  background: var(--accent);
+  color: #ffffff;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .collaboration-sidebar-content {

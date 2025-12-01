@@ -27,31 +27,29 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, var(--bg-secondary, #2d2d2d), var(--bg-tertiary, #3d3d3d));
-  border: 1px solid var(--accent, #007acc);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 122, 204, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--bg-secondary, #2d2d2d);
+  border: var(--border-thick) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  box-shadow: var(--shadow-neo-lg);
   cursor: pointer;
   max-width: 400px;
   min-width: 320px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .suggestion-chip-content:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 122, 204, 0.4),
-              0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: translate(-4px, -4px);
+  box-shadow: var(--shadow-neo-xl);
 }
 
 /* Pulse animation background */
 .suggestion-chip-pulse {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 12px;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: var(--radius-neo-xl);
   background: var(--accent, #007acc);
   opacity: 0;
   z-index: -1;
@@ -78,8 +76,10 @@
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  border-radius: 50%;
-  background: rgba(0, 122, 204, 0.1);
+  border-radius: var(--radius-neo-md);
+  background: var(--accent);
+  border: var(--border-medium) solid var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
   animation: chipIconFloat 3s ease-in-out infinite;
 }
 
@@ -129,9 +129,9 @@
 .suggestion-btn {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-neo-sm);
+  border: var(--border-medium) solid var(--border-color-neo);
+  background: var(--bg-tertiary, #3d3d3d);
   color: var(--text-primary, #ffffff);
   font-size: 16px;
   font-weight: bold;
@@ -140,14 +140,17 @@
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .suggestion-btn:hover {
-  transform: scale(1.1);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
 }
 
 .suggestion-btn:active {
-  transform: scale(0.95);
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
 .suggestion-btn-accept {
@@ -157,22 +160,19 @@
 
 .suggestion-btn-accept:hover {
   background: #2ecc71;
-  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
 }
 
 .suggestion-btn-dismiss {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-tertiary, #3d3d3d);
 }
 
 .suggestion-btn-dismiss:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--bg-quaternary, #1d1d1d);
 }
 
 /* Priority variants */
 .ai-suggestion-chip.priority-high .suggestion-chip-content {
-  border-color: #e74c3c;
-  box-shadow: 0 8px 24px rgba(231, 76, 60, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-left: 8px solid #e74c3c;
 }
 
 .ai-suggestion-chip.priority-high .suggestion-chip-pulse {
@@ -180,7 +180,7 @@
 }
 
 .ai-suggestion-chip.priority-high .suggestion-chip-icon {
-  background: rgba(231, 76, 60, 0.1);
+  background: #e74c3c;
   animation: chipIconBounce 1s ease-in-out infinite;
 }
 
@@ -194,19 +194,19 @@
 }
 
 .ai-suggestion-chip.priority-medium .suggestion-chip-content {
-  border-color: #f39c12;
-  box-shadow: 0 8px 24px rgba(243, 156, 18, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-left: 8px solid #f39c12;
 }
 
 .ai-suggestion-chip.priority-medium .suggestion-chip-pulse {
   background: #f39c12;
 }
 
+.ai-suggestion-chip.priority-medium .suggestion-chip-icon {
+  background: #f39c12;
+}
+
 .ai-suggestion-chip.priority-low .suggestion-chip-content {
-  border-color: var(--border, #404040);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2),
-              0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-left: 8px solid var(--border, #404040);
 }
 
 .ai-suggestion-chip.priority-low .suggestion-chip-pulse {
@@ -215,10 +215,13 @@
 
 /* Light theme */
 [data-theme*="light"] .suggestion-chip-content {
-  background: linear-gradient(135deg, #ffffff, #f5f5f5);
-  border-color: var(--accent, #007acc);
-  box-shadow: 0 8px 24px rgba(0, 122, 204, 0.2),
-              0 0 0 1px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  border-color: #000000;
+  box-shadow: 8px 8px 0 #000000;
+}
+
+[data-theme*="light"] .suggestion-chip-content:hover {
+  box-shadow: 10px 10px 0 #000000;
 }
 
 [data-theme*="light"] .suggestion-chip-title {
@@ -229,13 +232,24 @@
   color: #666666;
 }
 
+[data-theme*="light"] .suggestion-chip-icon {
+  border-color: #000000;
+  box-shadow: 3px 3px 0 #000000;
+}
+
 [data-theme*="light"] .suggestion-btn {
-  background: rgba(0, 0, 0, 0.05);
+  background: #f5f5f5;
+  border-color: #000000;
   color: #1e1e1e;
+  box-shadow: 3px 3px 0 #000000;
+}
+
+[data-theme*="light"] .suggestion-btn:hover {
+  box-shadow: 4px 4px 0 #000000;
 }
 
 [data-theme*="light"] .suggestion-btn-dismiss:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: #e0e0e0;
 }
 
 /* Responsive */
