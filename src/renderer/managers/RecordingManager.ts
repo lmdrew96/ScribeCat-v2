@@ -194,7 +194,31 @@ export class RecordingManager {
       let transcription: Transcription | undefined;
       if (timestampedEntries.length > 0 && transcriptionText) {
         try {
-          const segments: TranscriptionSegment[] = timestampedEntries.map(entry => ({
+          // Sort entries by startTime to ensure chronological order
+          // (WebSocket messages from AssemblyAI can arrive out of sequence)
+          const sortedEntries = [...timestampedEntries].sort((a, b) => a.startTime - b.startTime);
+
+          // Handle potential overlaps by adjusting times
+          const adjustedEntries: typeof sortedEntries = [];
+          for (let i = 0; i < sortedEntries.length; i++) {
+            const entry = sortedEntries[i];
+            if (i === 0) {
+              adjustedEntries.push(entry);
+            } else {
+              const prevEntry = adjustedEntries[i - 1];
+              if (entry.startTime < prevEntry.endTime) {
+                // Adjust startTime to be at least the previous endTime
+                adjustedEntries.push({
+                  ...entry,
+                  startTime: prevEntry.endTime
+                });
+              } else {
+                adjustedEntries.push(entry);
+              }
+            }
+          }
+
+          const segments: TranscriptionSegment[] = adjustedEntries.map(entry => ({
             text: entry.text,
             startTime: entry.startTime,
             endTime: entry.endTime

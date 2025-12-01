@@ -353,7 +353,11 @@ export class AssemblyAITranscriptionService {
         // Code 1000 = Normal Closure, Code 1005 = No Status Received (also normal for some closures)
         const isExpectedClosure = (event.code === 1000 || event.code === 1005) && this.isStoppingIntentionally;
 
-        if (!isExpectedClosure) {
+        // Check if this is the old WebSocket being closed during token refresh
+        // (the new WebSocket is already connected, so this closure is expected)
+        const isTokenRefreshClosure = this.isRefreshing && (event.code === 1000 || event.code === 1005);
+
+        if (!isExpectedClosure && !isTokenRefreshClosure) {
           // Map to legacy error types for backward compatibility
           let errorType: TranscriptionError['type'] = 'UNKNOWN_ERROR';
           if (event.code === 1008) {
@@ -376,6 +380,8 @@ export class AssemblyAITranscriptionService {
             message: categorizedError.userMessage,
             code: event.code
           });
+        } else if (isTokenRefreshClosure) {
+          console.log('🔄 Old WebSocket closed during token refresh (expected)');
         } else {
           console.log('✅ WebSocket closed normally after intentional stop');
         }
