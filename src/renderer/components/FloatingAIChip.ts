@@ -90,11 +90,11 @@ export class LiveSuggestionsPanel {
       if (!this.isRecording) {
         return `
           <div class="chip-panel-header">
-            <div class="chip-panel-title">✨ Live AI</div>
+            <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Live AI</div>
           </div>
           <div class="chip-panel-content">
             <div class="chip-empty-state">
-              <div class="chip-empty-icon">🎤</div>
+              <div class="chip-empty-icon">${getIconHTML('mic', { size: 32 })}</div>
               <p><strong>Start recording to activate Live AI</strong></p>
               <p class="chip-empty-subtitle">I'll analyze your content in real-time and suggest helpful actions like bookmarking important moments, adding notes, and more.</p>
             </div>
@@ -105,7 +105,7 @@ export class LiveSuggestionsPanel {
       // Recording but no suggestions yet
       return `
         <div class="chip-panel-header">
-          <div class="chip-panel-title">✨ Live AI</div>
+          <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Live AI</div>
           <div class="chip-panel-duration">${this.formatDuration(this.recordingDuration)}</div>
         </div>
         <div class="chip-panel-content">
@@ -138,7 +138,7 @@ export class LiveSuggestionsPanel {
 
     return `
       <div class="chip-panel-header">
-        <div class="chip-panel-title">✨ Live AI</div>
+        <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Live AI</div>
         <div class="chip-panel-duration">${this.formatDuration(this.recordingDuration)}</div>
       </div>
       <div class="chip-panel-content">

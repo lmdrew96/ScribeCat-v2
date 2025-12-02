@@ -37,7 +37,7 @@ export class TrashModal {
         <button class="auth-close-btn" title="Close">×</button>
 
         <div class="auth-header">
-          <h2>🗑️ Trash</h2>
+          <h2>${getIconHTML('trash', { size: 24 })} Trash</h2>
           <p>Deleted sessions are automatically removed after 30 days</p>
         </div>
 
@@ -53,7 +53,7 @@ export class TrashModal {
 
         <div id="trash-sessions-container" class="trash-sessions-container">
           <div id="trash-empty-state" class="trash-empty-state">
-            <span class="empty-icon">🗑️</span>
+            <span class="empty-icon">${getIconHTML('trash', { size: 48 })}</span>
             <h3>Trash is empty</h3>
             <p>Deleted sessions will appear here</p>
           </div>
@@ -174,7 +174,7 @@ export class TrashModal {
           <div class="trash-session-header">
             <h4 class="trash-session-title">${escapeHtml(session.title)}</h4>
             <div class="trash-session-expiry">
-              ${isExpiringSoon ? '⚠️ ' : ''}Deletes in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}
+              ${isExpiringSoon ? getIconHTML('alert', { size: 14 }) + ' ' : ''}Deletes in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}
             </div>
           </div>
           <div class="trash-session-meta">

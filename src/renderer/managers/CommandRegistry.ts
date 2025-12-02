@@ -6,6 +6,7 @@
  */
 
 import { CommandPalette, Command } from '../components/CommandPalette.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 export class CommandRegistry {
   private commandPalette: CommandPalette;
@@ -49,7 +50,7 @@ export class CommandRegistry {
         title: 'Start Recording',
         description: 'Begin recording audio and transcription',
         category: 'Recording',
-        icon: '🎙️',
+        icon: getIconHTML('mic', { size: 16 }),
         keywords: ['record', 'start', 'begin', 'audio'],
         action: () => {
           const recordBtn = document.getElementById('record-btn') as HTMLButtonElement;
@@ -61,7 +62,7 @@ export class CommandRegistry {
         title: 'Pause Recording',
         description: 'Pause the current recording',
         category: 'Recording',
-        icon: '⏸',
+        icon: getIconHTML('pause', { size: 16 }),
         keywords: ['pause', 'stop temporarily'],
         action: () => {
           const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
@@ -73,7 +74,7 @@ export class CommandRegistry {
         title: 'Stop Recording',
         description: 'Stop recording and save session',
         category: 'Recording',
-        icon: '⏹',
+        icon: getIconHTML('close', { size: 16 }),
         keywords: ['stop', 'end', 'finish', 'save'],
         action: () => {
           const recordBtn = document.getElementById('record-btn') as HTMLButtonElement;
@@ -97,7 +98,7 @@ export class CommandRegistry {
         title: 'Open Study Mode',
         description: 'View and review your saved sessions',
         category: 'Navigation',
-        icon: '📚',
+        icon: getIconHTML('library', { size: 16 }),
         keywords: ['study', 'sessions', 'review', 'library'],
         action: () => {
           const studyBtn = document.getElementById('study-mode-btn') as HTMLButtonElement;
@@ -109,7 +110,7 @@ export class CommandRegistry {
         title: 'Back to Recording',
         description: 'Return to recording view',
         category: 'Navigation',
-        icon: '🔙',
+        icon: getIconHTML('arrowLeft', { size: 16 }),
         keywords: ['back', 'recording', 'main', 'return'],
         action: () => {
           const backBtn = document.getElementById('back-to-record-btn') as HTMLButtonElement;
@@ -121,7 +122,7 @@ export class CommandRegistry {
         title: 'Open Trash',
         description: 'View deleted sessions',
         category: 'Study Mode',
-        icon: '🗑️',
+        icon: getIconHTML('trash', { size: 16 }),
         keywords: ['trash', 'deleted', 'removed'],
         action: () => {
           const trashBtn = document.getElementById('trash-btn') as HTMLButtonElement;
@@ -133,7 +134,7 @@ export class CommandRegistry {
         title: 'Sync Now',
         description: 'Sync sessions with cloud',
         category: 'Study Mode',
-        icon: '☁️',
+        icon: getIconHTML('cloud', { size: 16 }),
         keywords: ['sync', 'cloud', 'upload', 'backup'],
         action: () => {
           const syncBtn = document.getElementById('sync-now-btn') as HTMLButtonElement;
@@ -155,7 +156,7 @@ export class CommandRegistry {
         title: 'Open Settings',
         description: 'Configure app preferences',
         category: 'Navigation',
-        icon: '⚙️',
+        icon: getIconHTML('settings', { size: 16 }),
         shortcut: 'Cmd+,',
         keywords: ['settings', 'preferences', 'config'],
         action: () => {
@@ -269,7 +270,7 @@ export class CommandRegistry {
         title: 'Insert Link',
         description: 'Add hyperlink to text',
         category: 'Editor',
-        icon: '🔗',
+        icon: getIconHTML('link', { size: 16 }),
         keywords: ['link', 'url', 'hyperlink'],
         action: () => {
           const linkBtn = document.getElementById('link-btn') as HTMLButtonElement;
@@ -281,7 +282,7 @@ export class CommandRegistry {
         title: 'Insert Image',
         description: 'Add image to notes',
         category: 'Editor',
-        icon: '🖼️',
+        icon: getIconHTML('image', { size: 16 }),
         keywords: ['image', 'picture', 'photo'],
         action: () => {
           const imageBtn = document.getElementById('image-btn') as HTMLButtonElement;
@@ -293,7 +294,7 @@ export class CommandRegistry {
         title: 'Insert Table',
         description: 'Add table to notes',
         category: 'Editor',
-        icon: '⊞',
+        icon: getIconHTML('table', { size: 16 }),
         keywords: ['table', 'grid', 'columns'],
         action: () => {
           const tableBtn = document.getElementById('insert-table-btn') as HTMLButtonElement;
@@ -305,7 +306,7 @@ export class CommandRegistry {
         title: 'Undo',
         description: 'Undo last action',
         category: 'Editor',
-        icon: '↶',
+        icon: getIconHTML('undo', { size: 16 }),
         shortcut: 'Cmd+Z',
         keywords: ['undo', 'revert'],
         action: () => {
@@ -318,7 +319,7 @@ export class CommandRegistry {
         title: 'Redo',
         description: 'Redo last undone action',
         category: 'Editor',
-        icon: '↷',
+        icon: getIconHTML('redo', { size: 16 }),
         shortcut: 'Cmd+Y',
         keywords: ['redo', 'repeat'],
         action: () => {
@@ -331,7 +332,7 @@ export class CommandRegistry {
         title: 'Clear Formatting',
         description: 'Remove all formatting from selected text',
         category: 'Editor',
-        icon: '✕',
+        icon: getIconHTML('close', { size: 16 }),
         keywords: ['clear', 'format', 'plain', 'remove'],
         action: () => {
           const clearBtn = document.getElementById('clear-format-btn') as HTMLButtonElement;
@@ -343,7 +344,7 @@ export class CommandRegistry {
         title: 'Clear Notes',
         description: 'Delete all notes content',
         category: 'Editor',
-        icon: '🗑️',
+        icon: getIconHTML('trash', { size: 16 }),
         keywords: ['clear', 'delete', 'notes', 'remove'],
         action: () => {
           const clearNotesBtn = document.getElementById('clear-notes-btn') as HTMLButtonElement;
@@ -355,7 +356,7 @@ export class CommandRegistry {
         title: 'Toggle Advanced Toolbar',
         description: 'Show/hide the full formatting toolbar',
         category: 'Editor',
-        icon: '🎨',
+        icon: getIconHTML('palette', { size: 16 }),
         keywords: ['toolbar', 'formatting', 'toggle', 'show', 'hide'],
         action: () => {
           const toggleBtn = document.getElementById('toggle-toolbar-btn') as HTMLButtonElement;
@@ -377,7 +378,7 @@ export class CommandRegistry {
         title: 'Clear Transcription',
         description: 'Delete all transcription text',
         category: 'Transcription',
-        icon: '🗑️',
+        icon: getIconHTML('trash', { size: 16 }),
         keywords: ['clear', 'delete', 'transcription'],
         action: () => {
           const clearBtn = document.getElementById('clear-transcription-btn') as HTMLButtonElement;
@@ -389,7 +390,7 @@ export class CommandRegistry {
         title: 'Clear Both Notes and Transcription',
         description: 'Delete all content from both panels',
         category: 'Transcription',
-        icon: '⚠️',
+        icon: getIconHTML('alert', { size: 16 }),
         keywords: ['clear', 'delete', 'both', 'all'],
         action: () => {
           const clearBothBtn = document.getElementById('clear-both-btn') as HTMLButtonElement;
@@ -411,7 +412,7 @@ export class CommandRegistry {
         title: 'Change Theme',
         description: 'Open theme settings',
         category: 'Settings',
-        icon: '🎨',
+        icon: getIconHTML('palette', { size: 16 }),
         keywords: ['theme', 'appearance', 'color', 'dark', 'light'],
         action: () => {
           const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
@@ -428,7 +429,7 @@ export class CommandRegistry {
         title: 'Transcription Settings',
         description: 'Configure transcription preferences',
         category: 'Settings',
-        icon: '🎙️',
+        icon: getIconHTML('mic', { size: 16 }),
         keywords: ['transcription', 'assemblyai', 'accuracy', 'settings'],
         action: () => {
           const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
@@ -444,7 +445,7 @@ export class CommandRegistry {
         title: 'Integrations',
         description: 'Connect Google Drive, Canvas, etc.',
         category: 'Settings',
-        icon: '🔌',
+        icon: getIconHTML('link', { size: 16 }),
         keywords: ['integrations', 'google', 'drive', 'canvas', 'connect'],
         action: () => {
           const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
@@ -470,7 +471,7 @@ export class CommandRegistry {
         title: 'Open Nugget',
         description: 'Ask Nugget about your content',
         category: 'Nugget',
-        icon: '🤖',
+        icon: getIconHTML('bot', { size: 16 }),
         keywords: ['nugget', 'ai', 'chat', 'assistant', 'ask'],
         action: () => {
           const chatBtn = document.getElementById('floating-chat-btn') as HTMLButtonElement;
@@ -492,7 +493,7 @@ export class CommandRegistry {
         title: 'Select Course',
         description: 'Choose course for current session',
         category: 'Organization',
-        icon: '📖',
+        icon: getIconHTML('book', { size: 16 }),
         keywords: ['course', 'select', 'class', 'subject'],
         action: () => {
           const courseSelect = document.getElementById('course-select') as HTMLSelectElement;
@@ -515,7 +516,7 @@ export class CommandRegistry {
         title: 'Sign In',
         description: 'Sign in to your account',
         category: 'Account',
-        icon: '👤',
+        icon: getIconHTML('user', { size: 16 }),
         keywords: ['sign', 'in', 'login', 'auth'],
         action: () => {
           const signInBtn = document.getElementById('signin-btn') as HTMLButtonElement;
@@ -540,7 +541,7 @@ export class CommandRegistry {
         title: 'Cycle Focus Mode',
         description: 'Cycle through all focus modes',
         category: 'Focus',
-        icon: '🔄',
+        icon: getIconHTML('refresh', { size: 16 }),
         shortcut: 'Cmd+Shift+F',
         keywords: ['focus', 'mode', 'cycle', 'switch'],
         action: () => {
@@ -552,7 +553,7 @@ export class CommandRegistry {
         title: 'Normal Mode',
         description: 'All panels visible, balanced layout',
         category: 'Focus',
-        icon: '📋',
+        icon: getIconHTML('clipboard', { size: 16 }),
         keywords: ['focus', 'normal', 'default', 'all panels'],
         action: () => {
           focusModeManager.setMode('normal');
@@ -563,7 +564,7 @@ export class CommandRegistry {
         title: 'Recording Focus Mode',
         description: 'Hide transcription, focus on note-taking during class',
         category: 'Focus',
-        icon: '🎙️',
+        icon: getIconHTML('mic', { size: 16 }),
         keywords: ['focus', 'recording', 'notes', 'class', 'lecture'],
         action: () => {
           focusModeManager.setMode('recording');
@@ -574,7 +575,7 @@ export class CommandRegistry {
         title: 'Review Focus Mode',
         description: 'Hide AI tools, focus on reading transcription and notes',
         category: 'Focus',
-        icon: '📖',
+        icon: getIconHTML('book', { size: 16 }),
         keywords: ['focus', 'review', 'read', 'content'],
         action: () => {
           focusModeManager.setMode('review');
@@ -585,7 +586,7 @@ export class CommandRegistry {
         title: 'Study Focus Mode',
         description: 'AI tools prominent, optimize for active studying',
         category: 'Focus',
-        icon: '🧠',
+        icon: getIconHTML('brain', { size: 16 }),
         keywords: ['focus', 'study', 'ai', 'tools', 'flashcards', 'quiz'],
         action: () => {
           focusModeManager.setMode('study');

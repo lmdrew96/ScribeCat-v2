@@ -13,6 +13,7 @@ import { createLogger } from '../../shared/logger.js';
 import { GoalsManager, type GoalProgress } from '../managers/GoalsManager.js';
 import { AchievementsManager, type Achievement } from '../managers/AchievementsManager.js';
 import { escapeHtml } from '../utils/formatting.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 const logger = createLogger('AnalyticsDashboard');
 
@@ -710,7 +711,7 @@ export class AnalyticsDashboard {
         <!-- Export Section -->
         <div class="analytics-section">
           <button class="export-analytics-btn" onclick="window.analyticsDashboard?.exportToCSV()">
-            📊 Export Analytics to CSV
+            ${getIconHTML('analytics', { size: 16 })} Export Analytics to CSV
           </button>
         </div>
       </div>

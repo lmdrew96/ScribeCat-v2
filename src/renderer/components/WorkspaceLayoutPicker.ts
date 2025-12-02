@@ -6,6 +6,7 @@
  */
 
 import type { LayoutManager, WorkspacePreset } from '../managers/LayoutManager.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 export class WorkspaceLayoutPicker {
   private layoutManager: LayoutManager;
@@ -35,7 +36,7 @@ export class WorkspaceLayoutPicker {
         <div class="layout-picker-overlay"></div>
         <div class="layout-picker-content">
           <div class="layout-picker-header">
-            <h2 class="layout-picker-title">⊞ Workspace Layouts</h2>
+            <h2 class="layout-picker-title">${getIconHTML('table', { size: 20 })} Workspace Layouts</h2>
             <button class="layout-picker-close" id="close-layout-picker" title="Close">×</button>
           </div>
 
@@ -45,10 +46,10 @@ export class WorkspaceLayoutPicker {
 
           <div class="layout-picker-actions">
             <button class="layout-action-btn" id="save-custom-layout-btn">
-              💾 Save Current Layout
+              ${getIconHTML('save', { size: 16 })} Save Current Layout
             </button>
             <button class="layout-action-btn" id="reset-layout-btn">
-              ↺ Reset to Default
+              ${getIconHTML('restore', { size: 16 })} Reset to Default
             </button>
           </div>
         </div>

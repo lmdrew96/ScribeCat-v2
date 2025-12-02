@@ -22,6 +22,20 @@ import {
   Folder,
   FolderOpen,
   AlignLeft,
+  AlignRight,
+  AlignCenter,
+  Image,
+  Table2,
+  NotebookText,
+  NotebookPen,
+  Captions,
+  CircleDotDashed,
+  CalendarDays,
+  BookUser,
+  ChartBar,
+  LayoutGrid,
+  List,
+  Kanban,
 
   // Study & Learning
   Lightbulb,
@@ -52,6 +66,7 @@ import {
   Edit,
   Trash2,
   Plus,
+  Minus,
   Link,
   RefreshCw,
   Palette,
@@ -59,6 +74,7 @@ import {
   Search,
   Bell,
   BellOff,
+  Wrench,
 
   // Navigation & Arrows
   ChevronLeft,
@@ -70,6 +86,9 @@ import {
   ArrowLeftRight,
   Undo2,
   Redo2,
+  MoveLeft,
+  MoveRight,
+  Anchor,
 
   // Cloud & Sync
   Cloud,
@@ -80,9 +99,11 @@ import {
   HardDrive,
 
   // Collaboration
+  User,
   Users,
   Eye,
   Circle,
+  MessageSquare,
 
   // Time & Calendar
   Calendar,
@@ -123,7 +144,9 @@ import {
   Smile,
   ClipboardList,
   Shield,
-  CreditCard
+  CreditCard,
+  Home,
+  Laptop
 } from 'lucide';
 
 /**
@@ -154,6 +177,32 @@ export const ICONS = {
   folder: Folder,
   folderOpen: FolderOpen,
   paragraph: AlignLeft,
+  alignLeft: AlignLeft,
+  alignRight: AlignRight,
+  alignCenter: AlignCenter,
+  image: Image,
+  picture: Image,
+  table: Table2,
+  notebookText: NotebookText,
+  studyMode: NotebookText,
+  notebookPen: NotebookPen,
+  hasNotes: NotebookPen,
+  captions: Captions,
+  hasTranscript: Captions,
+  draft: CircleDotDashed,
+  isDraft: CircleDotDashed,
+  calendarDays: CalendarDays,
+  timeline: CalendarDays,
+  bookUser: BookUser,
+  studyRooms: BookUser,
+  chartBar: ChartBar,
+  analytics: ChartBar,
+  layoutGrid: LayoutGrid,
+  gridView: LayoutGrid,
+  list: List,
+  listView: List,
+  kanban: Kanban,
+  boardView: Kanban,
 
   // Study & Learning Tools
   lightbulb: Lightbulb,
@@ -195,17 +244,22 @@ export const ICONS = {
   trash: Trash2,
   add: Plus,
   plus: Plus,
+  minus: Minus,
+  horizontalRule: Minus,
   link: Link,
   share: Link,
   refresh: RefreshCw,
   retranscribe: RefreshCw,
   sync: RefreshCw,
   theme: Palette,
+  palette: Palette,
   settings: Settings,
   search: Search,
   bell: Bell,
   bellOff: BellOff,
   notification: Bell,
+  wrench: Wrench,
+  tool: Wrench,
 
   // Navigation & Arrows
   chevronLeft: ChevronLeft,
@@ -215,6 +269,9 @@ export const ICONS = {
   arrowLeft: ArrowLeft,
   arrowRight: ArrowRight,
   arrowLeftRight: ArrowLeftRight,
+  moveLeft: MoveLeft,
+  moveRight: MoveRight,
+  anchor: Anchor,
   undo: Undo2,
   redo: Redo2,
   restore: Undo2,
@@ -230,12 +287,16 @@ export const ICONS = {
   storage: HardDrive,
 
   // Collaboration & Sharing
+  user: User,
+  userProfile: User,
   users: Users,
   collaborators: Users,
   eye: Eye,
   viewer: Eye,
   status: Circle,
   active: Circle,
+  chat: MessageSquare,
+  message: MessageSquare,
 
   // Time & Calendar
   calendar: Calendar,
@@ -296,6 +357,11 @@ export const ICONS = {
   superhero: Shield,
   card: CreditCard,
   quiz: CreditCard,
+  home: Home,
+  house: Home,
+  laptop: Laptop,
+  code: Laptop,
+  help: HelpCircle,
 } as const;
 
 /**

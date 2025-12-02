@@ -10,6 +10,7 @@
 
 import type { Session } from '../../domain/entities/Session.js';
 import { createLogger } from '../../shared/logger.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 const logger = createLogger('ViewModeManager');
 
@@ -26,25 +27,25 @@ export const VIEW_MODES: Record<ViewMode, ViewModeConfig> = {
   timeline: {
     mode: 'timeline',
     label: 'Timeline',
-    icon: '📅',
+    icon: getIconHTML('timeline', { size: 16 }),
     description: 'Calendar view showing sessions by date'
   },
   grid: {
     mode: 'grid',
     label: 'Grid',
-    icon: '⊞',
+    icon: getIconHTML('gridView', { size: 16 }),
     description: 'Card-based grid layout'
   },
   list: {
     mode: 'list',
     label: 'List',
-    icon: '☰',
+    icon: getIconHTML('listView', { size: 16 }),
     description: 'Compact table-style view'
   },
   board: {
     mode: 'board',
     label: 'Board',
-    icon: '▦',
+    icon: getIconHTML('boardView', { size: 16 }),
     description: 'Kanban board organization'
   }
 };
