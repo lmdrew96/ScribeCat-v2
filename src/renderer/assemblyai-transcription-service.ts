@@ -68,6 +68,11 @@ export class AssemblyAITranscriptionService {
   // ROOT CAUSE FIX: Error categorization and circuit breaker
   private errorHandler: WebSocketErrorHandler = new WebSocketErrorHandler();
 
+  // ROOT CAUSE FIX: Track timestamp offset across websocket reconnections
+  // When token refresh creates a new websocket, AssemblyAI resets its timestamp counter to 0
+  // We capture elapsed time as an offset to maintain absolute timestamps
+  private timestampOffset: number = 0;
+
   async initialize(apiKey: string, settings?: TranscriptionSettings): Promise<void> {
     this.apiKey = apiKey;
     if (settings) {
@@ -89,6 +94,7 @@ export class AssemblyAITranscriptionService {
     this.droppedPacketCount = 0;
     this.audioBuffer = [];
     this.isStoppingIntentionally = false;
+    this.timestampOffset = 0; // Reset offset for new session
 
     this.sessionId = `assemblyai-${Date.now()}`;
     this.startTime = Date.now();
@@ -225,6 +231,11 @@ export class AssemblyAITranscriptionService {
 
       // Keep old WebSocket reference
       const oldWs = this.ws;
+
+      // ROOT CAUSE FIX: Capture elapsed time as offset before connecting new websocket
+      // AssemblyAI will reset its timestamp counter for the new connection
+      this.timestampOffset = (Date.now() - this.startTime) / 1000;
+      console.log(`🔄 Token refresh: setting timestamp offset to ${this.timestampOffset.toFixed(1)}s`);
 
       // Connect new WebSocket BEFORE closing old one (seamless handoff)
       await this.connectWebSocket(newToken);
@@ -531,21 +542,30 @@ export class AssemblyAITranscriptionService {
         if (message.words && Array.isArray(message.words) && message.words.length > 0) {
           words = message.words.map((w: any) => ({
             text: w.text,
-            start: w.start / 1000,  // Convert ms to seconds
-            end: w.end / 1000       // Convert ms to seconds
+            start: w.start / 1000 + this.timestampOffset,  // Convert ms to seconds + offset
+            end: w.end / 1000 + this.timestampOffset       // Convert ms to seconds + offset
           }));
+        }
+
+        // ROOT CAUSE FIX: Apply timestamp offset for reconnection handling
+        // After websocket reconnection, AssemblyAI resets timestamps to 0
+        // Adding offset maintains absolute position in the recording
+        if (startTime !== undefined) {
+          startTime += this.timestampOffset;
+        }
+        if (endTime !== undefined) {
+          endTime += this.timestampOffset;
         }
 
         console.log('📊 AssemblyAI Turn:', {
           text: text?.substring(0, 50) + '...',
           isFinal,
           wordCount: message.words?.length,
-          firstWordStart: message.words?.[0]?.start,
-          lastWordEnd: message.words?.[message.words.length - 1]?.end,
-          audio_start_ms: message.audio_start,
-          audio_end_ms: message.audio_end,
-          startTime_seconds: startTime,
-          endTime_seconds: endTime
+          rawAudioStart_ms: message.audio_start,
+          rawAudioEnd_ms: message.audio_end,
+          timestampOffset: this.timestampOffset,
+          adjustedStartTime: startTime,
+          adjustedEndTime: endTime
         });
 
         if (text && text.trim().length > 0 && this.resultCallback) {
