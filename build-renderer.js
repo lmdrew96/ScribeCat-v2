@@ -23,6 +23,8 @@ const buildConfig = {
     // Inject environment variables at build time
     'process.env.ASSEMBLYAI_API_KEY': JSON.stringify(process.env.ASSEMBLYAI_API_KEY || ''),
     'process.env.CLAUDE_API_KEY': JSON.stringify(process.env.CLAUDE_API_KEY || ''),
+    'process.env.GOOGLE_DRIVE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_DRIVE_CLIENT_ID || ''),
+    'process.env.GOOGLE_DRIVE_CLIENT_SECRET': JSON.stringify(process.env.GOOGLE_DRIVE_CLIENT_SECRET || ''),
   }
 };
 
