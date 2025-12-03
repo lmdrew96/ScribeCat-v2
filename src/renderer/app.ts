@@ -1,24 +1,12 @@
 /**
  * ScribeCat Main Renderer Application
- * 
- * Coordinates audio recording, transcription, and UI updates.
+ *
+ * Coordinates app initialization and event setup.
  * This is the main entry point for the renderer process.
  */
 
-import { AudioManager } from './audio-manager.js';
 import { SettingsManager } from './settings.js';
-import { AIManager } from './ai/AIManager.js';
-import { ChatUI } from './ai/ChatUI.js';
-import { ViewManager } from './managers/ViewManager.js';
-import { TiptapEditorManager } from './managers/TiptapEditorManager.js';
-import { TranscriptionManager } from './managers/TranscriptionManager.js';
-import { RecordingManager } from './managers/RecordingManager.js';
-import { DeviceManager } from './managers/DeviceManager.js';
-import { CourseManager } from './managers/CourseManager.js';
 import { ThemeManager } from './themes/ThemeManager.js';
-import { StudyModeManager } from './managers/StudyModeManager.js';
-import { NotesAutoSaveManager } from './managers/NotesAutoSaveManager.js';
-import { SessionResetManager } from './managers/SessionResetManager.js';
 import { AuthManager } from './managers/AuthManager.js';
 import { AuthScreen } from './components/AuthScreen.js';
 import { UserProfileMenu } from './components/UserProfileMenu.js';
@@ -26,14 +14,7 @@ import { ShareModal } from './components/ShareModal.js';
 import { AccountSettingsModal } from './components/AccountSettingsModal.js';
 import { HelpModal } from './components/HelpModal.js';
 import { TrashModal } from './components/TrashModal.js';
-import { FriendsManager } from './managers/social/FriendsManager.js';
-import { MessagesManager } from './managers/social/MessagesManager.js';
-import { FriendsModal } from './components/FriendsModal.js';
-import { StudyRoomsManager } from './managers/social/StudyRoomsManager.js';
-import { CreateRoomModal } from './components/CreateRoomModal.js';
-import { BrowseRoomsModal } from './components/BrowseRoomsModal.js';
-import { StudyRoomView } from './components/StudyRoomView.js';
-import { RealtimeNotificationManager } from './managers/RealtimeNotificationManager.js';
+import { StudyModeManager } from './managers/StudyModeManager.js';
 import { CommandPalette } from './components/CommandPalette.js';
 import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
@@ -41,35 +22,34 @@ import { LayoutManager } from './managers/LayoutManager.js';
 import { WorkspaceLayoutPicker } from './components/WorkspaceLayoutPicker.js';
 import { notificationTicker } from './managers/NotificationTicker.js';
 import { ConfettiManager } from './utils/confetti.js';
-import { KonamiCodeDetector, TripleClickDetector, StudyBuddy, triggerCatParty } from './utils/easter-eggs.js';
-import { getRandomCatFact } from './utils/cat-facts.js';
-// Phase 6: Polish & Delight
 import { FocusManager, initializeA11yStyles } from './utils/FocusManager.js';
 import { WelcomeModal } from './components/WelcomeModal.js';
 import { TutorialManager } from './utils/TutorialManager.js';
 import { SoundManager, initializeSoundSystem, enableGlobalSoundEffects } from './audio/SoundManager.js';
 import { BreakReminders, initializeBreakReminders } from './components/BreakReminders.js';
-// Editor Enhancements: Professional icon system
 import { initToolbarUpgrades } from './components/editor/ToolbarIconUpgrader.js';
 import { initEmojiPicker } from './components/editor/EmojiPicker.js';
-// Keyboard Shortcuts: Centralized registry and validation
 import { initializeShortcutValidation } from './managers/ShortcutRegistry.js';
 
-// ===== Managers =====
-let audioManager: AudioManager;
-let settingsManager: SettingsManager;
+// App initialization modules
+import {
+  AppCoreManagers,
+  AppSocialManagers,
+  AppRecordingControls,
+  AppAuthUI,
+  AppEasterEggs,
+  type CoreManagers,
+  type SocialManagers,
+} from './app-init/index.js';
+
+// ===== Global State =====
+let coreManagers: CoreManagers;
+let socialManagers: SocialManagers;
+let recordingControls: AppRecordingControls;
+
+// Auth and settings managers (initialized separately)
 let themeManager: ThemeManager;
-let aiManager: AIManager;
-let chatUI: ChatUI;
-let viewManager: ViewManager;
-let editorManager: TiptapEditorManager;
-let transcriptionManager: TranscriptionManager;
-let recordingManager: RecordingManager;
-let deviceManager: DeviceManager;
-let courseManager: CourseManager;
-let studyModeManager: StudyModeManager;
-let notesAutoSaveManager: NotesAutoSaveManager;
-let sessionResetManager: SessionResetManager;
+let settingsManager: SettingsManager;
 let authManager: AuthManager;
 let authScreen: AuthScreen;
 let userProfileMenu: UserProfileMenu;
@@ -77,14 +57,7 @@ let shareModal: ShareModal;
 let accountSettingsModal: AccountSettingsModal;
 let helpModal: HelpModal;
 let trashModal: TrashModal;
-let friendsManager: FriendsManager;
-let messagesManager: MessagesManager;
-let friendsModal: FriendsModal;
-let studyRoomsManager: StudyRoomsManager;
-let createRoomModal: CreateRoomModal;
-let browseRoomsModal: BrowseRoomsModal;
-let studyRoomView: StudyRoomView;
-let realtimeNotificationManager: RealtimeNotificationManager;
+let studyModeManager: StudyModeManager;
 let commandPalette: CommandPalette;
 let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
@@ -94,124 +67,28 @@ let confettiManager: ConfettiManager;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
-  // Get app version dynamically
+  // Get app version and print console art
   const version = await window.scribeCat.app.getVersion();
-
-  // 🎉 Easter Egg: Console Cat ASCII Art
-  console.log(
-    '%c     /\\_/\\  \n' +
-    '    ( o.o ) \n' +
-    '     > ^ <\n' +
-    '    /|   |\\\n' +
-    '   (_|   |_)\n',
-    'color: #00ffff; font-family: monospace; font-size: 16px;'
-  );
-  console.log(
-    '%c Curious cat found you! 👀',
-    'color: #ff69b4; font-weight: bold; font-size: 14px;'
-  );
-  console.log(
-    `%c ScribeCat v${version} - Brought to You by ADHD: Agentic Development of Human Designs 🧠⚡️`,
-    'color: #ffd700; font-size: 12px;'
-  );
-  console.log(
-    '%c Found a bug? Meow at us on GitHub!\n https://github.com/lmdrew96/ScribeCat-v2',
-    'color: #c0c0c0; font-size: 11px;'
-  );
-  console.log(''); // Empty line for spacing
+  AppEasterEggs.printConsoleArt(version);
 
   // Initialize theme manager first
   themeManager = new ThemeManager();
   await themeManager.initialize();
 
-  // Validate keyboard shortcuts (catch conflicts early in dev mode)
+  // Validate keyboard shortcuts
   initializeShortcutValidation();
 
-  // Initialize professional toolbar icons (upgrade emoji to SVG)
+  // Initialize toolbar icons and emoji picker
   initToolbarUpgrades();
-
-  // Initialize emoji picker
   initEmojiPicker();
 
-  // Initialize core managers
-  audioManager = new AudioManager();
-
-  // Initialize UI managers
-  viewManager = new ViewManager();
-  editorManager = new TiptapEditorManager();
-  transcriptionManager = new TranscriptionManager();
-  deviceManager = new DeviceManager();
-
-  // Initialize transcription placeholder with random cat fact
-  const transcriptionPlaceholder = document.getElementById('transcription-placeholder');
-  if (transcriptionPlaceholder) {
-    transcriptionPlaceholder.textContent = getRandomCatFact();
-  }
-
-  // Initialize AI manager first (needed by recording manager)
-  aiManager = new AIManager(
-    () => transcriptionManager.getText(),
-    () => editorManager.getNotesText()
-  );
-  await aiManager.initialize();
-
-  // Get ChatUI instance from AIManager (already initialized with ContentAnalyzer)
-  chatUI = aiManager.getChatUI();
-
-  // Initialize course manager
-  courseManager = new CourseManager();
-
-  // Expose managers globally for other components to access
-  window.courseManager = courseManager;
-  window.aiManager = aiManager;
-
-  // Initialize notes auto-save manager
-  notesAutoSaveManager = new NotesAutoSaveManager(editorManager);
-  notesAutoSaveManager.initialize();
-
-  // Expose notesAutoSaveManager globally for keyboard shortcuts
-  (window as any).notesAutoSaveManager = notesAutoSaveManager;
-
-  // Initialize recording manager (coordinates everything)
-  recordingManager = new RecordingManager(
-    audioManager,
-    transcriptionManager,
-    viewManager,
-    editorManager,
-    aiManager,
-    courseManager,
-    notesAutoSaveManager,
-    chatUI
-  );
-  recordingManager.initialize();
-
-  // Expose recordingManager globally for bookmark insertion
-  (window as any).recordingManager = recordingManager;
-
-  // Initialize session reset manager (coordinates session state reset)
-  sessionResetManager = new SessionResetManager(
-    editorManager,
-    transcriptionManager,
-    notesAutoSaveManager,
-    viewManager,
-    recordingManager
-  );
-
-  // Initialize editor
-  editorManager.initialize();
-
-  // Set up auto-save callback on editor
-  editorManager.setOnContentChangeCallback(() => {
-    notesAutoSaveManager.onEditorUpdate();
-  });
+  // Initialize core managers (audio, view, editor, transcription, AI, recording)
+  coreManagers = await AppCoreManagers.initialize();
 
   // Set up periodic button state updates
-  setInterval(updateNewSessionButtonState, 1000);
+  setInterval(() => recordingControls?.updateNewSessionButtonState(), 1000);
 
-  // Load microphone devices
-  await deviceManager.loadDevices();
-
-  // Initialize authentication FIRST (needed by StudyModeManager)
+  // Initialize authentication
   authManager = new AuthManager();
   await authManager.initialize();
   authScreen = new AuthScreen(authManager);
@@ -220,66 +97,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   trashModal = new TrashModal();
   userProfileMenu = new UserProfileMenu(authManager, accountSettingsModal);
 
-  // Initialize settings manager (requires authManager for Drive settings and accountSettingsModal)
+  // Initialize settings manager
   settingsManager = new SettingsManager(themeManager, authManager, accountSettingsModal);
 
-  // Expose authManager globally for RecordingManager to access current user
+  // Expose authManager globally
   window.authManager = authManager;
 
-  // Initialize study mode manager (requires authManager)
+  // Initialize study mode manager
   studyModeManager = new StudyModeManager(authManager);
   await studyModeManager.initialize();
-
-  // Expose studyModeManager globally for other managers to trigger refresh
   window.studyModeManager = studyModeManager;
 
   // Initialize sharing
   shareModal = new ShareModal();
   shareModal.initialize();
-
-  // Expose shareModal globally after initialization
   window.shareModal = shareModal;
 
-  // Initialize friends system
-  friendsManager = new FriendsManager();
-  messagesManager = new MessagesManager();
-  friendsModal = new FriendsModal(friendsManager, messagesManager);
-  friendsModal.initialize();
+  // Initialize social managers (friends, study rooms, messages)
+  socialManagers = AppSocialManagers.initialize();
 
-  // Expose friendsManager globally
-  window.friendsManager = friendsManager;
-
-  // Initialize study rooms system
-  studyRoomsManager = new StudyRoomsManager();
-  createRoomModal = new CreateRoomModal(studyRoomsManager, friendsManager);
-  createRoomModal.initialize();
-  browseRoomsModal = new BrowseRoomsModal(studyRoomsManager);
-  browseRoomsModal.initialize();
-  studyRoomView = new StudyRoomView(studyRoomsManager, friendsManager);
-  studyRoomView.initialize();
-
-  // Expose studyRoomsManager globally
-  window.studyRoomsManager = studyRoomsManager;
-
-  // Initialize realtime notification manager
-  realtimeNotificationManager = new RealtimeNotificationManager();
-
-  // Wire up study rooms UI events
-  window.addEventListener('show-create-room-modal', () => {
-    console.log('show-create-room-modal event received!');
-    createRoomModal.show((roomId) => {
-      console.log('Room created, showing room view:', roomId);
-      // After creating room, open browse modal and join the room
-      studyRoomView.show(roomId, () => {
-        // After exiting room, show browse modal
-        browseRoomsModal.show((nextRoomId) => studyRoomView.show(nextRoomId));
-      });
-    });
+  // Initialize recording controls
+  recordingControls = new AppRecordingControls({
+    recordingManager: coreManagers.recordingManager,
+    deviceManager: coreManagers.deviceManager,
+    sessionResetManager: coreManagers.sessionResetManager,
+    audioManager: coreManagers.audioManager,
   });
-  console.log('Registered show-create-room-modal event listener');
 
-  // Set up auth UI (show/hide signin button)
-  setupAuthUI();
+  // Set up auth UI
+  AppAuthUI.setup({
+    authManager,
+    authScreen,
+    friendsManager: socialManagers.friendsManager,
+    messagesManager: socialManagers.messagesManager,
+    studyRoomsManager: socialManagers.studyRoomsManager,
+    browseRoomsModal: socialManagers.browseRoomsModal,
+    studyRoomView: socialManagers.studyRoomView,
+    realtimeNotificationManager: socialManagers.realtimeNotificationManager,
+    notificationTicker,
+  });
 
   // Set up event listeners
   setupEventListeners();
@@ -287,21 +143,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set up toolbar toggle
   setupToolbarToggle();
 
-  // Initialize command palette and registry
+  // Initialize command palette
   commandPalette = new CommandPalette();
   commandPalette.initialize();
 
   commandRegistry = new CommandRegistry(commandPalette);
   commandRegistry.registerAllCommands({
-    recordingManager,
+    recordingManager: coreManagers.recordingManager,
     studyModeManager,
-    viewManager,
-    editorManager,
-    transcriptionManager,
+    viewManager: coreManagers.viewManager,
+    editorManager: coreManagers.editorManager,
+    transcriptionManager: coreManagers.transcriptionManager,
     settingsManager,
-    aiManager,
-    courseManager,
-    authManager
+    aiManager: coreManagers.aiManager,
+    courseManager: coreManagers.courseManager,
+    authManager,
   });
 
   // Initialize AI suggestion chip
@@ -309,23 +165,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   aiSuggestionChip.initialize(
     (suggestion) => {
       console.log('✅ User accepted suggestion:', suggestion.title);
-      aiManager.markSuggestionAccepted(suggestion.id);
-      // TODO: Execute the corresponding AI tool action
+      coreManagers.aiManager.markSuggestionAccepted(suggestion.id);
     },
     (suggestion) => {
       console.log('❌ User dismissed suggestion:', suggestion.title);
-      aiManager.markSuggestionDismissed(suggestion.id);
+      coreManagers.aiManager.markSuggestionDismissed(suggestion.id);
     }
   );
-
-  // Expose for RecordingManager
   (window as any).aiSuggestionChip = aiSuggestionChip;
 
   // Initialize visual feedback managers
   notificationTicker.initialize();
   confettiManager = new ConfettiManager();
-
-  // Expose globally for easy access
   (window as any).notificationTicker = notificationTicker;
   (window as any).confettiManager = confettiManager;
 
@@ -334,23 +185,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   layoutManager.initialize();
   (window as any).layoutManager = layoutManager;
 
-  // Initialize workspace layout picker
   layoutPicker = new WorkspaceLayoutPicker(layoutManager);
   layoutPicker.initialize();
 
-  // Expose globally for command palette
-  (window as any).layoutManager = layoutManager;
-
-  // Add event listener for opening layout picker from settings
+  // Layout picker button
   const openLayoutPickerBtn = document.getElementById('open-layout-picker-btn');
-  if (openLayoutPickerBtn) {
-    openLayoutPickerBtn.addEventListener('click', () => {
-      layoutPicker.open();
-    });
-  }
+  openLayoutPickerBtn?.addEventListener('click', () => layoutPicker.open());
 
-  // 🎉 Initialize Easter Eggs
-  initializeEasterEggs();
+  // Initialize Easter Eggs
+  AppEasterEggs.initialize();
 
   // ===== Phase 6: Polish & Delight =====
   console.log('%c✨ Phase 6: Polish & Delight initialized!', 'color: #ff69b4; font-weight: bold;');
@@ -363,22 +206,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeSoundSystem();
   enableGlobalSoundEffects();
 
-  // Initialize break reminders with recording manager (auto-starts if enabled in settings)
-  initializeBreakReminders(recordingManager);
+  // Initialize break reminders
+  initializeBreakReminders(coreManagers.recordingManager);
 
-  // Show welcome modal on first launch (after a short delay)
-  setTimeout(() => {
-    WelcomeModal.show();
-  }, 1000);
+  // Show welcome modal on first launch
+  setTimeout(() => WelcomeModal.show(), 1000);
 
-  // Expose Phase 6 managers globally for console access and integration
+  // Expose Phase 6 managers globally
   (window as any).FocusManager = FocusManager;
   (window as any).WelcomeModal = WelcomeModal;
   (window as any).TutorialManager = TutorialManager;
   (window as any).SoundManager = SoundManager;
   (window as any).BreakReminders = BreakReminders;
 
-  // Set up hot reload notification listener (development only)
+  // Set up hot reload notification listener
   setupHotReloadListener();
 });
 
@@ -388,74 +229,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 function setupEventListeners(): void {
   // Record button
   const recordBtn = document.getElementById('record-btn') as HTMLButtonElement;
-  recordBtn.addEventListener('click', handleRecordToggle);
-  
+  recordBtn?.addEventListener('click', () => recordingControls.handleRecordToggle());
+
   // Pause button
   const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
-  pauseBtn.addEventListener('click', handlePauseToggle);
+  pauseBtn?.addEventListener('click', () => recordingControls.handlePauseToggle());
 
   // New Session button
   const newSessionBtn = document.getElementById('new-session-btn') as HTMLButtonElement;
-  if (newSessionBtn) {
-    newSessionBtn.addEventListener('click', handleNewSession);
-  }
+  newSessionBtn?.addEventListener('click', () => recordingControls.handleNewSession());
 
   // Trash button
   const trashBtn = document.getElementById('trash-btn') as HTMLButtonElement;
   if (trashBtn) {
-    trashBtn.addEventListener('click', () => {
-      trashModal.show();
-    });
+    trashBtn.addEventListener('click', () => trashModal.show());
 
-    // Set up callbacks for when sessions are restored or deleted
-    trashModal.onRestore((sessionId) => {
-      // Refresh the study mode session list
-      if (studyModeManager) {
-        studyModeManager.refresh();
-      }
-    });
-
-    trashModal.onPermanentDelete((sessionId) => {
-      // Optionally refresh or do nothing
-    });
-
-    trashModal.onEmptyTrash(() => {
-      // Optionally refresh or do nothing
-    });
+    trashModal.onRestore(() => studyModeManager?.refresh());
+    trashModal.onPermanentDelete(() => {});
+    trashModal.onEmptyTrash(() => {});
   }
 
   // Friends button
   const friendsBtn = document.getElementById('friends-btn') as HTMLButtonElement;
-  if (friendsBtn) {
-    friendsBtn.addEventListener('click', () => {
-      const currentUser = authManager.getCurrentUser();
-      if (currentUser) {
-        friendsModal.open(currentUser.id);
-      }
-    });
-  }
+  friendsBtn?.addEventListener('click', () => {
+    const currentUser = authManager.getCurrentUser();
+    if (currentUser) {
+      socialManagers.friendsModal.open(currentUser.id);
+    }
+  });
 
   // Study Rooms button
   const studyRoomsBtn = document.getElementById('study-rooms-btn') as HTMLButtonElement;
-  if (studyRoomsBtn) {
-    studyRoomsBtn.addEventListener('click', () => {
-      const currentUser = authManager.getCurrentUser();
-      if (currentUser) {
-        browseRoomsModal.show((roomId) => {
-          studyRoomView.show(roomId, () => {
-            // After exiting room, show browse modal again
-            browseRoomsModal.show((nextRoomId) => studyRoomView.show(nextRoomId));
-          });
+  studyRoomsBtn?.addEventListener('click', () => {
+    const currentUser = authManager.getCurrentUser();
+    if (currentUser) {
+      socialManagers.browseRoomsModal.show((roomId) => {
+        socialManagers.studyRoomView.show(roomId, () => {
+          socialManagers.browseRoomsModal.show((nextRoomId) =>
+            socialManagers.studyRoomView.show(nextRoomId)
+          );
         });
-      }
-    });
-  }
+      });
+    }
+  });
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
-    // Shift+Space - Toggle recording (global shortcut)
+    // Shift+Space - Toggle recording
     if (e.shiftKey && e.key === ' ' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-      // Don't trigger if user is typing in an input field
       const target = e.target as HTMLElement;
       const isInputField = target instanceof HTMLInputElement ||
                           target instanceof HTMLTextAreaElement ||
@@ -463,281 +284,13 @@ function setupEventListeners(): void {
 
       if (!isInputField) {
         e.preventDefault();
-        handleRecordToggle();
+        recordingControls.handleRecordToggle();
       }
-    }
-
-    // Cmd+Shift+F (Mac) or Ctrl+Shift+F (Windows/Linux) - Cycle focus modes
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
-      e.preventDefault();
-      focusModeManager.cycleMode();
     }
   });
 
-  // Update button states on content changes
-  updateNewSessionButtonState();
-}
-
-/**
- * Handle record button toggle
- */
-async function handleRecordToggle(): Promise<void> {
-  if (!recordingManager.getIsRecording()) {
-    await startRecording();
-  } else {
-    await stopRecording();
-  }
-}
-
-/**
- * Handle pause button toggle
- */
-async function handlePauseToggle(): Promise<void> {
-  if (!recordingManager.getIsPaused()) {
-    await pauseRecording();
-  } else {
-    await resumeRecording();
-  }
-}
-
-/**
- * Start recording
- */
-async function startRecording(): Promise<void> {
-  try {
-    const selectedDeviceId = deviceManager.getSelectedDeviceId();
-    
-    if (!selectedDeviceId) {
-      alert('Please select a microphone device');
-      return;
-    }
-    
-    await recordingManager.start(selectedDeviceId);
-  } catch (error) {
-    console.error('Failed to start recording:', error);
-    await recordingManager.cleanup();
-    alert(`Failed to start recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-/**
- * Stop recording
- */
-async function stopRecording(): Promise<void> {
-  try {
-    await recordingManager.stop();
-  } catch (error) {
-    console.error('Failed to stop recording:', error);
-    alert(`Failed to stop recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-/**
- * Pause recording
- */
-async function pauseRecording(): Promise<void> {
-  try {
-    await recordingManager.pause();
-  } catch (error) {
-    console.error('Failed to pause recording:', error);
-    alert(`Failed to pause recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-/**
- * Resume recording
- */
-async function resumeRecording(): Promise<void> {
-  try {
-    await recordingManager.resume();
-  } catch (error) {
-    console.error('Failed to resume recording:', error);
-    alert(`Failed to resume recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-/**
- * Handle new session button
- * Saves current work and resets session state
- */
-async function handleNewSession(): Promise<void> {
-  // Check if we can reset
-  if (!sessionResetManager.canReset()) {
-    const reason = sessionResetManager.getDisabledReason();
-    notificationTicker.warning(`Cannot start new session: ${reason}`, 3000);
-    return;
-  }
-
-  // Show confirmation dialog
-  const confirmed = confirm('Start a new session? Your current work will be saved automatically.');
-
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    // Reset session
-    const result = await sessionResetManager.resetSession();
-
-    if (result.success) {
-      // Show success toast
-      notificationTicker.success('✓ New session ready!', 2000);
-    } else {
-      // Show error toast
-      notificationTicker.error(result.error || 'Failed to reset session', 3000);
-    }
-  } catch (error) {
-    console.error('Error during new session reset:', error);
-    notificationTicker.error('Failed to start new session', 3000);
-  }
-}
-
-/**
- * Update new session button enabled/disabled state
- * Disables button during active recording or when paused
- */
-function updateNewSessionButtonState(): void {
-  const newSessionBtn = document.getElementById('new-session-btn') as HTMLButtonElement;
-
-  if (!newSessionBtn) {
-    return;
-  }
-
-  // Enable button only when not recording and not paused
-  const canReset = sessionResetManager.canReset();
-  newSessionBtn.disabled = !canReset;
-
-  // Update tooltip with reason if disabled
-  if (!canReset) {
-    const reason = sessionResetManager.getDisabledReason();
-    newSessionBtn.title = `New Session (${reason})`;
-  } else {
-    newSessionBtn.title = 'Start a new session (saves current work)';
-  }
-}
-
-/**
- * Show a notification toast
- */
-function showNotification(message: string, type: 'info' | 'warning' | 'error' = 'info'): void {
-  const colors = {
-    info: '#3498db',
-    warning: '#f39c12',
-    error: '#e74c3c'
-  };
-
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed;
-    top: 80px;
-    right: 20px;
-    background: ${colors[type]};
-    color: white;
-    padding: 16px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
-    max-width: 400px;
-    font-size: 14px;
-    animation: slideInRight 0.3s ease;
-  `;
-  notification.textContent = message;
-  document.body.appendChild(notification);
-
-  setTimeout(() => {
-    notification.style.animation = 'slideOutRight 0.3s ease';
-    setTimeout(() => {
-      document.body.removeChild(notification);
-    }, 300);
-  }, 5000);
-}
-
-/**
- * Set up hot reload notification listener (development only)
- */
-function setupHotReloadListener(): void {
-  if ((window.scribeCat as any).dev) {
-    (window.scribeCat as any).dev.onHotReloadNotification((message: string) => {
-      console.warn('⚠️ Hot reload:', message);
-      showNotification(message, 'warning');
-    });
-  }
-}
-
-/**
- * Clean up on window unload
- */
-window.addEventListener('beforeunload', async (event) => {
-  // Save notes immediately before closing (safety net)
-  if (notesAutoSaveManager) {
-    console.log('[App] Saving notes before window close...');
-    await notesAutoSaveManager.saveImmediately();
-  }
-
-  if (recordingManager && recordingManager.getIsRecording()) {
-    audioManager.cleanup();
-    recordingManager.cleanup();
-  }
-
-  // Set user offline before closing (presence cleanup)
-  if (friendsManager) {
-    console.log('[App] Setting user offline before window close...');
-    await friendsManager.stopPresenceTracking();
-  }
-
-  // Leave any active study room (so other participants see us leave)
-  if (studyRoomView && studyRoomsManager) {
-    const currentRoomId = studyRoomView.getCurrentRoomId();
-    if (currentRoomId) {
-      console.log('[App] Leaving study room before window close:', currentRoomId);
-      try {
-        await studyRoomsManager.leaveRoom(currentRoomId);
-      } catch (error) {
-        console.error('[App] Failed to leave room on close:', error);
-      }
-    }
-  }
-
-  // Clean up hot reload listener if it exists
-  if ((window.scribeCat as any).dev) {
-    (window.scribeCat as any).dev.removeHotReloadListener();
-  }
-
-  // Clean up notes auto-save manager
-  if (notesAutoSaveManager) {
-    notesAutoSaveManager.cleanup();
-  }
-});
-
-/**
- * Initialize Easter Eggs
- * Sets up fun interactive features
- */
-function initializeEasterEggs(): void {
-  // 1. Konami Code Cat Party
-  new KonamiCodeDetector(() => {
-    console.log('🎉 Konami code activated!');
-    triggerCatParty();
-  });
-
-  // 2. Triple-click app title for Study Buddy
-  const appTitle = document.querySelector('.app-title') as HTMLElement;
-  const appLogo = document.querySelector('.app-logo') as HTMLElement;
-
-  if (appTitle) {
-    const studyBuddy = new StudyBuddy();
-    new TripleClickDetector(appTitle, (isActive) => {
-      studyBuddy.toggle();
-
-      // Visual feedback on logo
-      if (appLogo) {
-        appLogo.classList.add('easter-egg-active');
-        setTimeout(() => appLogo.classList.remove('easter-egg-active'), 500);
-      }
-    });
-  } else {
-    console.warn('❌ App title not found for Study Buddy easter egg');
-  }
+  // Update button states
+  recordingControls?.updateNewSessionButtonState();
 }
 
 /**
@@ -765,198 +318,121 @@ function setupToolbarToggle(): void {
     }
   });
 
-  // Start with button slightly dimmed to indicate toolbar is hidden
   toggleBtn.style.opacity = '0.6';
 }
 
 /**
- * Set up authentication UI (show/hide signin button based on auth state)
+ * Show a notification toast
  */
-function setupAuthUI(): void {
-  const signinBtn = document.getElementById('signin-btn');
-  const friendsBtn = document.getElementById('friends-btn');
-  const studyRoomsBtn = document.getElementById('study-rooms-btn');
+function showNotification(message: string, type: 'info' | 'warning' | 'error' = 'info'): void {
+  const colors = { info: '#3498db', warning: '#f39c12', error: '#e74c3c' };
 
-  // Listen for auth state changes
-  authManager.onAuthStateChange(async (user) => {
-    if (user) {
-      // User is authenticated - hide signin button, show friends and study rooms buttons
-      signinBtn?.classList.add('hidden');
-      if (friendsBtn) {
-        friendsBtn.style.display = 'block';
-      }
-      if (studyRoomsBtn) {
-        studyRoomsBtn.style.display = 'block';
-      }
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: ${colors[type]};
+    color: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    max-width: 400px;
+    font-size: 14px;
+    animation: slideInRight 0.3s ease;
+  `;
+  notification.textContent = message;
+  document.body.appendChild(notification);
 
-      // Initialize friends manager for this user
-      await friendsManager.initialize(user.id);
-
-      // Initialize study rooms manager for this user
-      await studyRoomsManager.initialize(user.id);
-
-      // Initialize messages manager for this user
-      await messagesManager.initialize(user.id);
-
-      // Initialize realtime notification manager
-      realtimeNotificationManager.initialize(
-        studyRoomsManager,
-        friendsManager,
-        notificationTicker,
-        user.id
-      );
-
-      // Set current user ID for study rooms UI components
-      browseRoomsModal.setCurrentUserId(user.id);
-      studyRoomView.setCurrentUserInfo(user.id, user.email, user.fullName || user.email);
-
-      // Update study rooms badge with pending invitations count
-      const invitationsCount = studyRoomsManager.getPendingInvitationsCount();
-      const roomsBadge = document.getElementById('rooms-badge');
-      if (roomsBadge) {
-        roomsBadge.textContent = invitationsCount.toString();
-        roomsBadge.style.display = invitationsCount > 0 ? 'inline-block' : 'none';
-      }
-
-      // Listen for invitations changes to update badge
-      studyRoomsManager.addInvitationsListener((invitations) => {
-        const pendingCount = invitations.filter(inv =>
-          inv.status === 'pending' && inv.inviteeId === user.id
-        ).length;
-        const badge = document.getElementById('rooms-badge');
-        if (badge) {
-          badge.textContent = pendingCount.toString();
-          badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
-        }
-      });
-
-      // Helper to update friends badge with combined count (requests + unread messages)
-      const updateFriendsBadge = () => {
-        const requestsCount = friendsManager.getIncomingRequestsCount();
-        const unreadMessagesCount = messagesManager.getUnreadCount();
-        const totalCount = requestsCount + unreadMessagesCount;
-        const badge = document.getElementById('friends-badge');
-        if (badge) {
-          badge.textContent = totalCount.toString();
-          badge.style.display = totalCount > 0 ? 'inline-block' : 'none';
-        }
-      };
-
-      // Initial badge update
-      updateFriendsBadge();
-
-      // Listen for requests changes to update badge
-      friendsManager.addRequestsListener(() => {
-        updateFriendsBadge();
-      });
-
-      // Listen for unread messages count changes to update badge
-      messagesManager.addUnreadCountListener(() => {
-        updateFriendsBadge();
-      });
-    } else {
-      // User is not authenticated - show signin button, hide friends and study rooms buttons
-      signinBtn?.classList.remove('hidden');
-      if (friendsBtn) {
-        friendsBtn.style.display = 'none';
-      }
-      if (studyRoomsBtn) {
-        studyRoomsBtn.style.display = 'none';
-      }
-
-      // Clear friends manager
-      friendsManager.clear();
-
-      // Clear study rooms manager
-      studyRoomsManager.clear();
-
-      // Clear messages manager
-      messagesManager.clear();
-
-      // Clear realtime notification manager
-      realtimeNotificationManager.clear();
-
-      // Clear user ID from study rooms UI components
-      browseRoomsModal.setCurrentUserId(null);
-      studyRoomView.setCurrentUserId(null);
-    }
-  });
-
-  // Add click listener to signin button
-  signinBtn?.addEventListener('click', () => {
-    authScreen.show();
-  });
+  setTimeout(() => {
+    notification.style.animation = 'slideOutRight 0.3s ease';
+    setTimeout(() => document.body.removeChild(notification), 300);
+  }, 5000);
 }
 
-// Debug helper for testing notifications
+/**
+ * Set up hot reload notification listener
+ */
+function setupHotReloadListener(): void {
+  if ((window.scribeCat as any).dev) {
+    (window.scribeCat as any).dev.onHotReloadNotification((message: string) => {
+      console.warn('⚠️ Hot reload:', message);
+      showNotification(message, 'warning');
+    });
+  }
+}
+
+/**
+ * Clean up on window unload
+ */
+window.addEventListener('beforeunload', async () => {
+  // Save notes before closing
+  if (coreManagers?.notesAutoSaveManager) {
+    console.log('[App] Saving notes before window close...');
+    await coreManagers.notesAutoSaveManager.saveImmediately();
+  }
+
+  if (coreManagers?.recordingManager?.getIsRecording()) {
+    coreManagers.audioManager.cleanup();
+    coreManagers.recordingManager.cleanup();
+  }
+
+  // Set user offline
+  if (socialManagers?.friendsManager) {
+    console.log('[App] Setting user offline before window close...');
+    await socialManagers.friendsManager.stopPresenceTracking();
+  }
+
+  // Leave any active study room
+  if (socialManagers?.studyRoomView && socialManagers?.studyRoomsManager) {
+    const currentRoomId = socialManagers.studyRoomView.getCurrentRoomId();
+    if (currentRoomId) {
+      console.log('[App] Leaving study room before window close:', currentRoomId);
+      try {
+        await socialManagers.studyRoomsManager.leaveRoom(currentRoomId);
+      } catch (error) {
+        console.error('[App] Failed to leave room on close:', error);
+      }
+    }
+  }
+
+  // Clean up hot reload listener
+  if ((window.scribeCat as any).dev) {
+    (window.scribeCat as any).dev.removeHotReloadListener();
+  }
+
+  // Clean up notes auto-save manager
+  coreManagers?.notesAutoSaveManager?.cleanup();
+});
+
+// Debug helpers
 (window as any).testNotification = () => {
   console.log('🧪 Testing notification system...');
-
-  // Test 1: Check if notificationTicker is initialized
   if (!notificationTicker) {
     console.error('❌ notificationTicker is not defined');
     return;
   }
-  console.log('✅ notificationTicker is defined');
-
-  // Test 2: Check if container exists
   const container = document.getElementById('notification-ticker-content');
   if (!container) {
-    console.error('❌ notification-ticker-content element not found in DOM');
+    console.error('❌ notification-ticker-content element not found');
     return;
   }
-  console.log('✅ notification-ticker-content found in DOM');
-
-  // Test 3: Show a test notification
   console.log('📢 Showing test notification...');
-  const id = notificationTicker.info('🎉 Test notification! If you see this, the UI is working.', 7000);
-  console.log('✅ Notification shown with ID:', id);
-
-  // Test 4: Check RealtimeNotificationManager
-  if (!realtimeNotificationManager) {
-    console.warn('⚠️ RealtimeNotificationManager not initialized (user may not be signed in)');
-  } else {
-    console.log('✅ RealtimeNotificationManager is initialized');
-  }
-
-  return '✅ Test complete - check if notification appeared';
+  notificationTicker.info('🎉 Test notification! If you see this, the UI is working.', 7000);
+  return '✅ Test complete';
 };
 
-// Debug helper to manually trigger invitation refresh
 (window as any).debugInvitations = () => {
   console.log('🔍 Debugging invitation system...');
-
-  if (!studyRoomsManager) {
+  if (!socialManagers?.studyRoomsManager) {
     console.error('❌ StudyRoomsManager not initialized');
     return;
   }
-
-  console.log('📊 Current invitations:', studyRoomsManager.getInvitations());
-  console.log('🔄 Manually refreshing invitations...');
-
-  // Force refresh invitations
-  window.scribeCat.studyRooms.getMyInvitations().then((invitations) => {
-    console.log('📨 Fresh invitations from database:', invitations);
-
-    // Check if any are new
-    const currentIds = new Set(studyRoomsManager.getInvitations().map(i => i.id));
-    const newInvitations = invitations.filter(i => !currentIds.has(i.id));
-
-    if (newInvitations.length > 0) {
-      console.log('🆕 New invitations found:', newInvitations);
-      console.log('⚠️ These invitations were NOT delivered via realtime!');
-      console.log('⚠️ This confirms Supabase realtime is not working.');
-    } else {
-      console.log('✅ No new invitations found');
-    }
-  }).catch(err => {
-    console.error('❌ Error fetching invitations:', err);
-  });
-
+  console.log('📊 Current invitations:', socialManagers.studyRoomsManager.getInvitations());
   return 'Check console for results...';
 };
 
-// Log when ready
 console.log('💡 Debug helpers ready:');
 console.log('  - window.testNotification() - Test notification UI');
 console.log('  - window.debugInvitations() - Check for missed realtime invitations');
