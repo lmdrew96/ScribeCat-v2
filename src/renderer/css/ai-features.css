@@ -874,6 +874,49 @@
   box-shadow: 0 0 8px rgba(148, 163, 184, 0.5);
 }
 
+/* Important point suggestion type styling */
+.chip-suggestion-exam {
+  border-left: 3px solid #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.chip-suggestion-exam:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.chip-suggestion-exam .chip-suggestion-action {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.chip-suggestion-emphasis {
+  border-left: 3px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.chip-suggestion-emphasis:hover {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.chip-suggestion-emphasis .chip-suggestion-action {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.chip-suggestion-repetition {
+  border-left: 3px solid #8b5cf6;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.chip-suggestion-repetition:hover {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.chip-suggestion-repetition .chip-suggestion-action {
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
 /* Confirmation toast for suggestion actions */
 .chip-confirmation-toast {
   position: fixed;

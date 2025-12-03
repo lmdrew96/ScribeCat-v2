@@ -121,14 +121,15 @@ export class LiveSuggestionsPanel {
     const topSuggestions = this.currentSuggestions.slice(0, 3);
 
     const suggestionsHtml = topSuggestions.map((trigger, index) => {
-      const icon = this.getActionIcon(trigger.suggestedAction);
+      // Get icon and label based on trigger type (for important points) or action
+      const { icon, label, typeClass } = this.getTriggerDisplay(trigger);
       const confidenceClass = trigger.confidence > 0.8 ? 'high' : trigger.confidence > 0.6 ? 'medium' : 'low';
 
       return `
-        <div class="chip-suggestion" data-index="${index}" data-action="${trigger.suggestedAction}">
+        <div class="chip-suggestion ${typeClass}" data-index="${index}" data-action="${trigger.suggestedAction}">
           <div class="chip-suggestion-icon">${icon}</div>
           <div class="chip-suggestion-content">
-            <div class="chip-suggestion-action">${this.getActionLabel(trigger.suggestedAction)}</div>
+            <div class="chip-suggestion-action">${label}</div>
             <div class="chip-suggestion-reason">${escapeHtml(trigger.reason)}</div>
           </div>
           <div class="chip-suggestion-confidence ${confidenceClass}"></div>
@@ -227,6 +228,46 @@ export class LiveSuggestionsPanel {
       'notes': 'Add key points'
     };
     return labels[action] || 'Suggested action';
+  }
+
+  /**
+   * Get display properties for a trigger based on its type
+   * Returns icon, label, and CSS class for styling
+   */
+  private getTriggerDisplay(trigger: SuggestionTrigger): { icon: string; label: string; typeClass: string } {
+    const iconSize = 16;
+
+    // Check for important point triggers first
+    if (trigger.type === 'important_moment') {
+      const isExam = trigger.context?.detectionMethod === 'exam';
+      if (isExam) {
+        return {
+          icon: getIconHTML('alert', { size: iconSize }),
+          label: 'Exam Material',
+          typeClass: 'chip-suggestion-exam'
+        };
+      }
+      return {
+        icon: getIconHTML('star', { size: iconSize }),
+        label: 'Important Point',
+        typeClass: 'chip-suggestion-emphasis'
+      };
+    }
+
+    if (trigger.type === 'topic_emphasis') {
+      return {
+        icon: getIconHTML('refresh', { size: iconSize }),
+        label: 'Key Concept',
+        typeClass: 'chip-suggestion-repetition'
+      };
+    }
+
+    // Default to action-based display
+    return {
+      icon: this.getActionIcon(trigger.suggestedAction),
+      label: this.getActionLabel(trigger.suggestedAction),
+      typeClass: ''
+    };
   }
 
   /**

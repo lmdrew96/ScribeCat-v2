@@ -105,8 +105,32 @@ export class SmartSuggestionEngine {
     let command: string;
     let action = trigger.suggestedAction;
 
+    // ===== IMPORTANT POINT TRIGGERS (high priority during recording) =====
+    // Check trigger type first for important points, as they use specialized titles
+    if (trigger.type === 'important_moment') {
+      // Exam-related or explicitly emphasized content
+      const isExam = trigger.context?.detectionMethod === 'exam';
+      if (isExam) {
+        title = 'Exam Material!';
+        description = trigger.reason;
+        icon = '📚';
+      } else {
+        title = 'Important Point';
+        description = trigger.reason;
+        icon = '⭐';
+      }
+      command = 'bookmark this';
+      action = 'bookmark';
+    } else if (trigger.type === 'topic_emphasis') {
+      // Frequently repeated content
+      title = 'Key Concept';
+      description = trigger.reason;
+      icon = '🔄';
+      command = 'note this';
+      action = 'note_prompt';
+    }
     // ===== RECORDING MODE SUGGESTIONS (passive helpers) =====
-    switch (trigger.suggestedAction) {
+    else switch (trigger.suggestedAction) {
       case 'bookmark':
         title = 'Bookmark This?';
         description = trigger.reason + '. Mark this moment for later review?';
@@ -202,19 +226,32 @@ export class SmartSuggestionEngine {
    * Calculate priority based on confidence and trigger type
    */
   private calculatePriority(confidence: number, triggerType: string, mode?: ContextMode): 'low' | 'medium' | 'high' {
-    // Recording mode: Keep all suggestions low-medium priority (passive, non-intrusive)
+    // Recording mode: Keep most suggestions low-medium priority (passive, non-intrusive)
+    // BUT important points (especially exam-related) get higher priority
     if (mode === 'recording') {
-      // Only confusion gets medium priority in recording
-      if (triggerType === 'confusion' && confidence > 0.8) return 'medium';
+      // Important moments (exam/emphasis) get medium-high priority - these are critical!
+      if (triggerType === 'important_moment') {
+        if (confidence > 0.85) return 'high'; // Exam-related typically hits this
+        return 'medium';
+      }
 
-      // Topic emphasis gets medium priority if highly confident
-      if (triggerType === 'topic_emphasis' && confidence > 0.8) return 'medium';
+      // Topic emphasis (repeated concepts) gets medium priority
+      if (triggerType === 'topic_emphasis' && confidence > 0.75) return 'medium';
+
+      // Confusion gets medium priority in recording
+      if (triggerType === 'confusion' && confidence > 0.8) return 'medium';
 
       // Everything else is low priority in recording mode
       return 'low';
     }
 
     // Study mode: Use full priority range (active suggestions)
+    // Important moments are high priority
+    if (triggerType === 'important_moment' && confidence > 0.75) return 'high';
+
+    // Topic emphasis is high priority when very confident
+    if (triggerType === 'topic_emphasis' && confidence > 0.8) return 'high';
+
     // Confusion is high priority
     if (triggerType === 'confusion' && confidence > 0.8) return 'high';
 

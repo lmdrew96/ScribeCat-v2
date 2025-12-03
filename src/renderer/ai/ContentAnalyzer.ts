@@ -2,10 +2,17 @@
  * ContentAnalyzer
  *
  * Analyzes session content in real-time to provide insights for proactive AI suggestions.
- * Tracks topics, patterns, confusion indicators, and content density.
+ * Tracks topics, patterns, confusion indicators, content density, and important points.
+ *
+ * Important point detection includes:
+ * - Repetition tracking (concepts mentioned 3+ times)
+ * - Emphasis detection ("this is important", "remember this", etc.)
+ * - Exam-related phrases ("on the exam", "exam material", etc.)
  */
 
 import { createLogger } from '../../shared/logger.js';
+import { ImportantPointAnalyzer } from './analysis/ImportantPointAnalyzer.js';
+import { ImportantPoint, BookmarkRef } from './analysis/types.js';
 
 const logger = createLogger('ContentAnalyzer');
 
@@ -51,6 +58,10 @@ export class ContentAnalyzer {
   private startTime: Date | null = null;
   private lastAnalysis: ContentInsights | null = null;
 
+  // Important point analysis
+  private importantPointAnalyzer: ImportantPointAnalyzer;
+  private bookmarks: BookmarkRef[] = [];
+
   // Configuration
   private readonly TOPIC_KEYWORDS = new Set([
     // Science
@@ -74,7 +85,9 @@ export class ContentAnalyzer {
     'can you repeat', 'what was that', 'huh'
   ];
 
-  constructor() {}
+  constructor() {
+    this.importantPointAnalyzer = new ImportantPointAnalyzer();
+  }
 
   /**
    * Start tracking a new session
@@ -84,6 +97,8 @@ export class ContentAnalyzer {
     this.transcriptionText = '';
     this.notesText = '';
     this.lastAnalysis = null;
+    this.bookmarks = [];
+    this.importantPointAnalyzer.reset();
   }
 
   /**
@@ -97,7 +112,58 @@ export class ContentAnalyzer {
     const insights = this.analyze();
     this.lastAnalysis = insights;
 
+    // Run important point analysis
+    const currentTimestamp = this.getDurationMinutes() * 60; // Convert to seconds
+    this.importantPointAnalyzer.analyze(
+      this.transcriptionText,
+      this.notesText,
+      this.bookmarks,
+      currentTimestamp
+    );
+
     return insights;
+  }
+
+  /**
+   * Update bookmarks for coverage checking
+   */
+  public updateBookmarks(bookmarks: BookmarkRef[]): void {
+    this.bookmarks = bookmarks;
+  }
+
+  /**
+   * Get all important points detected
+   */
+  public getImportantPoints(): ImportantPoint[] {
+    return this.importantPointAnalyzer.getAllPoints();
+  }
+
+  /**
+   * Get important points that are NOT covered (missed)
+   */
+  public getMissedImportantPoints(): ImportantPoint[] {
+    return this.importantPointAnalyzer.getMissedPoints();
+  }
+
+  /**
+   * Get high-priority missed points for immediate alerts
+   */
+  public getHighPriorityMissedPoints(minConfidence: number = 0.75): ImportantPoint[] {
+    return this.importantPointAnalyzer.getHighPriorityMissedPoints(minConfidence);
+  }
+
+  /**
+   * Mark an important point as covered
+   */
+  public markPointCovered(pointId: string, coverageType: 'notes' | 'bookmark'): void {
+    this.importantPointAnalyzer.markAsCovered(pointId, coverageType);
+  }
+
+  /**
+   * Get statistics about important points
+   */
+  public getImportantPointStats() {
+    return this.importantPointAnalyzer.getStats();
   }
 
   /**
@@ -208,6 +274,60 @@ export class ContentAnalyzer {
           mode: 'recording',
           context: { duration: insights.durationMinutes }
         });
+      }
+
+      // ===== IMPORTANT POINT TRIGGERS =====
+      // Get high-priority missed points (exam-related, emphasized, repeated)
+      const missedPoints = this.importantPointAnalyzer.getHighPriorityMissedPoints(0.75);
+
+      // Limit to top 2 most important missed points at a time
+      for (const point of missedPoints.slice(0, 2)) {
+        if (point.detectionMethod === 'exam') {
+          // Exam-related content - highest priority
+          triggers.push({
+            type: 'important_moment',
+            confidence: point.confidence,
+            reason: `Exam material: "${this.truncateText(point.text, 60)}"`,
+            suggestedAction: 'bookmark',
+            mode: 'recording',
+            context: {
+              importantPointId: point.id,
+              text: point.text,
+              detectionMethod: point.detectionMethod,
+              timestamp: point.firstOccurrence
+            }
+          });
+        } else if (point.detectionMethod === 'emphasis') {
+          // Explicitly emphasized content
+          triggers.push({
+            type: 'important_moment',
+            confidence: point.confidence,
+            reason: `The speaker emphasized: "${this.truncateText(point.text, 55)}"`,
+            suggestedAction: 'bookmark',
+            mode: 'recording',
+            context: {
+              importantPointId: point.id,
+              text: point.text,
+              detectionMethod: point.detectionMethod,
+              timestamp: point.firstOccurrence
+            }
+          });
+        } else if (point.detectionMethod === 'repetition') {
+          // Frequently repeated content
+          triggers.push({
+            type: 'topic_emphasis',
+            confidence: point.confidence,
+            reason: `Frequently mentioned (${point.repetitionCount}x): "${this.truncateText(point.text, 50)}"`,
+            suggestedAction: 'note_prompt',
+            mode: 'recording',
+            context: {
+              importantPointId: point.id,
+              text: point.text,
+              repetitionCount: point.repetitionCount,
+              detectionMethod: point.detectionMethod
+            }
+          });
+        }
       }
     }
 
@@ -425,5 +545,15 @@ export class ContentAnalyzer {
     this.notesText = '';
     this.startTime = null;
     this.lastAnalysis = null;
+    this.bookmarks = [];
+    this.importantPointAnalyzer.reset();
+  }
+
+  /**
+   * Truncate text for display in suggestions
+   */
+  private truncateText(text: string, maxLength: number): string {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength - 3) + '...';
   }
 }

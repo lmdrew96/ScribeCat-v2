@@ -598,6 +598,14 @@ export class RecordingManager {
       noteRatio: transcriptionWords > 0 ? Math.round((notesWords / transcriptionWords) * 100) + '%' : '0%'
     });
 
+    // Update bookmarks in content analyzer for important point coverage checking
+    const contentAnalyzer = this.aiManager.getContentAnalyzer();
+    const bookmarkRefs = this.bookmarks.map(b => ({
+      timestamp: b.timestamp,
+      label: b.label
+    }));
+    contentAnalyzer.updateBookmarks(bookmarkRefs);
+
     // Update live suggestions with latest content and duration
     this.chatUI.updateLiveSuggestions(transcription, notes, durationMinutes);
 
@@ -617,6 +625,8 @@ export class RecordingManager {
       case 'bookmark':
         logger.info('User wants to bookmark this moment');
         this.addBookmark(suggestion.reason);
+        // Mark important point as covered if this suggestion has one
+        this.markImportantPointCovered(suggestion, 'bookmark');
         break;
 
       case 'note_prompt':
@@ -625,12 +635,16 @@ export class RecordingManager {
         // Focus the notes editor
         this.editorManager.focus();
         notificationTicker?.success('Notes editor focused - start typing!', 2000);
+        // Mark important point as covered (user is taking notes)
+        this.markImportantPointCovered(suggestion, 'notes');
         break;
 
       case 'highlight':
         logger.info('User wants to highlight important moment');
         // Highlight is essentially the same as bookmark with a different label
         this.addBookmark(`⭐ ${suggestion.reason || 'Important moment'}`);
+        // Mark important point as covered
+        this.markImportantPointCovered(suggestion, 'bookmark');
         break;
 
       case 'break':
@@ -653,6 +667,17 @@ export class RecordingManager {
 
       default:
         logger.warn('Unknown suggestion action:', suggestion.suggestedAction);
+    }
+  }
+
+  /**
+   * Mark an important point as covered when user acts on a suggestion
+   */
+  private markImportantPointCovered(suggestion: any, coverageType: 'notes' | 'bookmark'): void {
+    if (suggestion.context?.importantPointId) {
+      const contentAnalyzer = this.aiManager.getContentAnalyzer();
+      contentAnalyzer.markPointCovered(suggestion.context.importantPointId, coverageType);
+      logger.debug(`Marked important point ${suggestion.context.importantPointId} as covered (${coverageType})`);
     }
   }
 
