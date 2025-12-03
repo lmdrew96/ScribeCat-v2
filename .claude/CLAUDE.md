@@ -1,7 +1,7 @@
 # Claude Code Instructions for ScribeCat v2
 
 ## About This Project
-ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **1.74.0**
+ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **1.87.3**
 
 **Tech Stack:** Electron 38 + Vite, TypeScript (strict mode), TipTap rich-text editor, Yjs for CRDT collaboration, Supabase backend, AssemblyAI transcription, Claude AI integration
 
@@ -304,12 +304,11 @@ npm run test:ui           # Visual UI
 
 ## Recent Version History
 
-- **v1.74.0:** Theme redesign for visual distinction (Coffee Shop, Cosmic Void, etc.)
-- **v1.73.x:** Transcription timestamp fixes, UI icons (SVG), custom fonts, Lucide icons
-- **v1.70-72.x:** Neobrutalism design system, avatar uploads, theme expansion
-- **v1.67-69.x:** Study room improvements, Final Jeopardy, invitation flow, rejoin feature
-- **v1.65-66.x:** Usernames (@username search), Nyan Cat effects, theme contrast improvements
-- **v1.60-64.x:** Multiplayer games (Quiz Battle, Jeopardy, Bingo, Flashcards)
+- **v1.85-87.x:** Major refactoring (FriendsModal, AnalyticsDashboard, TutorialManager, managers)
+- **v1.75-84.x:** Component refactoring, Neomail direct messages, module extraction
+- **v1.74.0:** Theme redesign for visual distinction
+- **v1.70-73.x:** Neobrutalism design, SVG icons, custom fonts, avatar uploads
+- **v1.65-69.x:** Study room improvements, usernames, multiplayer games
 
 ## Remember
 

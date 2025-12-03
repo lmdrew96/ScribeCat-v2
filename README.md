@@ -136,13 +136,11 @@ CLAUDE_API_KEY=your_claude_api_key_here
 
 **Run in Development:**
 ```bash
-npm run dev
+npm run compile   # Compile TypeScript
+npm start         # Launch Electron
 ```
 
-This will:
-1. Compile TypeScript files
-2. Start file watchers
-3. Launch Electron with hot reload
+**Note:** `npm run dev` is currently broken. Use the commands above instead.
 
 ---
 
@@ -265,9 +263,7 @@ Adjust transcription accuracy in Settings → Transcription:
 ## 📚 Documentation
 
 - **[INSTALLATION.md](INSTALLATION.md)** - End-user installation instructions
-- **[docs/SETUP.md](docs/SETUP.md)** - Detailed development setup
-- **[docs/AUDIO_RECORDING_USAGE.md](docs/AUDIO_RECORDING_USAGE.md)** - Audio system guide
-- **[docs/ASSEMBLYAI_IMPLEMENTATION.md](docs/ASSEMBLYAI_IMPLEMENTATION.md)** - Transcription integration details
+- **[TESTING.md](TESTING.md)** - Testing guide and standards
 
 ---
 
