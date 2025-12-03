@@ -322,7 +322,7 @@ export class SessionPlaybackManager {
 
     try {
       // Add study mode time via IPC
-      await (window as any).electronAPI.addStudyModeTime(
+      await window.scribeCat.session.addStudyModeTime(
         this.currentSessionId,
         timeToSave
       );
