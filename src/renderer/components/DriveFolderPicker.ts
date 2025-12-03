@@ -13,11 +13,16 @@ interface DriveFolder {
   parents?: string[];
 }
 
+interface FolderPathEntry {
+  name: string;
+  id: string | null;
+}
+
 export class DriveFolderPicker {
   private modal: HTMLElement | null = null;
   private currentFolderId: string | null = null;
   private selectedFolderId: string | null = null;
-  private folderPath: string[] = [];
+  private folderPath: FolderPathEntry[] = [];
   private onSelectCallback: ((folderId: string | null, folderPath: string) => void) | null = null;
 
   constructor() {
@@ -119,7 +124,7 @@ export class DriveFolderPicker {
     this.onSelectCallback = onSelect;
     this.currentFolderId = null;
     this.selectedFolderId = null;
-    this.folderPath = ['My Drive'];
+    this.folderPath = [{ name: 'My Drive', id: null }];
     
     this.modal.classList.remove('hidden');
     
@@ -213,7 +218,7 @@ export class DriveFolderPicker {
    */
   private async navigateToFolder(folderId: string, folderName: string): Promise<void> {
     this.currentFolderId = folderId;
-    this.folderPath.push(folderName);
+    this.folderPath.push({ name: folderName, id: folderId });
     this.updateBreadcrumb();
     await this.loadFolders(folderId);
   }
@@ -223,11 +228,12 @@ export class DriveFolderPicker {
    */
   private selectFolder(folderId: string, folderName: string): void {
     this.selectedFolderId = folderId;
-    
+
     // Update selected folder display
     const selectedDisplay = this.modal?.querySelector('#selected-folder-name');
     if (selectedDisplay) {
-      const fullPath = [...this.folderPath, folderName].join(' / ');
+      const pathNames = this.folderPath.map(entry => entry.name);
+      const fullPath = [...pathNames, folderName].join(' / ');
       selectedDisplay.textContent = fullPath;
     }
 
@@ -245,14 +251,14 @@ export class DriveFolderPicker {
     const breadcrumb = this.modal?.querySelector('#folder-breadcrumb');
     if (!breadcrumb) return;
 
-    breadcrumb.innerHTML = this.folderPath.map((name, index) => {
+    breadcrumb.innerHTML = this.folderPath.map((entry, index) => {
       const isLast = index === this.folderPath.length - 1;
       return `
-        <button 
-          class="breadcrumb-item ${isLast ? 'active' : ''}" 
+        <button
+          class="breadcrumb-item ${isLast ? 'active' : ''}"
           data-depth="${index}"
         >
-          ${index === 0 ? '📁' : ''} ${escapeHtml(name)}
+          ${index === 0 ? '📁' : ''} ${escapeHtml(entry.name)}
         </button>
         ${!isLast ? '<span class="breadcrumb-separator">›</span>' : ''}
       `;
@@ -274,16 +280,16 @@ export class DriveFolderPicker {
     if (depth === 0) {
       // Navigate to root
       this.currentFolderId = null;
-      this.folderPath = ['My Drive'];
+      this.folderPath = [{ name: 'My Drive', id: null }];
       this.updateBreadcrumb();
       await this.loadFolders();
     } else if (depth < this.folderPath.length - 1) {
-      // Navigate to parent folder
+      // Navigate to parent folder using stored folder ID
       this.folderPath = this.folderPath.slice(0, depth + 1);
+      const targetFolderId = this.folderPath[depth].id;
+      this.currentFolderId = targetFolderId;
       this.updateBreadcrumb();
-      // TODO: Need to track folder IDs to navigate back properly
-      // For now, reload from root
-      await this.loadFolders(this.currentFolderId === null ? undefined : this.currentFolderId);
+      await this.loadFolders(targetFolderId || undefined);
     }
   }
 
@@ -429,8 +435,9 @@ export class DriveFolderPicker {
    */
   private confirmSelection(): void {
     if (this.onSelectCallback) {
-      const folderPath = this.selectedFolderId 
-        ? this.folderPath.join(' / ')
+      const pathNames = this.folderPath.map(entry => entry.name);
+      const folderPath = this.selectedFolderId
+        ? pathNames.join(' / ')
         : 'My Drive (Root)';
       this.onSelectCallback(this.selectedFolderId, folderPath);
     }

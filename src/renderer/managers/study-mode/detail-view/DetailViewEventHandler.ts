@@ -223,12 +223,28 @@ export class DetailViewEventHandler {
     const audioElement = document.getElementById('session-audio') as HTMLAudioElement;
     if (!audioElement) return;
 
+    // Handle legacy .audio-bookmark elements
     const bookmarks = document.querySelectorAll('.audio-bookmark');
     bookmarks.forEach(bookmark => {
       bookmark.addEventListener('click', (e) => {
-        e.preventDefault(); // Prevent default link behavior
-
+        e.preventDefault();
         const timestamp = parseFloat((bookmark as HTMLElement).dataset.timestamp || '0');
+        if (audioElement && !isNaN(timestamp)) {
+          audioElement.currentTime = timestamp;
+          if (audioElement.paused) {
+            audioElement.play().catch(err => logger.error('Playback failed:', err));
+          }
+          logger.info('Jumped to bookmark at:', timestamp);
+        }
+      });
+    });
+
+    // Handle new .bookmark-item elements (from bookmarks section)
+    const bookmarkItems = document.querySelectorAll('.bookmark-item');
+    bookmarkItems.forEach(bookmarkItem => {
+      bookmarkItem.addEventListener('click', (e) => {
+        e.preventDefault();
+        const timestamp = parseFloat((bookmarkItem as HTMLElement).dataset.timestamp || '0');
         if (audioElement && !isNaN(timestamp)) {
           audioElement.currentTime = timestamp;
           if (audioElement.paused) {

@@ -13,6 +13,10 @@ export const config = {
   claude: {
     apiKey: process.env.CLAUDE_API_KEY || '',
   },
+  googleDrive: {
+    clientId: process.env.GOOGLE_DRIVE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_DRIVE_CLIENT_SECRET || '',
+  },
 } as const;
 
 // Validation helper to ensure keys are configured

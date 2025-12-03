@@ -5,6 +5,10 @@
  * Modes: Normal, Recording Focus, Review Focus, Study Focus
  */
 
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('FocusModeManager');
+
 export type FocusMode = 'normal' | 'recording' | 'review' | 'study';
 
 export interface FocusModeConfig {
@@ -126,24 +130,28 @@ export class FocusModeManager {
     // Apply layout through LayoutManager if available
     const layoutManager = (window as any).layoutManager;
 
-    if (layoutManager && config.layout) {
-      switch (config.layout) {
-        case 'single-notes':
-          // Focus: Notes layout
-          layoutManager.applyPreset('focus-notes');
-          break;
-        case 'single-transcription':
-          // Focus: Transcription layout
-          layoutManager.applyPreset('focus-transcription');
-          break;
-        case 'split':
-          // Balanced layout
-          layoutManager.applyPreset('balanced');
-          break;
-        case 'ai-prominent':
-          // Recording setup (gives more space to transcription + AI)
-          layoutManager.applyPreset('recording');
-          break;
+    if (config.layout) {
+      if (!layoutManager) {
+        logger.warn(`LayoutManager not available, cannot apply layout: ${config.layout}`);
+      } else {
+        switch (config.layout) {
+          case 'single-notes':
+            // Focus: Notes layout
+            layoutManager.applyPreset('focus-notes');
+            break;
+          case 'single-transcription':
+            // Focus: Transcription layout
+            layoutManager.applyPreset('focus-transcription');
+            break;
+          case 'split':
+            // Balanced layout
+            layoutManager.applyPreset('balanced');
+            break;
+          case 'ai-prominent':
+            // Recording setup (gives more space to transcription + AI)
+            layoutManager.applyPreset('recording');
+            break;
+        }
       }
     }
 

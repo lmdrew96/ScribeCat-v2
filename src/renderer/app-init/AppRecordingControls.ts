@@ -46,6 +46,15 @@ export class AppRecordingControls {
   }
 
   /**
+   * Handle bookmark button click
+   */
+  handleAddBookmark(): void {
+    if (this.deps.recordingManager.getIsRecording()) {
+      this.deps.recordingManager.addBookmark();
+    }
+  }
+
+  /**
    * Start recording
    */
   async startRecording(): Promise<void> {

@@ -39,6 +39,16 @@ export enum SessionType {
 }
 
 /**
+ * Bookmark record for marking important moments during recording
+ */
+export interface Bookmark {
+  id: string;
+  timestamp: number; // Time in seconds from start of recording
+  label?: string; // Optional user-provided label
+  createdAt: Date;
+}
+
+/**
  * Session Entity
  * 
  * Represents a recording session with audio file and metadata.
@@ -81,7 +91,9 @@ export class Session {
     public studyModeTime: number = 0, // Total playback time in seconds
     public aiToolUsageCount: number = 0, // Count of AI tool executions
     public aiChatMessageCount: number = 0, // Count of AI chat messages sent
-    public lastStudyModeActivity?: Date // Timestamp of last study mode activity
+    public lastStudyModeActivity?: Date, // Timestamp of last study mode activity
+    // Bookmarks for marking important moments
+    public bookmarks: Bookmark[] = []
   ) {}
 
   /**
@@ -321,6 +333,56 @@ export class Session {
   }
 
   /**
+   * Add a bookmark at the given timestamp
+   */
+  addBookmark(timestamp: number, label?: string): Bookmark {
+    const bookmark: Bookmark = {
+      id: crypto.randomUUID(),
+      timestamp,
+      label,
+      createdAt: new Date()
+    };
+    this.bookmarks.push(bookmark);
+    // Keep bookmarks sorted by timestamp
+    this.bookmarks.sort((a, b) => a.timestamp - b.timestamp);
+    this.updatedAt = new Date();
+    return bookmark;
+  }
+
+  /**
+   * Remove a bookmark by ID
+   */
+  removeBookmark(bookmarkId: string): boolean {
+    const index = this.bookmarks.findIndex(b => b.id === bookmarkId);
+    if (index > -1) {
+      this.bookmarks.splice(index, 1);
+      this.updatedAt = new Date();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Update a bookmark's label
+   */
+  updateBookmarkLabel(bookmarkId: string, label: string): boolean {
+    const bookmark = this.bookmarks.find(b => b.id === bookmarkId);
+    if (bookmark) {
+      bookmark.label = label;
+      this.updatedAt = new Date();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get all bookmarks
+   */
+  getBookmarks(): Bookmark[] {
+    return [...this.bookmarks];
+  }
+
+  /**
    * Convert to plain object for serialization
    */
   toJSON(): SessionData {
@@ -352,7 +414,8 @@ export class Session {
       studyModeTime: this.studyModeTime,
       aiToolUsageCount: this.aiToolUsageCount,
       aiChatMessageCount: this.aiChatMessageCount,
-      lastStudyModeActivity: this.lastStudyModeActivity
+      lastStudyModeActivity: this.lastStudyModeActivity,
+      bookmarks: this.bookmarks
     };
   }
 
@@ -388,7 +451,12 @@ export class Session {
       data.studyModeTime || 0,
       data.aiToolUsageCount || 0,
       data.aiChatMessageCount || 0,
-      data.lastStudyModeActivity ? new Date(data.lastStudyModeActivity) : undefined
+      data.lastStudyModeActivity ? new Date(data.lastStudyModeActivity) : undefined,
+      // Parse bookmarks with proper Date conversion
+      (data.bookmarks || []).map(b => ({
+        ...b,
+        createdAt: new Date(b.createdAt)
+      }))
     );
   }
 }
@@ -432,4 +500,6 @@ export interface SessionData {
   aiToolUsageCount?: number;
   aiChatMessageCount?: number;
   lastStudyModeActivity?: Date;
+  // Bookmarks
+  bookmarks?: Bookmark[];
 }

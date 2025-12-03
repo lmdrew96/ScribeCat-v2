@@ -172,6 +172,59 @@
   transition: all 0.3s ease;
 }
 
+/* Bookmark Button - Neobrutalism Style */
+.bookmark-btn {
+  width: clamp(36px, 5vw, 44px);
+  height: clamp(36px, 5vw, 44px);
+  border-radius: var(--radius-full);
+  border: var(--border-medium) solid var(--border-color-neo);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+  box-shadow: var(--shadow-neo-sm);
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.bookmark-btn:hover:not(:disabled) {
+  background-color: var(--accent-tertiary, #f59e0b);
+  color: var(--text-on-accent, #000);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
+}
+
+.bookmark-btn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
+}
+
+.bookmark-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bookmark-btn.bookmarked {
+  background-color: var(--accent-tertiary, #f59e0b);
+  color: var(--text-on-accent, #000);
+  animation: bookmark-pulse 0.3s ease;
+}
+
+@keyframes bookmark-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.bookmark-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Device Select - Neobrutalism Style */
 .device-select {
   flex: 1 1 auto;

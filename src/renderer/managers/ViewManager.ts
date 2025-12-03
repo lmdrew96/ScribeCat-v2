@@ -8,6 +8,7 @@ import { getIconHTML } from '../utils/iconMap.js';
 export class ViewManager {
   private recordBtn: HTMLButtonElement;
   private pauseBtn: HTMLButtonElement;
+  private bookmarkBtn: HTMLButtonElement;
   private microphoneSelect: HTMLSelectElement;
   private vuMeter: HTMLElement;
   private recordingStatus: HTMLElement;
@@ -18,6 +19,7 @@ export class ViewManager {
   constructor() {
     this.recordBtn = document.getElementById('record-btn') as HTMLButtonElement;
     this.pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
+    this.bookmarkBtn = document.getElementById('bookmark-btn') as HTMLButtonElement;
     this.microphoneSelect = document.getElementById('microphone-select') as HTMLSelectElement;
     this.vuMeter = document.getElementById('vu-meter') as HTMLElement;
     this.recordingStatus = document.getElementById('recording-status') as HTMLElement;
@@ -38,6 +40,11 @@ export class ViewManager {
       // Enable pause button
       this.pauseBtn.disabled = false;
 
+      // Enable bookmark button
+      if (this.bookmarkBtn) {
+        this.bookmarkBtn.disabled = false;
+      }
+
       // Update status
       this.recordingStatus.textContent = 'Recording';
       this.recordingStatus.classList.remove('idle');
@@ -56,11 +63,16 @@ export class ViewManager {
       // Update record button
       this.recordBtn.classList.remove('recording');
       this.recordBtn.title = 'Start Recording';
-      
+
       // Disable pause button
       this.pauseBtn.disabled = true;
       this.pauseBtn.classList.remove('paused');
-      
+
+      // Disable bookmark button
+      if (this.bookmarkBtn) {
+        this.bookmarkBtn.disabled = true;
+      }
+
       // Update status
       this.recordingStatus.textContent = 'Idle';
       this.recordingStatus.classList.remove('recording');

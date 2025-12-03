@@ -235,6 +235,10 @@ function setupEventListeners(): void {
   const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
   pauseBtn?.addEventListener('click', () => recordingControls.handlePauseToggle());
 
+  // Bookmark button
+  const bookmarkBtn = document.getElementById('bookmark-btn') as HTMLButtonElement;
+  bookmarkBtn?.addEventListener('click', () => recordingControls.handleAddBookmark());
+
   // New Session button
   const newSessionBtn = document.getElementById('new-session-btn') as HTMLButtonElement;
   newSessionBtn?.addEventListener('click', () => recordingControls.handleNewSession());

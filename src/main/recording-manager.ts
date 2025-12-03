@@ -114,7 +114,7 @@ export class RecordingManager {
       }
     });
 
-    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, transcriptionData?: TranscriptionData, title?: string) => {
+    electron.ipcMain.handle('recording:stop', async (event, audioData: ArrayBuffer, duration: number, courseData?: { courseId?: string; courseTitle?: string; courseNumber?: string }, userId?: string | null, transcriptionData?: TranscriptionData, title?: string, bookmarks?: Array<{ timestamp: number; label?: string; createdAt: Date }>) => {
       try {
         // Reconstruct Transcription object from serialized data if provided
         const transcription = transcriptionData ? Transcription.fromJSON(transcriptionData) : undefined;
@@ -127,7 +127,8 @@ export class RecordingManager {
           courseTitle: courseData?.courseTitle,
           courseNumber: courseData?.courseNumber,
           userId: userId || undefined,
-          transcription
+          transcription,
+          bookmarks: bookmarks || []
         });
 
         // NOTE: Cloud sync is now triggered from renderer process AFTER transcription is saved

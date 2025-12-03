@@ -19,6 +19,7 @@ export interface SaveRecordingInput {
   courseNumber?: string;
   userId?: string;
   transcription?: Transcription;
+  bookmarks?: Array<{ timestamp: number; label?: string; createdAt: Date }>;
 }
 
 export interface SaveRecordingOutput {
@@ -76,6 +77,14 @@ export class SaveRecordingUseCase {
       // Cloud sync fields
       input.userId // Set userId if user is authenticated (or undefined if logged out)
     );
+
+    // Add bookmarks if provided
+    if (input.bookmarks && input.bookmarks.length > 0) {
+      for (const bm of input.bookmarks) {
+        session.addBookmark(bm.timestamp, bm.label);
+      }
+      console.log(`📌 Added ${input.bookmarks.length} bookmarks to session`);
+    }
 
     // Save session metadata
     await this.sessionRepository.save(session);

@@ -173,6 +173,9 @@ export class SingleSessionRenderer {
               </div>
             </div>
 
+            <!-- Bookmarks Section -->
+            ${this.renderBookmarks(session)}
+
             <!-- Content Tabs -->
             <div class="session-content-tabs">
               <button class="content-tab active" data-tab="transcription">${getIconHTML('file', { size: 14 })} Transcription</button>
@@ -308,6 +311,43 @@ export class SingleSessionRenderer {
         <button class="scroll-to-top-btn" id="scroll-to-top-btn" title="Return to top" style="display: none;">
           <span class="scroll-top-icon">${getIconHTML('chevronUp', { size: 18 })}</span>
         </button>
+      </div>
+    `;
+  }
+
+  /**
+   * Render bookmarks section
+   */
+  private static renderBookmarks(session: Session): string {
+    const bookmarks = session.getBookmarks();
+
+    if (!bookmarks || bookmarks.length === 0) {
+      return '';
+    }
+
+    const bookmarkItems = bookmarks
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .map(bookmark => {
+        const mins = Math.floor(bookmark.timestamp / 60);
+        const secs = bookmark.timestamp % 60;
+        const timestamp = `${mins}:${secs.toString().padStart(2, '0')}`;
+        const label = bookmark.label ? escapeHtml(bookmark.label) : 'Bookmark';
+
+        return `
+          <button class="bookmark-item" data-timestamp="${bookmark.timestamp}" title="Jump to ${timestamp}">
+            <span class="bookmark-icon">${getIconHTML('bookmark', { size: 14 })}</span>
+            <span class="bookmark-timestamp">${timestamp}</span>
+            <span class="bookmark-label">${label}</span>
+          </button>
+        `;
+      }).join('');
+
+    return `
+      <div class="bookmarks-section">
+        <h4 class="bookmarks-title">${getIconHTML('bookmark', { size: 14 })} Bookmarks (${bookmarks.length})</h4>
+        <div class="bookmarks-list">
+          ${bookmarkItems}
+        </div>
       </div>
     `;
   }

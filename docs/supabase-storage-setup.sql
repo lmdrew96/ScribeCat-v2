@@ -66,6 +66,29 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+-- Policy: Room participants can view audio files from sessions in their rooms
+DO $$ BEGIN
+    CREATE POLICY "Room participants can view audio from room sessions"
+        ON storage.objects FOR SELECT
+        USING (
+            bucket_id = 'audio-files'
+            AND EXISTS (
+                SELECT 1
+                FROM public.room_participants rp
+                JOIN public.study_rooms sr ON sr.id = rp.room_id
+                JOIN public.sessions s ON s.id = sr.session_id
+                WHERE rp.user_id = auth.uid()
+                AND rp.is_active = true
+                AND sr.is_active = true
+                -- Match storage path to original session's audio location
+                AND (storage.foldername(name))[1] = COALESCE(s.source_user_id, s.user_id)::text
+                AND (storage.foldername(name))[2] = COALESCE(s.source_session_id, s.id)::text
+            )
+        );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 -- Policy: Users can update their own audio files
 DO $$ BEGIN
     CREATE POLICY "Users can update their own audio files"

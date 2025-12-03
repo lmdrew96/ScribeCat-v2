@@ -201,7 +201,8 @@ export class StudyModeManager {
       },
       onShowSessionDetail: (sessionId) => this.showSessionDetail(sessionId),
       onShareSession: (sessionId) => this.shareSession(sessionId),
-      onDeleteSession: (sessionId) => this.deleteSession(sessionId)
+      onDeleteSession: (sessionId) => this.deleteSession(sessionId),
+      getSessionById: (sessionId) => this.sessions.find(s => s.id === sessionId)
     });
 
     this.initializeEventListeners();

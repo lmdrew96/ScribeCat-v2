@@ -18,6 +18,7 @@ export interface KeyboardShortcutCallbacks {
   onDeleteSelected: () => void;
   onToggleRecording: () => void;
   onTogglePause: () => void;
+  onAddBookmark?: () => void;
 }
 
 export class KeyboardShortcutHandler {
@@ -130,6 +131,14 @@ export class KeyboardShortcutHandler {
       e.preventDefault();
       this.callbacks.onTogglePause();
       logger.info('Keyboard shortcut: Toggle pause');
+      return;
+    }
+
+    // Add Bookmark: Cmd/Ctrl + M
+    if (cmdOrCtrl && e.key === 'm') {
+      e.preventDefault();
+      this.callbacks.onAddBookmark?.();
+      logger.info('Keyboard shortcut: Add bookmark');
       return;
     }
   }

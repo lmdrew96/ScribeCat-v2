@@ -2248,8 +2248,82 @@
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .segment-timestamp {
     min-width: auto;
   }
+}
+
+/* ===== Bookmarks Section ===== */
+.bookmarks-section {
+  background-color: var(--bg-secondary);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-neo-sm);
+}
+
+.bookmarks-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.bookmarks-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--bg-tertiary);
+  border: var(--border-thin) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.bookmark-item:hover {
+  background-color: var(--accent-tertiary, #f59e0b);
+  color: var(--text-on-accent, #000);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-neo-sm);
+}
+
+.bookmark-item:active {
+  transform: translateY(0);
+}
+
+.bookmark-icon {
+  color: var(--accent-tertiary, #f59e0b);
+  display: flex;
+  align-items: center;
+}
+
+.bookmark-item:hover .bookmark-icon {
+  color: inherit;
+}
+
+.bookmark-timestamp {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.bookmark-label {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

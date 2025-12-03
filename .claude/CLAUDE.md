@@ -1,7 +1,7 @@
 # Claude Code Instructions for ScribeCat v2
 
 ## About This Project
-ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **1.87.3**
+ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **1.90.0**
 
 **Tech Stack:** Electron 38 + Vite, TypeScript (strict mode), TipTap rich-text editor, Yjs for CRDT collaboration, Supabase backend, AssemblyAI transcription, Claude AI integration
 
@@ -40,7 +40,7 @@ If something's broken, fix it properly. Don't patch over symptoms - diagnose and
 - **Friend System** - Username support (@username search), friend requests, mutual friends
 - **Study Rooms** - Collaborative spaces (2-8 participants) with real-time sync
 - **Room Invitations** - Invite friends with presence indicators
-- **Multiplayer Games** - Quiz Battle, Jeopardy, Bingo, Flashcards
+- **Multiplayer Games** - Quiz Battle, Jeopardy, Hot Seat Challenge, Lightning Chain
 - **Real-time Chat** - Typing indicators, message history
 - **User Profiles** - Avatars, display names, online status
 

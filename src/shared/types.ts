@@ -1,7 +1,7 @@
 // Core application types
-// Note: SessionData is exported from domain/entities/Session.ts
-// Import it from there to maintain single source of truth
-export type { SessionData } from '../domain/entities/Session.js';
+// Note: SessionData and Bookmark are exported from domain/entities/Session.ts
+// Import them from there to maintain single source of truth
+export type { SessionData, Bookmark } from '../domain/entities/Session.js';
 
 /**
  * Standard IPC response wrapper for consistent error handling

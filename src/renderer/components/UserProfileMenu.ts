@@ -7,6 +7,7 @@
 import { AuthManager } from '../managers/AuthManager.js';
 import { AccountSettingsModal } from './AccountSettingsModal.js';
 import { getIconHTML } from '../utils/iconMap.js';
+import { notificationTicker } from '../managers/NotificationTicker.js';
 
 export class UserProfileMenu {
   private authManager: AuthManager;
@@ -143,11 +144,11 @@ export class UserProfileMenu {
       this.openAccountSettings();
     });
 
-    // Sync status (placeholder for now)
+    // Sync with cloud
     const syncBtn = this.menu?.querySelector('#profile-menu-sync');
-    syncBtn?.addEventListener('click', () => {
-      console.log('Sync status clicked (not implemented yet)');
+    syncBtn?.addEventListener('click', async () => {
       this.hideMenu();
+      await this.handleSync();
     });
 
     // Shared sessions - open study mode filtered to shared sessions
@@ -317,6 +318,37 @@ export class UserProfileMenu {
     } else {
       console.error('Account settings modal not available');
       alert('Account settings is not available');
+    }
+  }
+
+  /**
+   * Handle cloud sync
+   */
+  private async handleSync(): Promise<void> {
+    const currentUser = this.authManager.getCurrentUser();
+    if (!currentUser) {
+      notificationTicker.warning('Please sign in to sync', 3000);
+      return;
+    }
+
+    notificationTicker.info('Syncing with cloud...', 2000);
+
+    try {
+      const result = await window.scribeCat.sync.syncAllFromCloud();
+
+      if (result.success) {
+        if (result.count > 0) {
+          notificationTicker.success(`Synced ${result.count} session${result.count === 1 ? '' : 's'} from cloud`, 3000);
+          // Trigger refresh of study mode if it's visible
+          document.dispatchEvent(new CustomEvent('refreshStudyMode'));
+        } else {
+          notificationTicker.success('Already up to date', 2000);
+        }
+      } else {
+        notificationTicker.error(`Sync failed: ${result.error || 'Unknown error'}`, 4000);
+      }
+    } catch (error) {
+      notificationTicker.error(`Sync error: ${error instanceof Error ? error.message : 'Unknown error'}`, 4000);
     }
   }
 

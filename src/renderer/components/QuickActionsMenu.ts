@@ -19,16 +19,29 @@ export interface QuickAction {
   divider?: boolean; // Show divider after this action
 }
 
+export interface QuickActionsConfig {
+  actions: QuickAction[];
+  getSessionById?: (sessionId: string) => Session | undefined;
+}
+
 export class QuickActionsMenu {
   private menu: HTMLElement | null = null;
   private currentSession: Session | null = null;
   private actions: QuickAction[] = [];
+  private getSessionById?: (sessionId: string) => Session | undefined;
 
   /**
    * Initialize quick actions menu
    */
-  initialize(actions: QuickAction[]): void {
-    this.actions = actions;
+  initialize(actionsOrConfig: QuickAction[] | QuickActionsConfig): void {
+    if (Array.isArray(actionsOrConfig)) {
+      // Legacy: just actions array
+      this.actions = actionsOrConfig;
+    } else {
+      // New: config object with actions and getSessionById
+      this.actions = actionsOrConfig.actions;
+      this.getSessionById = actionsOrConfig.getSessionById;
+    }
     this.createMenu();
     this.setupGlobalListeners();
   }
@@ -167,9 +180,17 @@ export class QuickActionsMenu {
         e.preventDefault();
         const sessionId = sessionCard.getAttribute('data-session-id');
 
-        // TODO: Get session from manager
-        // For now, just show the menu
-        this.show(this.currentSession!, e.clientX, e.clientY);
+        if (sessionId && this.getSessionById) {
+          const session = this.getSessionById(sessionId);
+          if (session) {
+            this.show(session, e.clientX, e.clientY);
+          } else {
+            logger.warn(`Session not found for context menu: ${sessionId}`);
+          }
+        } else if (this.currentSession) {
+          // Fallback to current session if no getSessionById callback
+          this.show(this.currentSession, e.clientX, e.clientY);
+        }
       }
     });
   }

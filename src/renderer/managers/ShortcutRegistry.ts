@@ -108,6 +108,14 @@ export class ShortcutRegistry {
       implementedIn: 'KeyboardShortcutHandler.ts'
     },
     {
+      id: 'add-bookmark',
+      description: 'Add Bookmark',
+      keys: 'Cmd+M',
+      context: 'recording',
+      handler: 'onAddBookmark',
+      implementedIn: 'KeyboardShortcutHandler.ts'
+    },
+    {
       id: 'new-recording',
       description: 'New Recording',
       keys: 'Cmd+N',

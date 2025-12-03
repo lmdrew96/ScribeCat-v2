@@ -105,6 +105,9 @@ export class FriendsModal {
           </div>
 
           <div class="modal-body">
+            <!-- General message area for friends/requests tabs -->
+            <div id="friends-modal-message" class="friends-modal-message" style="display: none;"></div>
+
             <!-- Friends Tab -->
             <div class="friends-tab-content" data-tab-content="friends">
               <div id="friends-list-container" class="friends-list-container">
@@ -342,12 +345,17 @@ export class FriendsModal {
    * Show general message (for friends/requests tabs)
    */
   private showMessage(message: string, type: 'success' | 'error'): void {
-    // For now, just use console and alert
-    // TODO: Add a proper message display area in the modal
-    console.log(`[${type}] ${message}`);
-    if (type === 'error') {
-      alert(message);
-    }
+    const messageEl = document.getElementById('friends-modal-message');
+    if (!messageEl) return;
+
+    messageEl.textContent = message;
+    messageEl.className = `friends-modal-message ${type}`;
+    messageEl.style.display = 'block';
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      messageEl.style.display = 'none';
+    }, 3000);
   }
 
   /**

@@ -6,33 +6,38 @@
  * Infrastructure layer - implements IGoogleDriveService.
  */
 
-import { 
-  IGoogleDriveService, 
-  GoogleDriveConfig, 
-  GoogleDriveUploadOptions, 
+import {
+  IGoogleDriveService,
+  GoogleDriveConfig,
+  GoogleDriveUploadOptions,
   GoogleDriveUploadResult,
-  GoogleDriveAuthResult 
+  GoogleDriveAuthResult
 } from '../../../domain/services/IGoogleDriveService.js';
 import { google } from 'googleapis';
 import * as fs from 'fs';
 import * as path from 'path';
+import { config } from '../../../config.js';
 
 export class GoogleDriveService implements IGoogleDriveService {
   private oauth2Client: any;
   private drive: any;
-  private config: GoogleDriveConfig;
+  private driveConfig: GoogleDriveConfig;
   private userEmail?: string;
 
-  // Pre-configured OAuth credentials for ScribeCat
-  // TODO: Replace these with your actual Google Cloud project credentials
-  // See docs/GOOGLE_DRIVE_SETUP.md for instructions
-  private readonly CLIENT_ID = '1018984459263-tug045v4lbhfc59o7ne0fn940gdn26r8.apps.googleusercontent.com';
-  private readonly CLIENT_SECRET = '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';
+  // OAuth credentials loaded from environment variables
+  private readonly CLIENT_ID = config.googleDrive.clientId;
+  private readonly CLIENT_SECRET = config.googleDrive.clientSecret;
   private readonly SCOPES = ['https://www.googleapis.com/auth/drive.file'];
   private readonly REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'; // For desktop apps
 
-  constructor(config?: GoogleDriveConfig) {
-    this.config = config || {};
+  constructor(driveConfig?: GoogleDriveConfig) {
+    this.driveConfig = driveConfig || {};
+
+    // Warn if OAuth credentials are not configured
+    if (!this.CLIENT_ID || !this.CLIENT_SECRET) {
+      console.warn('⚠️  Google Drive OAuth credentials not configured. Set GOOGLE_DRIVE_CLIENT_ID and GOOGLE_DRIVE_CLIENT_SECRET environment variables.');
+    }
+
     this.initializeClient();
   }
 
@@ -47,9 +52,9 @@ export class GoogleDriveService implements IGoogleDriveService {
     );
 
     // Load stored refresh token if available
-    if (this.config.refreshToken) {
+    if (this.driveConfig.refreshToken) {
       this.oauth2Client.setCredentials({
-        refresh_token: this.config.refreshToken
+        refresh_token: this.driveConfig.refreshToken
       });
     }
 
@@ -99,7 +104,7 @@ export class GoogleDriveService implements IGoogleDriveService {
    * Set authentication credentials
    */
   async setCredentials(config: GoogleDriveConfig): Promise<void> {
-    this.config = { ...this.config, ...config };
+    this.driveConfig = { ...this.driveConfig, ...config };
     this.initializeClient();
   }
 
@@ -113,7 +118,7 @@ export class GoogleDriveService implements IGoogleDriveService {
       
       // Store refresh token for future use
       if (tokens.refresh_token) {
-        this.config.refreshToken = tokens.refresh_token;
+        this.driveConfig.refreshToken = tokens.refresh_token;
       }
 
       // Get user's email
@@ -278,7 +283,7 @@ export class GoogleDriveService implements IGoogleDriveService {
    * Disconnect (revoke credentials)
    */
   async disconnect(): Promise<void> {
-    this.config.refreshToken = undefined;
+    this.driveConfig.refreshToken = undefined;
     this.userEmail = undefined;
     this.oauth2Client.setCredentials({});
   }

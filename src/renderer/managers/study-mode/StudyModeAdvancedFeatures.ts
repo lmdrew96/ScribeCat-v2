@@ -37,6 +37,7 @@ export interface AdvancedFeaturesConfig {
   onShowSessionDetail: (sessionId: string) => void;
   onShareSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
+  getSessionById?: (sessionId: string) => Session | undefined;
 }
 
 export interface ViewComponents {
@@ -213,7 +214,10 @@ export class StudyModeAdvancedFeatures {
         }
       ];
 
-      this.config.quickActions.initialize(actions);
+      this.config.quickActions.initialize({
+        actions,
+        getSessionById: this.config.getSessionById
+      });
       logger.info('Quick actions menu initialized');
     } catch (error) {
       logger.error('Failed to initialize quick actions', error);

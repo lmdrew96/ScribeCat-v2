@@ -389,6 +389,41 @@
   border: var(--border-medium) solid #D32F2F;
 }
 
+/* General Modal Message (for friends/requests tabs) */
+.friends-modal-message {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-neo-md);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  border: var(--border-medium) solid var(--border-color-neo);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.friends-modal-message.success {
+  background: #4CAF50;
+  color: #ffffff;
+  border-color: #388E3C;
+}
+
+.friends-modal-message.error {
+  background: #F44336;
+  color: #ffffff;
+  border-color: #D32F2F;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;

@@ -104,8 +104,13 @@ export class ChatUI {
         this.updateBadge(count);
       },
       onSuggestionClick: (suggestion) => {
-        console.log('Suggestion clicked:', suggestion);
-        // TODO: Handle suggestion actions (bookmark, note_prompt, etc.)
+        // Delegate to RecordingManager which has access to all necessary managers
+        const recordingManager = (window as any).recordingManager;
+        if (recordingManager?.handleSuggestionAction) {
+          recordingManager.handleSuggestionAction(suggestion);
+        } else {
+          console.warn('RecordingManager not available for suggestion action');
+        }
       }
     });
 

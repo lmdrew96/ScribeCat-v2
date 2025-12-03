@@ -39,6 +39,7 @@ export class RecordingManager {
   private vuMeterInterval: number | null = null;
   private suggestionCheckInterval: number | null = null;
   private sessionTitleInput: HTMLInputElement | null = null;
+  private bookmarks: Array<{ timestamp: number; label?: string; createdAt: Date }> = [];
 
   constructor(
     audioManager: AudioManager,
@@ -108,6 +109,7 @@ export class RecordingManager {
     // Update state
     this.isRecording = true;
     this.startTime = Date.now();
+    this.bookmarks = []; // Reset bookmarks for new recording
 
     // Prevent system sleep during recording
     try {
@@ -249,7 +251,8 @@ export class RecordingManager {
           courseData,
           userId,
           transcriptionData,
-          sessionTitle
+          sessionTitle,
+          this.bookmarks
         );
 
         if (!saveResult.success) {
@@ -602,38 +605,110 @@ export class RecordingManager {
   }
 
   /**
-   * Handle suggestion actions from ChatUI (legacy - now handled by ChatUI)
+   * Handle suggestion actions from Live AI panel
+   * Called by ChatUI when user clicks a suggestion
    */
-  private handleChipSuggestion(suggestion: any): void {
+  public handleSuggestionAction(suggestion: any): void {
     logger.info('Handling suggestion:', suggestion);
+    const notificationTicker = (window as any).notificationTicker;
 
     // Handle different suggestion actions
     switch (suggestion.suggestedAction) {
       case 'bookmark':
         logger.info('User wants to bookmark this moment');
-        // TODO: Implement bookmark functionality
+        this.addBookmark(suggestion.reason);
         break;
 
       case 'note_prompt':
+      case 'notes':
         logger.info('Prompting user to add notes');
         // Focus the notes editor
         this.editorManager.focus();
+        notificationTicker?.success('Notes editor focused - start typing!', 2000);
         break;
 
       case 'highlight':
         logger.info('User wants to highlight important moment');
-        // TODO: Implement highlight functionality
+        // Highlight is essentially the same as bookmark with a different label
+        this.addBookmark(`⭐ ${suggestion.reason || 'Important moment'}`);
         break;
 
       case 'break':
         logger.info('Suggesting break to user');
         // Pause recording
-        this.pause();
+        if (this.isRecording && !this.isPaused) {
+          this.pause();
+          notificationTicker?.success('Recording paused. Take a break!', 3000);
+        }
+        break;
+
+      case 'flashcards':
+      case 'quiz':
+      case 'summary':
+      case 'eli5':
+        logger.info(`User wants to generate ${suggestion.suggestedAction}`);
+        // These are study mode tools - save session first to use them
+        notificationTicker?.info(`Save your session to generate ${suggestion.suggestedAction} in Study Mode`, 3000);
         break;
 
       default:
         logger.warn('Unknown suggestion action:', suggestion.suggestedAction);
     }
+  }
+
+  /**
+   * Add a bookmark at the current recording position
+   * Can be called via keyboard shortcut or UI button
+   */
+  public addBookmark(label?: string): void {
+    if (!this.isRecording) {
+      logger.warn('Cannot add bookmark - not recording');
+      return;
+    }
+
+    // Calculate current timestamp (accounting for paused time)
+    const now = Date.now();
+    let elapsedMs = now - this.startTime - this.totalPausedTime;
+    if (this.isPaused && this.pauseStartTime) {
+      elapsedMs -= (now - this.pauseStartTime);
+    }
+    const timestamp = Math.max(0, Math.floor(elapsedMs / 1000));
+
+    // Add bookmark to list
+    const bookmark = {
+      timestamp,
+      label: label || undefined,
+      createdAt: new Date()
+    };
+    this.bookmarks.push(bookmark);
+
+    // Show notification
+    const notificationTicker = (window as any).notificationTicker;
+    const formattedTime = this.formatTimestamp(timestamp);
+    notificationTicker?.success(`🔖 Bookmark added at ${formattedTime}`, 2000);
+
+    logger.info(`Bookmark added at ${timestamp}s:`, bookmark);
+  }
+
+  /**
+   * Get all bookmarks for the current recording
+   */
+  public getBookmarks(): Array<{ timestamp: number; label?: string; createdAt: Date }> {
+    return [...this.bookmarks];
+  }
+
+  /**
+   * Format timestamp as MM:SS or HH:MM:SS
+   */
+  private formatTimestamp(seconds: number): string {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
 }

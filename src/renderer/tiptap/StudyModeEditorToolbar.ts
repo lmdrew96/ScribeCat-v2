@@ -2,6 +2,7 @@
 import type { Editor } from '@tiptap/core';
 import { compressImage, isSupportedImageType, getRecommendedOptions } from '../utils/imageCompression.js';
 import { createLogger } from '../../shared/logger.js';
+import { notificationTicker } from '../managers/NotificationTicker.js';
 
 const logger = createLogger('StudyModeEditorToolbar');
 
@@ -417,7 +418,8 @@ export class StudyModeEditorToolbar {
     }
 
     try {
-      // Show loading state (TODO: Add UI indicator)
+      // Show loading state
+      notificationTicker.info('Compressing image...', 0); // 0 = persistent until dismissed
       logger.info('Compressing image...');
 
       // Compress image with recommended settings
@@ -431,10 +433,12 @@ export class StudyModeEditorToolbar {
         height: result.height,
       }).run();
 
+      // Show success feedback
+      notificationTicker.success('Image added successfully', 2000);
       logger.info('Image inserted successfully');
     } catch (error) {
       logger.error('Failed to process image:', error);
-      alert('Failed to process image. Please try again.');
+      notificationTicker.error('Failed to process image. Please try again.', 3000);
     } finally {
       // Clear input so same file can be selected again
       input.value = '';

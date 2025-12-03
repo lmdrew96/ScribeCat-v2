@@ -63,6 +63,12 @@ export class StudyModeKeyboardConfig {
             recordingManager.pauseRecording();
           }
         }
+      },
+      onAddBookmark: () => {
+        const recordingManager = (window as any).recordingManager;
+        if (recordingManager && recordingManager.getIsRecording()) {
+          recordingManager.addBookmark();
+        }
       }
     });
   }
