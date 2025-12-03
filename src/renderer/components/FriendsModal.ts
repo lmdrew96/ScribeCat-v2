@@ -3,15 +3,17 @@
  *
  * Modal component for managing friends and friend requests.
  * Features three tabs: Friends list, Requests, and Find friends.
+ *
+ * Delegates to:
+ * - FriendsListTab: Friends list rendering and actions
+ * - FriendsRequestsTab: Incoming/outgoing request handling
+ * - FriendsFindTab: User search and friend request sending
  */
 
 import type { FriendsManager } from '../managers/social/FriendsManager.js';
 import type { MessagesManager } from '../managers/social/MessagesManager.js';
 import { MessagesView } from './MessagesView.js';
-import type { FriendData } from '../../domain/entities/Friend.js';
-import type { FriendRequestData } from '../../domain/entities/FriendRequest.js';
-import type { SearchUserResult } from '../../infrastructure/services/supabase/SupabaseFriendsRepository.js';
-import { escapeHtml } from '../utils/formatting.js';
+import { FriendsListTab, FriendsRequestsTab, FriendsFindTab } from './friends-modal/index.js';
 
 type TabType = 'friends' | 'requests' | 'find' | 'messages';
 
@@ -22,11 +24,36 @@ export class FriendsModal {
   private messagesView: MessagesView | null = null;
   private currentTab: TabType = 'friends';
   private currentUserId: string | null = null;
-  private searchTimeout: number | null = null;
+
+  // Delegated tab components
+  private friendsListTab: FriendsListTab;
+  private requestsTab: FriendsRequestsTab;
+  private findTab: FriendsFindTab;
 
   constructor(friendsManager: FriendsManager, messagesManager?: MessagesManager) {
     this.friendsManager = friendsManager;
     this.messagesManager = messagesManager || null;
+
+    // Initialize delegated tab components
+    this.friendsListTab = new FriendsListTab(friendsManager, {
+      showMessage: (msg, type) => this.showMessage(msg, type),
+      switchToMessages: (friendId, friendName) => {
+        if (this.messagesView) {
+          this.switchTab('messages');
+          this.messagesView.showCompose(friendId, friendName);
+        }
+      },
+      updateTabBadges: () => this.updateTabBadges(),
+    });
+
+    this.requestsTab = new FriendsRequestsTab(friendsManager, {
+      showMessage: (msg, type) => this.showMessage(msg, type),
+      updateTabBadges: () => this.updateTabBadges(),
+    });
+
+    this.findTab = new FriendsFindTab(friendsManager, {
+      showFindMessage: (msg, type) => this.showFindMessage(msg, type),
+    });
 
     // Listen for changes
     this.friendsManager.addFriendsListener(() => this.refreshCurrentTab());
@@ -170,12 +197,12 @@ export class FriendsModal {
     // Find friends search
     const searchInput = document.getElementById('find-friends-email') as HTMLInputElement;
     searchInput?.addEventListener('input', () => {
-      this.handleSearch();
+      this.findTab.handleSearch();
     });
 
     searchInput?.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        this.handleSearch();
+        this.findTab.handleSearch();
       }
     });
   }
@@ -254,10 +281,10 @@ export class FriendsModal {
   private refreshCurrentTab(): void {
     switch (this.currentTab) {
       case 'friends':
-        this.renderFriendsList();
+        this.friendsListTab.render();
         break;
       case 'requests':
-        this.renderRequests();
+        this.requestsTab.render();
         break;
       case 'find':
         // Search results persist until new search
@@ -308,539 +335,8 @@ export class FriendsModal {
   }
 
   // ============================================================================
-  // Friends Tab
-  // ============================================================================
-
-  /**
-   * Render friends list
-   */
-  private renderFriendsList(): void {
-    const container = document.getElementById('friends-list-container');
-    if (!container) return;
-
-    const friends = this.friendsManager.getFriends();
-
-    if (friends.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <p>No friends yet</p>
-          <p class="empty-state-hint">Use the "Find Friends" tab to add friends!</p>
-        </div>
-      `;
-      return;
-    }
-
-    // Sort friends: online first, then alphabetically
-    const sortedFriends = [...friends].sort((a, b) => {
-      if (a.isOnline !== b.isOnline) {
-        return a.isOnline ? -1 : 1;
-      }
-      // Sort by username, fallback to email if no username
-      const nameA = a.friendUsername || a.friendEmail.split('@')[0];
-      const nameB = b.friendUsername || b.friendEmail.split('@')[0];
-      return nameA.localeCompare(nameB);
-    });
-
-    container.innerHTML = sortedFriends.map(friend => this.renderFriendItem(friend)).join('');
-
-    // Attach message handlers
-    container.querySelectorAll('.friend-message-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const target = e.currentTarget as HTMLElement;
-        const friendId = target.dataset.friendId;
-        const friendName = target.dataset.friendName;
-        if (friendId && this.messagesView) {
-          this.switchTab('messages');
-          this.messagesView.showCompose(friendId, friendName);
-        }
-      });
-    });
-
-    // Attach remove handlers
-    container.querySelectorAll('.friend-remove-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const friendId = (e.currentTarget as HTMLElement).dataset.friendId;
-        if (friendId) {
-          this.handleRemoveFriend(friendId);
-        }
-      });
-    });
-
-    this.updateTabBadges();
-  }
-
-  /**
-   * Render a single friend item
-   */
-  private renderFriendItem(friend: FriendData): string {
-    // Primary display: @username (or email if no username for existing users)
-    const primaryDisplay = friend.friendUsername ? `@${friend.friendUsername}` : friend.friendEmail.split('@')[0];
-    // Secondary display in status line if full name available
-    const fullName = friend.friendFullName || '';
-
-    // For initials, use full name if available, otherwise username or email
-    const initialsSource = friend.friendFullName || friend.friendUsername || friend.friendEmail;
-    const initials = this.getInitials(initialsSource);
-
-    // Determine online status indicator
-    const statusIndicator = this.getStatusIndicator(friend);
-
-    // Get status text (uses Friend entity logic if available, or fallback)
-    const statusText = this.getStatusText(friend);
-
-    return `
-      <div class="friend-item" data-friend-id="${friend.friendId}">
-        <div class="friend-avatar">
-          ${friend.friendAvatarUrl ?
-            `<img src="${escapeHtml(friend.friendAvatarUrl)}" alt="${escapeHtml(primaryDisplay)}" />` :
-            `<div class="avatar-placeholder">${escapeHtml(initials)}</div>`
-          }
-          ${statusIndicator}
-        </div>
-        <div class="friend-info">
-          <div class="friend-name">${escapeHtml(primaryDisplay)}${fullName ? ` <span class="friend-fullname">(${escapeHtml(fullName)})</span>` : ''}</div>
-          <div class="friend-status ${friend.isOnline ? 'status-online' : 'status-offline'}">${escapeHtml(statusText)}</div>
-        </div>
-        <div class="friend-actions">
-          <button class="friend-message-btn btn-icon" data-friend-id="${friend.friendId}" data-friend-name="${escapeHtml(primaryDisplay)}" title="Send message">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-          </button>
-          <button class="friend-remove-btn btn-text" data-friend-id="${friend.friendId}" title="Remove friend">
-            Remove
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Get status indicator HTML for a friend
-   */
-  private getStatusIndicator(friend: FriendData): string {
-    if (friend.isOnline) {
-      return '<span class="status-indicator online" title="Online"></span>';
-    }
-
-    // Check if recently online (within last 10 minutes)
-    if (friend.lastSeen) {
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-      const lastSeen = new Date(friend.lastSeen);
-      if (lastSeen > tenMinutesAgo) {
-        return '<span class="status-indicator away" title="Recently online"></span>';
-      }
-    }
-
-    return '<span class="status-indicator offline" title="Offline"></span>';
-  }
-
-  /**
-   * Get status text for a friend
-   */
-  private getStatusText(friend: FriendData): string {
-    // If online and has activity, show the activity
-    if (friend.isOnline && friend.currentActivity) {
-      return friend.currentActivity;
-    }
-
-    if (friend.isOnline) {
-      return 'Online';
-    }
-
-    // Check if recently online
-    if (friend.lastSeen) {
-      const lastSeen = new Date(friend.lastSeen);
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-
-      if (lastSeen > tenMinutesAgo) {
-        return 'Recently online';
-      }
-
-      // Format last seen time
-      return this.formatLastSeen(lastSeen);
-    }
-
-    return 'Offline';
-  }
-
-  /**
-   * Format last seen time as human-readable string
-   */
-  private formatLastSeen(lastSeen: Date): string {
-    const now = Date.now();
-    const diff = now - lastSeen.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) {
-      return 'Just now';
-    } else if (minutes < 60) {
-      return `${minutes}m ago`;
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else if (days < 7) {
-      return `${days}d ago`;
-    } else {
-      return lastSeen.toLocaleDateString();
-    }
-  }
-
-  /**
-   * Handle removing a friend
-   */
-  private async handleRemoveFriend(friendId: string): Promise<void> {
-    const friend = this.friendsManager.getFriendById(friendId);
-    if (!friend) return;
-
-    const displayName = friend.friendFullName || friend.friendEmail;
-    const confirmed = confirm(`Remove ${displayName} from your friends?`);
-
-    if (confirmed) {
-      try {
-        await this.friendsManager.removeFriend(friendId);
-        this.showMessage('Friend removed', 'success');
-      } catch (error) {
-        this.showMessage(`Failed to remove friend: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-      }
-    }
-  }
-
-  // ============================================================================
-  // Requests Tab
-  // ============================================================================
-
-  /**
-   * Render friend requests (incoming and outgoing)
-   */
-  private renderRequests(): void {
-    this.renderIncomingRequests();
-    this.renderOutgoingRequests();
-    this.updateTabBadges();
-  }
-
-  /**
-   * Render incoming friend requests
-   */
-  private renderIncomingRequests(): void {
-    const container = document.getElementById('incoming-requests-container');
-    if (!container) return;
-
-    const incoming = this.friendsManager.getIncomingRequests();
-
-    if (incoming.length === 0) {
-      container.innerHTML = '<p class="empty-state">No incoming friend requests</p>';
-      return;
-    }
-
-    container.innerHTML = incoming.map(req => this.renderIncomingRequest(req)).join('');
-
-    // Attach handlers
-    container.querySelectorAll('.request-accept-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const requestId = (e.currentTarget as HTMLElement).dataset.requestId;
-        if (requestId) {
-          await this.handleAcceptRequest(requestId);
-        }
-      });
-    });
-
-    container.querySelectorAll('.request-reject-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const requestId = (e.currentTarget as HTMLElement).dataset.requestId;
-        if (requestId) {
-          await this.handleRejectRequest(requestId);
-        }
-      });
-    });
-  }
-
-  /**
-   * Render a single incoming request
-   */
-  private renderIncomingRequest(request: FriendRequestData): string {
-    const displayName = request.senderFullName || request.senderEmail || 'Unknown';
-    const initials = this.getInitials(displayName);
-
-    return `
-      <div class="request-item incoming-request" data-request-id="${request.id}">
-        <div class="request-avatar">
-          ${request.senderAvatarUrl ?
-            `<img src="${escapeHtml(request.senderAvatarUrl)}" alt="${escapeHtml(displayName)}" />` :
-            `<div class="avatar-placeholder">${escapeHtml(initials)}</div>`
-          }
-        </div>
-        <div class="request-info">
-          <div class="request-name">${escapeHtml(displayName)}</div>
-          <div class="request-email">${escapeHtml(request.senderEmail || '')}</div>
-          <div class="request-time">${this.getTimeSince(request.createdAt)}</div>
-        </div>
-        <div class="request-actions">
-          <button class="request-accept-btn btn btn-primary btn-sm" data-request-id="${request.id}">
-            Accept
-          </button>
-          <button class="request-reject-btn btn btn-secondary btn-sm" data-request-id="${request.id}">
-            Reject
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Render outgoing friend requests
-   */
-  private renderOutgoingRequests(): void {
-    const container = document.getElementById('outgoing-requests-container');
-    if (!container) return;
-
-    const outgoing = this.friendsManager.getOutgoingRequests();
-
-    if (outgoing.length === 0) {
-      container.innerHTML = '<p class="empty-state">No outgoing friend requests</p>';
-      return;
-    }
-
-    container.innerHTML = outgoing.map(req => this.renderOutgoingRequest(req)).join('');
-
-    // Attach handlers
-    container.querySelectorAll('.request-cancel-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const requestId = (e.currentTarget as HTMLElement).dataset.requestId;
-        if (requestId) {
-          await this.handleCancelRequest(requestId);
-        }
-      });
-    });
-  }
-
-  /**
-   * Render a single outgoing request
-   */
-  private renderOutgoingRequest(request: FriendRequestData): string {
-    const displayName = request.recipientFullName || request.recipientEmail || 'Unknown';
-    const initials = this.getInitials(displayName);
-
-    return `
-      <div class="request-item outgoing-request" data-request-id="${request.id}">
-        <div class="request-avatar">
-          ${request.recipientAvatarUrl ?
-            `<img src="${escapeHtml(request.recipientAvatarUrl)}" alt="${escapeHtml(displayName)}" />` :
-            `<div class="avatar-placeholder">${escapeHtml(initials)}</div>`
-          }
-        </div>
-        <div class="request-info">
-          <div class="request-name">${escapeHtml(displayName)}</div>
-          <div class="request-email">${escapeHtml(request.recipientEmail || '')}</div>
-          <div class="request-time">Sent ${this.getTimeSince(request.createdAt)}</div>
-        </div>
-        <div class="request-actions">
-          <button class="request-cancel-btn btn btn-secondary btn-sm" data-request-id="${request.id}">
-            Cancel
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Handle accepting a friend request
-   */
-  private async handleAcceptRequest(requestId: string): Promise<void> {
-    try {
-      await this.friendsManager.acceptFriendRequest(requestId);
-      this.showMessage('Friend request accepted!', 'success');
-    } catch (error) {
-      this.showMessage(`Failed to accept request: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-    }
-  }
-
-  /**
-   * Handle rejecting a friend request
-   */
-  private async handleRejectRequest(requestId: string): Promise<void> {
-    try {
-      await this.friendsManager.rejectFriendRequest(requestId);
-      this.showMessage('Friend request rejected', 'success');
-    } catch (error) {
-      this.showMessage(`Failed to reject request: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-    }
-  }
-
-  /**
-   * Handle cancelling an outgoing friend request
-   */
-  private async handleCancelRequest(requestId: string): Promise<void> {
-    try {
-      await this.friendsManager.cancelFriendRequest(requestId);
-      this.showMessage('Friend request cancelled', 'success');
-    } catch (error) {
-      this.showMessage(`Failed to cancel request: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-    }
-  }
-
-  // ============================================================================
-  // Find Friends Tab
-  // ============================================================================
-
-  /**
-   * Handle search input
-   */
-  private handleSearch(): void {
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
-    }
-
-    this.searchTimeout = window.setTimeout(() => {
-      this.performSearch();
-    }, 500); // Debounce 500ms
-  }
-
-  /**
-   * Perform the search
-   */
-  private async performSearch(): Promise<void> {
-    const searchInput = document.getElementById('find-friends-email') as HTMLInputElement;
-    if (!searchInput) return;
-
-    const searchEmail = searchInput.value.trim();
-
-    if (!searchEmail) {
-      this.renderSearchResults([]);
-      return;
-    }
-
-    // Show loading
-    const resultsContainer = document.getElementById('find-friends-results');
-    if (resultsContainer) {
-      resultsContainer.innerHTML = '<div class="loading">Searching...</div>';
-    }
-
-    try {
-      const users = await this.friendsManager.searchUsers(searchEmail, 20);
-      this.renderSearchResults(users);
-    } catch (error) {
-      this.showFindMessage(`Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-      this.renderSearchResults([]);
-    }
-  }
-
-  /**
-   * Render search results
-   */
-  private renderSearchResults(users: SearchUserResult[]): void {
-    const container = document.getElementById('find-friends-results');
-    if (!container) return;
-
-    if (users.length === 0) {
-      container.innerHTML = '<p class="empty-state">No users found</p>';
-      return;
-    }
-
-    container.innerHTML = users.map(user => this.renderSearchResult(user)).join('');
-
-    // Attach handlers
-    container.querySelectorAll('.add-friend-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const userId = (e.currentTarget as HTMLElement).dataset.userId;
-        if (userId) {
-          await this.handleSendRequest(userId);
-        }
-      });
-    });
-  }
-
-  /**
-   * Render a single search result
-   */
-  private renderSearchResult(user: SearchUserResult): string {
-    // Primary display: @username (or email if no username for existing users)
-    const primaryDisplay = user.username ? `@${user.username}` : user.email.split('@')[0];
-    // Secondary display: Full name if available
-    const secondaryDisplay = user.fullName || '';
-
-    // For initials, use full name if available, otherwise username or email
-    const initialsSource = user.fullName || user.username || user.email;
-    const initials = this.getInitials(initialsSource);
-
-    let actionButton = '';
-
-    if (user.isFriend) {
-      actionButton = '<span class="already-friends">Already friends</span>';
-    } else if (user.hasPendingRequest) {
-      actionButton = '<span class="request-pending">Request pending</span>';
-    } else {
-      actionButton = `<button class="add-friend-btn btn btn-primary btn-sm" data-user-id="${user.id}">Add Friend</button>`;
-    }
-
-    return `
-      <div class="search-result-item" data-user-id="${user.id}">
-        <div class="search-result-avatar">
-          ${user.avatarUrl ?
-            `<img src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(primaryDisplay)}" />` :
-            `<div class="avatar-placeholder">${escapeHtml(initials)}</div>`
-          }
-        </div>
-        <div class="search-result-info">
-          <div class="search-result-name">${escapeHtml(primaryDisplay)}</div>
-          ${secondaryDisplay ? `<div class="search-result-email">${escapeHtml(secondaryDisplay)}</div>` : ''}
-        </div>
-        <div class="search-result-actions">
-          ${actionButton}
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Handle sending a friend request
-   */
-  private async handleSendRequest(recipientId: string): Promise<void> {
-    try {
-      await this.friendsManager.sendFriendRequest(recipientId);
-      this.showFindMessage('Friend request sent!', 'success');
-      // Refresh search to update button state
-      await this.performSearch();
-    } catch (error) {
-      this.showFindMessage(`Failed to send request: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-    }
-  }
-
-  // ============================================================================
   // Utility Methods
   // ============================================================================
-
-  /**
-   * Get initials from name or email
-   */
-  private getInitials(name: string): string {
-    const parts = name.split(/[\s@]+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  }
-
-  /**
-   * Get human-readable time since date
-   */
-  private getTimeSince(date: Date | string): string {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const now = Date.now();
-    const diff = now - dateObj.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return dateObj.toLocaleDateString();
-  }
 
   /**
    * Show general message (for friends/requests tabs)
