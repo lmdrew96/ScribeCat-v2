@@ -66,7 +66,7 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 22.5px;
+  gap: 16px;
   grid-column: 3;
   justify-self: end;
   -webkit-app-region: no-drag;
@@ -227,8 +227,8 @@
 
 /* Icon Button - Neobrutalism Style */
 .icon-btn {
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-neo-md);
   border: var(--border-medium) solid var(--border-color-neo);
   background-color: var(--bg-tertiary);
@@ -255,15 +255,16 @@
   box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
-.settings-icon {
-  font-size: 30px;
-}
-
+.settings-icon,
 .signin-icon,
 .study-icon,
 .help-icon,
-.friends-icon {
-  font-size: 30px;
+.friends-icon,
+.rooms-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
 
 /* Friends Badge - Neobrutalism Style */
