@@ -1,7 +1,7 @@
 # Claude Code Instructions for ScribeCat v2
 
 ## About This Project
-ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **1.56.2**
+ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **1.74.0**
 
 **Tech Stack:** Electron 38 + Vite, TypeScript (strict mode), TipTap rich-text editor, Yjs for CRDT collaboration, Supabase backend, AssemblyAI transcription, Claude AI integration
 
@@ -17,6 +17,13 @@ If something's broken, fix it properly. Don't patch over symptoms - diagnose and
 - BAD: "Just restart the service when it fails"
 - GOOD: "The service is failing because of Y. Let's fix Y."
 
+## 🚦 Before You Start ANY Work
+
+1. **Check version** in package.json (currently v1.74.0)
+2. **Run `npm run clean`** to delete old build artifacts
+3. **Read these instructions** fully before coding
+4. **Known Issue:** `npm run dev` does not work successfully. Do not attempt to run it without being prompted. This is a known issue we'll address eventually.
+
 ## Key Features
 
 ### Core Features
@@ -26,16 +33,29 @@ If something's broken, fix it properly. Don't patch over symptoms - diagnose and
 
 ### AI Integration (Claude claude-sonnet-4-5-20250929)
 - Smart Chat (contextual Q&A)
-- Summary, Flashcard, Quiz generators
-- Concept mapping, Weak spots analysis
-- ELI5, Study plan generators
+- Content analysis and suggestions
+- AI-powered study assistance
 
-### Social & Collaboration (Phases 1-5)
-- **Friends System** - Requests, mutual friends, user search
-- **Presence System** - Online/away/offline status
-- **Study Rooms** - Collaborative spaces (2-8 participants)
-- **Real-time Chat** - Typing indicators, message history
+### Social & Collaboration Features
+- **Friend System** - Username support (@username search), friend requests, mutual friends
+- **Study Rooms** - Collaborative spaces (2-8 participants) with real-time sync
+- **Room Invitations** - Invite friends with presence indicators
 - **Multiplayer Games** - Quiz Battle, Jeopardy, Bingo, Flashcards
+- **Real-time Chat** - Typing indicators, message history
+- **User Profiles** - Avatars, display names, online status
+
+### Gamification & Productivity
+- **Achievements** - Milestone tracking and badges
+- **Goals** - Study goals with progress tracking
+- **Focus Mode** - Distraction-free environment
+- **Custom Layouts** - Flexible UI arrangements
+- **Keyboard Shortcuts** - Comprehensive shortcut system
+
+### Customization
+- **40 Themes** - 8 in each category (Calm, Energetic, Focus, Creative, Balanced)
+- **Light & Dark Variants** - Every theme has both modes
+- **Neobrutalism Design** - Bold borders, shadows, distinctive UI
+- **Custom Fonts** - GalaxyCaterpillar (title), RonysiswadiArchitect5 (UI headers)
 
 ### Cloud Features
 - Supabase sync with Row-Level Security
@@ -66,19 +86,19 @@ src/
 │   ├── main.ts          # App entry point (ScribeCatApp class)
 │   ├── ipc/             # IPC handlers
 │   └── services/        # Main process services
-├── preload/             # Secure context bridge (window.scribeCat API)
+├── preload/             # Preload scripts (context bridge)
 ├── renderer/            # UI layer
 │   ├── app.ts           # Renderer entry point
 │   ├── managers/        # UI coordination managers
 │   ├── components/      # UI components
-│   ├── ai/              # AI tool generators
+│   ├── ai/              # AI integration
 │   ├── audio/           # Audio handling
 │   └── tiptap/          # Editor extensions
 ├── shared/              # Common types, utilities, logger
 └── config/              # Configuration files
 
 supabase/
-├── migrations/          # 33+ SQL migrations
+├── migrations/          # 46+ SQL migrations
 └── functions/           # Server-side functions
 
 browser-extension/       # Separate browser extension component
@@ -92,20 +112,75 @@ browser-extension/       # Separate browser extension component
 - `ViewManager` - Main view switching
 - `AIManager` - Claude API integration
 - `AuthManager` - Authentication state
+- `CourseManager` - Canvas LMS course integration
+- `DeviceManager` - Audio device selection
 
 **Study Mode:**
 - `StudyModeManager` - Orchestrates study mode UI
 - `StudyModeDetailViewManager` - Session detail views
 - `StudyModeAIToolsManager` - AI tool generation
-- `SessionDataLoader`, `SessionEditingManager`, `SessionDeletionManager`
+- `StudyModeNotesEditorManager` - Notes editing in study mode
+- `SessionDataLoader` - Session loading
+- `SessionEditingManager` - Session metadata editing
+- `SessionDeletionManager` - Trash and deletion
 - `MultiSessionCoordinator` - Multi-session study sets
-- `CloudSyncManager`, `FilterSortManager`, `BulkSelectionManager`
+- `CloudSyncManager` - Cloud sync coordination
+- `FilterSortManager` - Filtering and sorting
+- `BulkSelectionManager` - Bulk operations
 
 **Social:**
 - `FriendsManager` - Friends and presence
 - `StudyRoomsManager` - Room management
 - `ChatManager` - Real-time chat
 - `MultiplayerGamesManager` - Game sessions
+
+**Gamification & Productivity:**
+- `AchievementsManager` - Track user milestones and badges
+- `GoalsManager` - Study goals and progress tracking
+- `FocusModeManager` - Distraction-free environment
+- `LayoutManager` - Customizable UI layouts
+- `CommandRegistry` / `ShortcutRegistry` - Keyboard shortcuts
+
+**Utilities:**
+- `NotificationTicker` - Toast notifications
+- `RealtimeNotificationManager` - Realtime event notifications
+- `SearchManager` - Global search
+- `SessionSharingManager` - Share session management
+- `SessionResetManager` - Reset sessions
+
+## Architecture Pattern: Supabase Realtime
+
+**CRITICAL:** Supabase Realtime WebSockets **DO NOT work** in Electron's main process. They require a browser environment (localStorage, proper WebSocket support).
+
+### ✅ DO: Subscribe directly in renderer manager
+
+```typescript
+const client = RendererSupabaseClient.getInstance().getClient();
+this.channel = client
+  .channel(`feature-${userId}`)
+  .on('postgres_changes', { 
+    event: 'INSERT', 
+    schema: 'public', 
+    table: 'my_table' 
+  }, handler)
+  .subscribe();
+```
+
+### ❌ DON'T: Create IPC handlers for subscriptions
+
+```typescript
+// WRONG - WebSocket in main process, data flows through IPC
+this.handle(ipcMain, 'feature:subscribe', async (event) => {
+  this.repository.subscribeToFeature(userId, (data) => {
+    event.sender.send('feature:update', data);
+  });
+});
+```
+
+**Why this matters:**
+- WebSockets need browser APIs that main process doesn't have
+- Realtime events won't be delivered if subscribed in main process
+- Managers should use `RendererSupabaseClient` directly for all realtime features
 
 ## Critical Build Requirements
 
@@ -118,21 +193,22 @@ npm run clean   # Delete dist/ folder
 
 ### ALWAYS Update Version Before Commits
 Update `version` in package.json using semantic versioning:
-- **Patch** (1.56.2 → 1.56.3): Bug fixes
-- **Minor** (1.56.2 → 1.57.0): New features
-- **Major** (1.56.2 → 2.0.0): Breaking changes
+- **Patch** (1.74.0 → 1.74.1): Bug fixes
+- **Minor** (1.74.0 → 1.75.0): New features
+- **Major** (1.74.0 → 2.0.0): Breaking changes
 
-**Commit format:** `"v1.56.3: Brief description of change"`
+**Commit format:** `"v1.74.1: Brief description of change"`
 
 ## Build Process
 
 ```bash
-npm run dev              # Development with hot reload
 npm run compile          # Compile TypeScript
 npm run build            # Full production build
 npm run build:mac/win/linux  # Platform-specific builds
 npm run clean            # Delete dist/
 ```
+
+**Note:** `npm run dev` is currently broken - do not attempt without prompting.
 
 **Build outputs:** `dist/main/`, `dist/preload/`, `dist/renderer/`
 
@@ -150,27 +226,26 @@ npm run clean            # Delete dist/
 **Chat:** `chat:send*/get*/subscribe*`
 **Games:** `games:create*/start/complete`, `games:*question*`, `games:*score*`
 
-## Communication Style (CRITICAL)
+## How to Communicate with Lanae ⚡
 
-**Lanae has ADHD - your communication style matters:**
+**Lead with ACTION, then explain WHY:**
+✅ "Run `npm run clean` to delete old build files that cause bugs"  
+❌ "You might want to consider cleaning the build directory"
 
-**DO:**
-- Lead with THE action to take (singular, not options)
-- Break big tasks into small, concrete steps
-- Explain WHY after WHAT
-- Use simple language
-- Provide code examples
-- Pivot quickly if something's not working
+**No Decision Paralysis:**
+- Max 2-3 options with pros/cons
+- **Always recommend ONE** with clear reasoning
+- Example: "Use Option A because X is your priority"
 
-**DON'T:**
-- Give 3+ options (causes decision paralysis)
-- Use vague suggestions
-- Dump 10 tasks at once
-- Suggest bandaid fixes
+**Keep it Simple:**
+- Break big tasks into 3-5 concrete steps
+- Use code examples
+- Pivot quickly if something isn't working
 
-**When offering choices:**
-1. Max 2-3 options with concise pros/cons
-2. **RECOMMEND one specific option with reasoning**
+**Never:**
+- Dump 5+ options without a recommendation
+- Use vague suggestions like "you could try..."
+- Suggest bandaid fixes that don't address root causes
 
 ## Testing
 
@@ -211,8 +286,9 @@ npm run test:ui           # Visual UI
 
 **Supabase (Cloud):**
 - PostgreSQL with Row-Level Security
-- Tables: sessions, transcriptions, users, friends, study_rooms, room_participants, chat_messages, game_sessions, game_questions, player_scores, shares, yjs_state, presence
+- Tables: sessions, transcriptions, users, friends, study_rooms, room_participants, chat_messages, game_sessions, game_questions, player_scores, shares, yjs_state, presence, room_invitations
 - Realtime subscriptions for live updates
+- 46+ migrations implementing features
 
 **Local:**
 - electron-store for settings
@@ -228,11 +304,12 @@ npm run test:ui           # Visual UI
 
 ## Recent Version History
 
-- **v1.56.x:** Re-transcription fixes for cloud sessions
-- **v1.55.x:** Phase 4 multiplayer games bug fixes
-- **v1.54.x:** Phase 4 Multiplayer Games (Quiz Battle, Jeopardy, Bingo, Flashcards)
-- **v1.51-52.x:** Phase 5 User Presence System
-- **v1.50.x:** Social features polish (chat, typing indicators)
+- **v1.74.0:** Theme redesign for visual distinction (Coffee Shop, Cosmic Void, etc.)
+- **v1.73.x:** Transcription timestamp fixes, UI icons (SVG), custom fonts, Lucide icons
+- **v1.70-72.x:** Neobrutalism design system, avatar uploads, theme expansion
+- **v1.67-69.x:** Study room improvements, Final Jeopardy, invitation flow, rejoin feature
+- **v1.65-66.x:** Usernames (@username search), Nyan Cat effects, theme contrast improvements
+- **v1.60-64.x:** Multiplayer games (Quiz Battle, Jeopardy, Bingo, Flashcards)
 
 ## Remember
 

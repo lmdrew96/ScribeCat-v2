@@ -27,6 +27,7 @@ import { PowerHandlers } from './ipc/handlers/PowerHandlers.js';
 import { FriendsHandlers } from './ipc/handlers/FriendsHandlers.js';
 import { StudyRoomsHandlers } from './ipc/handlers/StudyRoomsHandlers.js';
 import { ChatHandlers } from './ipc/handlers/ChatHandlers.js';
+import { MessagesHandlers } from './ipc/handlers/MessagesHandlers.js';
 import { registerGameHandlers } from './ipc/handlers/GameHandlers.js';
 import { GoogleDriveService } from '../infrastructure/services/drive/GoogleDriveService.js';
 import type { GoogleDriveConfig } from '../shared/types.js';
@@ -56,6 +57,7 @@ export class IPCCoordinator {
   private friendsHandlers: FriendsHandlers | null = null;
   private studyRoomsHandlers: StudyRoomsHandlers | null = null;
   private chatHandlers: ChatHandlers | null = null;
+  private messagesHandlers: MessagesHandlers | null = null;
 
   constructor(deps: IPCCoordinatorDependencies) {
     this.services = deps.services;
@@ -147,6 +149,10 @@ export class IPCCoordinator {
     this.chatHandlers = new ChatHandlers();
     registry.add(this.chatHandlers);
 
+    // Add messages handlers (Neomail-style private messaging)
+    this.messagesHandlers = new MessagesHandlers();
+    registry.add(this.messagesHandlers);
+
     // Register all handlers with ipcMain
     registry.registerAll(ipcMain);
   }
@@ -235,6 +241,11 @@ export class IPCCoordinator {
         // Update StudyRoomsHandlers with user ID
         if (this.studyRoomsHandlers) {
           this.studyRoomsHandlers.setCurrentUserId(data.userId);
+        }
+
+        // Update MessagesHandlers with user ID
+        if (this.messagesHandlers) {
+          this.messagesHandlers.setCurrentUserId(data.userId);
         }
 
         // Set session on SupabaseClient for authenticated requests
@@ -399,6 +410,11 @@ export class IPCCoordinator {
     // Cleanup chat subscriptions
     if (this.chatHandlers) {
       await this.chatHandlers.cleanup();
+    }
+
+    // Cleanup messages subscriptions
+    if (this.messagesHandlers) {
+      await this.messagesHandlers.cleanup();
     }
 
     console.log('[IPCCoordinator] Cleanup complete');

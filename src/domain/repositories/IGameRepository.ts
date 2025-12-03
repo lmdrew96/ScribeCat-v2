@@ -180,45 +180,8 @@ export interface IGameRepository {
    */
   getGameLeaderboard(gameSessionId: string): Promise<LeaderboardEntry[]>;
 
-  // ============================================================================
-  // Real-time Subscriptions
-  // ============================================================================
-
-  /**
-   * Subscribe to game session updates
-   */
-  subscribeToGameSession(
-    gameSessionId: string,
-    onUpdate: (gameSession: GameSession) => void
-  ): () => Promise<void>;
-
-  /**
-   * Subscribe to new questions in a game
-   */
-  subscribeToGameQuestions(
-    gameSessionId: string,
-    onQuestion: (question: GameQuestion) => void
-  ): () => Promise<void>;
-
-  /**
-   * Subscribe to player scores in a game
-   */
-  subscribeToGameScores(
-    gameSessionId: string,
-    onScore: (score: PlayerScore) => void
-  ): () => Promise<void>;
-
-  /**
-   * Subscribe to game sessions for a specific room
-   * Used to detect when a host starts a new game
-   */
-  subscribeToRoomGames(
-    roomId: string,
-    onGameSession: (gameSession: GameSession | null) => void
-  ): () => Promise<void>;
-
-  /**
-   * Unsubscribe from all game subscriptions
-   */
-  unsubscribeAll(): Promise<void>;
+  // NOTE: Realtime subscriptions are handled directly in the renderer process
+  // via RendererSupabaseClient (WebSockets don't work in Electron's main process).
+  // See MultiplayerGamesManager.subscribeToGameUpdates(), JeopardyGame.subscribeToBuzzers(),
+  // and StudyRoomView.subscribeToRoomGames()
 }

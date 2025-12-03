@@ -3,7 +3,7 @@
  * Handles multiplayer game operations with Supabase
  */
 
-import { SupabaseClient as SupabaseClientType, RealtimeChannel } from '@supabase/supabase-js';
+import { SupabaseClient as SupabaseClientType } from '@supabase/supabase-js';
 import { SupabaseClient } from './SupabaseClient.js';
 import {
   IGameRepository,
@@ -16,21 +16,18 @@ import { GameSession } from '../../../domain/entities/GameSession.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
 import { PlayerScore, LeaderboardEntry } from '../../../domain/entities/PlayerScore.js';
 
+/**
+ * NOTE: Realtime subscriptions for games are handled directly in the renderer process
+ * via RendererSupabaseClient (WebSockets don't work in Electron's main process).
+ * See MultiplayerGamesManager.subscribeToGameUpdates(), JeopardyGame.subscribeToBuzzers(),
+ * and StudyRoomView.subscribeToRoomGames()
+ */
 export class SupabaseGamesRepository implements IGameRepository {
-  private channels: Map<string, RealtimeChannel> = new Map();
-
   /**
    * Get a fresh Supabase client with the current session for REST calls
    */
   private getClient(): SupabaseClientType {
     return SupabaseClient.getInstance().getClient();
-  }
-
-  /**
-   * Get the base Supabase client for Realtime subscriptions
-   */
-  private getRealtimeClient(): SupabaseClientType {
-    return SupabaseClient.getInstance().getRealtimeClient();
   }
 
   // ============================================================================
@@ -613,239 +610,6 @@ export class SupabaseGamesRepository implements IGameRepository {
   }
 
   // ============================================================================
-  // Real-time Subscriptions
-  // ============================================================================
-
-  /**
-   * Subscribe to game session updates
-   */
-  public subscribeToGameSession(
-    gameSessionId: string,
-    onUpdate: (gameSession: GameSession) => void
-  ): () => Promise<void> {
-    const channelName = `game-session:${gameSessionId}`;
-    const client = this.getRealtimeClient();
-
-    console.log('📡 Creating Realtime game session subscription:', gameSessionId);
-
-    // Remove existing subscription if any
-    const existingChannel = this.channels.get(channelName);
-    if (existingChannel) {
-      console.log(`Removing existing game session subscription ${gameSessionId}`);
-      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
-      client.removeChannel(existingChannel);
-      this.channels.delete(channelName);
-    }
-
-    // Auth is already set via setSession() on the base client
-    // No need to call setAuth() per channel - it can cause conflicts
-
-    const channel = client.channel(channelName).on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'game_sessions',
-        filter: `id=eq.${gameSessionId}`,
-      },
-      (payload) => {
-        console.log('Game session updated:', payload);
-        const gameSession = GameSession.fromDatabase(payload.new as any);
-        onUpdate(gameSession);
-      }
-    );
-
-    channel.subscribe((status) => {
-      console.log(`Game session subscription status for ${gameSessionId}:`, status);
-    });
-
-    this.channels.set(channelName, channel);
-
-    return async () => {
-      await channel.unsubscribe();
-      client.removeChannel(channel);
-      this.channels.delete(channelName);
-      console.log(`Unsubscribed from game session ${gameSessionId}`);
-    };
-  }
-
-  /**
-   * Subscribe to new questions in a game
-   */
-  public subscribeToGameQuestions(
-    gameSessionId: string,
-    onQuestion: (question: GameQuestion) => void
-  ): () => Promise<void> {
-    const channelName = `game-questions:${gameSessionId}`;
-    const client = this.getRealtimeClient();
-
-    console.log('📡 Creating Realtime game questions subscription:', gameSessionId);
-
-    // Remove existing subscription if any
-    const existingChannel = this.channels.get(channelName);
-    if (existingChannel) {
-      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
-      client.removeChannel(existingChannel);
-      this.channels.delete(channelName);
-    }
-
-    // Auth is already set via setSession() on the base client
-    // No need to call setAuth() per channel - it can cause conflicts
-
-    const channel = client.channel(channelName).on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'game_questions',
-        filter: `game_session_id=eq.${gameSessionId}`,
-      },
-      (payload) => {
-        console.log('New game question:', payload);
-        const question = GameQuestion.fromDatabase(payload.new as any);
-        onQuestion(question);
-      }
-    );
-
-    channel.subscribe((status) => {
-      console.log(`Game questions subscription status for ${gameSessionId}:`, status);
-    });
-
-    this.channels.set(channelName, channel);
-
-    return async () => {
-      await channel.unsubscribe();
-      client.removeChannel(channel);
-      this.channels.delete(channelName);
-      console.log(`Unsubscribed from game questions ${gameSessionId}`);
-    };
-  }
-
-  /**
-   * Subscribe to player scores in a game
-   */
-  public subscribeToGameScores(
-    gameSessionId: string,
-    onScore: (score: PlayerScore) => void
-  ): () => Promise<void> {
-    const channelName = `game-scores:${gameSessionId}`;
-    const client = this.getRealtimeClient();
-
-    console.log('📡 Creating Realtime game scores subscription:', gameSessionId);
-
-    // Remove existing subscription if any
-    const existingChannel = this.channels.get(channelName);
-    if (existingChannel) {
-      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
-      client.removeChannel(existingChannel);
-      this.channels.delete(channelName);
-    }
-
-    // Auth is already set via setSession() on the base client
-    // No need to call setAuth() per channel - it can cause conflicts
-
-    const channel = client.channel(channelName).on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'player_scores',
-        filter: `game_session_id=eq.${gameSessionId}`,
-      },
-      (payload) => {
-        console.log('New player score:', payload);
-        const score = PlayerScore.fromDatabase(payload.new as any);
-        onScore(score);
-      }
-    );
-
-    channel.subscribe((status) => {
-      console.log(`Game scores subscription status for ${gameSessionId}:`, status);
-    });
-
-    this.channels.set(channelName, channel);
-
-    return async () => {
-      await channel.unsubscribe();
-      client.removeChannel(channel);
-      this.channels.delete(channelName);
-      console.log(`Unsubscribed from game scores ${gameSessionId}`);
-    };
-  }
-
-  /**
-   * Subscribe to game sessions for a specific room
-   * Used to detect when a host starts a new game
-   */
-  public subscribeToRoomGames(
-    roomId: string,
-    onGameSession: (gameSession: GameSession | null) => void
-  ): () => Promise<void> {
-    const channelName = `room-games:${roomId}`;
-    const client = this.getRealtimeClient();
-
-    console.log('📡 Creating Realtime room games subscription:', roomId);
-
-    // Remove existing subscription if any
-    const existingChannel = this.channels.get(channelName);
-    if (existingChannel) {
-      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
-      client.removeChannel(existingChannel);
-      this.channels.delete(channelName);
-    }
-
-    // Auth is already set via setSession() on the base client
-    // No need to call setAuth() per channel - it can cause conflicts
-
-    const channel = client.channel(channelName).on(
-      'postgres_changes',
-      {
-        event: '*', // Listen for INSERT and UPDATE
-        schema: 'public',
-        table: 'game_sessions',
-        filter: `room_id=eq.${roomId}`,
-      },
-      (payload) => {
-        console.log('Room game update:', payload.eventType, payload);
-        if (payload.new) {
-          const gameSession = GameSession.fromDatabase(payload.new as any);
-          onGameSession(gameSession);
-        } else {
-          onGameSession(null);
-        }
-      }
-    );
-
-    channel.subscribe((status) => {
-      console.log(`Room games subscription status for ${roomId}:`, status);
-    });
-
-    this.channels.set(channelName, channel);
-
-    return async () => {
-      await channel.unsubscribe();
-      client.removeChannel(channel);
-      this.channels.delete(channelName);
-      console.log(`Unsubscribed from room games ${roomId}`);
-    };
-  }
-
-  /**
-   * Unsubscribe from all game subscriptions
-   */
-  public async unsubscribeAll(): Promise<void> {
-    const client = this.getRealtimeClient();
-
-    for (const [channelName, channel] of this.channels.entries()) {
-      await channel.unsubscribe();
-      client.removeChannel(channel);
-      console.log(`Unsubscribed from ${channelName}`);
-    }
-
-    this.channels.clear();
-  }
-
-  // ============================================================================
   // Jeopardy-Specific Operations
   // ============================================================================
 
@@ -1091,62 +855,6 @@ export class SupabaseGamesRepository implements IGameRepository {
     }
   }
 
-  /**
-   * Subscribe to buzzer presses for a question
-   */
-  public subscribeToBuzzerPresses(
-    questionId: string,
-    onBuzzer: (buzzer: { userId: string; buzzerRank: number; pressedAt: Date }) => void
-  ): () => Promise<void> {
-    const channelName = `buzzer-presses:${questionId}`;
-    const client = this.getRealtimeClient();
-
-    console.log('📡 Creating Realtime buzzer subscription:', questionId);
-
-    // Remove existing subscription if any
-    const existingChannel = this.channels.get(channelName);
-    if (existingChannel) {
-      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
-      client.removeChannel(existingChannel);
-      this.channels.delete(channelName);
-    }
-
-    // Auth is already set via setSession() on the base client
-    // No need to call setAuth() per channel - it can cause conflicts
-
-    const channel = client.channel(channelName).on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'buzzer_presses',
-        filter: `question_id=eq.${questionId}`,
-      },
-      (payload) => {
-        console.log('New buzzer press:', payload);
-        const data = payload.new as any;
-        onBuzzer({
-          userId: data.user_id,
-          buzzerRank: data.buzzer_rank,
-          pressedAt: new Date(data.pressed_at),
-        });
-      }
-    );
-
-    channel.subscribe((status) => {
-      console.log(`Buzzer subscription status for ${questionId}:`, status);
-    });
-
-    this.channels.set(channelName, channel);
-
-    return async () => {
-      await channel.unsubscribe();
-      client.removeChannel(channel);
-      this.channels.delete(channelName);
-      console.log(`Unsubscribed from buzzer presses ${questionId}`);
-    };
-  }
-
   // ============================================================================
   // Final Jeopardy Operations
   // ============================================================================
@@ -1249,59 +957,5 @@ export class SupabaseGamesRepository implements IGameRepository {
     }
 
     return data === true;
-  }
-
-  /**
-   * Subscribe to Final Jeopardy wager submissions
-   */
-  public subscribeToFinalJeopardyWagers(
-    gameSessionId: string,
-    onWager: (wager: { userId: string; wagerAmount: number }) => void
-  ): () => Promise<void> {
-    const channelName = `fj-wagers:${gameSessionId}`;
-    const client = this.getRealtimeClient();
-
-    console.log('📡 Creating Realtime FJ wagers subscription:', gameSessionId);
-
-    // Remove existing subscription if any
-    const existingChannel = this.channels.get(channelName);
-    if (existingChannel) {
-      existingChannel.unsubscribe().catch((err) => console.error('Error unsubscribing:', err));
-      client.removeChannel(existingChannel);
-      this.channels.delete(channelName);
-    }
-
-    const channel = client.channel(channelName).on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'final_jeopardy_wagers',
-        filter: `game_session_id=eq.${gameSessionId}`,
-      },
-      (payload) => {
-        console.log('FJ wager update:', payload);
-        const data = payload.new as any;
-        if (data) {
-          onWager({
-            userId: data.user_id,
-            wagerAmount: data.wager_amount,
-          });
-        }
-      }
-    );
-
-    channel.subscribe((status) => {
-      console.log(`FJ wagers subscription status for ${gameSessionId}:`, status);
-    });
-
-    this.channels.set(channelName, channel);
-
-    return async () => {
-      await channel.unsubscribe();
-      client.removeChannel(channel);
-      this.channels.delete(channelName);
-      console.log(`Unsubscribed from FJ wagers ${gameSessionId}`);
-    };
   }
 }

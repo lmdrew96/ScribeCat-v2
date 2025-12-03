@@ -27,6 +27,7 @@ import { AccountSettingsModal } from './components/AccountSettingsModal.js';
 import { HelpModal } from './components/HelpModal.js';
 import { TrashModal } from './components/TrashModal.js';
 import { FriendsManager } from './managers/social/FriendsManager.js';
+import { MessagesManager } from './managers/social/MessagesManager.js';
 import { FriendsModal } from './components/FriendsModal.js';
 import { StudyRoomsManager } from './managers/social/StudyRoomsManager.js';
 import { CreateRoomModal } from './components/CreateRoomModal.js';
@@ -77,6 +78,7 @@ let accountSettingsModal: AccountSettingsModal;
 let helpModal: HelpModal;
 let trashModal: TrashModal;
 let friendsManager: FriendsManager;
+let messagesManager: MessagesManager;
 let friendsModal: FriendsModal;
 let studyRoomsManager: StudyRoomsManager;
 let createRoomModal: CreateRoomModal;
@@ -240,7 +242,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize friends system
   friendsManager = new FriendsManager();
-  friendsModal = new FriendsModal(friendsManager);
+  messagesManager = new MessagesManager();
+  friendsModal = new FriendsModal(friendsManager, messagesManager);
   friendsModal.initialize();
 
   // Expose friendsManager globally
@@ -792,6 +795,9 @@ function setupAuthUI(): void {
       // Initialize study rooms manager for this user
       await studyRoomsManager.initialize(user.id);
 
+      // Initialize messages manager for this user
+      await messagesManager.initialize(user.id);
+
       // Initialize realtime notification manager
       realtimeNotificationManager.initialize(
         studyRoomsManager,
@@ -824,24 +830,29 @@ function setupAuthUI(): void {
         }
       });
 
-      // Update friends badge with pending requests count
-      const requestsCount = friendsManager.getIncomingRequestsCount();
-      const friendsBadge = document.getElementById('friends-badge');
-      if (friendsBadge) {
-        friendsBadge.textContent = requestsCount.toString();
-        friendsBadge.style.display = requestsCount > 0 ? 'inline-block' : 'none';
-      }
-
-      // Listen for requests changes to update badge
-      friendsManager.addRequestsListener((requests) => {
-        const incomingCount = requests.filter(r =>
-          r.status === 'pending' && r.recipientId === user.id
-        ).length;
+      // Helper to update friends badge with combined count (requests + unread messages)
+      const updateFriendsBadge = () => {
+        const requestsCount = friendsManager.getIncomingRequestsCount();
+        const unreadMessagesCount = messagesManager.getUnreadCount();
+        const totalCount = requestsCount + unreadMessagesCount;
         const badge = document.getElementById('friends-badge');
         if (badge) {
-          badge.textContent = incomingCount.toString();
-          badge.style.display = incomingCount > 0 ? 'inline-block' : 'none';
+          badge.textContent = totalCount.toString();
+          badge.style.display = totalCount > 0 ? 'inline-block' : 'none';
         }
+      };
+
+      // Initial badge update
+      updateFriendsBadge();
+
+      // Listen for requests changes to update badge
+      friendsManager.addRequestsListener(() => {
+        updateFriendsBadge();
+      });
+
+      // Listen for unread messages count changes to update badge
+      messagesManager.addUnreadCountListener(() => {
+        updateFriendsBadge();
       });
     } else {
       // User is not authenticated - show signin button, hide friends and study rooms buttons
@@ -858,6 +869,9 @@ function setupAuthUI(): void {
 
       // Clear study rooms manager
       studyRoomsManager.clear();
+
+      // Clear messages manager
+      messagesManager.clear();
 
       // Clear realtime notification manager
       realtimeNotificationManager.clear();

@@ -6,26 +6,36 @@
  */
 
 import type { FriendsManager } from '../managers/social/FriendsManager.js';
+import type { MessagesManager } from '../managers/social/MessagesManager.js';
+import { MessagesView } from './MessagesView.js';
 import type { FriendData } from '../../domain/entities/Friend.js';
 import type { FriendRequestData } from '../../domain/entities/FriendRequest.js';
 import type { SearchUserResult } from '../../infrastructure/services/supabase/SupabaseFriendsRepository.js';
 import { escapeHtml } from '../utils/formatting.js';
 
-type TabType = 'friends' | 'requests' | 'find';
+type TabType = 'friends' | 'requests' | 'find' | 'messages';
 
 export class FriendsModal {
   private modal: HTMLElement | null = null;
   private friendsManager: FriendsManager;
+  private messagesManager: MessagesManager | null = null;
+  private messagesView: MessagesView | null = null;
   private currentTab: TabType = 'friends';
   private currentUserId: string | null = null;
   private searchTimeout: number | null = null;
 
-  constructor(friendsManager: FriendsManager) {
+  constructor(friendsManager: FriendsManager, messagesManager?: MessagesManager) {
     this.friendsManager = friendsManager;
+    this.messagesManager = messagesManager || null;
 
     // Listen for changes
     this.friendsManager.addFriendsListener(() => this.refreshCurrentTab());
     this.friendsManager.addRequestsListener(() => this.refreshCurrentTab());
+
+    // Listen for unread count changes
+    if (this.messagesManager) {
+      this.messagesManager.addUnreadCountListener((count) => this.updateMessagesBadge(count));
+    }
   }
 
   /**
@@ -60,6 +70,10 @@ export class FriendsModal {
             </button>
             <button class="friends-tab" data-tab="find">
               <span>Find Friends</span>
+            </button>
+            <button class="friends-tab" data-tab="messages">
+              <span>Messages</span>
+              <span class="friends-tab-badge" id="messages-count-badge" style="display: none;">0</span>
             </button>
           </div>
 
@@ -107,6 +121,13 @@ export class FriendsModal {
                 <p class="empty-state">Enter a username or email to find friends</p>
               </div>
             </div>
+
+            <!-- Messages Tab -->
+            <div class="friends-tab-content" data-tab-content="messages" style="display: none;">
+              <div id="messages-container" class="messages-container">
+                <p class="empty-state">Loading messages...</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -114,6 +135,14 @@ export class FriendsModal {
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     this.modal = document.getElementById('friends-modal');
+
+    // Initialize MessagesView if manager is available
+    if (this.messagesManager) {
+      const messagesContainer = document.getElementById('messages-container');
+      if (messagesContainer) {
+        this.messagesView = new MessagesView(messagesContainer, this.messagesManager, this.friendsManager);
+      }
+    }
 
     this.attachEventListeners();
   }
@@ -184,6 +213,7 @@ export class FriendsModal {
   private switchTab(tabName: TabType): void {
     if (!this.modal) return;
 
+    const previousTab = this.currentTab;
     this.currentTab = tabName;
 
     // Update tab buttons
@@ -197,6 +227,13 @@ export class FriendsModal {
       const isActive = content.getAttribute('data-tab-content') === tabName;
       (content as HTMLElement).style.display = isActive ? 'block' : 'none';
     });
+
+    // Initialize messages view when switching TO the messages tab
+    // (but not when already on it or when called from refreshCurrentTab)
+    if (tabName === 'messages' && previousTab !== 'messages' && this.messagesView) {
+      this.messagesView.showInbox();
+      return;
+    }
 
     // Refresh content for the active tab
     this.refreshCurrentTab();
@@ -225,6 +262,10 @@ export class FriendsModal {
       case 'find':
         // Search results persist until new search
         break;
+      case 'messages':
+        // MessagesView handles its own state and rendering - don't reset it
+        // Only initialize if not already showing content
+        break;
     }
   }
 
@@ -234,9 +275,11 @@ export class FriendsModal {
   private updateTabBadges(): void {
     const friendsCount = this.friendsManager.getFriendsCount();
     const requestsCount = this.friendsManager.getIncomingRequestsCount();
+    const messagesCount = this.messagesManager?.getUnreadCount() || 0;
 
     const friendsBadge = document.getElementById('friends-count-badge');
     const requestsBadge = document.getElementById('requests-count-badge');
+    const messagesBadge = document.getElementById('messages-count-badge');
 
     if (friendsBadge) {
       friendsBadge.textContent = friendsCount.toString();
@@ -245,6 +288,22 @@ export class FriendsModal {
     if (requestsBadge) {
       requestsBadge.textContent = requestsCount.toString();
       requestsBadge.style.display = requestsCount > 0 ? 'inline-block' : 'none';
+    }
+
+    if (messagesBadge) {
+      messagesBadge.textContent = messagesCount.toString();
+      messagesBadge.style.display = messagesCount > 0 ? 'inline-block' : 'none';
+    }
+  }
+
+  /**
+   * Update messages badge (called by listener)
+   */
+  private updateMessagesBadge(count: number): void {
+    const messagesBadge = document.getElementById('messages-count-badge');
+    if (messagesBadge) {
+      messagesBadge.textContent = count.toString();
+      messagesBadge.style.display = count > 0 ? 'inline-block' : 'none';
     }
   }
 
@@ -283,6 +342,20 @@ export class FriendsModal {
     });
 
     container.innerHTML = sortedFriends.map(friend => this.renderFriendItem(friend)).join('');
+
+    // Attach message handlers
+    container.querySelectorAll('.friend-message-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const target = e.currentTarget as HTMLElement;
+        const friendId = target.dataset.friendId;
+        const friendName = target.dataset.friendName;
+        if (friendId && this.messagesView) {
+          this.switchTab('messages');
+          this.messagesView.showCompose(friendId, friendName);
+        }
+      });
+    });
 
     // Attach remove handlers
     container.querySelectorAll('.friend-remove-btn').forEach(btn => {
@@ -330,6 +403,12 @@ export class FriendsModal {
           <div class="friend-status ${friend.isOnline ? 'status-online' : 'status-offline'}">${escapeHtml(statusText)}</div>
         </div>
         <div class="friend-actions">
+          <button class="friend-message-btn btn-icon" data-friend-id="${friend.friendId}" data-friend-name="${escapeHtml(primaryDisplay)}" title="Send message">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+          </button>
           <button class="friend-remove-btn btn-text" data-friend-id="${friend.friendId}" title="Remove friend">
             Remove
           </button>

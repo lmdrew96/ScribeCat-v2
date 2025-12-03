@@ -142,6 +142,9 @@ declare global {
         acceptInvitation: (token: string) => Promise<IPCResponse<any>>;
       };
       friends: {
+        // NOTE: Realtime subscriptions for presence and friend requests are handled
+        // directly in FriendsManager via RendererSupabaseClient (WebSockets don't work
+        // in Electron's main process)
         getFriends: () => Promise<IPCResponse<any[]>>;
         getFriendsCount: () => Promise<IPCResponse<number>>;
         removeFriend: (friendId: string) => Promise<IPCResponse<void>>;
@@ -157,6 +160,11 @@ declare global {
         cancelRequest: (requestId: string) => Promise<IPCResponse<void>>;
         searchUsers: (searchEmail: string, limit?: number) => Promise<IPCResponse<any[]>>;
         getUserProfile: (userId: string) => Promise<IPCResponse<any>>;
+        // Presence operations
+        updatePresence: (params: { userId: string; status: 'online' | 'away' | 'offline'; activity?: string }) => Promise<IPCResponse<void>>;
+        getUserPresence: (userId: string) => Promise<IPCResponse<any>>;
+        getFriendsPresence: (userId: string) => Promise<IPCResponse<any>>;
+        setOffline: (userId: string) => Promise<IPCResponse<void>>;
       };
       studyRooms: {
         // Room operations
@@ -181,18 +189,30 @@ declare global {
         cancelInvitation: (invitationId: string) => Promise<IPCResponse<void>>;
       };
       chat: {
+        // NOTE: Realtime subscriptions are handled directly in ChatManager
+        // via RendererSupabaseClient (WebSockets don't work in Electron's main process)
         sendMessage: (params: { roomId: string; userId: string; message: string }) => Promise<IPCResponse<any>>;
         getRoomMessages: (roomId: string, limit?: number) => Promise<IPCResponse<any[]>>;
         deleteMessage: (messageId: string, userId: string) => Promise<IPCResponse<void>>;
-        subscribeToRoom: (
-          roomId: string,
-          onMessage: (messageData: any) => void,
-          onTyping?: (userId: string, userName: string, isTyping: boolean) => void
-        ) => () => void;
-        broadcastTyping: (roomId: string, userId: string, userName: string, isTyping: boolean) => Promise<IPCResponse<void>>;
-        unsubscribeAll: () => Promise<IPCResponse<void>>;
+      };
+      messages: {
+        // NOTE: Realtime subscriptions are handled directly in MessagesManager
+        // via RendererSupabaseClient (WebSockets don't work in Electron's main process)
+        send: (params: { recipientId: string; subject?: string; content: string; attachments?: any[] }) => Promise<IPCResponse<any>>;
+        getInbox: (limit?: number) => Promise<IPCResponse<any[]>>;
+        getSent: (limit?: number) => Promise<IPCResponse<any[]>>;
+        getConversation: (params: { otherUserId: string; limit?: number }) => Promise<IPCResponse<any[]>>;
+        getMessage: (messageId: string) => Promise<IPCResponse<any>>;
+        markAsRead: (messageId: string) => Promise<IPCResponse<void>>;
+        markConversationAsRead: (senderId: string) => Promise<IPCResponse<{ count: number }>>;
+        getUnreadCount: () => Promise<IPCResponse<{ count: number }>>;
+        delete: (messageId: string) => Promise<IPCResponse<void>>;
+        uploadAttachment: (params: { data: ArrayBuffer; name: string; type: string }) => Promise<IPCResponse<any>>;
       };
       games: {
+        // NOTE: Realtime subscriptions are handled directly in MultiplayerGamesManager,
+        // JeopardyGame, and StudyRoomView via RendererSupabaseClient (WebSockets don't
+        // work in Electron's main process)
         createGameSession: (params: { roomId: string; gameType: string; config: any }) => Promise<IPCResponse<any>>;
         getGameSession: (gameSessionId: string) => Promise<IPCResponse<any>>;
         getActiveGameForRoom: (roomId: string) => Promise<IPCResponse<any>>;
@@ -207,11 +227,6 @@ declare global {
         submitAnswer: (params: { gameSessionId: string; userId: string; questionId: string; answer: string; timeTakenMs: number }) => Promise<IPCResponse<any>>;
         getGameLeaderboard: (gameSessionId: string) => Promise<IPCResponse<any[]>>;
         getPlayerScores: (gameSessionId: string, userId: string) => Promise<IPCResponse<any[]>>;
-        subscribeToGameSession: (gameSessionId: string, onUpdate: (sessionData: any) => void) => () => void;
-        subscribeToGameQuestions: (gameSessionId: string, onQuestion: (questionData: any) => void) => () => void;
-        subscribeToGameScores: (gameSessionId: string, onScore: (scoreData: any) => void) => () => void;
-        subscribeToRoomGames: (roomId: string, onGameSession: (sessionData: any) => void) => () => void;
-        unsubscribeAll: () => Promise<IPCResponse<void>>;
       };
       sharing: {
         checkAccess: (sessionId: string) => Promise<IPCResponse<any>>;

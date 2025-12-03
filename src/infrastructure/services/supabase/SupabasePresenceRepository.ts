@@ -5,7 +5,7 @@
  * Handles real-time presence tracking via Supabase
  */
 
-import { SupabaseClient as SupabaseClientType, RealtimeChannel } from '@supabase/supabase-js';
+import { SupabaseClient as SupabaseClientType } from '@supabase/supabase-js';
 import { SupabaseClient } from './SupabaseClient.js';
 import {
   IPresenceRepository,
@@ -16,10 +16,9 @@ import {
 
 /**
  * Repository for managing user presence and status
+ * Real-time subscriptions are handled directly in FriendsManager (renderer).
  */
 export class SupabasePresenceRepository implements IPresenceRepository {
-  private subscriptions: Map<string, RealtimeChannel> = new Map();
-
   /**
    * Get a fresh Supabase client with the current session
    */
@@ -144,95 +143,6 @@ export class SupabasePresenceRepository implements IPresenceRepository {
   }
 
   /**
-   * Subscribe to presence updates for a user's friends
-   * Returns an unsubscribe function
-   */
-  subscribeToFriendsPresence(
-    userId: string,
-    onUpdate: (friendId: string, presence: PresenceData) => void
-  ): () => Promise<void> {
-    const channelName = `presence:user:${userId}`;
-
-    // Remove existing subscription if any
-    const existing = this.subscriptions.get(channelName);
-    if (existing) {
-      this.getClient().removeChannel(existing);
-      this.subscriptions.delete(channelName);
-    }
-
-    // Create new channel for presence updates
-    const channel = this.getClient()
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_presence',
-        },
-        (payload) => {
-          console.log('[PresenceRepository] Received realtime update:', payload);
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const data = payload.new as any;
-            console.log('[PresenceRepository] Presence change detected for user:', data.user_id);
-            // Only notify if this is a friend's update (will be filtered by RLS on query)
-            this.isFriend(userId, data.user_id).then((isFriend) => {
-              console.log('[PresenceRepository] Is friend check:', { userId: data.user_id, isFriend });
-              if (isFriend) {
-                console.log('[PresenceRepository] Notifying about friend presence update');
-                onUpdate(data.user_id, {
-                  userId: data.user_id,
-                  status: data.status as UserStatus,
-                  activity: data.activity,
-                  lastSeen: new Date(data.last_seen),
-                });
-              }
-            });
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`[PresenceRepository] Subscribed to presence updates for user ${userId}`);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`[PresenceRepository] Error subscribing to presence channel`);
-        }
-      });
-
-    this.subscriptions.set(channelName, channel);
-
-    // Return unsubscribe function
-    return async () => {
-      await this.getClient().removeChannel(channel);
-      this.subscriptions.delete(channelName);
-      console.log(`[PresenceRepository] Unsubscribed from presence updates for user ${userId}`);
-    };
-  }
-
-  /**
-   * Check if two users are friends
-   * Helper method for filtering presence updates
-   */
-  private async isFriend(userId: string, friendId: string): Promise<boolean> {
-    try {
-      const { data, error } = await this.getClient().rpc('are_friends', {
-        user_a: userId,
-        user_b: friendId,
-      });
-
-      if (error) {
-        console.error('Error checking friendship:', error);
-        return false;
-      }
-
-      return data === true;
-    } catch (error) {
-      console.error('Exception in isFriend:', error);
-      return false;
-    }
-  }
-
-  /**
    * Set user to offline status
    */
   async setOffline(userId: string): Promise<void> {
@@ -248,20 +158,4 @@ export class SupabasePresenceRepository implements IPresenceRepository {
     }
   }
 
-  /**
-   * Unsubscribe from all presence subscriptions
-   */
-  async unsubscribeAll(): Promise<void> {
-    try {
-      const client = this.getClient();
-      for (const [channelName, channel] of this.subscriptions.entries()) {
-        await client.removeChannel(channel);
-        console.log(`[PresenceRepository] Unsubscribed from ${channelName}`);
-      }
-      this.subscriptions.clear();
-    } catch (error) {
-      console.error('Exception in unsubscribeAll:', error);
-      throw error;
-    }
-  }
 }

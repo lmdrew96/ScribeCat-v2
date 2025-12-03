@@ -1,8 +1,8 @@
 /**
  * ChatHandlers
  *
- * IPC handlers for chat operations.
- * Manages chat messages and real-time subscriptions between renderer and main process.
+ * IPC handlers for chat message operations (send, get, delete).
+ * Real-time subscriptions are handled directly in ChatManager (renderer).
  */
 
 import { IpcMain } from 'electron';
@@ -11,7 +11,6 @@ import { SupabaseChatRepository } from '../../../infrastructure/services/supabas
 
 export class ChatHandlers extends BaseHandler {
   private repository: SupabaseChatRepository;
-  private subscriptions: Map<string, () => void> = new Map();
 
   constructor() {
     super();
@@ -81,137 +80,5 @@ export class ChatHandlers extends BaseHandler {
         };
       }
     });
-
-    // ============================================================================
-    // Real-time Subscriptions
-    // ============================================================================
-
-    this.handle(ipcMain, 'chat:subscribeToRoom', async (event, roomId: string) => {
-      try {
-        // Create a unique key for this subscription (room + sender)
-        const subscriptionKey = `${roomId}-${event.sender.id}`;
-
-        // Unsubscribe from previous subscription if exists
-        const existingUnsubscribe = this.subscriptions.get(subscriptionKey);
-        if (existingUnsubscribe) {
-          console.log(`[ChatHandlers] Unsubscribing from previous subscription: ${subscriptionKey}`);
-          existingUnsubscribe();
-          this.subscriptions.delete(subscriptionKey);
-        }
-
-        // Subscribe and send new messages and typing events to renderer
-        const unsubscribe = this.repository.subscribeToRoom(
-          roomId,
-          (message) => {
-            if (!event.sender.isDestroyed()) {
-              event.sender.send('chat:newMessage', {
-                roomId,
-                message: message.toJSON(),
-              });
-            }
-          },
-          (userId, userName, isTyping) => {
-            if (!event.sender.isDestroyed()) {
-              event.sender.send('chat:typingStatus', {
-                roomId,
-                userId,
-                userName,
-                isTyping,
-              });
-            }
-          }
-        );
-
-        // Store the unsubscribe function
-        this.subscriptions.set(subscriptionKey, unsubscribe);
-
-        // Clean up when window is closed
-        event.sender.on('destroyed', () => {
-          const storedUnsubscribe = this.subscriptions.get(subscriptionKey);
-          if (storedUnsubscribe) {
-            console.log(`[ChatHandlers] Cleaning up subscription on window close: ${subscriptionKey}`);
-            // Fire and forget - window is already destroyed so we can't await
-            storedUnsubscribe().catch(err =>
-              console.error(`[ChatHandlers] Error during cleanup: ${err}`)
-            );
-            this.subscriptions.delete(subscriptionKey);
-          }
-        });
-
-        return { success: true };
-      } catch (error) {
-        console.error('[ChatHandlers] Failed to subscribe to room:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to subscribe',
-        };
-      }
-    });
-
-    this.handle(ipcMain, 'chat:broadcastTyping', async (_event, params: {
-      roomId: string;
-      userId: string;
-      userName: string;
-      isTyping: boolean;
-    }) => {
-      try {
-        await this.repository.broadcastTypingStatus(
-          params.roomId,
-          params.userId,
-          params.userName,
-          params.isTyping
-        );
-
-        return { success: true };
-      } catch (error) {
-        console.error('[ChatHandlers] Failed to broadcast typing:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to broadcast typing',
-        };
-      }
-    });
-
-    this.handle(ipcMain, 'chat:unsubscribeAll', async () => {
-      try {
-        // Call all stored unsubscribe functions
-        const unsubscribePromises = Array.from(this.subscriptions.entries()).map(([key, unsubscribe]) => {
-          console.log(`[ChatHandlers] Unsubscribing: ${key}`);
-          return unsubscribe();
-        });
-        await Promise.all(unsubscribePromises);
-        this.subscriptions.clear();
-
-        // Also call repository unsubscribeAll as a fallback
-        await this.repository.unsubscribeAll();
-
-        return { success: true };
-      } catch (error) {
-        console.error('[ChatHandlers] Failed to unsubscribe:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to unsubscribe',
-        };
-      }
-    });
-  }
-
-  /**
-   * Cleanup all chat subscriptions (called on app quit)
-   */
-  public async cleanup(): Promise<void> {
-    console.log('[ChatHandlers] Cleaning up all subscriptions on app quit');
-
-    // Unsubscribe all active subscriptions
-    const unsubscribePromises = Array.from(this.subscriptions.values()).map(unsubscribe =>
-      unsubscribe()
-    );
-    await Promise.all(unsubscribePromises);
-    this.subscriptions.clear();
-
-    // Also cleanup repository channels
-    await this.repository.unsubscribeAll();
-
-    console.log('[ChatHandlers] All subscriptions cleaned up');
   }
 }

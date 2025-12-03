@@ -288,6 +288,9 @@ const electronAPI = {
       ipcRenderer.invoke('share:acceptInvitation', token)
   },
   friends: {
+    // NOTE: Realtime subscriptions for presence and friend requests are handled
+    // directly in FriendsManager via RendererSupabaseClient (WebSockets don't work
+    // in Electron's main process)
     getFriends: () =>
       ipcRenderer.invoke('friends:getFriends'),
     getFriendsCount: () =>
@@ -325,44 +328,8 @@ const electronAPI = {
       ipcRenderer.invoke('friends:getUserPresence', userId),
     getFriendsPresence: (userId: string) =>
       ipcRenderer.invoke('friends:getFriendsPresence', userId),
-    subscribeToPresence: (userId: string) =>
-      ipcRenderer.invoke('friends:subscribeToPresence', userId),
-    unsubscribeFromPresence: (userId: string) =>
-      ipcRenderer.invoke('friends:unsubscribeFromPresence', userId),
     setOffline: (userId: string) =>
-      ipcRenderer.invoke('friends:setOffline', userId),
-    onPresenceUpdate: (callback: (data: {
-      friendId: string;
-      presence: {
-        status: 'online' | 'away' | 'offline';
-        activity?: string;
-        lastSeen: string;
-      }
-    }) => void) => {
-      ipcRenderer.on('friends:presenceUpdate', (_event: any, data: any) => callback(data));
-    },
-    // Friend request realtime subscriptions
-    subscribeToRequests: async (
-      onRequest: (friendRequest: any, eventType: 'INSERT' | 'UPDATE') => void
-    ) => {
-      const requestHandler = (_event: any, data: { friendRequest: any; eventType: 'INSERT' | 'UPDATE' }) => {
-        console.log('[Preload] Received friend request event:', data);
-        onRequest(data.friendRequest, data.eventType);
-      };
-
-      ipcRenderer.on('friends:requestReceived', requestHandler);
-
-      // Set up the subscription and wait for it to complete
-      const result = await ipcRenderer.invoke('friends:subscribeToRequests');
-      console.log('[Preload] Friend request subscription result:', result);
-
-      // Return unsubscribe function
-      return () => {
-        ipcRenderer.removeListener('friends:requestReceived', requestHandler);
-      };
-    },
-    unsubscribeFromRequests: () =>
-      ipcRenderer.invoke('friends:unsubscribeFromRequests')
+      ipcRenderer.invoke('friends:setOffline', userId)
   },
   studyRooms: {
     // Room operations
@@ -428,62 +395,38 @@ const electronAPI = {
       ipcRenderer.invoke('rooms:unsubscribeFromInvitations')
   },
   chat: {
+    // NOTE: Realtime subscriptions are handled directly in ChatManager
+    // via RendererSupabaseClient (WebSockets don't work in Electron's main process)
     sendMessage: (params: { roomId: string; userId: string; message: string }) =>
       ipcRenderer.invoke('chat:sendMessage', params),
     getRoomMessages: (roomId: string, limit?: number) =>
       ipcRenderer.invoke('chat:getRoomMessages', roomId, limit),
     deleteMessage: (messageId: string, userId: string) =>
-      ipcRenderer.invoke('chat:deleteMessage', messageId, userId),
-    subscribeToRoom: (
-      roomId: string,
-      onMessage: (messageData: any) => void,
-      onTyping?: (userId: string, userName: string, isTyping: boolean) => void
-    ) => {
-      const messageHandler = (_event: Electron.IpcRendererEvent, data: { roomId: string; message: any }) => {
-        if (data.roomId === roomId) {
-          onMessage(data.message);
-        }
-      };
-
-      const typingHandler = (_event: Electron.IpcRendererEvent, data: {
-        roomId: string;
-        userId: string;
-        userName: string;
-        isTyping: boolean;
-      }) => {
-        if (data.roomId === roomId && onTyping) {
-          onTyping(data.userId, data.userName, data.isTyping);
-        }
-      };
-
-      ipcRenderer.on('chat:newMessage', messageHandler);
-      if (onTyping) {
-        ipcRenderer.on('chat:typingStatus', typingHandler);
-      }
-
-      // Subscribe to room (fire-and-forget, but log errors)
-      ipcRenderer.invoke('chat:subscribeToRoom', roomId)
-        .then((result: any) => {
-          if (!result?.success) {
-            console.error('[Preload] Chat subscription failed:', result?.error);
-          } else {
-            console.log('[Preload] Chat subscription successful for room:', roomId);
-          }
-        })
-        .catch((error: Error) => {
-          console.error('[Preload] Chat subscription error:', error);
-        });
-
-      // Return unsubscribe function
-      return () => {
-        ipcRenderer.removeListener('chat:newMessage', messageHandler);
-        ipcRenderer.removeListener('chat:typingStatus', typingHandler);
-      };
-    },
-    broadcastTyping: (roomId: string, userId: string, userName: string, isTyping: boolean) =>
-      ipcRenderer.invoke('chat:broadcastTyping', { roomId, userId, userName, isTyping }),
-    unsubscribeAll: () =>
-      ipcRenderer.invoke('chat:unsubscribeAll')
+      ipcRenderer.invoke('chat:deleteMessage', messageId, userId)
+  },
+  messages: {
+    // NOTE: Realtime subscriptions are handled directly in MessagesManager
+    // via RendererSupabaseClient (WebSockets don't work in Electron's main process)
+    send: (params: { recipientId: string; subject?: string; content: string; attachments?: any[] }) =>
+      ipcRenderer.invoke('messages:send', params),
+    getInbox: (limit?: number) =>
+      ipcRenderer.invoke('messages:getInbox', limit),
+    getSent: (limit?: number) =>
+      ipcRenderer.invoke('messages:getSent', limit),
+    getConversation: (params: { otherUserId: string; limit?: number }) =>
+      ipcRenderer.invoke('messages:getConversation', params),
+    getMessage: (messageId: string) =>
+      ipcRenderer.invoke('messages:getMessage', messageId),
+    markAsRead: (messageId: string) =>
+      ipcRenderer.invoke('messages:markAsRead', messageId),
+    markConversationAsRead: (senderId: string) =>
+      ipcRenderer.invoke('messages:markConversationAsRead', senderId),
+    getUnreadCount: () =>
+      ipcRenderer.invoke('messages:getUnreadCount'),
+    delete: (messageId: string) =>
+      ipcRenderer.invoke('messages:delete', messageId),
+    uploadAttachment: (params: { data: ArrayBuffer; name: string; type: string }) =>
+      ipcRenderer.invoke('messages:uploadAttachment', params)
   },
   games: {
     createGameSession: (params: { roomId: string; gameType: string; config: any }) =>

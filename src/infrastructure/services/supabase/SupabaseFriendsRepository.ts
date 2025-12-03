@@ -5,7 +5,7 @@
  * Uses Supabase database for storage and retrieval
  */
 
-import { SupabaseClient as SupabaseClientType, RealtimeChannel } from '@supabase/supabase-js';
+import { SupabaseClient as SupabaseClientType } from '@supabase/supabase-js';
 import { SupabaseClient } from './SupabaseClient.js';
 import { Friend } from '../../../domain/entities/Friend.js';
 import { FriendRequest, FriendRequestStatus } from '../../../domain/entities/FriendRequest.js';
@@ -22,24 +22,15 @@ export interface SearchUserResult {
 
 /**
  * Repository for managing friends and friend requests
+ * Real-time subscriptions are handled directly in FriendsManager (renderer).
  */
 export class SupabaseFriendsRepository {
-  private channels: Map<string, RealtimeChannel> = new Map();
-
   /**
    * Get a fresh Supabase client with the current session
    * This ensures RLS policies work correctly with the authenticated user
    */
   private getClient(): SupabaseClientType {
     return SupabaseClient.getInstance().getClient();
-  }
-
-  /**
-   * Get the base Supabase client for Realtime subscriptions
-   * This client has setSession() called on it for proper auth context
-   */
-  private getRealtimeClient(): SupabaseClientType {
-    return SupabaseClient.getInstance().getRealtimeClient();
   }
 
   // ============================================================================
@@ -559,174 +550,5 @@ export class SupabaseFriendsRepository {
       console.error('Exception in getUserProfile:', error);
       return null;
     }
-  }
-
-  // ============================================================================
-  // Realtime Subscriptions
-  // ============================================================================
-
-  /**
-   * Subscribe to friend requests for a specific user
-   * Listens for INSERT and UPDATE events on friend_requests table
-   */
-  public subscribeToUserFriendRequests(
-    userId: string,
-    onFriendRequest: (friendRequest: FriendRequest, event: 'INSERT' | 'UPDATE') => void
-  ): () => void {
-    const channelName = `user-friend-requests:${userId}`;
-    const client = this.getRealtimeClient();
-
-    console.log('📡 Creating Realtime friend request subscription for user:', userId);
-    console.log('🔑 Auth token present:', !!SupabaseClient.getInstance().getAccessToken());
-
-    // Remove existing subscription if any (prevents duplicates)
-    const existingChannel = this.channels.get(channelName);
-    if (existingChannel) {
-      console.log(`Removing existing friend request subscription for user ${userId}`);
-      existingChannel.unsubscribe().catch(err =>
-        console.error('Error unsubscribing existing channel:', err)
-      );
-      client.removeChannel(existingChannel);
-      this.channels.delete(channelName);
-    }
-
-    // Auth is already set via setSession() on the base client
-    // No need to call setAuth() per channel - it can cause conflicts
-
-    const channel = client
-      .channel(channelName)
-      // Listen for new friend requests (INSERT)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'friend_requests',
-          filter: `recipient_id=eq.${userId}`,
-        },
-        async (payload) => {
-          console.log('New friend request received:', payload);
-
-          // Fetch full friend request with profile data
-          const friendRequest = await this.getFriendRequestById(payload.new.id);
-          if (friendRequest) {
-            onFriendRequest(friendRequest, 'INSERT');
-          }
-        }
-      )
-      // Listen for friend request status changes (UPDATE)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'friend_requests',
-          filter: `recipient_id=eq.${userId}`,
-        },
-        async (payload) => {
-          console.log('Friend request updated:', payload);
-
-          // Fetch full friend request with profile data
-          const friendRequest = await this.getFriendRequestById(payload.new.id);
-          if (friendRequest) {
-            onFriendRequest(friendRequest, 'UPDATE');
-          }
-        }
-      );
-
-    channel.subscribe((status) => {
-      console.log(`Friend request subscription status for user ${userId}:`, status);
-      if (status === 'SUBSCRIBED') {
-        console.log(`Successfully subscribed to friend requests for user ${userId}`);
-      } else if (status === 'TIMED_OUT') {
-        console.error(`Friend request subscription timed out for user ${userId}`);
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error(`Friend request subscription error for user ${userId}`);
-      }
-    });
-
-    this.channels.set(channelName, channel);
-
-    // Return unsubscribe function
-    return async () => {
-      await channel.unsubscribe();
-      client.removeChannel(channel);
-      this.channels.delete(channelName);
-      console.log(`Unsubscribed from friend requests for user ${userId}`);
-    };
-  }
-
-  /**
-   * Get friend request by ID with full profile data
-   * Helper method for realtime subscription
-   */
-  private async getFriendRequestById(requestId: string): Promise<FriendRequest | null> {
-    try {
-      const { data, error } = await this.getClient()
-        .from('friend_requests')
-        .select(`
-          id,
-          sender_id,
-          recipient_id,
-          status,
-          created_at,
-          updated_at,
-          sender_profile:user_profiles!friend_requests_sender_id_fkey (
-            email,
-            full_name,
-            avatar_url
-          ),
-          recipient_profile:user_profiles!friend_requests_recipient_id_fkey (
-            email,
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq('id', requestId)
-        .single();
-
-      if (error || !data) {
-        console.error('Error fetching friend request:', error);
-        return null;
-      }
-
-      const senderProfile = Array.isArray(data.sender_profile) ? data.sender_profile[0] : data.sender_profile;
-      const recipientProfile = Array.isArray(data.recipient_profile) ? data.recipient_profile[0] : data.recipient_profile;
-
-      return FriendRequest.fromDatabase({
-        id: data.id,
-        sender_id: data.sender_id,
-        recipient_id: data.recipient_id,
-        status: data.status,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        sender_email: senderProfile?.email,
-        sender_full_name: senderProfile?.full_name,
-        sender_avatar_url: senderProfile?.avatar_url,
-        recipient_email: recipientProfile?.email,
-        recipient_full_name: recipientProfile?.full_name,
-        recipient_avatar_url: recipientProfile?.avatar_url,
-      });
-    } catch (error) {
-      console.error('Exception in getFriendRequestById:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Unsubscribe from all friend-related subscriptions
-   */
-  public async unsubscribeAll(): Promise<void> {
-    const client = this.getRealtimeClient();
-    const unsubscribePromises = Array.from(this.channels.values()).map(channel =>
-      channel.unsubscribe()
-    );
-    await Promise.all(unsubscribePromises);
-
-    this.channels.forEach((channel) => {
-      client.removeChannel(channel);
-    });
-    this.channels.clear();
-    console.log('Unsubscribed from all friend channels');
   }
 }
