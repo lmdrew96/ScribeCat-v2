@@ -10,15 +10,28 @@
 
 import { SearchFilter, type DateRange, type DurationRange } from '../../domain/search/SearchFilter.js';
 
+/**
+ * Course data for natural language lookup
+ */
+export interface CourseData {
+  id: string;
+  code?: string;         // e.g., "CISC 108", "CS-101"
+  courseNumber?: string; // Alternative field name from browser extension
+  title?: string;        // e.g., "Introduction to Computer Science"
+  courseTitle?: string;  // Alternative field name from browser extension
+}
+
 export class NaturalLanguageParser {
   /**
    * Parse natural language query into filter + text query
+   * @param query - The natural language search query
+   * @param courses - Available courses for lookup (optional)
    */
-  static parse(query: string): { filter: SearchFilter; textQuery: string } {
+  static parse(query: string, courses: CourseData[] = []): { filter: SearchFilter; textQuery: string } {
     const lowerQuery = query.toLowerCase();
 
     // Extract filters from natural language
-    const courseId = this.extractCourse(lowerQuery);
+    const courseMatch = this.extractCourse(lowerQuery, courses);
     const dateRange = this.extractDateRange(lowerQuery);
     const durationRange = this.extractDurationRange(lowerQuery);
     const hasTranscription = this.extractHasTranscription(lowerQuery);
@@ -27,7 +40,7 @@ export class NaturalLanguageParser {
 
     // Build filter
     const filter = new SearchFilter({
-      courseId,
+      courseId: courseMatch?.id,
       dateRange,
       durationRange,
       hasTranscription,
@@ -36,18 +49,73 @@ export class NaturalLanguageParser {
     });
 
     // Remove filter phrases from query to get clean text search
-    const textQuery = this.cleanTextQuery(query);
+    const textQuery = this.cleanTextQuery(query, courseMatch?.matchedText);
 
     return { filter, textQuery };
   }
 
   /**
-   * Extract course mentions
-   * TODO: In a real implementation, this would lookup course IDs from a database
+   * Extract course mentions from query by matching against available courses
+   * @returns Course ID and the matched text, or undefined if no match
    */
-  private static extractCourse(query: string): string | undefined {
-    // For now, just detect course-like patterns
-    // Real implementation would need course database lookup
+  private static extractCourse(
+    query: string,
+    courses: CourseData[]
+  ): { id: string; matchedText: string } | undefined {
+    if (courses.length === 0) return undefined;
+
+    // Normalize courses for matching
+    const normalizedCourses = courses.map(course => ({
+      id: course.id,
+      code: (course.code || course.courseNumber || '').toLowerCase().replace(/[-\s]/g, ''),
+      codeOriginal: course.code || course.courseNumber || '',
+      title: (course.title || course.courseTitle || '').toLowerCase()
+    }));
+
+    // 1. Try to match course codes (e.g., "CISC 108", "CS-101", "PHYS201")
+    // Pattern matches: 2-6 letters followed by optional separator and 3-4 digits
+    const codeMatch = query.match(/\b([a-z]{2,6})\s*[-]?\s*(\d{3,4}[a-z]?)\b/i);
+    if (codeMatch) {
+      const matchedCode = (codeMatch[1] + codeMatch[2]).toLowerCase();
+      const course = normalizedCourses.find(c => c.code === matchedCode);
+      if (course) {
+        return { id: course.id, matchedText: codeMatch[0] };
+      }
+    }
+
+    // 2. Try to match course titles/subjects
+    // Common subject keywords to look for
+    const subjectKeywords = [
+      'physics', 'chemistry', 'biology', 'math', 'mathematics', 'calculus',
+      'computer science', 'programming', 'psychology', 'history', 'english',
+      'economics', 'accounting', 'statistics', 'sociology', 'philosophy',
+      'art', 'music', 'theatre', 'engineering', 'science'
+    ];
+
+    for (const keyword of subjectKeywords) {
+      if (query.includes(keyword)) {
+        // Find a course whose title contains this keyword
+        const course = normalizedCourses.find(c => c.title.includes(keyword));
+        if (course) {
+          return { id: course.id, matchedText: keyword };
+        }
+      }
+    }
+
+    // 3. Try to match any word against course titles (more lenient)
+    // Split query into words and check if any match a course title
+    const words = query.split(/\s+/).filter(w => w.length > 3); // Only words > 3 chars
+    for (const word of words) {
+      const course = normalizedCourses.find(c =>
+        c.title.includes(word) &&
+        // Avoid matching common words that might be in titles
+        !['with', 'from', 'last', 'this', 'that', 'have', 'sessions', 'notes', 'lecture'].includes(word)
+      );
+      if (course) {
+        return { id: course.id, matchedText: word };
+      }
+    }
+
     return undefined;
   }
 
@@ -175,9 +243,22 @@ export class NaturalLanguageParser {
 
   /**
    * Remove filter phrases from query to get clean text search
+   * @param query - The original query
+   * @param matchedCourseText - The course text that was matched (to be removed)
    */
-  private static cleanTextQuery(query: string): string {
+  private static cleanTextQuery(query: string, matchedCourseText?: string): string {
     let cleaned = query;
+
+    // Remove matched course text
+    if (matchedCourseText) {
+      // Escape special regex characters in the matched text
+      const escaped = matchedCourseText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      cleaned = cleaned.replace(new RegExp(escaped, 'gi'), '');
+    }
+
+    // Remove course code patterns that may have been entered but didn't match
+    // (e.g., user typed "CS 101" but we have "CS-101" - both should be cleaned)
+    cleaned = cleaned.replace(/\b[a-z]{2,6}\s*[-]?\s*\d{3,4}[a-z]?\b/gi, '');
 
     // Remove date phrases
     cleaned = cleaned.replace(/(from |in |during )?(last|this|next) (week|month|year)/gi, '');

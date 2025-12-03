@@ -155,6 +155,10 @@ export class StudyModeManager {
 
     // Initialize advanced search and view managers
     this.searchManager = new SearchManager();
+    // Wire up course manager for natural language course lookup
+    if (window.courseManager) {
+      this.searchManager.setCourseManager(window.courseManager);
+    }
     this.viewModeManager = new ViewModeManager('session-list');
     this.filterSortManager = new FilterSortManager();
     this.bulkSelectionManager = new BulkSelectionManager();

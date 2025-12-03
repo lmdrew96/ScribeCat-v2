@@ -9,6 +9,7 @@ import type { Session } from '../../domain/entities/Session.js';
 import { SearchService, type SearchOptions } from '../../application/search/SearchService.js';
 import { SearchFilter } from '../../domain/search/SearchFilter.js';
 import type { SearchResult } from '../../domain/search/SearchResult.js';
+import type { CourseManager } from './CourseManager.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('SearchManager');
@@ -33,12 +34,20 @@ export class SearchManager {
   private sessions: Session[] = [];
   private searchTimeout: number | null = null;
   private onResultsChange: ((results: SearchResult[]) => void) | null = null;
+  private courseManager: CourseManager | null = null;
 
   /**
    * Set sessions to search
    */
   setSessions(sessions: Session[]): void {
     this.sessions = sessions;
+  }
+
+  /**
+   * Set course manager for natural language course lookup
+   */
+  setCourseManager(courseManager: CourseManager): void {
+    this.courseManager = courseManager;
   }
 
   /**
@@ -70,11 +79,14 @@ export class SearchManager {
     try {
       logger.info(`Searching: "${this.state.query}"`);
 
+      // Get courses for natural language lookup
+      const courses = this.courseManager?.getCourses() || [];
+
       const results = SearchService.search(
         this.sessions,
         this.state.query,
         this.state.filter,
-        options
+        { ...options, courses }
       );
 
       this.state.results = results;

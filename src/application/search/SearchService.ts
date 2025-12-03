@@ -9,12 +9,13 @@ import type { Session } from '../../domain/entities/Session.js';
 import { SearchQuery } from '../../domain/search/SearchQuery.js';
 import { SearchFilter } from '../../domain/search/SearchFilter.js';
 import { SearchResult, type MatchLocation } from '../../domain/search/SearchResult.js';
-import { NaturalLanguageParser } from './NaturalLanguageParser.js';
+import { NaturalLanguageParser, type CourseData } from './NaturalLanguageParser.js';
 import { SessionFilterService } from './SessionFilterService.js';
 
 export interface SearchOptions {
   maxResults?: number;
   includeNaturalLanguage?: boolean; // Parse natural language queries
+  courses?: CourseData[]; // Available courses for natural language lookup
 }
 
 export class SearchService {
@@ -27,14 +28,14 @@ export class SearchService {
     filter: SearchFilter = SearchFilter.createEmpty(),
     options: SearchOptions = {}
   ): SearchResult[] {
-    const { maxResults, includeNaturalLanguage = true } = options;
+    const { maxResults, includeNaturalLanguage = true, courses = [] } = options;
 
     // Parse natural language if enabled
     let textQuery = queryString;
     let combinedFilter = filter;
 
     if (includeNaturalLanguage && queryString.trim().length > 0) {
-      const { filter: nlFilter, textQuery: cleanQuery } = NaturalLanguageParser.parse(queryString);
+      const { filter: nlFilter, textQuery: cleanQuery } = NaturalLanguageParser.parse(queryString, courses);
 
       // Merge filters (NL filter takes precedence if both exist)
       combinedFilter = this.mergeFilters(filter, nlFilter);
