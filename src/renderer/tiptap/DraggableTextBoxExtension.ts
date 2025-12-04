@@ -6,29 +6,132 @@
 
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { NodeView, EditorView } from '@tiptap/pm/view';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Node } from '@tiptap/core';
 
+// ============================================================================
+// MODULE-LEVEL GLOBALS (shared across ALL TextBox instances)
+// This prevents multiple instances from each adding their own handlers
+// ============================================================================
+let instanceCounter = 0;
+let activeInstance: DraggableTextBoxNodeView | null = null;
+let globalHandlersInstalled = false;
+const allInstances = new Set<DraggableTextBoxNodeView>();
+
+// Single global handlers - installed once, shared by all instances
+function globalPointerDown(e: PointerEvent) {
+  const target = e.target as HTMLElement;
+
+  // Check all instances to see if we hit any of their handles
+  for (const instance of allInstances) {
+    // Check drag handle
+    if (target === instance.handle || instance.handle.contains(target)) {
+      console.log('[TextBox] HIT DRAG HANDLE on instance', instance.instanceId);
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      activeInstance = instance;
+      instance.onDragStart(e);
+      return;
+    }
+
+    // Check resize handles
+    for (const rh of instance.resizeHandles) {
+      if (target === rh || rh.contains(target)) {
+        console.log('[TextBox] HIT RESIZE HANDLE on instance', instance.instanceId);
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        activeInstance = instance;
+        const dir = rh.className.match(/resize-handle-(\w+)/)?.[1] || 'se';
+        instance.onResizeStart(e, dir);
+        return;
+      }
+    }
+  }
+}
+
+function globalPointerMove(e: PointerEvent) {
+  if (!activeInstance) return;
+
+  if (activeInstance.isDragging) {
+    activeInstance.onMouseMove(e);
+  }
+  if (activeInstance.isResizing) {
+    activeInstance.onResizeMove(e);
+  }
+}
+
+function globalPointerUp(e: PointerEvent) {
+  if (!activeInstance) return;
+
+  if (activeInstance.isDragging) {
+    console.log('[TextBox] GLOBAL pointerup while dragging instance', activeInstance.instanceId);
+    activeInstance.onMouseUp(e);
+  }
+  if (activeInstance.isResizing) {
+    console.log('[TextBox] GLOBAL pointerup while resizing instance', activeInstance.instanceId);
+    activeInstance.onResizeEnd(e);
+  }
+  activeInstance = null;
+}
+
+function installGlobalHandlers() {
+  if (globalHandlersInstalled) return;
+  console.log('[TextBox] Installing global handlers');
+  document.addEventListener('pointerdown', globalPointerDown, { capture: true });
+  document.addEventListener('pointermove', globalPointerMove, { capture: true });
+  document.addEventListener('pointerup', globalPointerUp, { capture: true });
+  globalHandlersInstalled = true;
+}
+
+function uninstallGlobalHandlers() {
+  if (!globalHandlersInstalled) return;
+  if (allInstances.size > 0) return; // Don't uninstall if instances still exist
+  console.log('[TextBox] Uninstalling global handlers');
+  document.removeEventListener('pointerdown', globalPointerDown, { capture: true });
+  document.removeEventListener('pointermove', globalPointerMove, { capture: true });
+  document.removeEventListener('pointerup', globalPointerUp, { capture: true });
+  globalHandlersInstalled = false;
+}
+
+// ============================================================================
+// TextBox NodeView Class
+// ============================================================================
 class DraggableTextBoxNodeView implements NodeView {
   dom: HTMLElement;
   contentDOM: HTMLElement;
-  private handle: HTMLDivElement;
-  private resizeHandles: HTMLDivElement[] = [];
+  handle: HTMLDivElement; // Made public for global handler access
+  resizeHandles: HTMLDivElement[] = []; // Made public for global handler access
   private node: ProseMirrorNode;
   private view: EditorView;
   private getPos: () => number | undefined;
-  private isResizing = false;
-  private isDragging = false;
-  private resizeDirection: string | null = null;
+  instanceId: number; // Made public for global handler access
+  // Resize state
+  isResizing = false; // Made public for global handler access
+  resizeDirection: string | null = null;
   private startX = 0;
   private startY = 0;
   private startWidth = 0;
   private startHeight = 0;
+  private startPosX = 0;
+  private startPosY = 0;
+  // Drag state (mouse-based, not HTML5 drag)
+  isDragging = false; // Made public for global handler access
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private elementStartX = 0;
+  private elementStartY = 0;
 
   constructor(node: ProseMirrorNode, view: EditorView, getPos: () => number | undefined) {
     this.node = node;
     this.view = view;
     this.getPos = getPos;
+    this.instanceId = ++instanceCounter;
+
+    // Register this instance and install global handlers
+    allInstances.add(this);
+    installGlobalHandlers();
+    console.log('[TextBox] Created instance', this.instanceId, 'total instances:', allInstances.size);
 
     // Create wrapper
     this.dom = document.createElement('div');
@@ -78,11 +181,14 @@ class DraggableTextBoxNodeView implements NodeView {
     // Create drag handle
     this.handle = document.createElement('div');
     this.handle.className = 'drag-handle';
-    this.handle.draggable = true;
     this.handle.contentEditable = 'false';
     this.handle.style.pointerEvents = 'auto'; // Ensure handle can receive events
+    this.handle.draggable = false; // Prevent native HTML5 drag
+    this.handle.style.userSelect = 'none';
+    this.handle.style.webkitUserSelect = 'none';
+    (this.handle.style as CSSStyleDeclaration & { webkitUserDrag?: string }).webkitUserDrag = 'none';
     this.handle.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none; user-select: none;">
         <circle cx="9" cy="5" r="1"/>
         <circle cx="9" cy="12" r="1"/>
         <circle cx="9" cy="19" r="1"/>
@@ -119,10 +225,6 @@ class DraggableTextBoxNodeView implements NodeView {
     // Create resize handles
     this.createResizeHandles();
 
-    // Handle drag events
-    this.handle.addEventListener('dragstart', this.onDragStart.bind(this));
-    this.handle.addEventListener('dragend', this.onDragEnd.bind(this));
-
     // Append elements
     this.dom.appendChild(this.handle);
     this.dom.appendChild(this.contentDOM);
@@ -156,12 +258,12 @@ class DraggableTextBoxNodeView implements NodeView {
         ...pos
       });
 
-      handle.addEventListener('mousedown', (e) => this.onResizeStart(e, dir));
+      // No individual listeners - handled by document-level capture listener
       this.resizeHandles.push(handle);
     }
   }
 
-  private onResizeStart(e: MouseEvent, direction: string) {
+  private onResizeStart(e: PointerEvent, direction: string) {
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
@@ -175,17 +277,26 @@ class DraggableTextBoxNodeView implements NodeView {
     this.startWidth = rect.width;
     this.startHeight = rect.height;
 
-    document.addEventListener('mousemove', this.onResizeMove);
-    document.addEventListener('mouseup', this.onResizeEnd);
+    // Store initial position for page-anchored elements
+    if (this.node.attrs.anchorType === 'page') {
+      this.startPosX = this.node.attrs.posX || 0;
+      this.startPosY = this.node.attrs.posY || 0;
+    }
+
+    // Don't use setPointerCapture - rely on global handlers instead
+    // ProseMirror steals pointer capture, so we can't use it
+    console.log('[TextBox] Resize started, direction:', direction, 'isResizing:', this.isResizing);
   }
 
   private onResizeMove = (e: MouseEvent) => {
+    console.log('[TextBox] onResizeMove called, isResizing:', this.isResizing, 'direction:', this.resizeDirection);
     if (!this.isResizing || !this.resizeDirection) {
       return;
     }
 
     const deltaX = e.clientX - this.startX;
     const deltaY = e.clientY - this.startY;
+    console.log('[TextBox] Resize delta:', deltaX, deltaY);
 
     let newWidth = this.startWidth;
     let newHeight = this.startHeight;
@@ -205,27 +316,43 @@ class DraggableTextBoxNodeView implements NodeView {
     this.contentDOM.style.height = `${newHeight}px`;
     this.dom.style.width = `${newWidth}px`;
     this.dom.style.height = `${newHeight}px`;
+
+    // Adjust position for page-anchored elements when resizing from N or W edges
+    if (this.node.attrs.anchorType === 'page') {
+      if (dir.includes('w')) {
+        this.dom.style.left = `${this.startPosX + deltaX}px`;
+      }
+      if (dir.includes('n')) {
+        this.dom.style.top = `${this.startPosY + deltaY}px`;
+      }
+    }
   };
 
-  private onResizeEnd = (e: MouseEvent) => {
+  private onResizeEnd = (e: MouseEvent | PointerEvent) => {
+    console.log('[TextBox] onResizeEnd called, isResizing:', this.isResizing);
     if (!this.isResizing) return;
 
-    document.removeEventListener('mousemove', this.onResizeMove);
-    document.removeEventListener('mouseup', this.onResizeEnd);
-
-    // Update node attributes with new dimensions
+    // Update node attributes with new dimensions and position
     const pos = this.getPos();
     if (pos !== undefined) {
       const rect = this.contentDOM.getBoundingClientRect();
       const finalWidth = Math.round(rect.width);
       const finalHeight = Math.round(rect.height);
 
-      const tr = this.view.state.tr;
-      tr.setNodeMarkup(pos, undefined, {
+      const newAttrs: Record<string, unknown> = {
         ...this.node.attrs,
         width: finalWidth,
         height: finalHeight,
-      });
+      };
+
+      // Save position for page-anchored elements
+      if (this.node.attrs.anchorType === 'page') {
+        newAttrs.posX = parseInt(this.dom.style.left, 10) || this.node.attrs.posX;
+        newAttrs.posY = parseInt(this.dom.style.top, 10) || this.node.attrs.posY;
+      }
+
+      const tr = this.view.state.tr;
+      tr.setNodeMarkup(pos, undefined, newAttrs);
       this.view.dispatch(tr);
     }
 
@@ -233,43 +360,117 @@ class DraggableTextBoxNodeView implements NodeView {
     this.resizeDirection = null;
   };
 
-  private onDragStart(e: DragEvent) {
-    const pos = this.getPos();
-    if (pos === undefined) {
-      return;
-    }
+  // Pointer-based drag handlers (using pointer capture for reliable event delivery)
+  private onDragStart(e: PointerEvent) {
+    console.log('[TextBox] onDragStart called, button:', e.button, 'pointerId:', e.pointerId);
+    // Only handle left mouse button
+    if (e.button !== 0) return;
 
+    // Event already stopped by document handler
     this.isDragging = true;
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.elementStartX = this.node.attrs.posX || parseInt(this.dom.style.left, 10) || 0;
+    this.elementStartY = this.node.attrs.posY || parseInt(this.dom.style.top, 10) || 0;
 
-    e.dataTransfer!.effectAllowed = 'move';
-    e.dataTransfer!.dropEffect = 'move';
-    e.dataTransfer!.setData('application/x-tiptap-node', JSON.stringify({ pos, nodeSize: this.node.nodeSize }));
+    console.log('[TextBox] Drag started at:', this.elementStartX, this.elementStartY);
+    console.log('[TextBox] anchorType:', this.node.attrs.anchorType);
 
-    // Also set a generic data type to ensure drag is recognized
-    e.dataTransfer!.setData('text/plain', 'textbox');
+    // Visual feedback
+    this.dom.classList.add('dragging');
 
-    (this.view as any).draggingNodePos = pos;
-    (this.view as any).draggingNode = this.node;
-    (this.view as any).draggingAnchorType = this.node.attrs.anchorType || 'paragraph';
-
-    this.dom.style.opacity = '0.5';
+    // Don't use setPointerCapture - rely on global document handlers instead
+    // (which we proved work for resize)
+    console.log('[TextBox] isDragging is now:', this.isDragging);
   }
 
-  private onDragEnd() {
+  private onMouseMove(e: MouseEvent) {
+    console.log('[TextBox] onMouseMove called, isDragging:', this.isDragging);
+    if (!this.isDragging) return;
+
+    const deltaX = e.clientX - this.dragStartX;
+    const deltaY = e.clientY - this.dragStartY;
+
+    // Move element immediately (smooth visual feedback)
+    const newX = this.elementStartX + deltaX;
+    const newY = this.elementStartY + deltaY;
+    console.log('[TextBox] Moving to:', newX, newY);
+    this.dom.style.left = `${Math.max(0, newX)}px`;
+    this.dom.style.top = `${Math.max(0, newY)}px`;
+  }
+
+  private onMouseUp(e: MouseEvent) {
+    console.log('[TextBox] onMouseUp called, isDragging:', this.isDragging);
+    if (!this.isDragging) return;
+
     this.isDragging = false;
-    this.dom.style.opacity = '1';
-    delete (this.view as any).draggingNodePos;
-    delete (this.view as any).draggingNode;
+    this.dom.classList.remove('dragging');
+
+    // Commit final position to node attributes
+    const pos = this.getPos();
+    if (pos !== undefined) {
+      const newPosX = parseInt(this.dom.style.left, 10) || 0;
+      const newPosY = parseInt(this.dom.style.top, 10) || 0;
+
+      const tr = this.view.state.tr;
+      tr.setNodeMarkup(pos, undefined, {
+        ...this.node.attrs,
+        posX: Math.max(0, newPosX),
+        posY: Math.max(0, newPosY),
+      });
+      this.view.dispatch(tr);
+    }
+  }
+
+  // Tell ProseMirror to let events through for our custom handles
+  stopEvent(event: Event) {
+    // Let the drag handle receive mouse events
+    if (event.target === this.handle || this.handle.contains(event.target as Node)) {
+      return true;
+    }
+    // Let resize handles receive mouse events
+    for (const rh of this.resizeHandles) {
+      if (event.target === rh || rh.contains(event.target as Node)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Tell ProseMirror to ignore certain DOM mutations (prevents NodeView recreation during drag/resize)
+  ignoreMutation(mutation: MutationRecord | { type: 'selection'; target: Element }): boolean {
+    // During ANY active drag/resize, ignore ALL mutations to prevent NodeView recreation
+    if (activeInstance !== null) {
+      return true;
+    }
+
+    // Always ignore style attribute changes on our wrapper elements
+    if (mutation.type === 'attributes' &&
+        (mutation as MutationRecord).attributeName === 'style') {
+      return true;
+    }
+
+    // Ignore class changes (e.g., 'dragging' class)
+    if (mutation.type === 'attributes' &&
+        (mutation as MutationRecord).attributeName === 'class') {
+      return true;
+    }
+
+    // Let ProseMirror handle other mutations normally
+    return false;
   }
 
   update(node: ProseMirrorNode) {
+    console.log('[TextBox] update() called, isDragging:', this.isDragging, 'isResizing:', this.isResizing);
     if (node.type !== this.node.type) return false;
 
     // Don't update during resize or drag to prevent interruption
     if (this.isResizing) {
+      console.log('[TextBox] Skipping update - resizing');
       return true;
     }
     if (this.isDragging) {
+      console.log('[TextBox] Skipping update - dragging');
       return true;
     }
 
@@ -330,10 +531,18 @@ class DraggableTextBoxNodeView implements NodeView {
   }
 
   destroy() {
-    this.handle.removeEventListener('dragstart', this.onDragStart.bind(this));
-    this.handle.removeEventListener('dragend', this.onDragEnd.bind(this));
-    document.removeEventListener('mousemove', this.onResizeMove);
-    document.removeEventListener('mouseup', this.onResizeEnd);
+    console.log('[TextBox] Destroying instance', this.instanceId);
+
+    // Clear activeInstance if it's this one
+    if (activeInstance === this) {
+      activeInstance = null;
+    }
+
+    // Remove from instance set
+    allInstances.delete(this);
+
+    // Uninstall global handlers if no instances remain
+    uninstallGlobalHandlers();
   }
 }
 
@@ -349,8 +558,8 @@ export const DraggableTextBox = Node.create({
   addAttributes() {
     return {
       anchorType: {
-        default: 'paragraph',
-        parseHTML: element => element.getAttribute('data-anchor-type') || 'paragraph',
+        default: 'page',
+        parseHTML: element => element.getAttribute('data-anchor-type') || 'page',
         renderHTML: attributes => {
           return { 'data-anchor-type': attributes.anchorType };
         },
@@ -449,116 +658,5 @@ export const DraggableTextBox = Node.create({
     };
   },
 
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        key: new PluginKey('textBoxDrop'),
-        props: {
-          handleDOMEvents: {
-            drop: (view, event) => {
-              const draggingPos = (view as any).draggingNodePos;
-              const draggingNode = (view as any).draggingNode;
-              const draggingAnchorType = (view as any).draggingAnchorType;
-
-              if (draggingPos === undefined || !draggingNode) {
-                return false;
-              }
-              if (draggingNode.type.name !== 'draggableTextBox') {
-                return false;
-              }
-
-              event.preventDefault();
-              event.stopPropagation();
-
-              // Handle page-anchored text boxes
-              if (draggingAnchorType === 'page') {
-                const editorEl = view.dom.closest('.tiptap-content') as HTMLElement;
-                if (!editorEl) return false;
-
-                const editorRect = editorEl.getBoundingClientRect();
-                const newPosX = event.clientX - editorRect.left;
-                const newPosY = event.clientY - editorRect.top;
-
-                const tr = view.state.tr;
-                tr.setNodeMarkup(draggingPos, undefined, {
-                  ...draggingNode.attrs,
-                  posX: Math.max(0, Math.round(newPosX)),
-                  posY: Math.max(0, Math.round(newPosY)),
-                });
-                view.dispatch(tr);
-
-                delete (view as any).draggingNodePos;
-                delete (view as any).draggingNode;
-                delete (view as any).draggingAnchorType;
-
-                return true;
-              }
-
-              // Handle paragraph-anchored text boxes
-              const coords = view.posAtCoords({
-                left: event.clientX,
-                top: event.clientY,
-              });
-
-              if (!coords) {
-                return false;
-              }
-
-              const $pos = view.state.doc.resolve(coords.pos);
-              let targetPos = coords.pos;
-
-              if ($pos.parent.isBlock && $pos.parent.childCount > 0) {
-                const domNode = view.domAtPos(coords.pos).node;
-                if (domNode && event.clientY > domNode.getBoundingClientRect().top + domNode.getBoundingClientRect().height / 2) {
-                  targetPos = $pos.after();
-                } else {
-                  targetPos = $pos.before();
-                }
-              }
-
-              if (Math.abs(targetPos - draggingPos) < draggingNode.nodeSize) {
-                delete (view as any).draggingNodePos;
-                delete (view as any).draggingNode;
-                delete (view as any).draggingAnchorType;
-                return true;
-              }
-
-              if (targetPos > draggingPos) {
-                targetPos -= draggingNode.nodeSize;
-              }
-
-              const tr = view.state.tr;
-              tr.delete(draggingPos, draggingPos + draggingNode.nodeSize);
-              tr.insert(targetPos, draggingNode);
-              view.dispatch(tr);
-
-              delete (view as any).draggingNodePos;
-              delete (view as any).draggingNode;
-              delete (view as any).draggingAnchorType;
-
-              return true;
-            },
-
-            dragenter: (view, event) => {
-              const isDraggingTextBox = (view as any).draggingNode?.type.name === 'draggableTextBox';
-              if (isDraggingTextBox) {
-                event.preventDefault();
-              }
-              return false;
-            },
-
-            dragover: (view, event) => {
-              const isDraggingTextBox = (view as any).draggingNode?.type.name === 'draggableTextBox';
-              if (isDraggingTextBox) {
-                event.preventDefault();
-                event.dataTransfer!.dropEffect = 'move';
-                console.log('🟡 Dragover: allowing text box drop');
-              }
-              return false;
-            },
-          },
-        },
-      }),
-    ];
-  },
+  // No ProseMirror plugins needed - drag is handled via mouse events in NodeView
 });

@@ -7,7 +7,6 @@
 import Image from '@tiptap/extension-image';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { NodeView, EditorView } from '@tiptap/pm/view';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
 
 class DraggableImageNodeView implements NodeView {
   dom: HTMLElement;
@@ -18,12 +17,25 @@ class DraggableImageNodeView implements NodeView {
   private node: ProseMirrorNode;
   private view: EditorView;
   private getPos: () => number | undefined;
+  // Resize state
   private isResizing = false;
   private resizeDirection: string | null = null;
   private startX = 0;
   private startY = 0;
   private startWidth = 0;
   private startHeight = 0;
+  private startPosX = 0;
+  private startPosY = 0;
+  // Drag state (mouse-based, not HTML5 drag)
+  private isDragging = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private elementStartX = 0;
+  private elementStartY = 0;
+  // Bound method references for proper cleanup
+  private boundOnMouseDown: (e: MouseEvent) => void;
+  private boundOnMouseMove: (e: MouseEvent) => void;
+  private boundOnMouseUp: (e: MouseEvent) => void;
 
   constructor(node: ProseMirrorNode, view: EditorView, getPos: () => number | undefined) {
     this.node = node;
@@ -84,7 +96,6 @@ class DraggableImageNodeView implements NodeView {
     // Create drag handle with professional icon
     this.handle = document.createElement('div');
     this.handle.className = 'drag-handle';
-    this.handle.draggable = true;
     this.handle.contentEditable = 'false';
     this.handle.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -137,9 +148,13 @@ class DraggableImageNodeView implements NodeView {
     // Create resize handles
     this.createResizeHandles();
 
-    // Handle drag events
-    this.handle.addEventListener('dragstart', this.onDragStart.bind(this));
-    this.handle.addEventListener('dragend', this.onDragEnd.bind(this));
+    // Store bound method references for proper cleanup
+    this.boundOnMouseDown = this.onMouseDown.bind(this);
+    this.boundOnMouseMove = this.onMouseMove.bind(this);
+    this.boundOnMouseUp = this.onMouseUp.bind(this);
+
+    // Handle mouse-based drag (not HTML5 drag API)
+    this.handle.addEventListener('mousedown', this.boundOnMouseDown);
 
     // Append elements
     this.dom.appendChild(this.handle);
@@ -181,6 +196,7 @@ class DraggableImageNodeView implements NodeView {
   private onResizeStart(e: MouseEvent, direction: string) {
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
 
     this.isResizing = true;
     this.resizeDirection = direction;
@@ -192,6 +208,12 @@ class DraggableImageNodeView implements NodeView {
     this.startWidth = rect.width;
     this.startHeight = rect.height;
 
+    // Store initial position for page-anchored elements
+    if (this.node.attrs.anchorType === 'page') {
+      this.startPosX = this.node.attrs.posX || 0;
+      this.startPosY = this.node.attrs.posY || 0;
+    }
+
     // Add global listeners
     document.addEventListener('mousemove', this.onResizeMove);
     document.addEventListener('mouseup', this.onResizeEnd);
@@ -202,26 +224,36 @@ class DraggableImageNodeView implements NodeView {
 
     const deltaX = e.clientX - this.startX;
     const deltaY = e.clientY - this.startY;
+    const dir = this.resizeDirection;
+    const aspectRatio = this.startWidth / this.startHeight;
 
     let newWidth = this.startWidth;
     let newHeight = this.startHeight;
 
-    // Calculate new dimensions based on direction
-    const dir = this.resizeDirection;
-    if (dir.includes('e')) newWidth = this.startWidth + deltaX;
-    if (dir.includes('w')) newWidth = this.startWidth - deltaX;
-    if (dir.includes('s')) newHeight = this.startHeight + deltaY;
-    if (dir.includes('n')) newHeight = this.startHeight - deltaY;
-
-    // Preserve aspect ratio for corner handles
-    if (dir.length === 2) {
-      const aspectRatio = this.startWidth / this.startHeight;
+    // Calculate new dimensions with proper aspect ratio handling per corner
+    if (dir === 'se') {
+      // SE: grow from top-left corner (simplest case)
+      newWidth = Math.max(50, this.startWidth + deltaX);
       newHeight = newWidth / aspectRatio;
+    } else if (dir === 'sw') {
+      // SW: grow width left, height down
+      newWidth = Math.max(50, this.startWidth - deltaX);
+      newHeight = newWidth / aspectRatio;
+      this.dom.style.left = `${this.startPosX + (this.startWidth - newWidth)}px`;
+    } else if (dir === 'ne') {
+      // NE: grow width right, height up
+      newWidth = Math.max(50, this.startWidth + deltaX);
+      newHeight = newWidth / aspectRatio;
+      const heightDelta = newHeight - this.startHeight;
+      this.dom.style.top = `${this.startPosY - heightDelta}px`;
+    } else if (dir === 'nw') {
+      // NW: grow from bottom-right (opposite of SE)
+      newWidth = Math.max(50, this.startWidth - deltaX);
+      newHeight = newWidth / aspectRatio;
+      this.dom.style.left = `${this.startPosX + (this.startWidth - newWidth)}px`;
+      const heightDelta = newHeight - this.startHeight;
+      this.dom.style.top = `${this.startPosY - heightDelta}px`;
     }
-
-    // Apply minimum dimensions
-    newWidth = Math.max(50, newWidth);
-    newHeight = Math.max(50, newHeight);
 
     // Update image and wrapper size
     this.img.style.width = `${newWidth}px`;
@@ -236,16 +268,24 @@ class DraggableImageNodeView implements NodeView {
     document.removeEventListener('mousemove', this.onResizeMove);
     document.removeEventListener('mouseup', this.onResizeEnd);
 
-    // Update node attributes with new dimensions
+    // Update node attributes with new dimensions and position
     const pos = this.getPos();
     if (pos !== undefined) {
       const rect = this.img.getBoundingClientRect();
-      const tr = this.view.state.tr;
-      tr.setNodeMarkup(pos, undefined, {
+      const newAttrs: Record<string, unknown> = {
         ...this.node.attrs,
         width: Math.round(rect.width),
         height: Math.round(rect.height),
-      });
+      };
+
+      // Save position for page-anchored elements
+      if (this.node.attrs.anchorType === 'page') {
+        newAttrs.posX = parseInt(this.dom.style.left, 10) || this.node.attrs.posX;
+        newAttrs.posY = parseInt(this.dom.style.top, 10) || this.node.attrs.posY;
+      }
+
+      const tr = this.view.state.tr;
+      tr.setNodeMarkup(pos, undefined, newAttrs);
       this.view.dispatch(tr);
     }
 
@@ -253,31 +293,92 @@ class DraggableImageNodeView implements NodeView {
     this.resizeDirection = null;
   };
 
-  private onDragStart(e: DragEvent) {
-    const pos = this.getPos();
-    if (pos === undefined) return;
+  // Mouse-based drag handlers (replacing HTML5 Drag API)
+  private onMouseDown(e: MouseEvent) {
+    // Only handle left mouse button
+    if (e.button !== 0) return;
 
-    e.dataTransfer!.effectAllowed = 'move';
-    e.dataTransfer!.setData('text/html', this.dom.innerHTML);
-    e.dataTransfer!.setData('application/x-tiptap-node', JSON.stringify({ pos, nodeSize: this.node.nodeSize }));
+    e.preventDefault();
+    e.stopPropagation();
 
-    // Store position info on the view
-    (this.view as any).draggingNodePos = pos;
-    (this.view as any).draggingNode = this.node;
-    (this.view as any).draggingAnchorType = this.node.attrs.anchorType || 'paragraph';
+    this.isDragging = true;
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.elementStartX = this.node.attrs.posX || parseInt(this.dom.style.left, 10) || 0;
+    this.elementStartY = this.node.attrs.posY || parseInt(this.dom.style.top, 10) || 0;
 
     // Visual feedback
-    this.dom.style.opacity = '0.5';
+    this.dom.classList.add('dragging');
+
+    // Add global listeners for move and up
+    document.addEventListener('mousemove', this.boundOnMouseMove);
+    document.addEventListener('mouseup', this.boundOnMouseUp);
   }
 
-  private onDragEnd() {
-    this.dom.style.opacity = '1';
-    delete (this.view as any).draggingNodePos;
-    delete (this.view as any).draggingNode;
+  private onMouseMove(e: MouseEvent) {
+    if (!this.isDragging) return;
+
+    const deltaX = e.clientX - this.dragStartX;
+    const deltaY = e.clientY - this.dragStartY;
+
+    // Move element immediately (smooth visual feedback)
+    const newX = this.elementStartX + deltaX;
+    const newY = this.elementStartY + deltaY;
+    this.dom.style.left = `${Math.max(0, newX)}px`;
+    this.dom.style.top = `${Math.max(0, newY)}px`;
+  }
+
+  private onMouseUp(e: MouseEvent) {
+    if (!this.isDragging) return;
+
+    // Remove global listeners
+    document.removeEventListener('mousemove', this.boundOnMouseMove);
+    document.removeEventListener('mouseup', this.boundOnMouseUp);
+
+    this.isDragging = false;
+    this.dom.classList.remove('dragging');
+
+    // Commit final position to node attributes
+    const pos = this.getPos();
+    if (pos !== undefined) {
+      const newPosX = parseInt(this.dom.style.left, 10) || 0;
+      const newPosY = parseInt(this.dom.style.top, 10) || 0;
+
+      const tr = this.view.state.tr;
+      tr.setNodeMarkup(pos, undefined, {
+        ...this.node.attrs,
+        posX: Math.max(0, newPosX),
+        posY: Math.max(0, newPosY),
+      });
+      this.view.dispatch(tr);
+    }
+  }
+
+  // Tell ProseMirror to let events through for our custom handles
+  stopEvent(event: Event) {
+    // Let the drag handle receive mouse events
+    if (event.target === this.handle || this.handle.contains(event.target as Node)) {
+      return true;
+    }
+    // Let resize handles receive mouse events
+    for (const rh of this.resizeHandles) {
+      if (event.target === rh || rh.contains(event.target as Node)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   update(node: ProseMirrorNode) {
     if (node.type !== this.node.type) return false;
+
+    // Don't update during resize or drag to prevent interruption
+    if (this.isResizing) {
+      return true;
+    }
+    if (this.isDragging) {
+      return true;
+    }
 
     this.node = node;
     this.img.src = node.attrs.src;
@@ -355,8 +456,10 @@ class DraggableImageNodeView implements NodeView {
   }
 
   destroy() {
-    this.handle.removeEventListener('dragstart', this.onDragStart.bind(this));
-    this.handle.removeEventListener('dragend', this.onDragEnd.bind(this));
+    // Clean up drag listeners
+    this.handle.removeEventListener('mousedown', this.boundOnMouseDown);
+    document.removeEventListener('mousemove', this.boundOnMouseMove);
+    document.removeEventListener('mouseup', this.boundOnMouseUp);
 
     // Clean up resize listeners
     document.removeEventListener('mousemove', this.onResizeMove);
@@ -371,8 +474,8 @@ export const DraggableImage = Image.extend({
     return {
       ...this.parent?.(),
       anchorType: {
-        default: 'paragraph',
-        parseHTML: element => element.getAttribute('data-anchor-type') || 'paragraph',
+        default: 'page',
+        parseHTML: element => element.getAttribute('data-anchor-type') || 'page',
         renderHTML: attributes => {
           return { 'data-anchor-type': attributes.anchorType };
         },
@@ -439,117 +542,5 @@ export const DraggableImage = Image.extend({
     };
   },
 
-  addProseMirrorPlugins() {
-    const basePlugins = this.parent?.() || [];
-
-    // Add drop handler plugin
-    const dropPlugin = new Plugin({
-      key: new PluginKey('imageDrop'),
-      props: {
-        handleDOMEvents: {
-          drop: (view, event) => {
-            const draggingPos = (view as any).draggingNodePos;
-            const draggingNode = (view as any).draggingNode;
-            const draggingAnchorType = (view as any).draggingAnchorType;
-
-            if (draggingPos === undefined || !draggingNode) return false;
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            // Handle page-anchored images (absolute positioning)
-            if (draggingAnchorType === 'page') {
-              // Get editor container bounds
-              const editorEl = view.dom.closest('.tiptap-content') as HTMLElement;
-              if (!editorEl) return false;
-
-              const editorRect = editorEl.getBoundingClientRect();
-              const newPosX = event.clientX - editorRect.left;
-              const newPosY = event.clientY - editorRect.top;
-
-              // Update position attributes
-              const tr = view.state.tr;
-              tr.setNodeMarkup(draggingPos, undefined, {
-                ...draggingNode.attrs,
-                posX: Math.max(0, Math.round(newPosX)),
-                posY: Math.max(0, Math.round(newPosY)),
-              });
-              view.dispatch(tr);
-
-              // Clean up
-              delete (view as any).draggingNodePos;
-              delete (view as any).draggingNode;
-              delete (view as any).draggingAnchorType;
-
-              return true;
-            }
-
-            // Handle paragraph-anchored and inline images (flow positioning)
-            // Get drop position
-            const coords = view.posAtCoords({
-              left: event.clientX,
-              top: event.clientY,
-            });
-
-            if (!coords) return false;
-
-            // Find the nearest block position for cleaner drops
-            const $pos = view.state.doc.resolve(coords.pos);
-            let targetPos = coords.pos;
-
-            // Try to drop before/after blocks rather than inside them
-            if ($pos.parent.isBlock && $pos.parent.childCount > 0) {
-              // If we're past the middle of the drop target, insert after
-              const domNode = view.domAtPos(coords.pos).node;
-              if (domNode && event.clientY > domNode.getBoundingClientRect().top + domNode.getBoundingClientRect().height / 2) {
-                targetPos = $pos.after();
-              } else {
-                targetPos = $pos.before();
-              }
-            }
-
-            // Don't do anything if dropping in the same position
-            if (Math.abs(targetPos - draggingPos) < draggingNode.nodeSize) {
-              delete (view as any).draggingNodePos;
-              delete (view as any).draggingNode;
-              delete (view as any).draggingAnchorType;
-              return true;
-            }
-
-            // Adjust if dropping after the dragged node
-            if (targetPos > draggingPos) {
-              targetPos -= draggingNode.nodeSize;
-            }
-
-            // Create transaction
-            const tr = view.state.tr;
-
-            // Delete from old position and insert at new position
-            tr.delete(draggingPos, draggingPos + draggingNode.nodeSize);
-            tr.insert(targetPos, draggingNode);
-
-            // Apply transaction
-            view.dispatch(tr);
-
-            // Clean up
-            delete (view as any).draggingNodePos;
-            delete (view as any).draggingNode;
-            delete (view as any).draggingAnchorType;
-
-            return true;
-          },
-
-          dragover: (view, event) => {
-            if ((view as any).draggingNode) {
-              event.preventDefault();
-              event.dataTransfer!.dropEffect = 'move';
-            }
-            return false;
-          },
-        },
-      },
-    });
-
-    return [...basePlugins, dropPlugin];
-  },
+  // No ProseMirror plugins needed - drag is handled via mouse events in NodeView
 });
