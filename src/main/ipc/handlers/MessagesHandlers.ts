@@ -287,6 +287,12 @@ export class MessagesHandlers extends BaseHandler {
         }
       }
     );
+  }
 
+  /**
+   * Cleanup method called on app shutdown
+   */
+  async cleanup(): Promise<void> {
+    console.log('[MessagesHandlers] Cleanup complete');
   }
 }

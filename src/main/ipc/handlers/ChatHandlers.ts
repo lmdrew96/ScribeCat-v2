@@ -81,4 +81,11 @@ export class ChatHandlers extends BaseHandler {
       }
     });
   }
+
+  /**
+   * Cleanup method called on app shutdown
+   */
+  async cleanup(): Promise<void> {
+    console.log('[ChatHandlers] Cleanup complete');
+  }
 }
