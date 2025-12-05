@@ -1,6 +1,6 @@
 # ScribeCat Terms of Service
 
-**Effective Date:** November 10, 2025
+**Effective Date:** December 5, 2025
 **Contact:** scribecatscribes@gmail.com
 **Company:** ADHD: Agentic Development of Human Designs
 
@@ -42,6 +42,8 @@ ScribeCat is a free, open-source desktop application for:
 - Taking and organizing notes
 - Creating study materials (flashcards, summaries, quizzes)
 - Collaborating with others on shared sessions
+- Connecting with friends and creating study rooms
+- Playing multiplayer study games (Quiz Battle, Jeopardy, Hot Seat, Lightning Chain)
 
 **Key points:**
 - **Free:** No subscription, no fees, no hidden costs
@@ -94,6 +96,11 @@ If you share sessions with other users:
 - You can revoke shares anytime
 - Be mindful of what you share—you're responsible for who you grant access to
 
+If you participate in study rooms or multiplayer games:
+- Chat messages you send are visible to room participants
+- Game scores and participation are visible to other players
+- Content from shared sessions may be used to generate game questions
+
 ### 4.4 Responsibility for Your Content
 You're responsible for ensuring:
 - You have the right to record audio (don't record people without permission where illegal)
@@ -120,6 +127,8 @@ Don't use ScribeCat to:
 - **Violate privacy:** No recording people without consent where prohibited by law
 - **Impersonate others:** Don't pretend to be someone you're not
 - **Sell access:** Don't resell or sublicense ScribeCat (it's already free!)
+- **Cheat in games:** No exploiting bugs or using external tools to gain unfair advantages in multiplayer games
+- **Harass in social features:** No bullying, hate speech, or harassment in chat, study rooms, or games
 
 ### 5.3 Consequences of Misuse
 If you violate these terms:
@@ -373,5 +382,5 @@ Now go ace those exams. 🎓
 
 ---
 
-**Last Updated:** November 10, 2025
-**Version:** 1.0
+**Last Updated:** December 5, 2025
+**Version:** 1.1
