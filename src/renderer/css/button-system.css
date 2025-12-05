@@ -1,0 +1,183 @@
+/* ===== Button System Enhancement ===== */
+/* GSAP-powered button animations with ripple effects */
+
+/* ========== Ripple Effect Base ========== */
+
+/* Ensure buttons can contain ripple */
+.primary-btn,
+.secondary-btn,
+.danger-btn,
+button:not(.no-ripple) {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ripple element - spawned by ButtonController */
+.btn-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transform-origin: center;
+  /* Color varies by button type, set inline by JS */
+}
+
+/* Light ripple for dark buttons */
+.primary-btn .btn-ripple,
+.danger-btn .btn-ripple {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Dark ripple for light buttons */
+.secondary-btn .btn-ripple {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Accent ripple for icon buttons */
+.icon-btn .btn-ripple {
+  background: var(--accent);
+  opacity: 0.2;
+}
+
+/* ========== Enhanced Loading State ========== */
+
+/* Loading spinner container */
+.btn-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+}
+
+/* Spinner circle */
+.btn-spinner-circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 50;
+  stroke-dashoffset: 15;
+  transform-origin: center;
+  /* GSAP handles rotation */
+}
+
+/* Hide text when loading */
+.primary-btn.loading .btn-text,
+.secondary-btn.loading .btn-text,
+.danger-btn.loading .btn-text {
+  opacity: 0;
+}
+
+/* ========== Enhanced Success State ========== */
+
+/* Success checkmark SVG */
+.btn-checkmark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+}
+
+.btn-checkmark-path {
+  fill: none;
+  stroke: white;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  /* GSAP animates dashoffset to 0 */
+}
+
+/* Success background transition */
+.primary-btn.success,
+.secondary-btn.success,
+.danger-btn.success {
+  background-color: var(--success) !important;
+  border-color: var(--success) !important;
+}
+
+/* Hide text when success */
+.primary-btn.success .btn-text,
+.secondary-btn.success .btn-text,
+.danger-btn.success .btn-text {
+  opacity: 0;
+}
+
+/* ========== Enhanced Error State ========== */
+
+.primary-btn.error,
+.secondary-btn.error,
+.danger-btn.error {
+  /* Shake animation handled by GSAP */
+  background-color: #e74c3c !important;
+  border-color: #c0392b !important;
+}
+
+/* ========== Button Press Feedback ========== */
+
+/* Neobrutalism shadow reduction on press */
+.primary-btn.pressing,
+.secondary-btn.pressing {
+  box-shadow: var(--shadow-neo-sm) !important;
+  transform: translate(2px, 2px) !important;
+}
+
+/* ========== Icon Button Enhancements ========== */
+
+.icon-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Focus ring for accessibility */
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ========== Disabled State ========== */
+
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.danger-btn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* No ripple on disabled buttons */
+.primary-btn:disabled .btn-ripple,
+.secondary-btn:disabled .btn-ripple,
+.danger-btn:disabled .btn-ripple {
+  display: none;
+}
+
+/* ========== Theme-Aware Ripple Colors ========== */
+
+/* Light theme gets darker ripples */
+[data-theme-variant="light"] .primary-btn .btn-ripple {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme-variant="light"] .secondary-btn .btn-ripple {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ========== Reduced Motion ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-ripple {
+    /* Instant appearance instead of expansion */
+    transition: none !important;
+  }
+
+  .primary-btn,
+  .secondary-btn,
+  .danger-btn {
+    transition: none !important;
+  }
+}

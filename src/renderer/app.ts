@@ -30,6 +30,8 @@ import { BreakReminders, initializeBreakReminders } from './components/BreakRemi
 import { initToolbarUpgrades } from './components/editor/ToolbarIconUpgrader.js';
 import { initEmojiPicker } from './components/editor/EmojiPicker.js';
 import { initializeShortcutValidation } from './managers/ShortcutRegistry.js';
+import { AnimationService } from './effects/AnimationService.js';
+import { getButtonController, ButtonController } from './components/ButtonController.js';
 
 // App initialization modules
 import {
@@ -64,6 +66,7 @@ let aiSuggestionChip: AISuggestionChip;
 let layoutManager: LayoutManager;
 let layoutPicker: WorkspaceLayoutPicker;
 let confettiManager: ConfettiManager;
+let buttonController: ButtonController;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -74,6 +77,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize theme manager first
   themeManager = new ThemeManager();
   await themeManager.initialize();
+
+  // Initialize animation system (GSAP-powered)
+  AnimationService.getInstance();
+  buttonController = getButtonController();
+  (window as any).buttonController = buttonController;
+  console.log('%c🎬 Animation system initialized (GSAP)', 'color: #9b59b6; font-weight: bold;');
 
   // Validate keyboard shortcuts
   initializeShortcutValidation();

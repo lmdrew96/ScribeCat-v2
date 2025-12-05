@@ -17,6 +17,7 @@
 @import './css/loading.css';       /* Skeleton loaders, loading states */
 @import './css/visual-feedback.css'; /* Visual feedback animations and effects */
 @import './css/micro-interactions.css'; /* Enhanced button, input, and UI interactions (Phase 6.1) */
+@import './css/button-system.css'; /* GSAP-powered button animations and ripple effects */
 @import './css/accessibility.css'; /* ARIA landmarks, focus management, screen reader support (Phase 6.2) */
 @import './css/workspace-layouts.css'; /* Adaptive workspace layouts */
 @import './css/quick-actions.css'; /* Quick actions menu, keyboard shortcuts */
