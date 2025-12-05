@@ -310,6 +310,7 @@ export const ICONS = {
   star: Star,
   highlight: Star,
   sparkles: Sparkles,
+  sparkle: Sparkles,
   legendary: Sparkles,
   award: Award,
   perfect: Award,
