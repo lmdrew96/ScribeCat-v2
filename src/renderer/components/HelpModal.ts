@@ -192,18 +192,56 @@ export class HelpModal {
       <h2>What is ScribeCat?</h2>
       <p>
         ScribeCat is a powerful desktop application for recording lectures, meetings, and conversations
-        with real-time transcription, intelligent note-taking, and AI-powered study tools.
+        with real-time transcription, intelligent note-taking, and AI-powered study tools. Study solo
+        or collaborate with friends in real-time study rooms.
       </p>
 
-      <h2>Key Features</h2>
+      <h2>Recording & Transcription</h2>
       <ul>
         <li><strong>Real-Time Transcription:</strong> High-quality speech-to-text powered by AssemblyAI</li>
         <li><strong>Rich Text Editor:</strong> Professional note-taking with extensive formatting options</li>
-        <li><strong>AI Study Tools:</strong> 9 powerful AI tools including flashcards, quizzes, summaries, and concept maps</li>
+        <li><strong>Bookmarks:</strong> Mark important moments during recording</li>
         <li><strong>Cloud Sync:</strong> Access your sessions across devices with secure cloud storage</li>
+      </ul>
+
+      <h2>AI Study Tools</h2>
+      <ul>
+        <li><strong>8 AI-Powered Tools:</strong> Flashcards, quizzes, summaries, study plans, concept maps, ELI5 explanations, weak spots analysis, and smart chat</li>
+        <li><strong>Nugget AI Assistant:</strong> Ask questions about your study materials</li>
+        <li><strong>Live Suggestions:</strong> Get AI suggestions while you study</li>
+      </ul>
+
+      <h2>Social & Collaboration</h2>
+      <ul>
+        <li><strong>Friends System:</strong> Connect with classmates via @username</li>
+        <li><strong>Study Rooms:</strong> Collaborative spaces for 2-8 people with real-time editing</li>
+        <li><strong>Real-time Chat:</strong> Message friends in study rooms</li>
+        <li><strong>Session Sharing:</strong> Share sessions with viewer or editor access</li>
+      </ul>
+
+      <h2>Multiplayer Games</h2>
+      <ul>
+        <li><strong>Quiz Battle:</strong> Competitive quiz showdowns</li>
+        <li><strong>Jeopardy:</strong> Classic game show format with AI-generated questions</li>
+        <li><strong>Hot Seat Challenge:</strong> Rapid-fire challenge mode</li>
+        <li><strong>Lightning Chain:</strong> Speed-based chain challenges</li>
+      </ul>
+
+      <h2>Gamification & Productivity</h2>
+      <ul>
+        <li><strong>25 Achievements:</strong> Unlock badges for study milestones</li>
+        <li><strong>Study Goals:</strong> Set daily and weekly targets</li>
+        <li><strong>Streaks:</strong> Build consistency with streak tracking</li>
+        <li><strong>Focus Modes:</strong> 4 modes to minimize distractions</li>
+        <li><strong>Break Reminders:</strong> Configurable study break notifications</li>
+      </ul>
+
+      <h2>Organization & Export</h2>
+      <ul>
         <li><strong>Canvas LMS Integration:</strong> Organize sessions by course</li>
-        <li><strong>40 Beautiful Themes:</strong> Customize your workspace with themes designed for focus, creativity, and productivity</li>
-        <li><strong>Export Options:</strong> Export to PDF, DOCX, TXT, HTML, Markdown, and Google Drive</li>
+        <li><strong>48+ Beautiful Themes:</strong> Customize your workspace for focus, creativity, and productivity</li>
+        <li><strong>Custom Layouts:</strong> Drag-to-resize panels and saved presets</li>
+        <li><strong>Export Options:</strong> Export to PDF, DOCX, TXT, HTML, and Google Drive</li>
       </ul>
 
       <h2>Brought to You by ADHD</h2>
@@ -289,12 +327,13 @@ export class HelpModal {
         Access Study Mode by clicking the ${getIconHTML('library', { size: 14 })} button in the top right. Here you can:
       </p>
       <ul>
-        <li>View all your saved sessions</li>
-        <li>Search and filter by course or date</li>
+        <li>View sessions in 4 layouts: Timeline, Grid, List, or Board (kanban)</li>
+        <li>Search and filter by course, date, or tags</li>
         <li>Play back recordings with synchronized transcription</li>
-        <li>Use AI study tools (flashcards, quizzes, summaries, etc.)</li>
-        <li>Export sessions in multiple formats</li>
-        <li>Share sessions with classmates</li>
+        <li>Use 8 AI study tools (flashcards, quizzes, summaries, etc.)</li>
+        <li>Export sessions to PDF, DOCX, HTML, TXT, or Google Drive</li>
+        <li>Share sessions with classmates as viewer or editor</li>
+        <li>Create multi-session study sets</li>
       </ul>
 
       <h2>Common Issues & Troubleshooting</h2>
@@ -320,10 +359,58 @@ export class HelpModal {
         <li>Try the "Sync Now" button in Study Mode</li>
       </ul>
 
+      <h2>Social Features</h2>
+      <h3>Friends</h3>
+      <ul>
+        <li>Search for friends by @username</li>
+        <li>Send and accept friend requests</li>
+        <li>See who's online with presence indicators</li>
+      </ul>
+
+      <h3>Study Rooms</h3>
+      <ul>
+        <li>Create rooms for 2-8 participants</li>
+        <li>Invite friends to collaborate in real-time</li>
+        <li>Chat while studying together</li>
+        <li>Play multiplayer games with your study group</li>
+      </ul>
+
+      <h2>Multiplayer Games</h2>
+      <p>Challenge friends with AI-generated questions from your study materials:</p>
+      <ul>
+        <li><strong>Quiz Battle:</strong> Head-to-head quiz competition</li>
+        <li><strong>Jeopardy:</strong> Categories and point values, including Final Jeopardy</li>
+        <li><strong>Hot Seat Challenge:</strong> One player answers while others watch</li>
+        <li><strong>Lightning Chain:</strong> Speed rounds with chain bonuses</li>
+      </ul>
+
+      <h2>Achievements & Goals</h2>
+      <p>Track your progress and stay motivated:</p>
+      <ul>
+        <li><strong>25 Achievements:</strong> Badges across 6 categories (time, sessions, streaks, marathons, special)</li>
+        <li><strong>Study Goals:</strong> Set daily or weekly study time targets</li>
+        <li><strong>Streaks:</strong> Build consistency by studying regularly</li>
+      </ul>
+
+      <h2>Focus Mode</h2>
+      <p>Choose a focus mode to optimize your workspace:</p>
+      <ul>
+        <li><strong>Normal:</strong> All panels visible, balanced layout</li>
+        <li><strong>Recording Focus:</strong> Maximize notes area while recording</li>
+        <li><strong>Review Focus:</strong> Optimize for session playback</li>
+        <li><strong>Study Focus:</strong> AI tools prominent, minimize distractions</li>
+      </ul>
+
+      <h2>Break Reminders</h2>
+      <p>
+        ScribeCat can remind you to take breaks during study sessions. Configure break intervals
+        in Study Mode settings to stay fresh and focused.
+      </p>
+
       <h2>Need More Help?</h2>
       <p>
-        For additional support, bug reports, or feature requests, please visit our
-        <a href="#" style="color: #3498db;">GitHub repository</a> or check the full documentation.
+        For additional support, bug reports, or feature requests, email us at
+        <a href="mailto:scribecatscribes@gmail.com" style="color: #3498db;">scribecatscribes@gmail.com</a>
       </p>
 
       <h2>Tips for Best Results</h2>

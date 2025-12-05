@@ -1,6 +1,6 @@
 # ScribeCat Privacy Policy
 
-**Effective Date:** November 10, 2025
+**Effective Date:** December 5, 2025
 **Contact:** scribecatscribes@gmail.com
 **Company:** ADHD: Agentic Development of Human Designs
 
@@ -73,11 +73,25 @@ This policy applies to anyone who uses ScribeCat v2, our desktop transcription a
 - **Storage:** Calculated and stored entirely locally—never sent anywhere
 - **No telemetry:** These stats are for you only. We never see them.
 
-### 2.7 Collaboration Data (If You Share Sessions)
-- **What:** Share invitations, permission levels (viewer/editor), recipient email addresses
-- **Purpose:** To enable collaborative note-taking features
+### 2.7 Social & Collaboration Data (If You Use Social Features)
+- **What:** Friend requests, friend lists, presence status (online/offline), share invitations, permission levels (viewer/editor), recipient email addresses
+- **Purpose:** To enable friends, study rooms, and collaborative note-taking features
 - **Storage:** Supabase database
-- **Control:** You can revoke shares anytime
+- **Control:** You can unfriend users, revoke shares, and leave rooms anytime
+
+### 2.8 Study Room Data (If You Join Study Rooms)
+- **What:** Room membership, room invitations, chat messages within rooms
+- **Purpose:** To enable real-time collaborative study spaces
+- **Storage:** Supabase database
+- **Retention:** Chat messages are stored until the room is deleted or you leave
+- **Control:** You can leave rooms and delete your own messages
+
+### 2.9 Multiplayer Game Data (If You Play Games)
+- **What:** Game sessions, player scores, AI-generated questions, game participation history
+- **Purpose:** To enable multiplayer study games with friends
+- **Storage:** Supabase database
+- **Processing:** Claude AI generates quiz questions from your study materials
+- **Retention:** Game data is kept for score tracking; you can view your game history
 
 ---
 
