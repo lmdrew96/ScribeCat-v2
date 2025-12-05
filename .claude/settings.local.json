@@ -12,7 +12,10 @@
       "Bash(cat:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nFix theme grid scrolling in settings modal to display all 40 themes\n\n- Change settings-group-content overflow from hidden to visible when expanded\n- Add overflow: hidden only when collapsed for proper animation\n- Make theme grid independently scrollable with max-height: 500px\n- Add custom scrollbar styling for better UX\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit:*)",
-      "Bash(perl -i -0777 -pe:*)"
+      "Bash(perl -i -0777 -pe:*)",
+      "Bash(/usr/local/bin/npm run clean)",
+      "Bash(/usr/local/bin/npm run compile)",
+      "Bash(/opt/homebrew/bin/npm run clean)"
     ],
     "deny": [],
     "ask": []
