@@ -29,6 +29,7 @@ import { StudyRoomsHandlers } from './ipc/handlers/StudyRoomsHandlers.js';
 import { ChatHandlers } from './ipc/handlers/ChatHandlers.js';
 import { MessagesHandlers } from './ipc/handlers/MessagesHandlers.js';
 import { registerGameHandlers } from './ipc/handlers/GameHandlers.js';
+import { registerStudyQuestHandlers } from './ipc/handlers/StudyQuestHandlers.js';
 import { GoogleDriveService } from '../infrastructure/services/drive/GoogleDriveService.js';
 import type { GoogleDriveConfig } from '../shared/types.js';
 import type { Services } from './ServiceBootstrapper.js';
@@ -168,6 +169,7 @@ export class IPCCoordinator {
     this.registerAppHandlers();
     this.registerSyncHandlers();
     registerGameHandlers();
+    registerStudyQuestHandlers();
   }
 
   /**
