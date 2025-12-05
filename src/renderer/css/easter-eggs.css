@@ -479,3 +479,62 @@ body.nyan-cat-theme .record-button::before {
 body.nyan-cat-theme .record-button:hover::before {
   opacity: 0.5;
 }
+
+/* ====================================
+   Super Rainbow Mode - Icon Glow
+   ==================================== */
+
+body.super-rainbow-mode .icon-btn svg,
+body.super-rainbow-mode button svg,
+body.super-rainbow-mode .lucide {
+  filter: drop-shadow(0 0 3px #ff00ff) drop-shadow(0 0 6px #00ffff);
+  animation: super-icon-glow 0.4s ease infinite alternate;
+}
+
+@keyframes super-icon-glow {
+  from {
+    filter: drop-shadow(0 0 3px #ff00ff) drop-shadow(0 0 6px #00ffff);
+  }
+  to {
+    filter: drop-shadow(0 0 5px #00ffff) drop-shadow(0 0 8px #ff00ff);
+  }
+}
+
+/* Enhanced button borders during super rainbow mode */
+body.super-rainbow-mode button,
+body.super-rainbow-mode .primary-btn,
+body.super-rainbow-mode .secondary-btn {
+  box-shadow:
+    0 0 8px rgba(255, 0, 255, 0.4),
+    0 0 16px rgba(0, 255, 255, 0.3);
+  animation: super-button-pulse 0.6s ease infinite alternate;
+}
+
+@keyframes super-button-pulse {
+  from {
+    box-shadow:
+      0 0 8px rgba(255, 0, 255, 0.4),
+      0 0 16px rgba(0, 255, 255, 0.3);
+  }
+  to {
+    box-shadow:
+      0 0 12px rgba(0, 255, 255, 0.5),
+      0 0 20px rgba(255, 0, 255, 0.4);
+  }
+}
+
+/* Rainbow text effect for headings during super mode */
+body.super-rainbow-mode h1,
+body.super-rainbow-mode h2,
+body.super-rainbow-mode h3 {
+  animation: rainbow-text-shimmer 1s linear infinite, super-text-glow 0.4s ease infinite alternate;
+}
+
+@keyframes super-text-glow {
+  from {
+    text-shadow: 0 0 4px rgba(255, 0, 255, 0.5);
+  }
+  to {
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+  }
+}

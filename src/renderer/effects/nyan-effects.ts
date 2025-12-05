@@ -41,6 +41,15 @@ interface ExplosionParticle {
   maxLife: number;
 }
 
+interface RainbowWave {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  life: number;
+  maxLife: number;
+}
+
 export class NyanEffects {
   private isActive = false;
   private canvas: HTMLCanvasElement | null = null;
@@ -61,6 +70,9 @@ export class NyanEffects {
   private nyanTyped = '';
   private nyanTimeout: number | null = null;
   private superRainbowActive = false;
+  private superRainbowStartTime = 0;
+  private superRainbowDuration = 30000; // 30 seconds
+  private rainbowWaves: RainbowWave[] = [];
   private clickCounter = 0;
   private clickTimeout: number | null = null;
 
@@ -307,6 +319,14 @@ export class NyanEffects {
   private animate(): void {
     if (!this.isActive || !this.ctx || !this.canvas) return;
 
+    // Check for super rainbow fadeout
+    if (this.superRainbowActive && this.getSuperRainbowIntensity() <= 0) {
+      this.deactivateSuperRainbowMode();
+    }
+
+    // Get current intensity for enhanced effects
+    const intensity = this.getSuperRainbowIntensity();
+
     // Clear canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -336,17 +356,23 @@ export class NyanEffects {
       this.trailPoints.shift();
     }
 
+    // Update and draw rainbow waves (behind trail)
+    this.updateRainbowWaves();
+    this.drawRainbowWaves();
+
     // Draw rainbow trail
     this.drawRainbowTrail();
 
-    // Spawn sparkles along trail
-    if (this.trailPoints.length > 2 && Math.random() < 0.3) {
-      this.spawnTrailSparkle();
+    // Spawn sparkles along trail - more during super mode
+    const trailSparkleRate = 0.3 + (intensity * 0.4); // 0.3 normal, up to 0.7 in super mode
+    if (this.trailPoints.length > 2 && Math.random() < trailSparkleRate) {
+      this.spawnTrailSparkle(intensity);
     }
 
-    // Randomly spawn ambient sparkles
-    if (Math.random() < 0.05) {
-      this.spawnRandomSparkle();
+    // Randomly spawn ambient sparkles - more during super mode
+    const ambientSparkleRate = 0.05 + (intensity * 0.15); // 0.05 normal, up to 0.2
+    if (Math.random() < ambientSparkleRate) {
+      this.spawnRandomSparkle(intensity);
     }
 
     // Update and draw sparkles
@@ -444,7 +470,7 @@ export class NyanEffects {
   /**
    * Spawn a sparkle along the trail
    */
-  private spawnTrailSparkle(): void {
+  private spawnTrailSparkle(intensity: number = 0): void {
     if (this.trailPoints.length < 3) return;
 
     // Pick a random point along the trail
@@ -453,13 +479,22 @@ export class NyanEffects {
 
     const bandHeight = this.nyanColors.length * this.stripeHeight;
 
+    // Enhanced size and opacity during super mode
+    const sizeMultiplier = 1 + intensity * 0.5;
+    const opacityBoost = intensity * 0.2;
+
+    // Use rainbow colors during super mode instead of just white/pastels
+    const color = intensity > 0.3
+      ? this.nyanColors[Math.floor(Math.random() * this.nyanColors.length)]
+      : this.sparkleColors[Math.floor(Math.random() * this.sparkleColors.length)];
+
     this.sparkles.push({
       x: point.x + (Math.random() - 0.5) * bandHeight * 2,
       y: point.y + (Math.random() - 0.5) * bandHeight * 2,
-      size: 1 + Math.random() * 2, // Smaller sparkles
-      opacity: 0.8 + Math.random() * 0.2,
+      size: (1 + Math.random() * 2) * sizeMultiplier,
+      opacity: Math.min(1, (0.8 + Math.random() * 0.2) + opacityBoost),
       rotation: Math.random() * Math.PI * 2,
-      color: this.sparkleColors[Math.floor(Math.random() * this.sparkleColors.length)],
+      color,
       vx: (Math.random() - 0.5) * 1.5,
       vy: (Math.random() - 0.5) * 1.5 - 0.3, // Slight upward bias
       life: 0,
@@ -471,14 +506,23 @@ export class NyanEffects {
   /**
    * Spawn a random ambient sparkle
    */
-  private spawnRandomSparkle(): void {
+  private spawnRandomSparkle(intensity: number = 0): void {
+    // Enhanced size and opacity during super mode
+    const sizeMultiplier = 1 + intensity * 0.6;
+    const opacityBoost = intensity * 0.3;
+
+    // Use rainbow colors during super mode
+    const color = intensity > 0.3
+      ? this.nyanColors[Math.floor(Math.random() * this.nyanColors.length)]
+      : this.sparkleColors[Math.floor(Math.random() * this.sparkleColors.length)];
+
     this.sparkles.push({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      size: 0.5 + Math.random() * 1.5, // Smaller ambient sparkles
-      opacity: 0.4 + Math.random() * 0.4,
+      size: (0.5 + Math.random() * 1.5) * sizeMultiplier,
+      opacity: Math.min(1, (0.4 + Math.random() * 0.4) + opacityBoost),
       rotation: Math.random() * Math.PI * 2,
-      color: this.sparkleColors[Math.floor(Math.random() * this.sparkleColors.length)],
+      color,
       vx: 0,
       vy: 0,
       life: 0,
@@ -658,6 +702,27 @@ export class NyanEffects {
   }
 
   /**
+   * Get current super rainbow intensity (1.0 at start, 0.0 at end)
+   */
+  private getSuperRainbowIntensity(): number {
+    if (!this.superRainbowActive) return 0;
+    const elapsed = Date.now() - this.superRainbowStartTime;
+    return Math.max(0, 1 - elapsed / this.superRainbowDuration);
+  }
+
+  /**
+   * Deactivate super rainbow mode
+   */
+  private deactivateSuperRainbowMode(): void {
+    if (!this.superRainbowActive) return;
+
+    console.log('✨ Super Rainbow Mode fading out...');
+    this.superRainbowActive = false;
+    document.body.classList.remove('super-rainbow-mode');
+    this.rainbowWaves = [];
+  }
+
+  /**
    * Activate super rainbow mode (by typing "nyan")
    */
   private activateSuperRainbowMode(): void {
@@ -665,26 +730,97 @@ export class NyanEffects {
 
     console.log('🌈 NYAN! SUPER RAINBOW MODE ACTIVATED!');
     this.superRainbowActive = true;
+    this.superRainbowStartTime = Date.now();
 
     // Add extra effects
     document.body.classList.add('super-rainbow-mode');
+
+    // Screen shake effect with GSAP
+    gsap.to(document.body, {
+      x: [-4, 4, -3, 3, -2, 2, 0],
+      y: [-2, 2, -1, 1, 0],
+      duration: 0.5,
+      ease: 'power2.out'
+    });
+
+    // Create rainbow wave pulse from center
+    this.createRainbowWave(window.innerWidth / 2, window.innerHeight / 2);
 
     // Create big explosion
     this.createExplosion(window.innerWidth / 2, window.innerHeight / 2, 50);
 
     // Spawn tons of sparkles
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 50; i++) {
       this.spawnRandomSparkle();
     }
 
     // Show notification
     this.showNotification('✨ NYAN! SUPER RAINBOW MODE! ✨');
 
-    // Deactivate after 10 seconds
-    setTimeout(() => {
-      this.superRainbowActive = false;
-      document.body.classList.remove('super-rainbow-mode');
-    }, 10000);
+    // Note: Deactivation now handled by intensity check in animate()
+  }
+
+  /**
+   * Create a rainbow wave pulse effect
+   */
+  private createRainbowWave(x: number, y: number): void {
+    const maxRadius = Math.max(window.innerWidth, window.innerHeight);
+
+    this.rainbowWaves.push({
+      x,
+      y,
+      radius: 0,
+      maxRadius,
+      life: 0,
+      maxLife: 60 // ~1 second at 60fps
+    });
+  }
+
+  /**
+   * Update rainbow waves
+   */
+  private updateRainbowWaves(): void {
+    for (let i = this.rainbowWaves.length - 1; i >= 0; i--) {
+      const wave = this.rainbowWaves[i];
+
+      wave.life++;
+      wave.radius = (wave.life / wave.maxLife) * wave.maxRadius;
+
+      if (wave.life >= wave.maxLife) {
+        this.rainbowWaves.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Draw rainbow waves
+   */
+  private drawRainbowWaves(): void {
+    if (!this.ctx) return;
+
+    for (const wave of this.rainbowWaves) {
+      const progress = wave.life / wave.maxLife;
+      const opacity = Math.max(0, 1 - progress);
+
+      // Cycle through rainbow colors based on time
+      const colorIndex = (Date.now() / 100) % this.nyanColors.length;
+
+      for (let i = 0; i < 3; i++) {
+        const radius = wave.radius - i * 8;
+        if (radius <= 0) continue;
+
+        const color = this.nyanColors[(Math.floor(colorIndex) + i) % this.nyanColors.length];
+
+        this.ctx.beginPath();
+        this.ctx.arc(wave.x, wave.y, radius, 0, Math.PI * 2);
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 4;
+        this.ctx.globalAlpha = opacity * 0.6;
+        this.ctx.stroke();
+      }
+    }
+
+    this.ctx.globalAlpha = 1;
   }
 
   /**
