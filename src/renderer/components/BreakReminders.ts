@@ -20,6 +20,7 @@
 
 import { SoundManager } from '../audio/SoundManager.js';
 import { FocusManager } from '../utils/FocusManager.js';
+import { ViewContextService } from '../services/ViewContextService.js';
 import type { RecordingManager } from '../managers/RecordingManager.js';
 
 interface BreakReminderConfig {
@@ -317,6 +318,13 @@ export class BreakReminders {
 
     // IMPORTANT: Don't show break reminders while recording is active
     if (this.recordingManager?.getIsRecording()) {
+      return;
+    }
+
+    // Only show break reminders in Study Mode or Session Detail View
+    // Not in main recording view or study rooms
+    const viewContext = ViewContextService.getInstance();
+    if (!viewContext.shouldShowBreakReminders()) {
       return;
     }
 

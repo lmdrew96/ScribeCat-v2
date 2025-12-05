@@ -102,3 +102,58 @@ export interface ICoverageChecker {
     bookmarks: BookmarkRef[]
   ): ImportantPoint[];
 }
+
+// ============================================================================
+// AI Topic Analysis Types
+// ============================================================================
+
+/**
+ * Importance level of a subtopic
+ */
+export type SubtopicImportance = 'exam' | 'emphasized' | 'repeated';
+
+/**
+ * A subtopic identified by AI analysis
+ */
+export interface SubtopicEntry {
+  /** The subtopic text */
+  topic: string;
+  /** Related keywords for matching */
+  relatedKeywords: string[];
+  /** How the importance was detected */
+  importance: SubtopicImportance;
+  /** AI-generated natural suggestion message */
+  suggestedMessage: string;
+  /** Confidence score 0-1 */
+  confidence: number;
+  /** Whether this subtopic has been shown as a suggestion */
+  hasBeenSuggested: boolean;
+}
+
+/**
+ * Result of AI topic analysis
+ */
+export interface TopicAnalysis {
+  /** The main/overarching topic of the lecture */
+  mainTopic: string;
+  /** Keywords that refer to the main topic */
+  mainTopicKeywords: string[];
+  /** Noteworthy subtopics worth suggesting */
+  subtopics: SubtopicEntry[];
+  /** Word count when this analysis was performed */
+  lastAnalyzedWordCount: number;
+  /** Timestamp when analysis was performed */
+  analyzedAt: Date;
+}
+
+/**
+ * Input to the AI topic analyzer
+ */
+export interface TopicAnalysisInput {
+  /** The transcription text (may be truncated) */
+  transcription: string;
+  /** Detected important points from rule-based analysis */
+  importantPoints: ImportantPoint[];
+  /** Current word count of full transcription */
+  currentWordCount: number;
+}

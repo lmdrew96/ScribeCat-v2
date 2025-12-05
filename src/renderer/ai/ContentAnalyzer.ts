@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../shared/logger.js';
 import { ImportantPointAnalyzer } from './analysis/ImportantPointAnalyzer.js';
+import { AITopicAnalyzer } from './analysis/AITopicAnalyzer.js';
 import { ImportantPoint, BookmarkRef } from './analysis/types.js';
 
 const logger = createLogger('ContentAnalyzer');
@@ -60,7 +61,11 @@ export class ContentAnalyzer {
 
   // Important point analysis
   private importantPointAnalyzer: ImportantPointAnalyzer;
+  private aiTopicAnalyzer: AITopicAnalyzer;
   private bookmarks: BookmarkRef[] = [];
+
+  // AI analysis state
+  private pendingAIAnalysis: boolean = false;
 
   // Configuration
   private readonly TOPIC_KEYWORDS = new Set([
@@ -87,6 +92,7 @@ export class ContentAnalyzer {
 
   constructor() {
     this.importantPointAnalyzer = new ImportantPointAnalyzer();
+    this.aiTopicAnalyzer = new AITopicAnalyzer();
   }
 
   /**
@@ -121,7 +127,39 @@ export class ContentAnalyzer {
       currentTimestamp
     );
 
+    // Trigger AI topic analysis asynchronously (non-blocking)
+    this.triggerAIAnalysisIfNeeded(insights.wordCount);
+
     return insights;
+  }
+
+  /**
+   * Trigger AI topic analysis if conditions are met (async, non-blocking)
+   */
+  private triggerAIAnalysisIfNeeded(wordCount: number): void {
+    // Don't trigger if already pending
+    if (this.pendingAIAnalysis) return;
+
+    // Check if we should analyze
+    if (!this.aiTopicAnalyzer.shouldTriggerAnalysis(wordCount)) return;
+
+    // Mark as pending and trigger analysis
+    this.pendingAIAnalysis = true;
+
+    const importantPoints = this.importantPointAnalyzer.getAllPoints();
+
+    // Run asynchronously without blocking
+    this.aiTopicAnalyzer.analyzeWithAI({
+      transcription: this.transcriptionText,
+      importantPoints,
+      currentWordCount: wordCount
+    }).then(() => {
+      this.pendingAIAnalysis = false;
+      logger.debug('AI topic analysis completed');
+    }).catch(error => {
+      this.pendingAIAnalysis = false;
+      logger.warn('AI topic analysis failed', { error });
+    });
   }
 
   /**
@@ -277,56 +315,35 @@ export class ContentAnalyzer {
       }
 
       // ===== IMPORTANT POINT TRIGGERS =====
-      // Get high-priority missed points (exam-related, emphasized, repeated)
-      const missedPoints = this.importantPointAnalyzer.getHighPriorityMissedPoints(0.75);
+      // Check if AI topic analysis is available for intelligent suggestions
+      if (this.aiTopicAnalyzer.hasAnalysis()) {
+        // Use AI-generated subtopic suggestions (more natural and contextual)
+        const aiSuggestions = this.aiTopicAnalyzer.getSubtopicSuggestions();
+        for (const suggestion of aiSuggestions) {
+          triggers.push(suggestion);
+          // Mark as suggested so it won't be shown again
+          if (suggestion.context?.topic) {
+            this.aiTopicAnalyzer.markSubtopicSuggested(suggestion.context.topic);
+          }
+        }
 
-      // Limit to top 2 most important missed points at a time
-      for (const point of missedPoints.slice(0, 2)) {
-        if (point.detectionMethod === 'exam') {
-          // Exam-related content - highest priority
-          triggers.push({
-            type: 'important_moment',
-            confidence: point.confidence,
-            reason: `Exam material: "${this.truncateText(point.text, 60)}"`,
-            suggestedAction: 'bookmark',
-            mode: 'recording',
-            context: {
-              importantPointId: point.id,
-              text: point.text,
-              detectionMethod: point.detectionMethod,
-              timestamp: point.firstOccurrence
-            }
-          });
-        } else if (point.detectionMethod === 'emphasis') {
-          // Explicitly emphasized content
-          triggers.push({
-            type: 'important_moment',
-            confidence: point.confidence,
-            reason: `The speaker emphasized: "${this.truncateText(point.text, 55)}"`,
-            suggestedAction: 'bookmark',
-            mode: 'recording',
-            context: {
-              importantPointId: point.id,
-              text: point.text,
-              detectionMethod: point.detectionMethod,
-              timestamp: point.firstOccurrence
-            }
-          });
-        } else if (point.detectionMethod === 'repetition') {
-          // Frequently repeated content
-          triggers.push({
-            type: 'topic_emphasis',
-            confidence: point.confidence,
-            reason: `Frequently mentioned (${point.repetitionCount}x): "${this.truncateText(point.text, 50)}"`,
-            suggestedAction: 'note_prompt',
-            mode: 'recording',
-            context: {
-              importantPointId: point.id,
-              text: point.text,
-              repetitionCount: point.repetitionCount,
-              detectionMethod: point.detectionMethod
-            }
-          });
+        // Also include any high-priority points that aren't the main topic
+        const missedPoints = this.importantPointAnalyzer.getHighPriorityMissedPoints(0.75);
+        const filteredPoints = this.aiTopicAnalyzer.filterAgainstMainTopic(missedPoints);
+
+        // Only add rule-based triggers if AI didn't generate enough
+        if (aiSuggestions.length < 2) {
+          for (const point of filteredPoints.slice(0, 2 - aiSuggestions.length)) {
+            triggers.push(this.createPointTrigger(point));
+          }
+        }
+      } else {
+        // Fallback: Use rule-based detection when AI is not available
+        const missedPoints = this.importantPointAnalyzer.getHighPriorityMissedPoints(0.75);
+
+        // Limit to top 2 most important missed points at a time
+        for (const point of missedPoints.slice(0, 2)) {
+          triggers.push(this.createPointTrigger(point));
         }
       }
     }
@@ -546,7 +563,61 @@ export class ContentAnalyzer {
     this.startTime = null;
     this.lastAnalysis = null;
     this.bookmarks = [];
+    this.pendingAIAnalysis = false;
     this.importantPointAnalyzer.reset();
+    this.aiTopicAnalyzer.reset();
+  }
+
+  /**
+   * Create a suggestion trigger from an important point
+   */
+  private createPointTrigger(point: ImportantPoint): SuggestionTrigger {
+    if (point.detectionMethod === 'exam') {
+      // Exam-related content - highest priority
+      return {
+        type: 'important_moment',
+        confidence: point.confidence,
+        reason: `Exam material: "${this.truncateText(point.text, 60)}"`,
+        suggestedAction: 'bookmark',
+        mode: 'recording',
+        context: {
+          importantPointId: point.id,
+          text: point.text,
+          detectionMethod: point.detectionMethod,
+          timestamp: point.firstOccurrence
+        }
+      };
+    } else if (point.detectionMethod === 'emphasis') {
+      // Explicitly emphasized content
+      return {
+        type: 'important_moment',
+        confidence: point.confidence,
+        reason: `The speaker emphasized: "${this.truncateText(point.text, 55)}"`,
+        suggestedAction: 'bookmark',
+        mode: 'recording',
+        context: {
+          importantPointId: point.id,
+          text: point.text,
+          detectionMethod: point.detectionMethod,
+          timestamp: point.firstOccurrence
+        }
+      };
+    } else {
+      // Frequently repeated content
+      return {
+        type: 'topic_emphasis',
+        confidence: point.confidence,
+        reason: `Frequently mentioned (${point.repetitionCount}x): "${this.truncateText(point.text, 50)}"`,
+        suggestedAction: 'note_prompt',
+        mode: 'recording',
+        context: {
+          importantPointId: point.id,
+          text: point.text,
+          repetitionCount: point.repetitionCount,
+          detectionMethod: point.detectionMethod
+        }
+      };
+    }
   }
 
   /**
