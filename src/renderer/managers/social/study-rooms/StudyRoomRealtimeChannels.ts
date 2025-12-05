@@ -30,7 +30,8 @@ export class StudyRoomRealtimeChannels {
   /**
    * Subscribe to real-time participant changes
    */
-  async subscribeToParticipantChanges(onParticipantChange: ParticipantChangeHandler): Promise<void> {
+  async subscribeToParticipantChanges(onParticipantChange: ParticipantChangeHandler, retryCount = 0): Promise<void> {
+    const MAX_RETRIES = 3;
     try {
       const rendererClient = RendererSupabaseClient.getInstance();
       const supabase = rendererClient.getClient();
@@ -38,11 +39,17 @@ export class StudyRoomRealtimeChannels {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
-        console.warn('⚠️ No session available for Realtime subscription, skipping participant subscription');
+        if (retryCount < MAX_RETRIES) {
+          const delay = Math.pow(2, retryCount) * 1000;
+          logger.info(`⏳ StudyRoomRealtimeChannels: No session yet for participants, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+          setTimeout(() => this.subscribeToParticipantChanges(onParticipantChange, retryCount + 1), delay);
+          return;
+        }
+        logger.warn('⚠️ No session available after retries, skipping participant subscription');
         return;
       }
 
-      console.log('📡 Creating Realtime participant subscription using RendererSupabaseClient with session');
+      logger.info('📡 Creating Realtime participant subscription using RendererSupabaseClient with session');
 
       this.participantsChannel = supabase
         .channel('room-participants-changes')
@@ -57,13 +64,23 @@ export class StudyRoomRealtimeChannels {
             onParticipantChange(payload);
           }
         )
-        .subscribe((status) => {
+        .subscribe((status, err) => {
+          if (err) {
+            logger.error('❌ StudyRoomRealtimeChannels: Participant subscription error:', err);
+          }
           if (status === 'SUBSCRIBED') {
-            logger.info('Subscribed to room participants real-time updates');
-          } else if (status === 'CHANNEL_ERROR') {
-            logger.error('Failed to subscribe to room participants');
-          } else if (status === 'TIMED_OUT') {
-            logger.error('Subscription to room participants timed out');
+            logger.info('✅ Subscribed to room participants real-time updates');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            const errorType = status === 'CHANNEL_ERROR' ? 'Channel error' : 'Timed out';
+            if (retryCount < MAX_RETRIES) {
+              const delay = Math.pow(2, retryCount) * 1000;
+              logger.warn(`⚠️ StudyRoomRealtimeChannels: ${errorType} for participants, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+              this.participantsChannel?.unsubscribe();
+              this.participantsChannel = null;
+              setTimeout(() => this.subscribeToParticipantChanges(onParticipantChange, retryCount + 1), delay);
+            } else {
+              logger.error(`❌ StudyRoomRealtimeChannels: ${errorType} for participants after ${MAX_RETRIES} retries`);
+            }
           }
         });
     } catch (error) {
@@ -85,13 +102,13 @@ export class StudyRoomRealtimeChannels {
   /**
    * Subscribe to real-time invitation updates
    */
-  async subscribeToInvitations(onInvitationChange: InvitationChangeHandler): Promise<void> {
+  async subscribeToInvitations(onInvitationChange: InvitationChangeHandler, retryCount = 0): Promise<void> {
+    const MAX_RETRIES = 3;
     try {
       logger.info('🔔 Setting up realtime invitation subscription for user:', this.currentUserId);
-      console.log('🔔 StudyRoomRealtimeChannels: Starting DIRECT Supabase subscription in renderer...');
 
       if (!this.currentUserId) {
-        console.error('❌ No user ID available for subscription');
+        logger.error('❌ No user ID available for invitation subscription');
         return;
       }
 
@@ -99,20 +116,33 @@ export class StudyRoomRealtimeChannels {
       const client = rendererClient.getClient();
 
       if (!client) {
-        console.error('❌ No Supabase client available in renderer');
+        logger.error('❌ No Supabase client available in renderer');
+        return;
+      }
+
+      // Validate session before subscribing
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        if (retryCount < MAX_RETRIES) {
+          const delay = Math.pow(2, retryCount) * 1000;
+          logger.info(`⏳ StudyRoomRealtimeChannels: No session yet for invitations, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+          setTimeout(() => this.subscribeToInvitations(onInvitationChange, retryCount + 1), delay);
+          return;
+        }
+        logger.warn('⚠️ StudyRoomRealtimeChannels: No session available after retries, skipping invitation subscription');
         return;
       }
 
       const channelName = `study-room-invitations:${this.currentUserId}`;
 
       if (this.invitationChannel) {
-        console.log('🔄 Removing existing invitation channel');
+        logger.info('🔄 Removing existing invitation channel');
         this.invitationChannel.unsubscribe();
         client.removeChannel(this.invitationChannel);
         this.invitationChannel = null;
       }
 
-      console.log('📡 Creating direct Supabase realtime channel in renderer process');
+      logger.info('📡 Creating direct Supabase realtime channel for invitations');
 
       this.invitationChannel = client
         .channel(channelName)
@@ -125,7 +155,7 @@ export class StudyRoomRealtimeChannels {
             filter: `invitee_id=eq.${this.currentUserId}`,
           },
           (payload) => {
-            console.log('🔥 NEW INVITATION REALTIME EVENT IN RENDERER:', payload);
+            logger.info('🔥 New invitation realtime event:', payload);
             const invitation = this.convertPayloadToInvitation(payload.new);
             onInvitationChange(invitation, 'INSERT');
           }
@@ -139,41 +169,48 @@ export class StudyRoomRealtimeChannels {
             filter: `invitee_id=eq.${this.currentUserId}`,
           },
           (payload) => {
-            console.log('🔥 INVITATION UPDATE REALTIME EVENT IN RENDERER:', payload);
+            logger.info('🔥 Invitation update realtime event:', payload);
             const invitation = this.convertPayloadToInvitation(payload.new);
             onInvitationChange(invitation, 'UPDATE');
           }
         );
 
       this.invitationChannel.subscribe((status, err) => {
-        console.log('📡 Renderer invitation subscription status:', status);
+        logger.info('📡 Invitation subscription status:', status);
         if (err) {
-          console.error('❌ Renderer subscription error:', err);
+          logger.error('❌ Invitation subscription error:', err);
         }
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to invitations in RENDERER process');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Channel error in renderer subscription');
-        } else if (status === 'TIMED_OUT') {
-          console.error('⏱️ Subscription timed out in renderer');
+          logger.info('✅ Successfully subscribed to invitations');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          const errorType = status === 'CHANNEL_ERROR' ? 'Channel error' : 'Timed out';
+          if (retryCount < MAX_RETRIES) {
+            const delay = Math.pow(2, retryCount) * 1000;
+            logger.warn(`⚠️ StudyRoomRealtimeChannels: ${errorType} for invitations, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+            this.invitationChannel?.unsubscribe();
+            client.removeChannel(this.invitationChannel!);
+            this.invitationChannel = null;
+            setTimeout(() => this.subscribeToInvitations(onInvitationChange, retryCount + 1), delay);
+          } else {
+            logger.error(`❌ StudyRoomRealtimeChannels: ${errorType} for invitations after ${MAX_RETRIES} retries`);
+          }
         } else if (status === 'CLOSED') {
-          console.log('🔒 Subscription channel closed');
+          logger.info('🔒 Invitation subscription channel closed');
         }
       });
 
       this.invitationUnsubscribe = () => {
         if (this.invitationChannel) {
-          console.log('🔒 Unsubscribing from invitations');
+          logger.info('🔒 Unsubscribing from invitations');
           this.invitationChannel.unsubscribe();
           client.removeChannel(this.invitationChannel);
           this.invitationChannel = null;
         }
       };
 
-      logger.info('✅ Direct Supabase subscription initiated in renderer');
+      logger.info('✅ Invitation subscription initiated');
     } catch (error) {
       logger.error('❌ Exception subscribing to invitation changes:', error);
-      console.error('❌ StudyRoomRealtimeChannels: Failed to subscribe to invitations:', error);
     }
   }
 

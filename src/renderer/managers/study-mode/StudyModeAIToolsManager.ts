@@ -202,7 +202,7 @@ export class StudyModeAIToolsManager {
 
     // Track AI tool usage
     try {
-      await (window as any).electronAPI.incrementAIToolUsage(session.id);
+      await window.scribeCat.session.incrementAIToolUsage(session.id);
     } catch (error) {
       logger.error('Failed to track AI tool usage:', error);
     }

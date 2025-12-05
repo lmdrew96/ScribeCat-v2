@@ -32,7 +32,8 @@ export class FriendsRealtimeSubscriptions {
    * Uses direct Supabase Realtime subscription in renderer process
    * (WebSockets don't work in Electron's main process - no browser APIs)
    */
-  async subscribeToRequests(): Promise<void> {
+  async subscribeToRequests(retryCount = 0): Promise<void> {
+    const MAX_RETRIES = 3;
     const userId = this.callbacks.getCurrentUserId();
     if (!userId) return;
 
@@ -44,6 +45,19 @@ export class FriendsRealtimeSubscriptions {
 
       if (!client) {
         logger.error('❌ FriendsRealtimeSubscriptions: No Supabase client available');
+        return;
+      }
+
+      // Validate session before subscribing
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        if (retryCount < MAX_RETRIES) {
+          const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+          logger.info(`⏳ FriendsRealtimeSubscriptions: No session yet, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+          setTimeout(() => this.subscribeToRequests(retryCount + 1), delay);
+          return;
+        }
+        logger.warn('⚠️ FriendsRealtimeSubscriptions: No session available after retries, skipping subscription');
         return;
       }
 
@@ -107,10 +121,18 @@ export class FriendsRealtimeSubscriptions {
         }
         if (status === 'SUBSCRIBED') {
           logger.info('✅ FriendsRealtimeSubscriptions: Successfully subscribed');
-        } else if (status === 'CHANNEL_ERROR') {
-          logger.error('❌ FriendsRealtimeSubscriptions: Channel error');
-        } else if (status === 'TIMED_OUT') {
-          logger.error('⏱️ FriendsRealtimeSubscriptions: Subscription timed out');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          const errorType = status === 'CHANNEL_ERROR' ? 'Channel error' : 'Timed out';
+          if (retryCount < MAX_RETRIES) {
+            const delay = Math.pow(2, retryCount) * 1000;
+            logger.warn(`⚠️ FriendsRealtimeSubscriptions: ${errorType}, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+            this.friendRequestChannel?.unsubscribe();
+            client.removeChannel(this.friendRequestChannel!);
+            this.friendRequestChannel = null;
+            setTimeout(() => this.subscribeToRequests(retryCount + 1), delay);
+          } else {
+            logger.error(`❌ FriendsRealtimeSubscriptions: ${errorType} after ${MAX_RETRIES} retries`);
+          }
         }
       });
 
