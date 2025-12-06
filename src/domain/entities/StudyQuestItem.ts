@@ -22,11 +22,13 @@ export interface StudyQuestItemData {
   readonly hpBonus: number;
   readonly effectType?: EffectType;
   readonly effectValue: number;
+  readonly healAmount: number;
   readonly buyPrice?: number;
   readonly sellPrice?: number;
   readonly requiredLevel: number;
   readonly spriteKey?: string;
   readonly isPurchasable: boolean;
+  readonly icon?: string;
   readonly createdAt: Date;
 }
 
@@ -53,10 +55,12 @@ export class StudyQuestItem {
     hp_bonus: number;
     effect_type?: string | null;
     effect_value: number;
+    heal_amount?: number | null;
     buy_price?: number | null;
     sell_price?: number | null;
     required_level: number;
     sprite_key?: string | null;
+    icon?: string | null;
     is_purchasable: boolean;
     created_at: string | Date;
   }): StudyQuestItem {
@@ -74,11 +78,13 @@ export class StudyQuestItem {
       hpBonus: row.hp_bonus,
       effectType: row.effect_type as EffectType | undefined,
       effectValue: row.effect_value,
+      healAmount: row.heal_amount ?? 0,
       buyPrice: row.buy_price ?? undefined,
       sellPrice: row.sell_price ?? undefined,
       requiredLevel: row.required_level,
       spriteKey: row.sprite_key ?? undefined,
       isPurchasable: row.is_purchasable,
+      icon: row.icon ?? undefined,
       createdAt: new Date(row.created_at),
     });
   }
@@ -123,6 +129,9 @@ export class StudyQuestItem {
   get effectValue(): number {
     return this.data.effectValue;
   }
+  get healAmount(): number {
+    return this.data.healAmount;
+  }
   get buyPrice(): number | undefined {
     return this.data.buyPrice;
   }
@@ -137,6 +146,9 @@ export class StudyQuestItem {
   }
   get isPurchasable(): boolean {
     return this.data.isPurchasable;
+  }
+  get icon(): string | undefined {
+    return this.data.icon;
   }
   get createdAt(): Date {
     return this.data.createdAt;
@@ -230,10 +242,12 @@ export function createInventorySlot(row: {
     hp_bonus: number;
     effect_type?: string | null;
     effect_value: number;
+    heal_amount?: number | null;
     buy_price?: number | null;
     sell_price?: number | null;
     required_level: number;
     sprite_key?: string | null;
+    icon?: string | null;
     is_purchasable: boolean;
     created_at: string | Date;
   };

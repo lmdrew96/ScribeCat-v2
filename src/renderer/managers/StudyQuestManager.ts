@@ -14,6 +14,7 @@ import { createLogger } from '../../shared/logger.js';
 import type { AuthManager } from './AuthManager.js';
 import type { NotificationTicker } from '../components/NotificationTicker.js';
 import { StudyQuestSound } from '../components/studyquest/StudyQuestSound.js';
+import { LevelUpOverlay } from '../components/studyquest/LevelUpOverlay.js';
 import { AchievementsManager } from './AchievementsManager.js';
 import type {
   StudyQuestCharacterData,
@@ -68,6 +69,7 @@ export class StudyQuestManager {
   private authManager: AuthManager;
   private notificationTicker: NotificationTicker | null = null;
   private achievementsManager: AchievementsManager;
+  private levelUpOverlay: LevelUpOverlay;
 
   private state: StudyQuestState = {
     character: null,
@@ -85,6 +87,7 @@ export class StudyQuestManager {
   constructor(authManager: AuthManager) {
     this.authManager = authManager;
     this.achievementsManager = new AchievementsManager();
+    this.levelUpOverlay = new LevelUpOverlay();
     logger.info('StudyQuestManager initialized');
   }
 
@@ -333,13 +336,17 @@ export class StudyQuestManager {
           questsProgressed: [],
         };
 
-        // Show notification
-        if (result.leveledUp) {
-          StudyQuestSound.play('level-up');
-          this.showNotification(
-            `Level Up! You are now level ${result.newLevel}!`,
-            'star'
-          );
+        // Show notification or level-up overlay
+        if (result.leveledUp && result.newLevel) {
+          // Show full level-up overlay with GSAP animation
+          const statIncreases = {
+            hp: xpResult.result.hpGained || 10,
+            attack: xpResult.result.attackGained || 2,
+            defense: xpResult.result.defenseGained || 1,
+            speed: xpResult.result.speedGained || 1,
+          };
+          const oldLevel = result.newLevel - xpResult.result.levelsGained;
+          this.levelUpOverlay.show(oldLevel, result.newLevel, statIncreases);
         } else {
           StudyQuestSound.play('item-pickup');
           this.showNotification(
@@ -475,6 +482,51 @@ export class StudyQuestManager {
       logger.error('Failed to use item:', error);
       return null;
     }
+  }
+
+  /**
+   * Use an item during battle
+   * Applies the item effect and performs the battle action
+   */
+  async useItemInBattle(itemId: string): Promise<boolean> {
+    if (!this.state.character || !this.state.currentBattle) {
+      logger.warn('Cannot use item in battle: no character or battle');
+      return false;
+    }
+
+    // Find the item in inventory
+    const slot = this.state.inventory.find((s) => s.item.id === itemId);
+    if (!slot || slot.item.itemType !== 'consumable') {
+      logger.warn('Item not found or not consumable:', itemId);
+      return false;
+    }
+
+    // Get healing effect from item
+    const healing = slot.item.healAmount || 0;
+    if (healing <= 0) {
+      logger.warn('Item has no healing effect:', itemId);
+      return false;
+    }
+
+    // Execute battle action with item effect
+    const result = await this.battleAction('item', { healing });
+    if (!result) {
+      return false;
+    }
+
+    // Decrement item quantity (use the item)
+    await this.useItem(itemId);
+
+    return true;
+  }
+
+  /**
+   * Get consumable items available for battle
+   */
+  getConsumableItems(): InventorySlot[] {
+    return this.state.inventory.filter(
+      (slot) => slot.item.itemType === 'consumable' && slot.quantity > 0
+    );
   }
 
   // ============================================================================
@@ -820,9 +872,19 @@ export class StudyQuestManager {
    */
   private showNotification(message: string, icon: string): void {
     if (this.notificationTicker) {
+      // Map StudyQuest icons to notification types
+      const iconToType: Record<string, 'success' | 'error' | 'warning' | 'info'> = {
+        sword: 'info',
+        check: 'success',
+        heart: 'success',
+        gold: 'warning',
+        x: 'error',
+      };
+      const type = iconToType[icon] || 'info';
+
       this.notificationTicker.show({
         message,
-        icon: icon as never,
+        type,
         duration: 3000,
       });
     }
@@ -830,19 +892,30 @@ export class StudyQuestManager {
   }
 
   /**
-   * Heal character (costs gold or uses item)
+   * Heal character at inn (costs gold based on HP missing)
+   * @param cost - Gold cost for healing (0.5 gold per HP)
    */
-  async healCharacter(): Promise<boolean> {
+  async healCharacter(cost: number = 0): Promise<boolean> {
     if (!this.state.character) return false;
+
+    // Check if enough gold
+    if (cost > 0 && this.state.character.gold < cost) {
+      this.showNotification('Not enough gold!', 'gold');
+      return false;
+    }
 
     try {
       const result = await window.scribeCat.invoke(
         'studyquest:heal-character',
-        this.state.character.id
+        {
+          characterId: this.state.character.id,
+          cost,
+        }
       );
 
       if (result.success) {
         this.setState({ character: result.character });
+        StudyQuestSound.play('heal');
         this.showNotification('Fully healed!', 'heart');
         return true;
       }
@@ -851,6 +924,18 @@ export class StudyQuestManager {
       logger.error('Failed to heal character:', error);
       return false;
     }
+  }
+
+  /**
+   * Calculate inn healing cost (0.5 gold per HP missing)
+   */
+  getInnHealingCost(): { missingHp: number; cost: number } | null {
+    if (!this.state.character) return null;
+
+    const missingHp = this.state.character.maxHp - this.state.character.hp;
+    const cost = Math.ceil(missingHp * 0.5);
+
+    return { missingHp, cost };
   }
 
   /**

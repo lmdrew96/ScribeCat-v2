@@ -58,6 +58,7 @@ const SQ_ICONS = {
   defend: getIconHTML('shield', { size: 16, strokeWidth: 2 }),
   itemUse: getIconHTML('flame', { size: 16, strokeWidth: 2 }),
   flee: getIconHTML('arrowRight', { size: 16, strokeWidth: 2 }),
+  arrowLeft: getIconHTML('arrowLeft', { size: 16, strokeWidth: 2 }),
 
   // Dungeon icons (32px)
   training: getIconHTML('target', { size: 32, strokeWidth: 2 }),
@@ -216,6 +217,9 @@ export class StudyQuestModal {
     return `
       <!-- Header -->
       <div class="studyquest-header">
+        <button class="studyquest-back-btn" id="studyquest-back" style="display: none;">
+          ${SQ_ICONS.arrowLeft} Back
+        </button>
         <div class="studyquest-title">
           <span class="studyquest-title-icon">${SQ_ICONS.gamepad}</span>
           <h2>StudyQuest</h2>
@@ -225,8 +229,11 @@ export class StudyQuestModal {
             <span class="studyquest-stat-icon">${SQ_ICONS.heart}</span>
             <span class="studyquest-stat-value" id="studyquest-hp">--</span>
           </div>
-          <div class="studyquest-stat">
+          <div class="studyquest-stat studyquest-xp-stat">
             <span class="studyquest-stat-icon">${SQ_ICONS.star}</span>
+            <div class="studyquest-mini-xp-bar">
+              <div class="studyquest-mini-xp-fill" id="studyquest-xp-bar"></div>
+            </div>
             <span class="studyquest-stat-value" id="studyquest-level">Lv.--</span>
           </div>
           <div class="studyquest-stat">
@@ -388,11 +395,17 @@ export class StudyQuestModal {
               <canvas class="studyquest-battle-canvas" id="battle-canvas" width="480" height="270"></canvas>
             </div>
             <div class="studyquest-battle-ui">
-              <div class="studyquest-battle-actions">
+              <div class="studyquest-battle-actions" id="battle-actions">
                 <button class="pixel-btn studyquest-battle-action" data-action="attack">${SQ_ICONS.attack} Attack</button>
                 <button class="pixel-btn studyquest-battle-action" data-action="defend">${SQ_ICONS.defend} Defend</button>
                 <button class="pixel-btn studyquest-battle-action" data-action="item">${SQ_ICONS.itemUse} Item</button>
                 <button class="pixel-btn studyquest-battle-action" data-action="flee">${SQ_ICONS.flee} Flee</button>
+              </div>
+              <div class="studyquest-battle-items" id="battle-items" style="display: none;">
+                <div class="studyquest-battle-items-grid" id="battle-items-grid">
+                  <!-- Populated with consumable items -->
+                </div>
+                <button class="pixel-btn studyquest-battle-items-cancel" id="btn-cancel-item">Cancel</button>
               </div>
               <div class="studyquest-battle-log" id="battle-log">
                 <div class="studyquest-battle-log-entry">Battle started!</div>
@@ -429,6 +442,11 @@ export class StudyQuestModal {
     // Close button
     this.container.querySelector('#studyquest-close')?.addEventListener('click', () => {
       this.close();
+    });
+
+    // Back button - return to town from sub-views
+    this.container.querySelector('#studyquest-back')?.addEventListener('click', () => {
+      this.handleBackButton();
     });
 
     // Navigation buttons
@@ -510,12 +528,35 @@ export class StudyQuestModal {
       });
     });
 
+    // Cancel item selection button
+    this.container.querySelector('#btn-cancel-item')?.addEventListener('click', () => {
+      this.hideBattleItems();
+    });
+
     // ESC key to close
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen) {
         this.close();
       }
     });
+  }
+
+  /**
+   * Handle back button click - navigate to appropriate parent view
+   */
+  private handleBackButton(): void {
+    // Map sub-views to their parent views
+    const parentViews: Partial<Record<ViewType, ViewType>> = {
+      town: 'title',
+      'dungeon-select': 'town',
+      shop: 'town',
+      'dungeon-run': 'town',
+      battle: 'dungeon-run',
+    };
+
+    const parentView = parentViews[this.currentView] || 'town';
+    StudyQuestSound.play('menu-back');
+    this.showView(parentView);
   }
 
   /**
@@ -552,10 +593,15 @@ export class StudyQuestModal {
     // Show/hide nav and player info
     const nav = this.container.querySelector('#studyquest-nav') as HTMLElement;
     const playerInfo = this.container.querySelector('#studyquest-player-info') as HTMLElement;
+    const backBtn = this.container.querySelector('#studyquest-back') as HTMLElement;
     const showNav = view !== 'title' && view !== 'character-create';
 
     if (nav) nav.style.display = showNav ? 'flex' : 'none';
     if (playerInfo) playerInfo.style.display = showNav ? 'flex' : 'none';
+
+    // Show back button for views that can go back
+    const viewsWithBack: ViewType[] = ['town', 'dungeon-select', 'shop', 'dungeon-run', 'battle'];
+    if (backBtn) backBtn.style.display = viewsWithBack.includes(view) ? 'flex' : 'none';
 
     // Load view-specific data
     this.loadViewData(view);
@@ -619,10 +665,20 @@ export class StudyQuestModal {
     const hpEl = this.container.querySelector('#studyquest-hp');
     const levelEl = this.container.querySelector('#studyquest-level');
     const goldEl = this.container.querySelector('#studyquest-gold');
+    const xpBar = this.container.querySelector('#studyquest-xp-bar') as HTMLElement;
 
     if (hpEl) hpEl.textContent = `${character.hp}/${character.maxHp}`;
     if (levelEl) levelEl.textContent = `Lv.${character.level}`;
     if (goldEl) goldEl.textContent = `${character.gold}`;
+
+    // Update XP bar progress
+    if (xpBar) {
+      // XP needed formula: 100 + (level * 50)
+      const xpNeeded = 100 + (character.level * 50);
+      const currentXp = character.currentXp || 0;
+      const percent = Math.min(100, (currentXp / xpNeeded) * 100);
+      xpBar.style.width = `${percent}%`;
+    }
   }
 
   /**
@@ -743,12 +799,90 @@ export class StudyQuestModal {
 
   /**
    * Handle inn (healing)
+   * Shows cost confirmation before healing
    */
   private async handleInn(): Promise<void> {
-    const success = await this.manager.healCharacter();
-    if (success) {
-      // Show heal notification - manager handles this
+    const state = this.manager.getState();
+    const char = state.character;
+    if (!char) return;
+
+    // Check if already at full health
+    const healingInfo = this.manager.getInnHealingCost();
+    if (!healingInfo || healingInfo.missingHp === 0) {
+      this.showToast('Already at full health!');
+      return;
     }
+
+    // Check if enough gold
+    if (char.gold < healingInfo.cost) {
+      this.showToast(`Not enough gold! Need ${healingInfo.cost}G`);
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmed = await this.showConfirmDialog(
+      'Rest at Inn',
+      `Restore ${healingInfo.missingHp} HP for ${healingInfo.cost} Gold?`
+    );
+
+    if (confirmed) {
+      const success = await this.manager.healCharacter(healingInfo.cost);
+      if (success) {
+        // Manager handles notification
+        this.renderCharacterSheet();
+        this.updatePlayerInfo(this.manager.getState().character);
+      }
+    }
+  }
+
+  /**
+   * Show a toast message
+   */
+  private showToast(message: string): void {
+    // Use the existing notification ticker if available
+    const ticker = (window as any).notificationTicker;
+    if (ticker) {
+      ticker.show(message);
+    } else {
+      console.log('[Toast]', message);
+    }
+  }
+
+  /**
+   * Show a confirmation dialog
+   * Returns true if user confirms, false if cancelled
+   */
+  private async showConfirmDialog(title: string, message: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      // Create dialog overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'studyquest-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="studyquest-confirm-dialog">
+          <h3 class="studyquest-confirm-title">${title}</h3>
+          <p class="studyquest-confirm-message">${message}</p>
+          <div class="studyquest-confirm-buttons">
+            <button class="pixel-btn studyquest-confirm-cancel">Cancel</button>
+            <button class="pixel-btn studyquest-confirm-ok">OK</button>
+          </div>
+        </div>
+      `;
+
+      const cancelBtn = overlay.querySelector('.studyquest-confirm-cancel');
+      const okBtn = overlay.querySelector('.studyquest-confirm-ok');
+
+      cancelBtn?.addEventListener('click', () => {
+        overlay.remove();
+        resolve(false);
+      });
+
+      okBtn?.addEventListener('click', () => {
+        overlay.remove();
+        resolve(true);
+      });
+
+      this.container?.appendChild(overlay);
+    });
   }
 
   /**
@@ -899,7 +1033,7 @@ export class StudyQuestModal {
           </p>
           <p class="studyquest-item-desc">${item.description || ''}</p>
           <div class="studyquest-item-price">
-            <span class="studyquest-price">${SQ_ICONS.gold} ${item.price}</span>
+            <span class="studyquest-price">${SQ_ICONS.gold} ${item.buyPrice ?? 0}</span>
             <button class="pixel-btn pixel-btn-gold studyquest-buy-btn" data-item-id="${item.id}">
               Buy
             </button>
@@ -1263,10 +1397,9 @@ export class StudyQuestModal {
           result = await this.manager.battleAction('defend');
           break;
         case 'item':
-          // TODO: Show item selection modal
-          this.addBattleLogEntry('No items available!', 'miss');
+          // Show item selection panel
           this.isBattleProcessing = false;
-          this.updateBattleActionButtons(true);
+          this.showBattleItems();
           return;
         case 'flee':
           result = await this.manager.battleAction('flee');
@@ -1322,11 +1455,12 @@ export class StudyQuestModal {
   /**
    * Handle battle log entry display
    */
-  private handleBattleLogEntry(entry: BattleLogEntry): void {
+  private async handleBattleLogEntry(entry: BattleLogEntry): Promise<void> {
     const target = entry.actor === 'player' ? 'enemy' : 'player';
 
     if (entry.action === 'attack' && entry.damage) {
-      this.battleCanvas?.playDamageAnimation(target, entry.damage, entry.isCritical || false);
+      // Play attack sequence: attack animation THEN damage animation
+      await this.battleCanvas?.playAttackSequence(entry.actor, entry.damage, entry.isCritical || false);
       const type = entry.isCritical ? 'crit' : 'damage';
       this.addBattleLogEntry(entry.message, type);
       // Play appropriate attack sound
@@ -1340,7 +1474,10 @@ export class StudyQuestModal {
         setTimeout(() => StudyQuestSound.play('damage-taken'), 100);
       }
     } else if (entry.action === 'attack' && !entry.damage) {
-      // Attack missed
+      // Attack missed - still play attack animation
+      this.battleCanvas?.playAttackAnimation(entry.actor);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      this.battleCanvas?.playMissAnimation(target);
       this.addBattleLogEntry(entry.message, 'miss');
       StudyQuestSound.play('attack-miss');
     } else if (entry.action === 'defend' && entry.healing) {
@@ -1374,6 +1511,9 @@ export class StudyQuestModal {
     this.updateBattleActionButtons(false);
 
     if (battle.result === 'victory') {
+      // Play death animation for enemy before victory fanfare
+      await this.battleCanvas?.playDeathAnimation('enemy');
+
       StudyQuestSound.play('victory');
       this.addBattleLogEntry('VICTORY!', 'crit');
       if (battle.rewards) {
@@ -1381,6 +1521,9 @@ export class StudyQuestModal {
         setTimeout(() => StudyQuestSound.play('item-pickup'), 500);
       }
     } else if (battle.result === 'defeat') {
+      // Play death animation for player before defeat message
+      await this.battleCanvas?.playDeathAnimation('player');
+
       StudyQuestSound.play('defeat');
       this.addBattleLogEntry('DEFEAT...', 'damage');
       this.addBattleLogEntry('Lost 25% gold. Returning to town...', 'miss');
@@ -1409,6 +1552,96 @@ export class StudyQuestModal {
     this.container?.querySelectorAll('.studyquest-battle-action').forEach((btn) => {
       (btn as HTMLButtonElement).disabled = !enabled;
     });
+  }
+
+  /**
+   * Show item selection panel in battle
+   */
+  private showBattleItems(): void {
+    const actionsPanel = this.container?.querySelector('#battle-actions') as HTMLElement;
+    const itemsPanel = this.container?.querySelector('#battle-items') as HTMLElement;
+    const itemsGrid = this.container?.querySelector('#battle-items-grid') as HTMLElement;
+
+    if (!itemsPanel || !actionsPanel || !itemsGrid) return;
+
+    // Get consumable items
+    const consumables = this.manager.getConsumableItems();
+
+    if (consumables.length === 0) {
+      this.addBattleLogEntry('No items available!', 'miss');
+      return;
+    }
+
+    // Render items
+    itemsGrid.innerHTML = consumables
+      .map(
+        (slot) => `
+        <button class="studyquest-battle-item-btn" data-item-id="${slot.item.id}" title="${slot.item.description || slot.item.name}">
+          <span class="item-icon">${slot.item.icon || '🧪'}</span>
+          <span class="item-name">${slot.item.name}</span>
+          <span class="item-qty">x${slot.quantity}</span>
+          ${slot.item.healAmount ? `<span class="item-effect">+${slot.item.healAmount} HP</span>` : ''}
+        </button>
+      `
+      )
+      .join('');
+
+    // Add click handlers
+    itemsGrid.querySelectorAll('.studyquest-battle-item-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const itemId = (btn as HTMLElement).dataset.itemId;
+        if (itemId) {
+          await this.useItemInBattle(itemId);
+        }
+      });
+    });
+
+    // Show items panel, hide actions
+    actionsPanel.style.display = 'none';
+    itemsPanel.style.display = 'flex';
+  }
+
+  /**
+   * Hide item selection panel and show action buttons
+   */
+  private hideBattleItems(): void {
+    const actionsPanel = this.container?.querySelector('#battle-actions') as HTMLElement;
+    const itemsPanel = this.container?.querySelector('#battle-items') as HTMLElement;
+
+    if (actionsPanel) actionsPanel.style.display = 'grid';
+    if (itemsPanel) itemsPanel.style.display = 'none';
+  }
+
+  /**
+   * Use an item in battle
+   */
+  private async useItemInBattle(itemId: string): Promise<void> {
+    this.hideBattleItems();
+    this.isBattleProcessing = true;
+    this.updateBattleActionButtons(false);
+
+    const success = await this.manager.useItemInBattle(itemId);
+    if (!success) {
+      this.addBattleLogEntry('Failed to use item!', 'miss');
+      this.isBattleProcessing = false;
+      this.updateBattleActionButtons(true);
+      return;
+    }
+
+    // Update battle state - manager already handled the battle action
+    const state = this.manager.getState();
+    if (state.currentBattle) {
+      this.battleCanvas?.updateBattle(state.currentBattle);
+
+      // Check if battle ended
+      if (state.currentBattle.result !== 'in_progress') {
+        await this.handleBattleEnd(state.currentBattle);
+      } else if (state.currentBattle.currentTurn === 'player') {
+        this.updateBattleActionButtons(true);
+      }
+    }
+
+    this.isBattleProcessing = false;
   }
 
   /**

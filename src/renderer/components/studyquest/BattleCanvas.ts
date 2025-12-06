@@ -212,6 +212,57 @@ export class BattleCanvas {
     });
   }
 
+  /**
+   * Play attack sequence: attack animation THEN damage
+   * Returns a promise that resolves when the sequence is complete
+   */
+  async playAttackSequence(attacker: 'player' | 'enemy', damage: number, isCrit: boolean): Promise<void> {
+    // 1. Play attack animation
+    this.playAttackAnimation(attacker);
+
+    // 2. Wait for attack to "land"
+    await this.delay(300);
+
+    // 3. Play damage on target
+    const target = attacker === 'player' ? 'enemy' : 'player';
+    this.playDamageAnimation(target, damage, isCrit);
+
+    // 4. Wait for damage animation to show
+    await this.delay(200);
+  }
+
+  /**
+   * Play death animation for target
+   * Returns a promise that resolves when the animation is complete
+   */
+  async playDeathAnimation(target: 'player' | 'enemy'): Promise<void> {
+    if (target === 'enemy') {
+      this.animation.enemyAnimation = 'die';
+    } else {
+      this.animation.playerAnimation = 'die';
+    }
+
+    // Flash rapidly
+    for (let i = 0; i < 6; i++) {
+      if (target === 'enemy') {
+        this.animation.enemyFlash = 4;
+      } else {
+        this.animation.playerFlash = 4;
+      }
+      await this.delay(100);
+    }
+
+    // Wait for animation to complete
+    await this.delay(400);
+  }
+
+  /**
+   * Helper method for async delays
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   // ============================================================================
   // Private Methods
   // ============================================================================

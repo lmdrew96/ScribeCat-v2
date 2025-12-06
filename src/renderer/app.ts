@@ -34,6 +34,7 @@ import { AnimationService } from './effects/AnimationService.js';
 import { getButtonController, ButtonController } from './components/ButtonController.js';
 import { StudyQuestManager } from './managers/StudyQuestManager.js';
 import { StudyQuestModal } from './components/StudyQuestModal.js';
+import { studyQuestIntegration } from './managers/StudyQuestIntegration.js';
 
 // App initialization modules
 import {
@@ -136,6 +137,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   studyQuestModal.initialize();
   window.studyQuestManager = studyQuestManager;
   window.studyQuestModal = studyQuestModal;
+
+  // Connect StudyQuest integration service
+  studyQuestIntegration.setManager(studyQuestManager);
 
   // Initialize recording controls
   recordingControls = new AppRecordingControls({

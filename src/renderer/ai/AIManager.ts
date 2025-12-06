@@ -9,6 +9,7 @@ import { AIClient } from './AIClient.js';
 import { ContentAnalyzer } from './ContentAnalyzer.js';
 import { SmartSuggestionEngine } from './SmartSuggestionEngine.js';
 import { config } from '../../config.js';
+import { studyQuestIntegration } from '../managers/StudyQuestIntegration.js';
 
 export class AIManager {
   private chatUI: ChatUI;
@@ -369,6 +370,9 @@ export class AIManager {
 
     this.chatUI.clearInput();
     this.chatUI.addUserMessage(message);
+
+    // Track for StudyQuest rewards
+    studyQuestIntegration.recordAIChatMessage();
 
     // Prepare options
     const contextOptions = this.chatUI.getContextOptions();

@@ -10,6 +10,7 @@ import { SmartSuggestionEngine, type SuggestionAction } from '../../ai/SmartSugg
 import { ContentAnalyzer } from '../../ai/ContentAnalyzer.js';
 import { createLogger } from '../../../shared/logger.js';
 import { getIconHTML } from '../../utils/iconMap.js';
+import { studyQuestIntegration } from '../StudyQuestIntegration.js';
 
 const logger = createLogger('StudyModeAIToolsManager');
 
@@ -206,6 +207,9 @@ export class StudyModeAIToolsManager {
     } catch (error) {
       logger.error('Failed to track AI tool usage:', error);
     }
+
+    // Track for StudyQuest rewards
+    studyQuestIntegration.recordAIToolUse();
 
     // Map actions to AI tool methods
     switch (action) {

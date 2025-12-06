@@ -97,9 +97,9 @@ export function registerStudyQuestHandlers(): void {
     }
   );
 
-  ipcMain.handle('studyquest:heal-character', async (_event, characterId: string) => {
+  ipcMain.handle('studyquest:heal-character', async (_event, params: { characterId: string; cost: number }) => {
     try {
-      const character = await studyQuestRepo.healCharacter(characterId);
+      const character = await studyQuestRepo.healCharacterWithCost(params.characterId, params.cost);
       return { success: true, character: character.toJSON() };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';

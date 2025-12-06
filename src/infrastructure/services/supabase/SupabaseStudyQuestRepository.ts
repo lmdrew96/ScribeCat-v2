@@ -94,6 +94,15 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
   }
 
   async getCharacterByUserId(userId: string): Promise<StudyQuestCharacter | null> {
+    // Check for quest resets before loading character
+    // This will reset daily/weekly quests if they've expired
+    try {
+      await this.getClient().rpc('study_quest_check_quest_resets', { p_user_id: userId });
+    } catch (resetError) {
+      // Non-critical - log and continue
+      console.warn('Failed to check quest resets:', resetError);
+    }
+
     const { data, error } = await this.getClient()
       .from('study_quest_characters')
       .select('*')
@@ -228,6 +237,36 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
       characterId,
       hp: character.maxHp,
     });
+  }
+
+  async healCharacterWithCost(characterId: string, cost: number): Promise<StudyQuestCharacter> {
+    const character = await this.getCharacter(characterId);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+
+    if (cost > 0 && character.gold < cost) {
+      throw new Error('Not enough gold');
+    }
+
+    // Heal to full HP and deduct gold
+    const { data, error } = await this.getClient()
+      .from('study_quest_characters')
+      .update({
+        hp: character.maxHp,
+        gold: character.gold - cost,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', characterId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to heal character with cost:', error);
+      throw new Error(`Failed to heal character: ${error.message}`);
+    }
+
+    return StudyQuestCharacter.fromDatabase(data);
   }
 
   async updateHp(characterId: string, newHp: number): Promise<StudyQuestCharacter> {
