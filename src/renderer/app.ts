@@ -32,6 +32,8 @@ import { initEmojiPicker } from './components/editor/EmojiPicker.js';
 import { initializeShortcutValidation } from './managers/ShortcutRegistry.js';
 import { AnimationService } from './effects/AnimationService.js';
 import { getButtonController, ButtonController } from './components/ButtonController.js';
+import { StudyQuestManager } from './managers/StudyQuestManager.js';
+import { StudyQuestModal } from './components/StudyQuestModal.js';
 
 // App initialization modules
 import {
@@ -67,6 +69,8 @@ let layoutManager: LayoutManager;
 let layoutPicker: WorkspaceLayoutPicker;
 let confettiManager: ConfettiManager;
 let buttonController: ButtonController;
+let studyQuestManager: StudyQuestManager;
+let studyQuestModal: StudyQuestModal;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -125,6 +129,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize social managers (friends, study rooms, messages)
   socialManagers = AppSocialManagers.initialize();
 
+  // Initialize StudyQuest RPG
+  studyQuestManager = new StudyQuestManager(authManager);
+  studyQuestManager.setNotificationTicker(notificationTicker);
+  studyQuestModal = new StudyQuestModal(studyQuestManager);
+  studyQuestModal.initialize();
+  window.studyQuestManager = studyQuestManager;
+  window.studyQuestModal = studyQuestModal;
+
   // Initialize recording controls
   recordingControls = new AppRecordingControls({
     recordingManager: coreManagers.recordingManager,
@@ -144,6 +156,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     studyRoomView: socialManagers.studyRoomView,
     realtimeNotificationManager: socialManagers.realtimeNotificationManager,
     notificationTicker,
+    studyQuestManager,
+    studyQuestModal,
   });
 
   // Set up event listeners

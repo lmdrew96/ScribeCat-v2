@@ -248,6 +248,8 @@ declare global {
     studyModeManager?: import('../renderer/managers/StudyModeManager').StudyModeManager;
     friendsManager?: import('../renderer/managers/social/FriendsManager').FriendsManager;
     studyRoomsManager?: import('../renderer/managers/social/StudyRoomsManager').StudyRoomsManager;
+    studyQuestManager?: import('../renderer/managers/StudyQuestManager').StudyQuestManager;
+    studyQuestModal?: import('../renderer/components/StudyQuestModal').StudyQuestModal;
     TutorialManager?: typeof import('../renderer/utils/TutorialManager').TutorialManager;
     FocusManager?: any;
     WelcomeModal?: any;

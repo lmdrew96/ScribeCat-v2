@@ -39,3 +39,6 @@ temp/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Source asset packs (not used in build)
+assets/New Assets/

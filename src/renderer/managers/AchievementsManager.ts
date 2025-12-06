@@ -10,7 +10,7 @@ import type { Session } from '../components/StudySessionList.js';
 
 const logger = createLogger('AchievementsManager');
 
-export type AchievementCategory = 'time' | 'sessions' | 'streaks' | 'goals' | 'marathon' | 'special';
+export type AchievementCategory = 'time' | 'sessions' | 'streaks' | 'goals' | 'marathon' | 'special' | 'studyquest';
 
 export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
 
@@ -76,6 +76,21 @@ export class AchievementsManager {
       { id: 'night-owl', category: 'special', tier: 'silver', title: 'Night Owl', description: 'Record after 10 PM', icon: '🦉', requirement: 1, unlocked: false, progress: 0 },
       { id: 'weekend-warrior', category: 'special', tier: 'gold', title: 'Weekend Warrior', description: 'Use study mode on 10 different weekends', icon: '🌄', requirement: 10, unlocked: false, progress: 0 },
       { id: 'course-dedication', category: 'special', tier: 'gold', title: 'Course Dedication', description: 'Complete 20 sessions in one course', icon: '🎓', requirement: 20, unlocked: false, progress: 0 },
+
+      // StudyQuest Achievements
+      { id: 'sq-first-steps', category: 'studyquest', tier: 'bronze', title: 'Adventurer', description: 'Create your first StudyQuest character', icon: '🗡️', requirement: 1, unlocked: false, progress: 0 },
+      { id: 'sq-level-10', category: 'studyquest', tier: 'bronze', title: 'Apprentice', description: 'Reach level 10 in StudyQuest', icon: '⬆️', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'sq-level-25', category: 'studyquest', tier: 'silver', title: 'Journeyman', description: 'Reach level 25 in StudyQuest', icon: '⚔️', requirement: 25, unlocked: false, progress: 0 },
+      { id: 'sq-level-50', category: 'studyquest', tier: 'gold', title: 'Champion', description: 'Reach level 50 in StudyQuest', icon: '🏆', requirement: 50, unlocked: false, progress: 0 },
+      { id: 'sq-battles-10', category: 'studyquest', tier: 'bronze', title: 'Battle Ready', description: 'Win 10 battles in StudyQuest', icon: '⚔️', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'sq-battles-50', category: 'studyquest', tier: 'silver', title: 'Warrior', description: 'Win 50 battles in StudyQuest', icon: '🛡️', requirement: 50, unlocked: false, progress: 0 },
+      { id: 'sq-battles-100', category: 'studyquest', tier: 'gold', title: 'Battle Master', description: 'Win 100 battles in StudyQuest', icon: '💪', requirement: 100, unlocked: false, progress: 0 },
+      { id: 'sq-dungeons-5', category: 'studyquest', tier: 'bronze', title: 'Dungeon Crawler', description: 'Complete 5 dungeon runs in StudyQuest', icon: '🏰', requirement: 5, unlocked: false, progress: 0 },
+      { id: 'sq-dungeons-25', category: 'studyquest', tier: 'silver', title: 'Dungeon Delver', description: 'Complete 25 dungeon runs in StudyQuest', icon: '🔥', requirement: 25, unlocked: false, progress: 0 },
+      { id: 'sq-quests-10', category: 'studyquest', tier: 'bronze', title: 'Quest Seeker', description: 'Complete 10 quests in StudyQuest', icon: '📜', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'sq-quests-50', category: 'studyquest', tier: 'silver', title: 'Quest Champion', description: 'Complete 50 quests in StudyQuest', icon: '🌟', requirement: 50, unlocked: false, progress: 0 },
+      { id: 'sq-gold-1000', category: 'studyquest', tier: 'silver', title: 'Treasure Hunter', description: 'Accumulate 1000 gold in StudyQuest', icon: '💰', requirement: 1000, unlocked: false, progress: 0 },
+      { id: 'sq-gold-10000', category: 'studyquest', tier: 'gold', title: 'Rich Cat', description: 'Accumulate 10000 gold in StudyQuest', icon: '💎', requirement: 10000, unlocked: false, progress: 0 },
     ];
   }
 
@@ -312,6 +327,7 @@ export class AchievementsManager {
       case 'goals': return 'Goal Completion';
       case 'marathon': return 'Marathon Sessions';
       case 'special': return 'Special';
+      case 'studyquest': return 'StudyQuest';
       default: return 'Achievement';
     }
   }
@@ -326,5 +342,64 @@ export class AchievementsManager {
 
     const percent = Math.min((achievement.progress / achievement.requirement) * 100, 100);
     return `${Math.round(percent)}% (${achievement.progress}/${achievement.requirement})`;
+  }
+
+  /**
+   * Update StudyQuest-specific achievements
+   * Called from StudyQuestManager when relevant events occur
+   */
+  updateStudyQuestProgress(stats: {
+    hasCharacter?: boolean;
+    level?: number;
+    battlesWon?: number;
+    dungeonsCompleted?: number;
+    questsCompleted?: number;
+    totalGold?: number;
+  }): Achievement[] {
+    const newlyUnlocked: Achievement[] = [];
+
+    // Character creation
+    if (stats.hasCharacter) {
+      this.updateAchievement('sq-first-steps', 1, newlyUnlocked);
+    }
+
+    // Level milestones
+    if (stats.level !== undefined) {
+      this.updateAchievement('sq-level-10', stats.level, newlyUnlocked);
+      this.updateAchievement('sq-level-25', stats.level, newlyUnlocked);
+      this.updateAchievement('sq-level-50', stats.level, newlyUnlocked);
+    }
+
+    // Battle achievements
+    if (stats.battlesWon !== undefined) {
+      this.updateAchievement('sq-battles-10', stats.battlesWon, newlyUnlocked);
+      this.updateAchievement('sq-battles-50', stats.battlesWon, newlyUnlocked);
+      this.updateAchievement('sq-battles-100', stats.battlesWon, newlyUnlocked);
+    }
+
+    // Dungeon achievements
+    if (stats.dungeonsCompleted !== undefined) {
+      this.updateAchievement('sq-dungeons-5', stats.dungeonsCompleted, newlyUnlocked);
+      this.updateAchievement('sq-dungeons-25', stats.dungeonsCompleted, newlyUnlocked);
+    }
+
+    // Quest achievements
+    if (stats.questsCompleted !== undefined) {
+      this.updateAchievement('sq-quests-10', stats.questsCompleted, newlyUnlocked);
+      this.updateAchievement('sq-quests-50', stats.questsCompleted, newlyUnlocked);
+    }
+
+    // Gold achievements
+    if (stats.totalGold !== undefined) {
+      this.updateAchievement('sq-gold-1000', stats.totalGold, newlyUnlocked);
+      this.updateAchievement('sq-gold-10000', stats.totalGold, newlyUnlocked);
+    }
+
+    // Save progress
+    if (newlyUnlocked.length > 0) {
+      this.saveProgress();
+    }
+
+    return newlyUnlocked;
   }
 }

@@ -72,6 +72,23 @@
   -webkit-app-region: no-drag;
 }
 
+/* StudyQuest Button - Special styling */
+.studyquest-btn {
+  position: relative;
+  background: linear-gradient(135deg, #4a4a8e 0%, #2a2a4e 100%);
+  border: var(--border-medium) solid #6a6aae;
+}
+
+.studyquest-btn:hover {
+  background: linear-gradient(135deg, #5a5a9e 0%, #3a3a5e 100%);
+  border-color: #7a7abe;
+}
+
+.studyquest-icon {
+  font-size: 18px;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.5));
+}
+
 /* Record Button - Neobrutalism Style */
 .record-btn {
   width: clamp(36px, 5vw, 44px);

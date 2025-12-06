@@ -380,8 +380,8 @@ export function registerStudyQuestHandlers(): void {
         // Process player action
         const playerLog = battle.processPlayerAction(params.action, params.itemEffect);
 
-        // If battle is still in progress and it's enemy's turn, process it
-        let enemyLog = null;
+        // If battle is still in progress and it's enemy's turn, process enemy response
+        let enemyLog: BattleLogEntry | null = null;
         if (battle.isInProgress && !battle.isPlayerTurn) {
           enemyLog = battle.processEnemyTurn();
         }

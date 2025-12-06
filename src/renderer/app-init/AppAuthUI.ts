@@ -13,6 +13,8 @@ import type { BrowseRoomsModal } from '../components/BrowseRoomsModal.js';
 import type { StudyRoomView } from '../components/StudyRoomView.js';
 import type { RealtimeNotificationManager } from '../managers/RealtimeNotificationManager.js';
 import type { notificationTicker } from '../managers/NotificationTicker.js';
+import type { StudyQuestManager } from '../managers/StudyQuestManager.js';
+import type { StudyQuestModal } from '../components/StudyQuestModal.js';
 
 export interface AuthUIDependencies {
   authManager: AuthManager;
@@ -24,6 +26,8 @@ export interface AuthUIDependencies {
   studyRoomView: StudyRoomView;
   realtimeNotificationManager: RealtimeNotificationManager;
   notificationTicker: typeof notificationTicker;
+  studyQuestManager?: StudyQuestManager;
+  studyQuestModal?: StudyQuestModal;
 }
 
 export class AppAuthUI {
@@ -34,21 +38,27 @@ export class AppAuthUI {
     const signinBtn = document.getElementById('signin-btn');
     const friendsBtn = document.getElementById('friends-btn');
     const studyRoomsBtn = document.getElementById('study-rooms-btn');
+    const studyQuestBtn = document.getElementById('studyquest-btn');
 
     // Listen for auth state changes
     deps.authManager.onAuthStateChange(async (user) => {
       if (user) {
         // User is authenticated
-        AppAuthUI.handleUserSignedIn(deps, user, signinBtn, friendsBtn, studyRoomsBtn);
+        AppAuthUI.handleUserSignedIn(deps, user, signinBtn, friendsBtn, studyRoomsBtn, studyQuestBtn);
       } else {
         // User is not authenticated
-        AppAuthUI.handleUserSignedOut(deps, signinBtn, friendsBtn, studyRoomsBtn);
+        AppAuthUI.handleUserSignedOut(deps, signinBtn, friendsBtn, studyRoomsBtn, studyQuestBtn);
       }
     });
 
     // Add click listener to signin button
     signinBtn?.addEventListener('click', () => {
       deps.authScreen.show();
+    });
+
+    // Add click listener to StudyQuest button
+    studyQuestBtn?.addEventListener('click', () => {
+      deps.studyQuestModal?.open();
     });
   }
 
@@ -60,9 +70,10 @@ export class AppAuthUI {
     user: any,
     signinBtn: HTMLElement | null,
     friendsBtn: HTMLElement | null,
-    studyRoomsBtn: HTMLElement | null
+    studyRoomsBtn: HTMLElement | null,
+    studyQuestBtn: HTMLElement | null
   ): Promise<void> {
-    // Hide signin button, show friends and study rooms buttons
+    // Hide signin button, show friends, study rooms, and StudyQuest buttons
     signinBtn?.classList.add('hidden');
     if (friendsBtn) {
       friendsBtn.style.display = 'block';
@@ -70,11 +81,19 @@ export class AppAuthUI {
     if (studyRoomsBtn) {
       studyRoomsBtn.style.display = 'block';
     }
+    if (studyQuestBtn) {
+      studyQuestBtn.style.display = 'flex';
+    }
 
     // Initialize managers for this user
     await deps.friendsManager.initialize(user.id);
     await deps.studyRoomsManager.initialize(user.id);
     await deps.messagesManager.initialize(user.id);
+
+    // Initialize StudyQuest manager
+    if (deps.studyQuestManager) {
+      await deps.studyQuestManager.initialize();
+    }
 
     // Initialize realtime notification manager
     deps.realtimeNotificationManager.initialize(
@@ -102,9 +121,10 @@ export class AppAuthUI {
     deps: AuthUIDependencies,
     signinBtn: HTMLElement | null,
     friendsBtn: HTMLElement | null,
-    studyRoomsBtn: HTMLElement | null
+    studyRoomsBtn: HTMLElement | null,
+    studyQuestBtn: HTMLElement | null
   ): void {
-    // Show signin button, hide friends and study rooms buttons
+    // Show signin button, hide friends, study rooms, and StudyQuest buttons
     signinBtn?.classList.remove('hidden');
     if (friendsBtn) {
       friendsBtn.style.display = 'none';
@@ -112,12 +132,20 @@ export class AppAuthUI {
     if (studyRoomsBtn) {
       studyRoomsBtn.style.display = 'none';
     }
+    if (studyQuestBtn) {
+      studyQuestBtn.style.display = 'none';
+    }
 
     // Clear managers
     deps.friendsManager.clear();
     deps.studyRoomsManager.clear();
     deps.messagesManager.clear();
     deps.realtimeNotificationManager.clear();
+
+    // Clear StudyQuest manager
+    if (deps.studyQuestManager) {
+      deps.studyQuestManager.cleanup();
+    }
 
     // Clear user ID from study rooms UI components
     deps.browseRoomsModal.setCurrentUserId(null);

@@ -101,8 +101,8 @@ export class StudyQuestBattle {
       isDefending: false,
     };
 
-    // Determine who goes first based on speed
-    const playerFirst = playerParticipant.speed >= enemyParticipant.speed;
+    // Player always goes first for better UX
+    // Speed stat affects flee chance instead
 
     return new StudyQuestBattle({
       id,
@@ -112,7 +112,7 @@ export class StudyQuestBattle {
       floorNumber,
       player: playerParticipant,
       enemy: enemyParticipant,
-      currentTurn: playerFirst ? 'player' : 'enemy',
+      currentTurn: 'player',
       turnNumber: 1,
       result: 'in_progress',
       log: [],

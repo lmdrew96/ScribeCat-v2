@@ -13,6 +13,8 @@
 import { createLogger } from '../../shared/logger.js';
 import type { AuthManager } from './AuthManager.js';
 import type { NotificationTicker } from '../components/NotificationTicker.js';
+import { StudyQuestSound } from '../components/studyquest/StudyQuestSound.js';
+import { AchievementsManager } from './AchievementsManager.js';
 import type {
   StudyQuestCharacterData,
   CharacterClass,
@@ -65,6 +67,7 @@ export interface StudyRewardResult {
 export class StudyQuestManager {
   private authManager: AuthManager;
   private notificationTicker: NotificationTicker | null = null;
+  private achievementsManager: AchievementsManager;
 
   private state: StudyQuestState = {
     character: null,
@@ -81,6 +84,7 @@ export class StudyQuestManager {
 
   constructor(authManager: AuthManager) {
     this.authManager = authManager;
+    this.achievementsManager = new AchievementsManager();
     logger.info('StudyQuestManager initialized');
   }
 
@@ -131,7 +135,7 @@ export class StudyQuestManager {
    * Load character for current user
    */
   async loadCharacter(): Promise<StudyQuestCharacterData | null> {
-    const userId = this.authManager.getCurrentUserId();
+    const userId = this.authManager.getCurrentUser()?.id;
     if (!userId) {
       logger.warn('Cannot load character: no user logged in');
       return null;
@@ -140,7 +144,7 @@ export class StudyQuestManager {
     this.setState({ isLoading: true, error: null });
 
     try {
-      const result = await window.api.invoke('studyquest:get-character', userId);
+      const result = await window.scribeCat.invoke('studyquest:get-character', userId);
       if (result.success) {
         this.setState({
           character: result.character,
@@ -172,7 +176,7 @@ export class StudyQuestManager {
    */
   async getClasses(): Promise<CharacterClassData[]> {
     try {
-      const result = await window.api.invoke('studyquest:get-classes');
+      const result = await window.scribeCat.invoke('studyquest:get-classes');
       return result.success ? result.classes : [];
     } catch (error) {
       logger.error('Failed to get classes:', error);
@@ -184,7 +188,7 @@ export class StudyQuestManager {
    * Create a new character
    */
   async createCharacter(name: string, classId: CharacterClass): Promise<boolean> {
-    const userId = this.authManager.getCurrentUserId();
+    const userId = this.authManager.getCurrentUser()?.id;
     if (!userId) {
       logger.warn('Cannot create character: no user logged in');
       return false;
@@ -193,7 +197,7 @@ export class StudyQuestManager {
     this.setState({ isLoading: true, error: null });
 
     try {
-      const result = await window.api.invoke('studyquest:create-character', {
+      const result = await window.scribeCat.invoke('studyquest:create-character', {
         userId,
         name,
         classId,
@@ -205,6 +209,9 @@ export class StudyQuestManager {
           isLoading: false,
         });
         logger.info('Character created:', name);
+
+        // Update achievements for character creation
+        this.achievementsManager.updateStudyQuestProgress({ hasCharacter: true });
 
         this.showNotification(`Welcome, ${name}! Your adventure begins!`, 'sword');
         return true;
@@ -227,7 +234,7 @@ export class StudyQuestManager {
     if (!this.state.character) return false;
 
     try {
-      const result = await window.api.invoke(
+      const result = await window.scribeCat.invoke(
         'studyquest:delete-character',
         this.state.character.id
       );
@@ -303,13 +310,13 @@ export class StudyQuestManager {
 
     try {
       // Add XP
-      const xpResult = await window.api.invoke('studyquest:add-xp', {
+      const xpResult = await window.scribeCat.invoke('studyquest:add-xp', {
         characterId: this.state.character.id,
         amount: xpEarned,
       });
 
       // Add gold
-      const goldResult = await window.api.invoke('studyquest:add-gold', {
+      const goldResult = await window.scribeCat.invoke('studyquest:add-gold', {
         characterId: this.state.character.id,
         amount: goldEarned,
       });
@@ -328,11 +335,13 @@ export class StudyQuestManager {
 
         // Show notification
         if (result.leveledUp) {
+          StudyQuestSound.play('level-up');
           this.showNotification(
             `Level Up! You are now level ${result.newLevel}!`,
             'star'
           );
         } else {
+          StudyQuestSound.play('item-pickup');
           this.showNotification(
             `+${xpEarned} XP, +${goldEarned} Gold from studying!`,
             'sword'
@@ -365,7 +374,7 @@ export class StudyQuestManager {
     if (!this.state.character) return [];
 
     try {
-      const result = await window.api.invoke(
+      const result = await window.scribeCat.invoke(
         'studyquest:get-inventory',
         this.state.character.id
       );
@@ -386,7 +395,7 @@ export class StudyQuestManager {
    */
   async getShopItems(): Promise<StudyQuestItemData[]> {
     try {
-      const result = await window.api.invoke('studyquest:get-shop-items');
+      const result = await window.scribeCat.invoke('studyquest:get-shop-items');
       return result.success ? result.items : [];
     } catch (error) {
       logger.error('Failed to get shop items:', error);
@@ -401,7 +410,7 @@ export class StudyQuestManager {
     if (!this.state.character) return false;
 
     try {
-      const result = await window.api.invoke('studyquest:buy-item', {
+      const result = await window.scribeCat.invoke('studyquest:buy-item', {
         characterId: this.state.character.id,
         itemId,
       });
@@ -428,7 +437,7 @@ export class StudyQuestManager {
     if (!this.state.character) return false;
 
     try {
-      const result = await window.api.invoke('studyquest:equip-item', {
+      const result = await window.scribeCat.invoke('studyquest:equip-item', {
         characterId: this.state.character.id,
         itemId,
       });
@@ -451,7 +460,7 @@ export class StudyQuestManager {
     if (!this.state.character) return null;
 
     try {
-      const result = await window.api.invoke('studyquest:use-item', {
+      const result = await window.scribeCat.invoke('studyquest:use-item', {
         characterId: this.state.character.id,
         itemId,
       });
@@ -479,7 +488,7 @@ export class StudyQuestManager {
     const level = this.state.character?.level ?? 1;
 
     try {
-      const result = await window.api.invoke('studyquest:get-dungeons', level);
+      const result = await window.scribeCat.invoke('studyquest:get-dungeons', level);
       if (result.success) {
         this.setState({ dungeons: result.dungeons });
         return result.dungeons;
@@ -498,7 +507,7 @@ export class StudyQuestManager {
     if (!this.state.character) return false;
 
     try {
-      const result = await window.api.invoke('studyquest:start-dungeon', {
+      const result = await window.scribeCat.invoke('studyquest:start-dungeon', {
         characterId: this.state.character.id,
         dungeonId,
       });
@@ -522,7 +531,7 @@ export class StudyQuestManager {
     if (!this.state.character) return false;
 
     try {
-      const result = await window.api.invoke(
+      const result = await window.scribeCat.invoke(
         'studyquest:abandon-dungeon',
         this.state.character.id
       );
@@ -553,7 +562,7 @@ export class StudyQuestManager {
     if (!this.state.character || !this.state.dungeonState) return null;
 
     try {
-      const result = await window.api.invoke('studyquest:start-battle', {
+      const result = await window.scribeCat.invoke('studyquest:start-battle', {
         characterId: this.state.character.id,
         dungeonId: this.state.dungeonState.dungeonId,
         floorNumber: this.state.dungeonState.currentFloor,
@@ -585,7 +594,7 @@ export class StudyQuestManager {
     if (!this.state.currentBattle) return null;
 
     try {
-      const result = await window.api.invoke('studyquest:battle-action', {
+      const result = await window.scribeCat.invoke('studyquest:battle-action', {
         battleId: this.state.currentBattle.id,
         action,
         itemEffect,
@@ -609,6 +618,15 @@ export class StudyQuestManager {
             }
             // Update quest progress
             await this.updateQuestProgress('battles_won', 1);
+
+            // Update achievements with current character stats
+            if (result.character) {
+              this.achievementsManager.updateStudyQuestProgress({
+                level: result.character.level,
+                totalGold: result.character.gold,
+                battlesWon: result.character.battlesWon,
+              });
+            }
           } else if (result.battle.result === 'defeat') {
             this.showNotification('Defeated! Lost 25% gold...', 'x');
           }
@@ -643,7 +661,7 @@ export class StudyQuestManager {
     if (!this.state.character) return [];
 
     try {
-      const result = await window.api.invoke(
+      const result = await window.scribeCat.invoke(
         'studyquest:get-active-quests',
         this.state.character.id
       );
@@ -675,7 +693,7 @@ export class StudyQuestManager {
 
     for (const quest of matchingQuests) {
       try {
-        await window.api.invoke('studyquest:update-quest-progress', {
+        await window.scribeCat.invoke('studyquest:update-quest-progress', {
           characterId: this.state.character.id,
           questId: quest.quest.id,
           progressDelta,
@@ -696,7 +714,7 @@ export class StudyQuestManager {
     if (!this.state.character) return false;
 
     try {
-      const result = await window.api.invoke('studyquest:complete-quest', {
+      const result = await window.scribeCat.invoke('studyquest:complete-quest', {
         characterId: this.state.character.id,
         questId,
       });
@@ -704,6 +722,15 @@ export class StudyQuestManager {
       if (result.success) {
         this.setState({ character: result.character });
         await this.loadActiveQuests();
+
+        // Update achievements with quest completion
+        if (result.character) {
+          this.achievementsManager.updateStudyQuestProgress({
+            questsCompleted: result.character.questsCompleted || 0,
+            level: result.character.level,
+            totalGold: result.character.gold,
+          });
+        }
 
         this.showNotification(
           `Quest Complete! +${result.rewards.xpEarned} XP, +${result.rewards.goldEarned} Gold`,
@@ -727,7 +754,7 @@ export class StudyQuestManager {
    */
   async getLeaderboard(limit: number = 10): Promise<LeaderboardEntry[]> {
     try {
-      const result = await window.api.invoke('studyquest:get-leaderboard', limit);
+      const result = await window.scribeCat.invoke('studyquest:get-leaderboard', limit);
       return result.success ? result.leaderboard : [];
     } catch (error) {
       logger.error('Failed to get leaderboard:', error);
@@ -742,7 +769,7 @@ export class StudyQuestManager {
     if (!this.state.character) return -1;
 
     try {
-      const result = await window.api.invoke(
+      const result = await window.scribeCat.invoke(
         'studyquest:get-rank',
         this.state.character.id
       );
@@ -773,7 +800,7 @@ export class StudyQuestManager {
     if (!this.state.character) return null;
 
     try {
-      const result = await window.api.invoke(
+      const result = await window.scribeCat.invoke(
         'studyquest:get-battle-stats',
         this.state.character.id
       );
@@ -809,7 +836,7 @@ export class StudyQuestManager {
     if (!this.state.character) return false;
 
     try {
-      const result = await window.api.invoke(
+      const result = await window.scribeCat.invoke(
         'studyquest:heal-character',
         this.state.character.id
       );

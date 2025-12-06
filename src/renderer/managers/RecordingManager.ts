@@ -328,6 +328,22 @@ export class RecordingManager {
           });
       }
 
+      // Award StudyQuest XP and gold for completed study session
+      if (sessionId && window.studyQuestManager) {
+        const studyTimeMinutes = Math.floor(durationSeconds / 60);
+        if (studyTimeMinutes >= 1) {
+          logger.info(`Awarding StudyQuest rewards for ${studyTimeMinutes} minutes of study`);
+          window.studyQuestManager.awardStudyRewards({
+            studyTimeMinutes,
+            aiToolsUsed: 0, // TODO: Track AI tool usage during session
+            aiChatsUsed: 0, // TODO: Track AI chat usage during session
+            sessionCompleted: true,
+          }).catch(error => {
+            logger.warn('Failed to award StudyQuest rewards:', error);
+          });
+        }
+      }
+
       // If there was a save error, throw it now (after attempting recovery)
       if (saveError) {
         throw saveError;

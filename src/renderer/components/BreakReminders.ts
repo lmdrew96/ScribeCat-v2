@@ -22,6 +22,7 @@ import { SoundManager } from '../audio/SoundManager.js';
 import { FocusManager } from '../utils/FocusManager.js';
 import { ViewContextService } from '../services/ViewContextService.js';
 import type { RecordingManager } from '../managers/RecordingManager.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 interface BreakReminderConfig {
   /** Minutes between break reminders (default: 50) */
@@ -422,15 +423,18 @@ export class BreakReminders {
         </p>
         <div style="background: var(--bg-tertiary); padding: 16px; border-radius: var(--radius-md); margin: 0 0 24px 0;">
           <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">
-            💡 <strong>Suggestion:</strong> ${message.suggestion}
+            ${getIconHTML('lightbulb', { size: 16 })} <strong>Suggestion:</strong> ${message.suggestion}
           </p>
         </div>
-        <div style="display: flex; gap: 12px; justify-content: center;">
-          <button class="secondary-btn" id="break-snooze" style="flex: 1;">
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button class="secondary-btn" id="break-snooze" style="flex: 1; min-width: 120px;">
             Snooze (10min)
           </button>
-          <button class="primary-btn" id="break-take" style="flex: 1;">
-            Take a Break ✨
+          <button class="primary-btn" id="break-take" style="flex: 1; min-width: 120px;">
+            ${getIconHTML('sparkles', { size: 16 })} Take a Break
+          </button>
+          <button class="primary-btn" id="break-studyquest" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #4a4a8e 0%, #2a2a4e 100%); border-color: #6a6aae;">
+            ${getIconHTML('gamepad', { size: 16 })} Play StudyQuest
           </button>
         </div>
       </div>
@@ -453,6 +457,18 @@ export class BreakReminders {
       BreakReminders.recordBreak();
       this.closeModal(overlay);
       this.startBreakTimer();
+    });
+
+    // StudyQuest button handler
+    const studyQuestBtn = modal.querySelector('#break-studyquest') as HTMLButtonElement;
+    studyQuestBtn?.addEventListener('click', () => {
+      BreakReminders.recordBreak();
+      this.closeModal(overlay);
+      // Open StudyQuest modal
+      const studyQuestModal = (window as any).studyQuestModal;
+      if (studyQuestModal) {
+        studyQuestModal.open();
+      }
     });
 
     // Close on overlay click

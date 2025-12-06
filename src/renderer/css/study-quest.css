@@ -1,0 +1,1444 @@
+/**
+ * StudyQuest RPG Styles
+ * 16-bit retro RPG aesthetic for the StudyQuest mini-game
+ */
+
+/* ============================================================================
+   CSS Variables
+   ============================================================================ */
+
+:root {
+  /* Pixel font - uses Courier New for retro monospace look (CSP blocks Google Fonts) */
+  --sq-pixel-font: 'Courier New', 'Consolas', monospace;
+}
+
+/* ============================================================================
+   StudyQuest Container
+   ============================================================================ */
+
+.studyquest-backdrop {
+  position: fixed;
+  top: 68px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10049;
+  display: none;
+}
+
+.studyquest-backdrop.active {
+  display: block;
+}
+
+.studyquest-container {
+  position: fixed;
+  top: 68px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #1a1a2e;
+  z-index: 10050;
+  overflow: hidden;
+  display: none;
+  font-family: var(--sq-pixel-font);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.studyquest-container.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================================
+   Header Bar
+   ============================================================================ */
+
+.studyquest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, #2a2a4e 0%, #1a1a2e 100%);
+  border-bottom: 4px solid #4a4a6a;
+  box-shadow: 0 4px 0 #0a0a1e;
+}
+
+.studyquest-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studyquest-title-icon {
+  font-size: 24px;
+  animation: sword-bob 2s ease-in-out infinite;
+}
+
+@keyframes sword-bob {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-4px) rotate(5deg); }
+}
+
+.studyquest-title h2 {
+  margin: 0;
+  font-size: 14px;
+  color: #ffd700;
+  text-shadow:
+    2px 2px 0 #8b4513,
+    -1px -1px 0 #8b4513;
+  letter-spacing: 2px;
+}
+
+.studyquest-player-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.studyquest-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #ffffff;
+}
+
+.studyquest-stat-icon {
+  font-size: 14px;
+}
+
+.studyquest-stat-value {
+  color: #ffd700;
+}
+
+.studyquest-close-btn {
+  background: #8b0000;
+  border: 3px solid #5a0000;
+  color: #ffffff;
+  font-family: var(--sq-pixel-font);
+  font-size: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  box-shadow:
+    inset 2px 2px 0 #c00000,
+    inset -2px -2px 0 #4a0000,
+    4px 4px 0 #0a0a1e;
+  transition: all 0.1s;
+}
+
+.studyquest-close-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    inset 2px 2px 0 #c00000,
+    inset -2px -2px 0 #4a0000,
+    6px 6px 0 #0a0a1e;
+}
+
+.studyquest-close-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow:
+    inset 2px 2px 0 #c00000,
+    inset -2px -2px 0 #4a0000,
+    2px 2px 0 #0a0a1e;
+}
+
+/* ============================================================================
+   Main Content Area
+   ============================================================================ */
+
+.studyquest-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1f 100%);
+}
+
+.studyquest-view {
+  flex: 1;
+  display: none;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.studyquest-view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================================
+   Navigation Tabs
+   ============================================================================ */
+
+.studyquest-nav {
+  display: flex;
+  gap: 4px;
+  padding: 8px 20px;
+  background: #0f0f1f;
+  border-bottom: 2px solid #4a4a6a;
+}
+
+.studyquest-nav-btn {
+  background: #2a2a4e;
+  border: 3px solid #3a3a5e;
+  color: #8a8aaa;
+  font-family: var(--sq-pixel-font);
+  font-size: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #0a0a1e;
+  transition: all 0.1s;
+}
+
+.studyquest-nav-btn:hover {
+  background: #3a3a5e;
+  color: #ffffff;
+}
+
+.studyquest-nav-btn.active {
+  background: #4a4a8e;
+  border-color: #6a6aae;
+  color: #ffd700;
+  box-shadow:
+    inset 2px 2px 0 #6a6aae,
+    inset -2px -2px 0 #3a3a5e;
+}
+
+/* ============================================================================
+   Pixel Buttons
+   ============================================================================ */
+
+.pixel-btn {
+  background: linear-gradient(180deg, #4a90d9 0%, #2a5a9a 100%);
+  border: 3px solid #1a3a6a;
+  color: #ffffff;
+  font-family: var(--sq-pixel-font);
+  font-size: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+  box-shadow:
+    inset 2px 2px 0 #6ab0f9,
+    inset -2px -2px 0 #1a4a8a,
+    4px 4px 0 #0a0a1e;
+  transition: all 0.1s;
+  text-transform: uppercase;
+}
+
+.pixel-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    inset 2px 2px 0 #6ab0f9,
+    inset -2px -2px 0 #1a4a8a,
+    6px 6px 0 #0a0a1e;
+}
+
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow:
+    inset 2px 2px 0 #6ab0f9,
+    inset -2px -2px 0 #1a4a8a,
+    2px 2px 0 #0a0a1e;
+}
+
+.pixel-btn:disabled {
+  background: linear-gradient(180deg, #5a5a6a 0%, #3a3a4a 100%);
+  border-color: #2a2a3a;
+  color: #8a8a9a;
+  cursor: not-allowed;
+  box-shadow:
+    inset 2px 2px 0 #6a6a7a,
+    inset -2px -2px 0 #2a2a3a,
+    4px 4px 0 #0a0a1e;
+}
+
+.pixel-btn-success {
+  background: linear-gradient(180deg, #4ad94a 0%, #2a9a2a 100%);
+  border-color: #1a6a1a;
+  box-shadow:
+    inset 2px 2px 0 #6af96a,
+    inset -2px -2px 0 #1a8a1a,
+    4px 4px 0 #0a0a1e;
+}
+
+.pixel-btn-danger {
+  background: linear-gradient(180deg, #d94a4a 0%, #9a2a2a 100%);
+  border-color: #6a1a1a;
+  box-shadow:
+    inset 2px 2px 0 #f96a6a,
+    inset -2px -2px 0 #8a1a1a,
+    4px 4px 0 #0a0a1e;
+}
+
+.pixel-btn-gold {
+  background: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
+  border-color: #8b6508;
+  color: #1a1a2e;
+  box-shadow:
+    inset 2px 2px 0 #ffed4a,
+    inset -2px -2px 0 #8b6508,
+    4px 4px 0 #0a0a1e;
+}
+
+/* ============================================================================
+   HP/XP Bars
+   ============================================================================ */
+
+.pixel-bar-container {
+  width: 100%;
+  height: 20px;
+  background: #1a1a2e;
+  border: 3px solid #4a4a6a;
+  position: relative;
+  box-shadow: inset 2px 2px 0 #0a0a1e;
+}
+
+.pixel-bar {
+  height: 100%;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.pixel-bar-hp {
+  background: linear-gradient(180deg, #ff4444 0%, #cc0000 100%);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.pixel-bar-xp {
+  background: linear-gradient(180deg, #44ff44 0%, #00cc00 100%);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.pixel-bar-gold {
+  background: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.pixel-bar-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--sq-pixel-font);
+  font-size: 8px;
+  color: #ffffff;
+  text-shadow: 1px 1px 0 #000000;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   Pixel Cards
+   ============================================================================ */
+
+.pixel-card {
+  background: #2a2a4e;
+  border: 4px solid #4a4a6a;
+  padding: 16px;
+  box-shadow: 6px 6px 0 #0a0a1e;
+}
+
+.pixel-card-title {
+  font-size: 12px;
+  color: #ffd700;
+  margin: 0 0 12px 0;
+  text-shadow: 2px 2px 0 #8b4513;
+}
+
+.pixel-card-content {
+  font-size: 10px;
+  color: #cccccc;
+  line-height: 1.8;
+}
+
+/* ============================================================================
+   Title Screen
+   ============================================================================ */
+
+.studyquest-title-screen {
+  flex: 1;
+  /* display: flex inherited from .studyquest-view.active */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 32px;
+  background: radial-gradient(ellipse at center, #2a2a4e 0%, #0f0f1f 100%);
+}
+
+.studyquest-logo {
+  font-size: 32px;
+  margin-bottom: 16px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.studyquest-title-text {
+  font-size: 20px;
+  color: #ffd700;
+  text-shadow:
+    3px 3px 0 #8b4513,
+    -2px -2px 0 #8b4513,
+    2px -2px 0 #8b4513,
+    -2px 2px 0 #8b4513;
+  letter-spacing: 4px;
+  margin: 0;
+}
+
+.studyquest-subtitle {
+  font-size: 10px;
+  color: #8a8aaa;
+  margin-top: 8px;
+}
+
+.studyquest-menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studyquest-menu-btn {
+  min-width: 200px;
+}
+
+/* ============================================================================
+   Character Creation
+   ============================================================================ */
+
+.studyquest-character-create {
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.studyquest-section-title {
+  font-size: 14px;
+  color: #ffd700;
+  text-shadow: 2px 2px 0 #8b4513;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.studyquest-input-group {
+  margin-bottom: 24px;
+}
+
+.studyquest-label {
+  display: block;
+  font-size: 10px;
+  color: #8a8aaa;
+  margin-bottom: 8px;
+}
+
+.studyquest-input {
+  width: 100%;
+  background: #1a1a2e;
+  border: 3px solid #4a4a6a;
+  color: #ffffff;
+  font-family: var(--sq-pixel-font);
+  font-size: 12px;
+  padding: 12px 16px;
+  box-shadow: inset 2px 2px 0 #0a0a1e;
+}
+
+.studyquest-input:focus {
+  outline: none;
+  border-color: #6a6aae;
+}
+
+.studyquest-input::placeholder {
+  color: #5a5a7a;
+}
+
+.studyquest-class-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.studyquest-class-card {
+  background: #2a2a4e;
+  border: 4px solid #4a4a6a;
+  padding: 16px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.1s;
+  box-shadow: 4px 4px 0 #0a0a1e;
+}
+
+.studyquest-class-card:hover {
+  transform: translate(-2px, -2px);
+  border-color: #6a6aae;
+  box-shadow: 6px 6px 0 #0a0a1e;
+}
+
+.studyquest-class-card.selected {
+  border-color: #ffd700;
+  box-shadow:
+    0 0 0 2px #ffd700,
+    6px 6px 0 #0a0a1e;
+}
+
+.studyquest-class-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.studyquest-class-name {
+  font-size: 10px;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.studyquest-class-desc {
+  font-size: 8px;
+  color: #8a8aaa;
+  line-height: 1.6;
+}
+
+.studyquest-class-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  margin-top: 12px;
+  font-size: 7px;
+  color: #6a6a8a;
+}
+
+.studyquest-class-stat {
+  display: flex;
+  justify-content: space-between;
+}
+
+.studyquest-class-stat-value {
+  color: #ffd700;
+}
+
+/* ============================================================================
+   Color Picker
+   ============================================================================ */
+
+.studyquest-color-picker {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.studyquest-color-option {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #3a3a5e;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #0a0a1e;
+  transition: all 0.1s;
+  position: relative;
+}
+
+.studyquest-color-option:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #0a0a1e;
+}
+
+.studyquest-color-option.selected {
+  border-color: #ffd700;
+  box-shadow:
+    0 0 0 2px #ffd700,
+    4px 4px 0 #0a0a1e;
+}
+
+.studyquest-color-option.selected::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  background: #ffd700;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #ffd700;
+}
+
+/* ============================================================================
+   Town View
+   ============================================================================ */
+
+.studyquest-town {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.studyquest-town-building {
+  background: #2a2a4e;
+  border: 4px solid #4a4a6a;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.1s;
+  box-shadow: 4px 4px 0 #0a0a1e;
+}
+
+.studyquest-town-building:hover {
+  transform: translate(-2px, -2px);
+  border-color: #6a6aae;
+  box-shadow: 6px 6px 0 #0a0a1e;
+}
+
+.studyquest-building-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.studyquest-building-name {
+  font-size: 10px;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.studyquest-building-desc {
+  font-size: 8px;
+  color: #8a8aaa;
+  line-height: 1.6;
+}
+
+/* ============================================================================
+   Battle View - Canvas Area
+   ============================================================================ */
+
+.studyquest-battle {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.studyquest-battle-canvas-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0a0a1e;
+  border: 4px solid #4a4a6a;
+  margin-bottom: 16px;
+  min-height: 270px;
+}
+
+.studyquest-battle-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.studyquest-battle-ui {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.studyquest-battle-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.studyquest-battle-action {
+  padding: 16px;
+  font-size: 10px;
+}
+
+.studyquest-battle-log {
+  background: #1a1a2e;
+  border: 3px solid #4a4a6a;
+  padding: 12px;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 8px;
+  color: #cccccc;
+  line-height: 1.8;
+}
+
+.studyquest-battle-log-entry {
+  margin-bottom: 4px;
+}
+
+.studyquest-battle-log-entry.damage {
+  color: #ff6666;
+}
+
+.studyquest-battle-log-entry.heal {
+  color: #66ff66;
+}
+
+.studyquest-battle-log-entry.miss {
+  color: #8a8aaa;
+}
+
+.studyquest-battle-log-entry.crit {
+  color: #ffd700;
+}
+
+.studyquest-battle-log-entry.info {
+  color: #66ccff;
+}
+
+/* ============================================================================
+   Dungeon Run View
+   ============================================================================ */
+
+.studyquest-dungeon-progress {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 24px;
+  text-align: center;
+}
+
+.studyquest-floor-indicator h3 {
+  font-size: 16px;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.studyquest-dungeon-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ============================================================================
+   Shop View
+   ============================================================================ */
+
+.studyquest-shop {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.studyquest-shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.studyquest-shop-item {
+  background: #2a2a4e;
+  border: 4px solid #4a4a6a;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 4px 0 #0a0a1e;
+}
+
+.studyquest-item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.studyquest-item-icon {
+  font-size: 32px;
+}
+
+.studyquest-item-name {
+  font-size: 10px;
+  color: #ffffff;
+  margin: 0;
+}
+
+.studyquest-item-type {
+  font-size: 7px;
+  color: #8a8aaa;
+  margin-top: 4px;
+}
+
+.studyquest-item-stats {
+  font-size: 8px;
+  color: #66ff66;
+  margin-bottom: 12px;
+}
+
+.studyquest-item-desc {
+  font-size: 8px;
+  color: #8a8aaa;
+  line-height: 1.6;
+  flex: 1;
+  margin-bottom: 12px;
+}
+
+.studyquest-item-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.studyquest-price {
+  font-size: 10px;
+  color: #ffd700;
+}
+
+.studyquest-buy-btn {
+  font-size: 8px;
+  padding: 8px 12px;
+}
+
+/* ============================================================================
+   Inventory View
+   ============================================================================ */
+
+.studyquest-inventory {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.studyquest-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.studyquest-inventory-slot {
+  background: #1a1a2e;
+  border: 3px solid #4a4a6a;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.1s;
+  position: relative;
+}
+
+.studyquest-inventory-slot:hover {
+  border-color: #6a6aae;
+}
+
+.studyquest-inventory-slot.equipped {
+  border-color: #ffd700;
+  box-shadow: 0 0 0 2px #ffd700;
+}
+
+.studyquest-inventory-slot-icon {
+  font-size: 24px;
+}
+
+.studyquest-inventory-slot-qty {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 7px;
+  color: #ffffff;
+  background: #0a0a1e;
+  padding: 2px 4px;
+}
+
+/* ============================================================================
+   Dungeon Select
+   ============================================================================ */
+
+.studyquest-dungeon-select {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.studyquest-dungeon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studyquest-dungeon-card {
+  background: #2a2a4e;
+  border: 4px solid #4a4a6a;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.1s;
+  box-shadow: 4px 4px 0 #0a0a1e;
+}
+
+.studyquest-dungeon-card:hover:not(.locked) {
+  transform: translate(-2px, -2px);
+  border-color: #6a6aae;
+  box-shadow: 6px 6px 0 #0a0a1e;
+}
+
+.studyquest-dungeon-card.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.studyquest-dungeon-icon {
+  font-size: 48px;
+  min-width: 64px;
+  text-align: center;
+}
+
+.studyquest-dungeon-info {
+  flex: 1;
+}
+
+.studyquest-dungeon-name {
+  font-size: 12px;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.studyquest-dungeon-level {
+  font-size: 8px;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.studyquest-dungeon-desc {
+  font-size: 8px;
+  color: #8a8aaa;
+  line-height: 1.6;
+}
+
+.studyquest-dungeon-lock {
+  font-size: 10px;
+  color: #ff6666;
+}
+
+/* ============================================================================
+   Quest View
+   ============================================================================ */
+
+.studyquest-quests {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.studyquest-quest-section {
+  margin-bottom: 24px;
+}
+
+.studyquest-quest-section-title {
+  font-size: 12px;
+  color: #ffd700;
+  margin: 0 0 16px 0;
+  text-shadow: 2px 2px 0 #8b4513;
+}
+
+.studyquest-quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studyquest-quest-card {
+  background: #2a2a4e;
+  border: 4px solid #4a4a6a;
+  padding: 16px;
+  box-shadow: 4px 4px 0 #0a0a1e;
+}
+
+.studyquest-quest-card.completed {
+  border-color: #4ad94a;
+}
+
+.studyquest-quest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.studyquest-quest-name {
+  font-size: 10px;
+  color: #ffffff;
+  margin: 0;
+}
+
+.studyquest-quest-rewards {
+  font-size: 8px;
+  color: #ffd700;
+}
+
+.studyquest-quest-desc {
+  font-size: 8px;
+  color: #8a8aaa;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.studyquest-quest-progress {
+  margin-bottom: 12px;
+}
+
+.studyquest-quest-claim {
+  font-size: 8px;
+  padding: 8px 16px;
+}
+
+/* ============================================================================
+   Leaderboard
+   ============================================================================ */
+
+.studyquest-leaderboard {
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.studyquest-leaderboard-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.studyquest-leaderboard-row {
+  background: #2a2a4e;
+}
+
+.studyquest-leaderboard-row.current-user {
+  background: #3a3a6e;
+  border: 2px solid #ffd700;
+}
+
+.studyquest-leaderboard-cell {
+  padding: 12px 16px;
+  font-size: 10px;
+  color: #ffffff;
+  border: 3px solid #4a4a6a;
+}
+
+.studyquest-leaderboard-rank {
+  width: 60px;
+  text-align: center;
+  color: #ffd700;
+}
+
+.studyquest-leaderboard-rank.gold {
+  color: #ffd700;
+  text-shadow: 0 0 10px #ffd700;
+}
+
+.studyquest-leaderboard-rank.silver {
+  color: #c0c0c0;
+  text-shadow: 0 0 10px #c0c0c0;
+}
+
+.studyquest-leaderboard-rank.bronze {
+  color: #cd7f32;
+  text-shadow: 0 0 10px #cd7f32;
+}
+
+.studyquest-leaderboard-name {
+  flex: 1;
+}
+
+.studyquest-leaderboard-level {
+  width: 80px;
+  text-align: center;
+}
+
+.studyquest-leaderboard-xp {
+  width: 100px;
+  text-align: right;
+  color: #66ff66;
+}
+
+/* ============================================================================
+   Character Sheet
+   ============================================================================ */
+
+.studyquest-character-sheet {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.studyquest-character-portrait {
+  text-align: center;
+  padding: 20px;
+}
+
+.studyquest-portrait-icon {
+  font-size: 96px;
+  margin-bottom: 16px;
+}
+
+.studyquest-character-name {
+  font-size: 14px;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.studyquest-character-class {
+  font-size: 10px;
+  color: #ffd700;
+  margin: 0 0 16px 0;
+}
+
+.studyquest-character-level {
+  font-size: 12px;
+  color: #66ff66;
+}
+
+.studyquest-stats-panel {
+  padding: 20px;
+}
+
+.studyquest-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 2px solid #3a3a5e;
+  font-size: 10px;
+}
+
+.studyquest-stat-label {
+  color: #8a8aaa;
+}
+
+.studyquest-stat-value {
+  color: #ffffff;
+}
+
+.studyquest-stat-value.high {
+  color: #66ff66;
+}
+
+/* ============================================================================
+   Loading & Empty States
+   ============================================================================ */
+
+.studyquest-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 16px;
+}
+
+.studyquest-loading-spinner {
+  font-size: 32px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.studyquest-loading-text {
+  font-size: 10px;
+  color: #8a8aaa;
+}
+
+.studyquest-empty {
+  text-align: center;
+  padding: 40px;
+  color: #8a8aaa;
+  font-size: 10px;
+}
+
+/* ============================================================================
+   Scrollbar Styling
+   ============================================================================ */
+
+.studyquest-container ::-webkit-scrollbar {
+  width: 12px;
+}
+
+.studyquest-container ::-webkit-scrollbar-track {
+  background: #1a1a2e;
+  border: 2px solid #4a4a6a;
+}
+
+.studyquest-container ::-webkit-scrollbar-thumb {
+  background: #4a4a6a;
+  border: 2px solid #6a6a8a;
+}
+
+.studyquest-container ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a7a;
+}
+
+/* ============================================================================
+   Animations
+   ============================================================================ */
+
+@keyframes damage-flash {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(2) saturate(0); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes victory-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.damage-flash {
+  animation: damage-flash 0.2s ease-out;
+}
+
+.shake {
+  animation: shake 0.2s ease-out;
+}
+
+.victory-bounce {
+  animation: victory-bounce 0.5s ease-out;
+}
+
+/* ============================================================================
+   Responsive
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .studyquest-class-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .studyquest-character-sheet {
+    grid-template-columns: 1fr;
+  }
+
+  .studyquest-battle-ui {
+    grid-template-columns: 1fr;
+  }
+
+  .studyquest-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .studyquest-player-info {
+    flex-wrap: wrap;
+  }
+}
+
+/* ============================================================================
+   Polish Animations
+   ============================================================================ */
+
+/* View transition animation */
+.studyquest-view.active {
+  animation: view-fade-in 0.3s ease-out;
+}
+
+@keyframes view-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Level up glow effect */
+.level-up-glow {
+  animation: level-up-glow 1s ease-out;
+}
+
+@keyframes level-up-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.8);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 30px 15px rgba(255, 215, 0, 0.4);
+    filter: brightness(1.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+    filter: brightness(1);
+  }
+}
+
+/* XP/Gold pickup sparkle */
+.sparkle {
+  animation: sparkle 0.5s ease-out;
+}
+
+@keyframes sparkle {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Button press effect */
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--sq-shadow);
+}
+
+/* Critical hit text pulse */
+.crit-text {
+  animation: crit-pulse 0.3s ease-out;
+}
+
+@keyframes crit-pulse {
+  0% {
+    transform: scale(1);
+    color: #ff4444;
+  }
+  50% {
+    transform: scale(1.3);
+    color: #ffff00;
+  }
+  100% {
+    transform: scale(1);
+    color: #ff4444;
+  }
+}
+
+/* Heal effect (green pulse) */
+.heal-effect {
+  animation: heal-pulse 0.5s ease-out;
+}
+
+@keyframes heal-pulse {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(76, 175, 80, 0);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: inset 0 0 20px 5px rgba(76, 175, 80, 0.3);
+    filter: brightness(1.1) hue-rotate(-20deg);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(76, 175, 80, 0);
+    filter: brightness(1);
+  }
+}
+
+/* Modal open animation */
+.studyquest-container.active {
+  animation: modal-slide-up 0.3s ease-out;
+}
+
+@keyframes modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card hover lift effect */
+.studyquest-class-card,
+.studyquest-building,
+.studyquest-dungeon-card,
+.studyquest-shop-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.studyquest-class-card:hover,
+.studyquest-building:hover,
+.studyquest-dungeon-card:hover,
+.studyquest-shop-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 8px 8px 0 var(--sq-shadow);
+}
+
+/* Battle log entry slide in */
+.studyquest-battle-log-entry {
+  animation: log-slide-in 0.2s ease-out;
+}
+
+@keyframes log-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Nav button active indicator */
+.studyquest-nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--sq-gold);
+  border-radius: 2px;
+  animation: nav-indicator 0.3s ease-out;
+}
+
+@keyframes nav-indicator {
+  from {
+    transform: translateX(-50%) scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .studyquest-view.active,
+  .studyquest-container.active,
+  .studyquest-battle-log-entry,
+  .level-up-glow,
+  .sparkle,
+  .crit-text,
+  .heal-effect {
+    animation: none;
+  }
+
+  .studyquest-class-card,
+  .studyquest-building,
+  .studyquest-dungeon-card,
+  .studyquest-shop-item {
+    transition: none;
+  }
+
+  .studyquest-class-card:hover,
+  .studyquest-building:hover,
+  .studyquest-dungeon-card:hover,
+  .studyquest-shop-item:hover {
+    transform: none;
+  }
+}
