@@ -108,6 +108,40 @@ export function registerStudyQuestHandlers(): void {
     }
   });
 
+  // Take damage directly (from dungeon traps, etc.)
+  ipcMain.handle('studyquest:take-damage', async (_event, params: { characterId: string; amount: number }) => {
+    try {
+      const character = await studyQuestRepo.getCharacter(params.characterId);
+      if (!character) {
+        return { success: false, error: 'Character not found' };
+      }
+      const newHp = Math.max(0, character.hp - params.amount);
+      const updated = await studyQuestRepo.updateHp(params.characterId, newHp);
+      return { success: true, character: updated.toJSON() };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Failed to apply damage:', error);
+      return { success: false, error: message };
+    }
+  });
+
+  // Heal character directly by amount (from dungeon rest points, etc.)
+  ipcMain.handle('studyquest:heal-direct', async (_event, params: { characterId: string; amount: number }) => {
+    try {
+      const character = await studyQuestRepo.getCharacter(params.characterId);
+      if (!character) {
+        return { success: false, error: 'Character not found' };
+      }
+      const newHp = Math.min(character.maxHp, character.hp + params.amount);
+      const updated = await studyQuestRepo.updateHp(params.characterId, newHp);
+      return { success: true, character: updated.toJSON() };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Failed to heal character:', error);
+      return { success: false, error: message };
+    }
+  });
+
   ipcMain.handle('studyquest:delete-character', async (_event, characterId: string) => {
     try {
       await studyQuestRepo.deleteCharacter(characterId);

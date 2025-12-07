@@ -91,6 +91,9 @@ export class DungeonCanvas extends GameCanvas {
   private transitionAlpha: number = 0;
   private isTransitioning: boolean = false;
 
+  // NPC interaction (requires key press, not auto-trigger)
+  private nearbyNpc: RoomContent | null = null;
+
   constructor(canvas: HTMLCanvasElement) {
     super(canvas, CANVAS_WIDTH, CANVAS_HEIGHT, 2);
 
@@ -286,6 +289,15 @@ export class DungeonCanvas extends GameCanvas {
     // Interact with highlighted door
     if ((key === 'enter' || key === ' ') && this.highlightedDoor && this.doorCooldown <= 0) {
       this.enterDoor(this.highlightedDoor);
+      return;
+    }
+
+    // Interact with nearby NPC (requires explicit key press)
+    if ((key === 'enter' || key === ' ') && this.nearbyNpc) {
+      if (this.onContentTrigger) {
+        this.onContentTrigger(this.nearbyNpc);
+      }
+      this.nearbyNpc = null;
     }
   }
 
@@ -398,6 +410,21 @@ export class DungeonCanvas extends GameCanvas {
     this.player.targetY = this.player.y;
   }
 
+  /**
+   * Reposition player to the center of the current room
+   * Used when resuming after battle to ensure valid position
+   */
+  repositionPlayerToRoomCenter(): void {
+    const centerX = ROOM_OFFSET_X + ROOM_WIDTH / 2;
+    const centerY = ROOM_OFFSET_Y + ROOM_HEIGHT / 2;
+
+    this.player.x = centerX;
+    this.player.y = centerY;
+    this.player.targetX = centerX;
+    this.player.targetY = centerY;
+    this.player.isMoving = false;
+  }
+
   // ============================================================================
   // Private Methods - Interactions
   // ============================================================================
@@ -425,6 +452,9 @@ export class DungeonCanvas extends GameCanvas {
   private checkContentProximity(): void {
     if (!this.currentRoom) return;
 
+    // Reset nearby NPC each frame
+    this.nearbyNpc = null;
+
     for (const content of this.currentRoom.contents) {
       if (content.triggered) continue;
 
@@ -436,8 +466,14 @@ export class DungeonCanvas extends GameCanvas {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < TRIGGER_DISTANCE) {
-        if (this.onContentTrigger) {
-          this.onContentTrigger(content);
+        // NPCs require explicit interaction (Enter key) - don't auto-trigger
+        if (content.type === 'npc') {
+          this.nearbyNpc = content;
+        } else {
+          // Auto-trigger other content types (enemies, chests, traps, etc.)
+          if (this.onContentTrigger) {
+            this.onContentTrigger(content);
+          }
         }
         break;
       }
@@ -697,7 +733,7 @@ export class DungeonCanvas extends GameCanvas {
     this.ctx.textAlign = 'left';
     this.ctx.fillText(`Room: ${roomTypeName}`, 16, 26);
 
-    // Interaction hint
+    // Door interaction hint
     if (this.highlightedDoor) {
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       this.ctx.fillRect(CANVAS_WIDTH / 2 - 80, CANVAS_HEIGHT - 30, 160, 24);
@@ -706,6 +742,17 @@ export class DungeonCanvas extends GameCanvas {
       this.ctx.font = 'bold 11px "Courier New", monospace';
       this.ctx.textAlign = 'center';
       this.ctx.fillText('Press ENTER to go through door', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 14);
+    }
+
+    // NPC interaction hint
+    if (this.nearbyNpc && !this.highlightedDoor) {
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      this.ctx.fillRect(CANVAS_WIDTH / 2 - 80, CANVAS_HEIGHT - 30, 160, 24);
+
+      this.ctx.fillStyle = '#60a5fa'; // Blue for NPC
+      this.ctx.font = 'bold 11px "Courier New", monospace';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillText('Press ENTER to interact', CANVAS_WIDTH / 2, CANVAS_HEIGHT - 14);
     }
   }
 }

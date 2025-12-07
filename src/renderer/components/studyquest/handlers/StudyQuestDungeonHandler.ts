@@ -149,11 +149,8 @@ export class StudyQuestDungeonHandler {
     // Create DungeonExploreView with callbacks
     this.dungeonExploreView = new DungeonExploreView({
       onEnemyEncounter: async (enemyData: any, isBoss: boolean) => {
-        // Delegate to battle handler via callback
-        const battleHandler = (this as any).battleHandler;
-        if (battleHandler) {
-          battleHandler.setIsCurrentBattleBoss(isBoss);
-        }
+        // Set boss flag via callback to Modal's battleHandler
+        this.callbacks.setBattleBossFlag(isBoss);
         const battle = await this.manager.startBattle(isBoss);
         if (battle) {
           this.callbacks.showView('battle');
@@ -162,7 +159,8 @@ export class StudyQuestDungeonHandler {
       onChestOpen: async (lootData: any) => {
         const goldAmount = lootData?.gold || Math.floor(Math.random() * 50) + 10;
         await this.manager.awardGold(goldAmount);
-        this.callbacks.showToast(`Found ${goldAmount} gold!`);
+        this.showTreasurePopup(goldAmount);
+        this.callbacks.updatePlayerInfo();
         StudyQuestSound.play('item-pickup');
       },
       onTrapTriggered: async (trapData: any) => {
@@ -303,12 +301,24 @@ export class StudyQuestDungeonHandler {
       if (canvasContainer) canvasContainer.style.display = 'block';
       if (classicContainer) classicContainer.style.display = 'none';
 
-      // Initialize dungeon in explore view
-      this.dungeonExploreView.initialize(
-        dungeonState.dungeonId,
-        dungeon?.name || 'Dungeon',
-        totalFloors
-      );
+      // Only initialize dungeon if this is a NEW dungeon run, not resuming from battle
+      // Check if we're resuming the same dungeon (already initialized)
+      const currentViewState = this.dungeonExploreView.getState();
+      const isSameDungeon = currentViewState?.dungeonId === dungeonState.dungeonId;
+
+      if (!currentViewState || !isSameDungeon) {
+        // Initialize dungeon in explore view (new dungeon)
+        this.dungeonExploreView.initialize(
+          dungeonState.dungeonId,
+          dungeon?.name || 'Dungeon',
+          totalFloors
+        );
+        logger.info('Initialized new dungeon run');
+      } else {
+        // Resuming same dungeon - no reinitialization needed
+        // NPCs now require explicit interaction (Enter key), so no repositioning needed
+        logger.info('Resuming existing dungeon run');
+      }
 
       // Update player HP
       const char = state.character;
@@ -397,10 +407,7 @@ export class StudyQuestDungeonHandler {
     });
 
     content.querySelector('#btn-next-floor')?.addEventListener('click', async () => {
-      // Advance to next floor
-      const state = this.manager.getState();
-      if (state.dungeonState) {
-        state.dungeonState.currentFloor++;
+      if (this.manager.advanceFloor()) {
         this.renderDungeonRunClassic();
       }
     });
@@ -795,6 +802,25 @@ export class StudyQuestDungeonHandler {
       this.dungeonCompletionRewards = null;
       this.callbacks.showView('town');
     });
+  }
+
+  /**
+   * Show animated treasure popup when opening chests
+   */
+  private showTreasurePopup(goldAmount: number): void {
+    const popup = document.createElement('div');
+    popup.className = 'studyquest-treasure-popup';
+    popup.innerHTML = `
+      <div class="treasure-popup-content">
+        <div class="treasure-icon">${pixelIcon('tuna_coin', 48)}</div>
+        <div class="treasure-amount">+${goldAmount} Gold!</div>
+      </div>
+    `;
+
+    this.container.appendChild(popup);
+
+    // Remove after animation completes
+    setTimeout(() => popup.remove(), 2000);
   }
 
   /**

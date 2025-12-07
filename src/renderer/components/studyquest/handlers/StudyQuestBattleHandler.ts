@@ -81,6 +81,12 @@ export class StudyQuestBattleHandler {
       return;
     }
 
+    // Reset panel display states (fix for items panel persisting across battles)
+    const actionsPanel = this.container.querySelector('#battle-actions') as HTMLElement;
+    const itemsPanel = this.container.querySelector('#battle-items') as HTMLElement;
+    if (actionsPanel) actionsPanel.style.display = 'grid';
+    if (itemsPanel) itemsPanel.style.display = 'none';
+
     // Initialize canvas
     const canvas = this.container.querySelector('#battle-canvas') as HTMLCanvasElement;
     if (canvas) {
@@ -188,6 +194,11 @@ export class StudyQuestBattleHandler {
     } catch (error) {
       logger.error('Battle action error:', error);
       this.isBattleProcessing = false;
+      // Ensure panel states are reset on error
+      const actionsPanel = this.container.querySelector('#battle-actions') as HTMLElement;
+      const itemsPanel = this.container.querySelector('#battle-items') as HTMLElement;
+      if (actionsPanel) actionsPanel.style.display = 'grid';
+      if (itemsPanel) itemsPanel.style.display = 'none';
       this.updateBattleActionButtons(true);
     }
   }
@@ -297,6 +308,9 @@ export class StudyQuestBattleHandler {
     this.isBattleProcessing = false;
     this.isCurrentBattleBoss = false;
 
+    // Clear battle state in manager (we're done rendering)
+    this.manager.clearBattle();
+
     if (battle.result === 'defeat') {
       this.callbacks.getDungeonExploreView()?.stop();
       this.callbacks.showView('town');
@@ -332,14 +346,25 @@ export class StudyQuestBattleHandler {
     const itemsPanel = this.container.querySelector('#battle-items') as HTMLElement;
     const itemsGrid = this.container.querySelector('#battle-items-grid') as HTMLElement;
 
-    if (!itemsPanel || !actionsPanel || !itemsGrid) return;
+    if (!itemsPanel || !actionsPanel || !itemsGrid) {
+      // Elements not found - show error and restore button state
+      logger.warn('Battle items panel elements not found');
+      this.addBattleLogEntry('Item menu unavailable!', 'miss');
+      // Explicitly ensure actions panel is visible if it exists
+      if (actionsPanel) actionsPanel.style.display = 'grid';
+      if (itemsPanel) itemsPanel.style.display = 'none';
+      this.updateBattleActionButtons(true);
+      return;
+    }
 
     // Get consumable items
     const consumables = this.manager.getConsumableItems();
 
     if (consumables.length === 0) {
       this.addBattleLogEntry('No items available!', 'miss');
-      // Re-enable action buttons since we're not showing items panel
+      // Ensure actions panel is visible and re-enable buttons
+      actionsPanel.style.display = 'grid';
+      itemsPanel.style.display = 'none';
       this.updateBattleActionButtons(true);
       return;
     }
@@ -369,6 +394,7 @@ export class StudyQuestBattleHandler {
     });
 
     // Show items panel, hide actions
+    // Use 'flex' to match the CSS definition for .studyquest-battle-items
     actionsPanel.style.display = 'none';
     itemsPanel.style.display = 'flex';
   }
@@ -395,28 +421,49 @@ export class StudyQuestBattleHandler {
     this.isBattleProcessing = true;
     this.updateBattleActionButtons(false);
 
-    const success = await this.manager.useItemInBattle(itemId);
-    if (!success) {
+    const result = await this.manager.useItemInBattle(itemId);
+
+    if (!result || !result.success) {
       this.addBattleLogEntry('Failed to use item!', 'miss');
       this.isBattleProcessing = false;
       this.updateBattleActionButtons(true);
       return;
     }
 
-    // Update battle state - manager already handled the battle action
-    const state = this.manager.getState();
-    if (state.currentBattle) {
-      this.battleCanvas?.updateBattle(state.currentBattle);
+    // Update canvas with new battle state
+    if (result.battle) {
+      this.battleCanvas?.updateBattle(result.battle);
+    }
 
-      // Check if battle ended
-      if (state.currentBattle.result !== 'in_progress') {
-        await this.handleBattleEnd(state.currentBattle);
-      } else if (state.currentBattle.currentTurn === 'player') {
-        this.updateBattleActionButtons(true);
+    // Show player action (item use)
+    if (result.playerLog) {
+      await this.handleBattleLogEntry(result.playerLog);
+    }
+
+    // Check if battle ended after player action
+    if (result.battle && result.battle.result !== 'in_progress') {
+      await this.handleBattleEnd(result.battle);
+      this.isBattleProcessing = false;
+      return;
+    }
+
+    // Show enemy action if there was one
+    if (result.enemyLog) {
+      // Delay enemy action display for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
+      await this.handleBattleLogEntry(result.enemyLog);
+
+      // Check if battle ended after enemy action
+      if (result.battle && result.battle.result !== 'in_progress') {
+        await this.handleBattleEnd(result.battle);
+        this.isBattleProcessing = false;
+        return;
       }
     }
 
+    // Back to player turn
     this.isBattleProcessing = false;
+    this.updateBattleActionButtons(true);
   }
 
   /**

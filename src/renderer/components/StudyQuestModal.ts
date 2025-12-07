@@ -119,6 +119,7 @@ export class StudyQuestModal {
       setDungeonExploreView: () => {}, // Managed internally
       getBattleCanvas: () => this.battleHandler?.getBattleCanvas() || null,
       getSelectedColor: () => this.characterHandler?.getSelectedColor() || 'brown',
+      setBattleBossFlag: (isBoss: boolean) => this.battleHandler?.setIsCurrentBattleBoss(isBoss),
     });
 
     // Character handler
@@ -246,6 +247,9 @@ export class StudyQuestModal {
     this.isOpen = false;
     this.backdrop?.classList.remove('active');
     this.container?.classList.remove('active');
+
+    // Stop canvas animations
+    this.townView?.stop();
 
     // Cleanup handlers
     this.battleHandler?.cleanup();
@@ -900,11 +904,7 @@ export class StudyQuestModal {
         continueBtn.style.display = state.character ? 'block' : 'none';
       }
     }
-
-    // Item 12: Show save indicator when character state changes (indicating saves)
-    if (state.character && !state.isLoading) {
-      this.showSaveIndicator();
-    }
+    // Note: Save indicator is now triggered by explicit save operations, not state changes
   }
 
   /**

@@ -621,37 +621,48 @@ export class StudyQuestManager {
   /**
    * Use an item during battle
    * Applies the item effect and performs the battle action
+   * Returns full battle result for BattleHandler to display enemy turn
    */
-  async useItemInBattle(itemId: string): Promise<boolean> {
+  async useItemInBattle(itemId: string): Promise<{
+    success: boolean;
+    battle?: StudyQuestBattleData;
+    playerLog?: BattleLogEntry;
+    enemyLog?: BattleLogEntry | null;
+  } | null> {
     if (!this.state.character || !this.state.currentBattle) {
       logger.warn('Cannot use item in battle: no character or battle');
-      return false;
+      return { success: false };
     }
 
     // Find the item in inventory
     const slot = this.state.inventory.find((s) => s.item.id === itemId);
     if (!slot || slot.item.itemType !== 'consumable') {
       logger.warn('Item not found or not consumable:', itemId);
-      return false;
+      return { success: false };
     }
 
     // Get healing effect from item
     const healing = slot.item.healAmount || 0;
     if (healing <= 0) {
       logger.warn('Item has no healing effect:', itemId);
-      return false;
+      return { success: false };
     }
 
     // Execute battle action with item effect
     const result = await this.battleAction('item', { healing });
     if (!result) {
-      return false;
+      return { success: false };
     }
 
     // Decrement item quantity (use the item)
     await this.useItem(itemId);
 
-    return true;
+    return {
+      success: true,
+      battle: result.battle,
+      playerLog: result.playerLog,
+      enemyLog: result.enemyLog,
+    };
   }
 
   /**
@@ -835,6 +846,36 @@ export class StudyQuestManager {
     return this.state.dungeons.find((d) => d.id === this.state.dungeonState?.dungeonId) || null;
   }
 
+  /**
+   * Clear current battle state (called by BattleHandler when done rendering)
+   */
+  clearBattle(): void {
+    this.setState({ currentBattle: null });
+  }
+
+  /**
+   * Advance to the next floor in current dungeon run
+   */
+  advanceFloor(): boolean {
+    if (!this.state.dungeonState) return false;
+
+    const dungeon = this.getCurrentDungeon();
+    if (!dungeon) return false;
+
+    if (this.state.dungeonState.currentFloor >= dungeon.floorCount) {
+      return false; // Already on final floor
+    }
+
+    this.setState({
+      dungeonState: {
+        ...this.state.dungeonState,
+        currentFloor: this.state.dungeonState.currentFloor + 1,
+      },
+    });
+
+    return true;
+  }
+
   // ============================================================================
   // Battles
   // ============================================================================
@@ -914,11 +955,7 @@ export class StudyQuestManager {
           } else if (result.battle.result === 'defeat') {
             this.showNotification('Defeated! Lost 25% gold...', 'x');
           }
-
-          // Clear battle state after a delay
-          setTimeout(() => {
-            this.setState({ currentBattle: null });
-          }, 2000);
+          // Note: Battle state is cleared by BattleHandler.handleBattleEnd() when rendering is complete
         }
 
         return {
@@ -1178,7 +1215,7 @@ export class StudyQuestManager {
 
     try {
       const result = await window.scribeCat.invoke(
-        'studyquest:award-gold',
+        'studyquest:add-gold',
         {
           characterId: this.state.character.id,
           amount,
@@ -1192,11 +1229,7 @@ export class StudyQuestManager {
       return false;
     } catch (error) {
       logger.error('Failed to award gold:', error);
-      // Fallback: update local state
-      this.state.character.gold += amount;
-      this.state.character.totalGoldEarned = (this.state.character.totalGoldEarned || 0) + amount;
-      this.notifyListeners();
-      return true;
+      return false;
     }
   }
 
@@ -1222,10 +1255,7 @@ export class StudyQuestManager {
       return false;
     } catch (error) {
       logger.error('Failed to apply damage:', error);
-      // Fallback: update local state
-      this.state.character.hp = Math.max(0, this.state.character.hp - amount);
-      this.notifyListeners();
-      return true;
+      return false;
     }
   }
 
@@ -1251,10 +1281,7 @@ export class StudyQuestManager {
       return false;
     } catch (error) {
       logger.error('Failed to heal character:', error);
-      // Fallback: update local state
-      this.state.character.hp = Math.min(this.state.character.maxHp, this.state.character.hp + amount);
-      this.notifyListeners();
-      return true;
+      return false;
     }
   }
 

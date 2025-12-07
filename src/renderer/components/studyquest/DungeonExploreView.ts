@@ -188,12 +188,14 @@ export class DungeonExploreView {
 
       case 'chest':
         this.callbacks.onChestOpen(content.data);
-        // Mark room as cleared after chest opened
+        // Mark content as triggered and room as cleared after chest opened
+        content.triggered = true;
         room.cleared = true;
         break;
 
       case 'trap':
         this.callbacks.onTrapTriggered(content.data);
+        content.triggered = true;
         break;
 
       case 'npc':
@@ -254,10 +256,20 @@ export class DungeonExploreView {
   }
 
   /**
+   * Reposition player to room center (used when resuming dungeon to avoid re-triggering content)
+   */
+  repositionPlayer(): void {
+    this.dungeonCanvas?.repositionPlayerToRoomCenter();
+  }
+
+  /**
    * Resume exploration after battle/event
    */
   resume(): void {
     this.start();
+
+    // Reposition player to room center after battle to ensure valid position
+    this.dungeonCanvas?.repositionPlayerToRoomCenter();
 
     // Mark current room as cleared if it was an enemy room
     const currentRoom = this.getCurrentRoom();

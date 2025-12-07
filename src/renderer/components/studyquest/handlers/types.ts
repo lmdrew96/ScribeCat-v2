@@ -40,6 +40,7 @@ export interface DungeonHandlerCallbacks extends HandlerCallbacks {
   setDungeonExploreView: (view: DungeonExploreView | null) => void;
   getBattleCanvas: () => BattleCanvas | null;
   getSelectedColor: () => CatColor;
+  setBattleBossFlag: (isBoss: boolean) => void;
 }
 
 export interface CharacterHandlerCallbacks extends HandlerCallbacks {
