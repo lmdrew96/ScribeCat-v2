@@ -342,20 +342,25 @@ export class StudyQuestModal {
 
     const scale = 2; // 2x scale for pixel art
 
-    // Preload sprite sheet to get dimensions for backgroundSize
-    let spriteSheetImg: HTMLImageElement | null = null;
+    // Preload sprite sheet using spriteRenderer for caching
     try {
-      spriteSheetImg = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(`Failed to load sprite sheet: ${spriteSheet}`));
-        img.src = spriteSheet;
-      });
+      await spriteRenderer.loadSpriteSheet(spriteSheet);
     } catch (error) {
       logger.warn('Failed to load sprite sheet, using CSS fallback:', error);
       this.clearSpriteStyles();
       return;
     }
+
+    // Get cached image for size calculation
+    const cachedImg = spriteRenderer.getCachedImage(spriteSheet);
+    if (!cachedImg) {
+      logger.warn('Sprite sheet not in cache after loading');
+      this.clearSpriteStyles();
+      return;
+    }
+
+    // Pre-calculate background size for all sprites
+    const bgSize = `${cachedImg.width * scale}px ${cachedImg.height * scale}px`;
 
     // Helper to apply sprite background to an element
     const applySprite = (el: HTMLElement, region: { x: number; y: number; width: number; height: number }) => {
@@ -364,12 +369,9 @@ export class StudyQuestModal {
 
       el.style.backgroundImage = `url("${spriteSheet}")`;
       el.style.backgroundPosition = `-${region.x * scale}px -${region.y * scale}px`;
+      el.style.backgroundSize = bgSize; // The critical fix - scaled background size
       el.style.backgroundRepeat = 'no-repeat';
       el.style.imageRendering = 'pixelated';
-      // THE CRITICAL FIX - add backgroundSize to match scaled sprite sheet
-      if (spriteSheetImg) {
-        el.style.backgroundSize = `${spriteSheetImg.width * scale}px ${spriteSheetImg.height * scale}px`;
-      }
     };
 
     // Apply panel sprites to CARDS/PANELS (not buttons - they have baked text)
