@@ -32,7 +32,7 @@ interface WidgetSettings {
 
 const DEFAULT_SETTINGS: WidgetSettings = {
   enabled: true,
-  position: 'bottom-right',
+  position: 'bottom-left',
   size: 'medium',
   showTimer: true,
   showMessages: true,
