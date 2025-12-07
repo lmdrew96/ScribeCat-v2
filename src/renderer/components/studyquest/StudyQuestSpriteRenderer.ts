@@ -113,6 +113,46 @@ export class StudyQuestSpriteRenderer {
   }
 
   /**
+   * Apply a sprite region as a STRETCHED background for flexible containers.
+   * Extracts the region to a data URL and applies with background-size: 100% 100%.
+   * Use this for panels/cards that need to contain content of varying sizes.
+   */
+  applySpriteAsBackground(
+    element: HTMLElement,
+    spriteSheet: string,
+    region: SpriteRegion
+  ): void {
+    const img = this.spriteCache.get(spriteSheet);
+    if (!img) {
+      logger.warn(`Sprite sheet not loaded for background: ${spriteSheet}`);
+      return;
+    }
+
+    // Extract just this region to a canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = region.width;
+    canvas.height = region.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(
+      img,
+      region.x, region.y, region.width, region.height,
+      0, 0, region.width, region.height
+    );
+
+    // Convert to data URL and use as background
+    const dataUrl = canvas.toDataURL('image/png');
+
+    element.style.backgroundImage = `url("${dataUrl}")`;
+    element.style.backgroundSize = '100% 100%'; // Stretch to fill element
+    element.style.backgroundRepeat = 'no-repeat';
+    element.style.backgroundPosition = 'center';
+    element.style.imageRendering = 'pixelated';
+  }
+
+  /**
    * Apply sprite as a flexible-width button background
    * Uses the sprite but allows the element to have custom width
    */

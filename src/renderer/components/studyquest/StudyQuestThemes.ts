@@ -132,11 +132,11 @@ const CAT_THEME: StudyQuestTheme = {
   sliceInset: 16,
 
   sprites: {
-    // Cat-ear panels (the pink cat-head shaped ones)
-    panelSmall: { x: 344, y: 352, width: 80, height: 96 },
-    panelMedium: { x: 264, y: 352, width: 80, height: 112 },
-    panelLarge: { x: 0, y: 448, width: 128, height: 112 },
-    panelMenu: { x: 264, y: 272, width: 80, height: 80 },
+    // Dark bordered panels (left side at y:128, better for stretching)
+    panelSmall: { x: 0, y: 128, width: 80, height: 96 },
+    panelMedium: { x: 80, y: 128, width: 80, height: 96 },
+    panelLarge: { x: 0, y: 128, width: 80, height: 96 },
+    panelMenu: { x: 288, y: 272, width: 96, height: 112 },
 
     // Rounded buttons with paw theme
     buttonNormal: { x: 0, y: 128, width: 48, height: 16 },

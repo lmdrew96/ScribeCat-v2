@@ -233,12 +233,25 @@ export class StudyQuestThemeManager {
     if (theme.sprites && theme.spriteSheet) {
       const region = theme.sprites[spriteKey];
       if (region) {
-        spriteRenderer.applySpriteToElement(
-          element,
-          theme.spriteSheet,
-          region,
-          scale
-        );
+        // Panel types need to stretch to fit their content
+        const isPanelKey = ['panelSmall', 'panelMedium', 'panelLarge', 'panelMenu'].includes(spriteKey);
+
+        if (isPanelKey) {
+          // Panels use stretched background that fills the element
+          spriteRenderer.applySpriteAsBackground(
+            element,
+            theme.spriteSheet,
+            region
+          );
+        } else {
+          // Icons, buttons, etc. use fixed sizing
+          spriteRenderer.applySpriteToElement(
+            element,
+            theme.spriteSheet,
+            region,
+            scale
+          );
+        }
       }
     } else {
       // Clear sprite styling for default theme

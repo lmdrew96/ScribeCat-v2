@@ -322,7 +322,8 @@ export class StudyQuestModal {
 
     const bgSize = `${cachedImg.width * scale}px ${cachedImg.height * scale}px`;
 
-    const applySprite = (el: HTMLElement, region: { x: number; y: number; width: number; height: number }) => {
+    // Helper for fixed-size elements (icons, slots)
+    const applyFixedSprite = (el: HTMLElement, region: { x: number; y: number; width: number; height: number }) => {
       if (region.width <= 1 || region.height <= 1) return;
       el.style.backgroundImage = `url("${spriteSheet}")`;
       el.style.backgroundPosition = `-${region.x * scale}px -${region.y * scale}px`;
@@ -331,26 +332,12 @@ export class StudyQuestModal {
       el.style.imageRendering = 'pixelated';
     };
 
-    this.container.querySelectorAll('.studyquest-town-building').forEach((el) => {
-      applySprite(el as HTMLElement, sprites.panelMedium);
-    });
-    this.container.querySelectorAll('.pixel-card').forEach((el) => {
-      applySprite(el as HTMLElement, sprites.panelSmall);
-    });
-    this.container.querySelectorAll('.studyquest-class-card').forEach((el) => {
-      applySprite(el as HTMLElement, sprites.panelSmall);
-    });
-    this.container.querySelectorAll('.studyquest-shop-item').forEach((el) => {
-      applySprite(el as HTMLElement, sprites.panelSmall);
-    });
-    this.container.querySelectorAll('.studyquest-quest-card').forEach((el) => {
-      applySprite(el as HTMLElement, sprites.panelMedium);
-    });
-    this.container.querySelectorAll('.studyquest-dungeon-card').forEach((el) => {
-      applySprite(el as HTMLElement, sprites.panelLarge);
-    });
+    // Skip sprite panels for now - the catUI.png panels have baked-in text/graphics
+    // Cards will use CSS fallback styling (var(--sq-surface) background with border)
+    // TODO: Find plain panel frames in sprite sheets without baked-in content
+    // Inventory slots are fixed-size, use the old approach
     this.container.querySelectorAll('.studyquest-inventory-slot').forEach((el) => {
-      applySprite(el as HTMLElement, sprites.inventorySlot);
+      applyFixedSprite(el as HTMLElement, sprites.inventorySlot);
     });
 
     logger.info(`Theme applied: ${theme.name} (sprites + CSS colors)`);
