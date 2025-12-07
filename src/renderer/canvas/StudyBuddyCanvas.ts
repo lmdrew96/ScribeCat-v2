@@ -216,8 +216,9 @@ export class StudyBuddyCanvas extends GameCanvas {
   }
 
   protected onClick(position: Point): void {
-    // Check if click is on the cat area
-    const catArea = { x: 20, y: 40, width: 60, height: 60 };
+    // Check if click is on the cat area (matches drawCat positioning)
+    // Sprite is 64x64, centered at x=50, top at y=40
+    const catArea = { x: 18, y: 40, width: 64, height: 64 };
     if (
       position.x >= catArea.x &&
       position.x <= catArea.x + catArea.width &&
@@ -240,12 +241,13 @@ export class StudyBuddyCanvas extends GameCanvas {
 
   private drawCat(): void {
     const x = this.width / 2;
-    const y = this.height - 40;
+    const spriteHeight = 64; // 32px * 2 scale
+    const y = this.height - spriteHeight - 16; // Position sprite above bottom margin
 
-    // Draw shadow
+    // Draw shadow (below the sprite feet)
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
     this.ctx.beginPath();
-    this.ctx.ellipse(x, y + 30, 25, 8, 0, 0, Math.PI * 2);
+    this.ctx.ellipse(x, y + spriteHeight + 6, 25, 8, 0, 0, Math.PI * 2);
     this.ctx.fill();
 
     // Draw cat sprite
@@ -260,11 +262,11 @@ export class StudyBuddyCanvas extends GameCanvas {
       'right'
     );
 
-    // Draw blink overlay
+    // Draw blink overlay (eyes are roughly in upper third of sprite)
     if (this.isBlinking && this.animationType !== 'sleep') {
       this.ctx.fillStyle = this.catColor === 'white' ? '#e0e0e0' : '#ffffff';
-      this.ctx.fillRect(x - 10, y - 12, 4, 2);
-      this.ctx.fillRect(x + 6, y - 12, 4, 2);
+      this.ctx.fillRect(x - 10, y + 20, 4, 2);
+      this.ctx.fillRect(x + 6, y + 20, 4, 2);
     }
   }
 

@@ -625,13 +625,19 @@ export class TownCanvas extends GameCanvas {
     // Determine animation type
     const animationType: CatAnimationType = this.player.isMoving ? 'walk' : 'idle';
 
+    // Offset sprite up by one tile so visual position matches collision tile
+    // The player's pixelY represents the top of the tile they're ON, but visually
+    // we want the sprite to appear one tile higher so feet align with that tile
+    const tileHeight = TILE_SIZE * TILE_SCALE; // 64px
+    const spriteY = screenY - tileHeight;
+
     // Draw cat
     CatSpriteManager.drawAnimated(
       this.ctx,
       this.catColor,
       animationType,
       screenX + (TILE_SIZE * TILE_SCALE) / 2,
-      screenY,
+      spriteY,
       this.frameCounter,
       TILE_SCALE,
       this.player.direction

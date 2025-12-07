@@ -66,14 +66,49 @@ export type BackgroundType =
   | 'alley_night'
   | 'moonlake';
 
-// Sprite file name mappings for cats (color prefix is added)
-const CAT_SPRITE_FILES: Record<AnimationType, string> = {
-  idle: 'IdleCat',
-  attack: 'AttackCat',
-  hurt: 'HurtCat',
-  die: 'DieCat',
-  run: 'RunCat',
-  jump: 'JumpCat',
+// Exact sprite file names for each cat color and animation
+// Based on actual files in src/renderer/assets/sprites/studyquest/cats/
+const CAT_SPRITE_EXACT_FILES: Record<CatColor, Record<AnimationType, string>> = {
+  brown: {
+    idle: 'brown_IdleCattt',
+    attack: 'brown_AttackCattt',
+    hurt: 'brown_HurtCatttt',
+    die: 'brown_DieCattt',
+    run: 'brown_RunCattt',
+    jump: 'brown_JumpCatttt',
+  },
+  white: {
+    idle: 'white_IdleCatttt',
+    attack: 'white_AttackCattt',
+    hurt: 'white_HurtCattttt',
+    die: 'white_DieCattt',
+    run: 'white_RunCatttt',
+    jump: 'white_JumpCattttt',
+  },
+  black: {
+    idle: 'black_IdleCatb',
+    attack: 'black_AttackCatb',
+    hurt: 'black_HurtCatb',
+    die: 'black_DieCatb',
+    run: 'black_RunCatb',
+    jump: 'black_JumpCabt',
+  },
+  orange: {
+    idle: 'orange_IdleCatt',
+    attack: 'orange_AttackCatt',
+    hurt: 'orange_HurtCattt',
+    die: 'orange_DieCatt',
+    run: 'orange_RunCatt',
+    jump: 'orange_JumpCattt',
+  },
+  grey: {
+    idle: 'grey_IdleCattt',
+    attack: 'grey_AttackCattt',
+    hurt: 'grey_HurtCatttt',
+    die: 'grey_DieCattt',
+    run: 'grey_RunCattt',
+    jump: 'grey_JumpCatttt',
+  },
 };
 
 // Enemy sprite file mappings
@@ -159,7 +194,7 @@ class SpriteLoaderClass {
     const sprites = new Map<AnimationType, LoadedSprite>();
 
     // Load each animation type
-    for (const animType of Object.keys(CAT_SPRITE_FILES) as AnimationType[]) {
+    for (const animType of Object.keys(ANIMATION_FRAMES) as AnimationType[]) {
       try {
         const sprite = await this.loadCatSprite(color, animType);
         if (sprite) {
@@ -222,7 +257,7 @@ class SpriteLoaderClass {
     if (this.battlerImages.has(battlerType)) return;
 
     const fileName = BATTLER_FILES[battlerType];
-    const path = `../../assets/sprites/studyquest/${fileName}`;
+    const path = `assets/sprites/studyquest/${fileName}`;
 
     try {
       const image = await this.loadImage(path);
@@ -247,7 +282,7 @@ class SpriteLoaderClass {
     if (this.backgroundImages.has(bgType)) return;
 
     const fileName = BACKGROUND_FILES[bgType];
-    const path = `../../assets/sprites/studyquest/${fileName}`;
+    const path = `assets/sprites/studyquest/${fileName}`;
 
     try {
       const image = await this.loadImage(path);
@@ -351,26 +386,22 @@ class SpriteLoaderClass {
   // Private helpers
 
   private async loadCatSprite(color: CatColor, animation: AnimationType): Promise<LoadedSprite | null> {
-    const baseName = CAT_SPRITE_FILES[animation];
-    // File names have inconsistent suffixes, so we need to find the right one
-    const possibleNames = this.getCatFileVariants(color, baseName);
+    const exactFileName = CAT_SPRITE_EXACT_FILES[color][animation];
+    const path = `assets/sprites/studyquest/cats/${exactFileName}.png`;
 
-    for (const fileName of possibleNames) {
-      const path = `../../assets/sprites/studyquest/cats/${fileName}.png`;
-      try {
-        const image = await this.loadImage(path);
-        if (image) {
-          const frameCount = Math.floor(image.width / FRAME_WIDTH);
-          return {
-            image,
-            frameCount,
-            frameWidth: FRAME_WIDTH,
-            frameHeight: FRAME_HEIGHT,
-          };
-        }
-      } catch {
-        // Try next variant
+    try {
+      const image = await this.loadImage(path);
+      if (image) {
+        const frameCount = Math.floor(image.width / FRAME_WIDTH);
+        return {
+          image,
+          frameCount,
+          frameWidth: FRAME_WIDTH,
+          frameHeight: FRAME_HEIGHT,
+        };
       }
+    } catch {
+      logger.warn(`Could not load ${color} cat ${animation} sprite from ${path}`);
     }
 
     return null;
@@ -378,7 +409,7 @@ class SpriteLoaderClass {
 
   private async loadEnemySprite(enemyType: EnemyType, animation: AnimationType): Promise<LoadedSprite | null> {
     const fileName = ENEMY_SPRITE_FILES[enemyType][animation];
-    const path = `../../assets/sprites/studyquest/enemies/${fileName}.png`;
+    const path = `assets/sprites/studyquest/enemies/${fileName}.png`;
 
     try {
       const image = await this.loadImage(path);
@@ -399,32 +430,6 @@ class SpriteLoaderClass {
     }
 
     return null;
-  }
-
-  private getCatFileVariants(color: CatColor, baseName: string): string[] {
-    // Different cat colors have slightly different file naming conventions
-    // This generates all possible variants to try - order matters, most common first
-    const variants: string[] = [];
-
-    // Our asset files use 'tt' suffix (baseName ends in 't', so tt gives us 3 t's total)
-    // Try most common suffixes first based on actual file names
-    const suffixes = ['tt', 'ttt', 't', 'tttt', 'ttttt', 'b', '', 'g', 'gg', 'ggg', 'gggg'];
-
-    for (const suffix of suffixes) {
-      variants.push(`${color}_${baseName}${suffix}`);
-    }
-
-    // Special cases for specific animations that have known variants
-    if (baseName === 'HurtCat') {
-      // Some files may have extra t's
-      variants.unshift(`${color}_HurtCattt`, `${color}_HurtCatttt`);
-    }
-    if (baseName === 'JumpCat') {
-      // Some files may have extra t's
-      variants.unshift(`${color}_JumpCattt`, `${color}_JumpCatttt`);
-    }
-
-    return variants;
   }
 
   private async loadImage(path: string): Promise<HTMLImageElement> {

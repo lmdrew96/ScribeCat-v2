@@ -90,37 +90,78 @@ export const ANIMATION_SPEEDS: Record<CatAnimationType, number> = {
   jump: 5,
 };
 
-// Base asset path for cat sprites
-const CAT_ASSETS_BASE = 'assets/studyquest/cats';
+// Base asset path for cat sprites (relative to renderer HTML)
+const CAT_ASSETS_BASE = 'assets/sprites/studyquest/cats';
 
-// Sprite file names per animation type (standardized)
-const SPRITE_FILES: Record<CatAnimationType, string> = {
-  idle: 'idle',
-  idle2: 'idle2',
-  walk: 'walk',
-  run: 'run',
-  sit: 'sit',
-  sleep: 'sleep',
-  attack: 'attack',
-  hurt: 'hurt',
-  die: 'die',
-  die2: 'die2',
-  jump: 'jump',
-};
-
-// Legacy file name mappings (fallback for existing assets)
-const SPRITE_FILE_MAP: Record<CatAnimationType, string[]> = {
-  idle: ['idle', 'IdleCattt', 'IdleCatttt', 'IdleCatt', 'IdleCatb'],
-  idle2: ['idle2', 'Idle2Cattt', 'Idle2Catttt', 'Idle2Catt', 'Idle2Catb'],
-  walk: ['walk', 'RunCattt', 'RunCatttt', 'RunCatt', 'RunCatb'], // Use run sprites for walk
-  run: ['run', 'RunCattt', 'RunCatttt', 'RunCatt', 'RunCatb'],
-  sit: ['sit', 'Sittinggg', 'Sittingggg', 'Sittingg', 'Sittingb'],
-  sleep: ['sleep', 'SleepCattt', 'SleepCatttt', 'SleepCatt', 'SleepCatb'],
-  attack: ['attack', 'AttackCattt', 'AttackCatttt', 'AttackCatt', 'AttackCatb'],
-  hurt: ['hurt', 'HurtCatttt', 'HurtCattttt', 'HurtCattt', 'HurtCatb'],
-  die: ['die', 'DieCattt', 'DieCatttt', 'DieCatt', 'DieCatb'],
-  die2: ['die2', 'Die2Cattt', 'Die2Cattttt', 'Die2Catt', 'Die2Catb'],
-  jump: ['jump', 'JumpCatttt', 'JumpCattttt', 'JumpCattt', 'JumpCabt'],
+// Exact sprite file names for each cat color and animation
+// Based on actual files in src/renderer/assets/sprites/studyquest/cats/
+type StarterCatColor = 'brown' | 'white' | 'black' | 'orange' | 'grey';
+const CAT_SPRITE_EXACT_FILES: Record<StarterCatColor, Record<CatAnimationType, string>> = {
+  brown: {
+    idle: 'brown_IdleCattt',
+    idle2: 'brown_Idle2Cattt',
+    walk: 'brown_RunCattt',
+    run: 'brown_RunCattt',
+    sit: 'brown_Sittinggg',
+    sleep: 'brown_SleepCattt',
+    attack: 'brown_AttackCattt',
+    hurt: 'brown_HurtCatttt',
+    die: 'brown_DieCattt',
+    die2: 'brown_Die2Cattt',
+    jump: 'brown_JumpCatttt',
+  },
+  white: {
+    idle: 'white_IdleCatttt',
+    idle2: 'white_Idle2Catttt',
+    walk: 'white_RunCatttt',
+    run: 'white_RunCatttt',
+    sit: 'white_Sittingggg',
+    sleep: 'white_SleepCatttt',
+    attack: 'white_AttackCattt',
+    hurt: 'white_HurtCattttt',
+    die: 'white_DieCattt',
+    die2: 'white_Die2Cattttt',
+    jump: 'white_JumpCattttt',
+  },
+  black: {
+    idle: 'black_IdleCatb',
+    idle2: 'black_Idle2Catb',
+    walk: 'black_RunCatb',
+    run: 'black_RunCatb',
+    sit: 'black_Sittingb',
+    sleep: 'black_SleepCatb',
+    attack: 'black_AttackCatb',
+    hurt: 'black_HurtCatb',
+    die: 'black_DieCatb',
+    die2: 'black_Die2Catb',
+    jump: 'black_JumpCabt',
+  },
+  orange: {
+    idle: 'orange_IdleCatt',
+    idle2: 'orange_Idle2Catt',
+    walk: 'orange_RunCatt',
+    run: 'orange_RunCatt',
+    sit: 'orange_Sittingg',
+    sleep: 'orange_SleepCatt',
+    attack: 'orange_AttackCatt',
+    hurt: 'orange_HurtCattt',
+    die: 'orange_DieCatt',
+    die2: 'orange_Die2Catt',
+    jump: 'orange_JumpCattt',
+  },
+  grey: {
+    idle: 'grey_IdleCattt',
+    idle2: 'grey_Idle2Cattt',
+    walk: 'grey_RunCattt',
+    run: 'grey_RunCattt',
+    sit: 'grey_Sittinggg',
+    sleep: 'grey_SleepCattt',
+    attack: 'grey_AttackCattt',
+    hurt: 'grey_HurtCatttt',
+    die: 'grey_DieCattt',
+    die2: 'grey_Die2',
+    jump: 'grey_JumpCatttt',
+  },
 };
 
 export interface LoadedSprite {
@@ -159,7 +200,7 @@ class CatSpriteManagerClass {
     };
 
     // Load each animation type
-    const animTypes = Object.keys(SPRITE_FILE_MAP) as CatAnimationType[];
+    const animTypes = Object.keys(ANIMATION_FRAMES) as CatAnimationType[];
     const loadPromises = animTypes.map(async (animType) => {
       const sprite = await this.loadCatAnimation(color, animType);
       if (sprite) {
@@ -309,30 +350,12 @@ class CatSpriteManagerClass {
     color: CatColor,
     animation: CatAnimationType
   ): Promise<LoadedSprite | null> {
-    // Path patterns to try in order of priority
-    const pathsToTry: string[] = [];
+    // Check if this is a starter cat with exact file mapping
+    const starterColors: StarterCatColor[] = ['brown', 'white', 'black', 'orange', 'grey'];
+    if (starterColors.includes(color as StarterCatColor)) {
+      const exactFileName = CAT_SPRITE_EXACT_FILES[color as StarterCatColor][animation];
+      const path = `${CAT_ASSETS_BASE}/${exactFileName}.png`;
 
-    // 1. New standardized path: assets/studyquest/cats/{color}/{animation}.png
-    pathsToTry.push(`${CAT_ASSETS_BASE}/${color}/${SPRITE_FILES[animation]}.png`);
-
-    // 2. Legacy paths with color_filename pattern
-    const fileVariants = SPRITE_FILE_MAP[animation];
-    for (const baseName of fileVariants) {
-      // Try new structure
-      pathsToTry.push(`${CAT_ASSETS_BASE}/${color}/${baseName}.png`);
-      // Try flat structure with color prefix
-      pathsToTry.push(`${CAT_ASSETS_BASE}/${color}_${baseName}.png`);
-    }
-
-    // 3. Try additional color-specific patterns
-    const additionalPatterns = this.getColorSpecificPatterns(color, animation);
-    for (const pattern of additionalPatterns) {
-      pathsToTry.push(`${CAT_ASSETS_BASE}/${color}/${pattern}.png`);
-      pathsToTry.push(`${CAT_ASSETS_BASE}/${pattern}.png`);
-    }
-
-    // Try each path until one works
-    for (const path of pathsToTry) {
       try {
         const image = await this.loadImage(path);
         if (image) {
@@ -345,41 +368,30 @@ class CatSpriteManagerClass {
           };
         }
       } catch {
-        // Try next path
+        logger.warn(`Could not load ${color} cat ${animation} animation from ${path}`);
       }
+
+      return null;
     }
 
-    logger.warn(`Could not load ${color} cat ${animation} animation`);
+    // For non-starter cats (unlockable breeds), try standardized path structure
+    const standardPath = `${CAT_ASSETS_BASE}/${color}/${animation}.png`;
+    try {
+      const image = await this.loadImage(standardPath);
+      if (image) {
+        const frameCount = Math.floor(image.width / FRAME_WIDTH);
+        return {
+          image,
+          frameCount,
+          frameWidth: FRAME_WIDTH,
+          frameHeight: FRAME_HEIGHT,
+        };
+      }
+    } catch {
+      logger.warn(`Could not load ${color} cat ${animation} animation`);
+    }
+
     return null;
-  }
-
-  private getColorSpecificPatterns(color: CatColor, animation: CatAnimationType): string[] {
-    const patterns: string[] = [];
-
-    // Map animation types to base names
-    const baseNames: Record<CatAnimationType, string> = {
-      idle: 'IdleCat',
-      idle2: 'Idle2Cat',
-      walk: 'RunCat',
-      run: 'RunCat',
-      sit: 'Sitting',
-      sleep: 'SleepCat',
-      attack: 'AttackCat',
-      hurt: 'HurtCat',
-      die: 'DieCat',
-      die2: 'Die2Cat',
-      jump: 'JumpCat',
-    };
-
-    const base = baseNames[animation];
-
-    // Generate variants with different suffix patterns
-    const suffixes = ['', 't', 'tt', 'ttt', 'tttt', 'ttttt', 'b', 'g', 'gg', 'ggg', 'gggg'];
-    for (const suffix of suffixes) {
-      patterns.push(`${color}_${base}${suffix}`);
-    }
-
-    return patterns;
   }
 
   private async loadImage(path: string): Promise<HTMLImageElement> {
