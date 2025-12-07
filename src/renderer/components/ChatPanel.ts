@@ -15,7 +15,7 @@ export class ChatPanel {
   private userNames: Map<string, string> = new Map();
   private isCollapsed: boolean = false;
   private typingUsers: Set<string> = new Set();
-  private typingTimer: number | null = null;
+  private typingTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(chatManager: ChatManager) {
     this.chatManager = chatManager;
@@ -389,12 +389,13 @@ export class ChatPanel {
    * Get initials from name
    */
   private getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase();
+    if (!name || name.trim().length === 0) return '??';
+    const trimmed = name.trim();
+    const parts = trimmed.split(' ').filter(p => p.length > 0);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return trimmed.substring(0, Math.min(2, trimmed.length)).toUpperCase();
   }
 
   /**
@@ -516,6 +517,12 @@ export class ChatPanel {
    * Clean up
    */
   public destroy(): void {
+    // Clear typing timer first to prevent callback after cleanup
+    if (this.typingTimer !== null) {
+      clearTimeout(this.typingTimer);
+      this.typingTimer = null;
+    }
+
     this.chatManager.unsubscribe();
     if (this.currentRoomId) {
       this.chatManager.clearMessages(this.currentRoomId);

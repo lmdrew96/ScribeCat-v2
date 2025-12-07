@@ -36,8 +36,8 @@ export class StudyRoomsManager {
   private invitationOps: StudyRoomInvitationOps;
 
   // Debounce timers
-  private loadRoomsDebounceTimer: NodeJS.Timeout | null = null;
-  private loadParticipantsDebounceTimers: Map<string, NodeJS.Timeout> = new Map();
+  private loadRoomsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private loadParticipantsDebounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private readonly LOAD_ROOMS_DEBOUNCE_MS = 200;
   private readonly LOAD_PARTICIPANTS_DEBOUNCE_MS = 500;
 

@@ -159,14 +159,24 @@ export class StudyRoomGameIntegration {
    * Handle game closed event
    */
   async handleGameClosed(): Promise<void> {
+    // Early return if already cleaned up
+    if (!this.currentRoomId || !this.currentUserId) {
+      this.hideGameContainer();
+      return;
+    }
+
+    // Store values before cleanup
+    const roomId = this.currentRoomId;
+    const userId = this.currentUserId;
+
     this.hideGameContainer();
     await this.gamesManager.cleanup();
 
     // Restart polling for non-hosts
-    const room = this.studyRoomsManager.getRoomById(this.currentRoomId!);
-    const isHost = room?.hostId === this.currentUserId;
+    const room = this.studyRoomsManager.getRoomById(roomId);
+    const isHost = room?.hostId === userId;
 
-    if (!isHost && this.currentRoomId) {
+    if (!isHost && roomId) {
       console.log('[StudyRoomGameIntegration] Restarting game polling after game closed');
       this.startGamePolling();
     }

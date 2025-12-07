@@ -174,11 +174,13 @@ export class StudyRoomParticipants {
    * Get initials from name
    */
   static getInitials(name: string): string {
-    const parts = name.split(' ');
+    if (!name || name.trim().length === 0) return '??';
+    const trimmed = name.trim();
+    const parts = trimmed.split(' ').filter(p => p.length > 0);
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    return trimmed.substring(0, Math.min(2, trimmed.length)).toUpperCase();
   }
 
   /**

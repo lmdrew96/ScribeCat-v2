@@ -182,6 +182,7 @@ export class StudyRoomView {
       } catch (error) {
         console.error('Failed to join room:', error);
         ErrorModal.show('Failed to Join Room', 'Could not join the study room. Please check your connection.');
+        this.hide();
         if (this.onExit) this.onExit();
         return;
       }
@@ -206,6 +207,7 @@ export class StudyRoomView {
     if (!this.container) return;
 
     this.gameIntegration.cleanup();
+    this.audioPlayer.cleanup();
     StudyRoomParticipants.stopTimeInterval();
 
     if (this.chatPanel) {

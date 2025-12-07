@@ -295,5 +295,6 @@ export class ChatManager {
     this.unsubscribe();
     this.messages.clear();
     this.currentUserId = null;
+    this.currentUserName = null;
   }
 }

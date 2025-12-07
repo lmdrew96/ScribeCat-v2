@@ -387,7 +387,7 @@ export class BrowseRoomsModal {
       return;
     }
 
-    container.innerHTML = rooms.map(room => this.renderRoomCard(room, true)).join('');
+    container.innerHTML = rooms.map(room => this.renderRoomCard(room)).join('');
 
     // Attach card action listeners
     this.attachRoomCardListeners();
@@ -396,7 +396,7 @@ export class BrowseRoomsModal {
   /**
    * Render a room card
    */
-  private renderRoomCard(room: StudyRoomData, showJoinButton: boolean = false): string {
+  private renderRoomCard(room: StudyRoomData): string {
     const isHost = this.currentUserId === room.hostId;
     const participantCount = room.participantCount || 0;
     const isFull = participantCount >= room.maxParticipants;
@@ -567,20 +567,12 @@ export class BrowseRoomsModal {
   private attachRoomCardListeners(): void {
     // Enter room
     const enterButtons = document.querySelectorAll('[data-action="enter"]');
-    console.log('Found enter room buttons:', enterButtons.length);
 
-    enterButtons.forEach((btn, index) => {
-      const roomId = (btn as HTMLElement).dataset.roomId;
-      console.log(`Attaching listener to enter button ${index}, roomId:`, roomId);
-
+    enterButtons.forEach((btn) => {
       btn.addEventListener('click', async (e) => {
-        console.log('ENTER ROOM CLICKED!', e);
         const clickedRoomId = (e.target as HTMLElement).dataset.roomId;
-        console.log('Room ID from click:', clickedRoomId);
-        console.log('onJoinRoom callback exists?', !!this.onJoinRoom);
 
         if (clickedRoomId && this.onJoinRoom) {
-          console.log('Closing modal and calling onJoinRoom with:', clickedRoomId);
           this.close();
           this.onJoinRoom(clickedRoomId);
         } else {
@@ -688,10 +680,12 @@ export class BrowseRoomsModal {
    * Get initials from name
    */
   private getInitials(name: string): string {
-    const parts = name.split(' ');
+    if (!name || name.trim().length === 0) return '??';
+    const trimmed = name.trim();
+    const parts = trimmed.split(' ').filter(p => p.length > 0);
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    return trimmed.substring(0, Math.min(2, trimmed.length)).toUpperCase();
   }
 }

@@ -9,9 +9,18 @@ import { SupabaseStorageService } from '../../../infrastructure/services/supabas
 
 export class StudyRoomAudioPlayer {
   private sessionPlaybackManager: SessionPlaybackManager;
+  private speedButtonAbortController: AbortController | null = null;
 
   constructor() {
     this.sessionPlaybackManager = new SessionPlaybackManager();
+  }
+
+  /**
+   * Cleanup audio player resources
+   */
+  cleanup(): void {
+    this.speedButtonAbortController?.abort();
+    this.speedButtonAbortController = null;
   }
 
   /**
@@ -64,13 +73,17 @@ export class StudyRoomAudioPlayer {
    * Setup speed control buttons
    */
   private setupSpeedControls(audioElement: HTMLAudioElement): void {
+    // Cleanup previous listeners
+    this.speedButtonAbortController?.abort();
+    this.speedButtonAbortController = new AbortController();
+
     document.querySelectorAll('.speed-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const speed = parseFloat((btn as HTMLElement).dataset.speed || '1');
         audioElement.playbackRate = speed;
         document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-      });
+      }, { signal: this.speedButtonAbortController!.signal });
     });
   }
 }
