@@ -154,7 +154,91 @@ export class StudyQuestModal {
   public initialize(): void {
     this.createModal();
     this.attachEventListeners();
+    this.initializeDebugCommands();
     logger.info('StudyQuestModal DOM created');
+  }
+
+  /**
+   * Initialize debug commands on window.debugStudyQuest
+   */
+  private initializeDebugCommands(): void {
+    // Type declaration for window
+    const win = window as unknown as {
+      debugStudyQuest?: {
+        forceUnlock: (id: string) => void;
+        resetUnlocks: () => void;
+        setStats: (stats: {
+          totalGoldCollected?: number;
+          treasuresFound?: number;
+          dungeonsCleared?: string[];
+          studyBuddyDaysUsed?: number;
+        }) => void;
+        celebrateUnlock: (id: string) => void;
+        listUnlocks: () => void;
+        getStats: () => ReturnType<typeof PlayerStatsService.getStats>;
+        unlockAll: () => void;
+      };
+    };
+
+    win.debugStudyQuest = {
+      forceUnlock: (id: string) => {
+        UnlockManager.forceUnlock(id);
+        logger.info(`[DEBUG] Force unlocked: ${id}`);
+      },
+
+      resetUnlocks: () => {
+        UnlockManager.reset();
+        logger.info('[DEBUG] All unlocks reset');
+      },
+
+      setStats: (stats) => {
+        PlayerStatsService.update(stats);
+        logger.info('[DEBUG] Stats updated:', stats);
+      },
+
+      celebrateUnlock: (id: string) => {
+        UnlockManager.forceUnlock(id);
+        const unlocks = UnlockManager.getNewUnlocks();
+        if (unlocks.length > 0) {
+          unlockCelebration.show(unlocks);
+        } else {
+          // Find the unlock info manually for already-unlocked items
+          const allUnlocks = UnlockManager.getAllWithStatus();
+          const unlock = allUnlocks.find((u) => u.id === id);
+          if (unlock) {
+            unlockCelebration.show([unlock]);
+          }
+        }
+        logger.info(`[DEBUG] Celebration triggered for: ${id}`);
+      },
+
+      listUnlocks: () => {
+        const allUnlocks = UnlockManager.getAllWithStatus();
+        console.log('=== All Unlocks ===');
+        for (const unlock of allUnlocks) {
+          const status = unlock.unlocked ? '✓' : '✗';
+          console.log(`[${status}] ${unlock.id} - ${unlock.name} (${unlock.category})`);
+        }
+      },
+
+      getStats: () => {
+        const stats = PlayerStatsService.getStats();
+        console.log('=== Player Stats ===', stats);
+        return stats;
+      },
+
+      unlockAll: () => {
+        const allUnlocks = UnlockManager.getAllWithStatus();
+        for (const unlock of allUnlocks) {
+          if (!unlock.unlocked) {
+            UnlockManager.forceUnlock(unlock.id);
+          }
+        }
+        logger.info('[DEBUG] All items unlocked');
+      },
+    };
+
+    logger.info('Debug commands initialized on window.debugStudyQuest');
   }
 
   /**
@@ -171,9 +255,11 @@ export class StudyQuestModal {
     if (this.container) {
       await themeManager.initialize(this.container);
       // Apply sprite theming to UI elements
-      this.applySpritesToUI();
+      await this.applySpritesToUI();
       // Subscribe to theme changes for live updates
-      this.themeUnsubscribe = themeManager.subscribe(() => this.applySpritesToUI());
+      this.themeUnsubscribe = themeManager.subscribe(() => {
+        this.applySpritesToUI(); // async but fire-and-forget on theme change
+      });
     }
 
     // Subscribe to state changes
@@ -241,7 +327,7 @@ export class StudyQuestModal {
    * Applies sprite backgrounds to PANELS and CARDS (which don't have baked text)
    * Buttons use CSS colors only (sprite buttons have baked text like "PLAY", "EXIT")
    */
-  private applySpritesToUI(): void {
+  private async applySpritesToUI(): Promise<void> {
     if (!this.container) return;
 
     const theme = themeManager.getTheme();
@@ -256,6 +342,21 @@ export class StudyQuestModal {
 
     const scale = 2; // 2x scale for pixel art
 
+    // Preload sprite sheet to get dimensions for backgroundSize
+    let spriteSheetImg: HTMLImageElement | null = null;
+    try {
+      spriteSheetImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to load sprite sheet: ${spriteSheet}`));
+        img.src = spriteSheet;
+      });
+    } catch (error) {
+      logger.warn('Failed to load sprite sheet, using CSS fallback:', error);
+      this.clearSpriteStyles();
+      return;
+    }
+
     // Helper to apply sprite background to an element
     const applySprite = (el: HTMLElement, region: { x: number; y: number; width: number; height: number }) => {
       // Skip if region is placeholder (1x1)
@@ -265,6 +366,10 @@ export class StudyQuestModal {
       el.style.backgroundPosition = `-${region.x * scale}px -${region.y * scale}px`;
       el.style.backgroundRepeat = 'no-repeat';
       el.style.imageRendering = 'pixelated';
+      // THE CRITICAL FIX - add backgroundSize to match scaled sprite sheet
+      if (spriteSheetImg) {
+        el.style.backgroundSize = `${spriteSheetImg.width * scale}px ${spriteSheetImg.height * scale}px`;
+      }
     };
 
     // Apply panel sprites to CARDS/PANELS (not buttons - they have baked text)

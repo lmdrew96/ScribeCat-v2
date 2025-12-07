@@ -90,19 +90,37 @@ export const ANIMATION_SPEEDS: Record<CatAnimationType, number> = {
   jump: 5,
 };
 
-// Sprite file name mappings (base names without color prefix)
+// Base asset path for cat sprites
+const CAT_ASSETS_BASE = 'assets/studyquest/cats';
+
+// Sprite file names per animation type (standardized)
+const SPRITE_FILES: Record<CatAnimationType, string> = {
+  idle: 'idle',
+  idle2: 'idle2',
+  walk: 'walk',
+  run: 'run',
+  sit: 'sit',
+  sleep: 'sleep',
+  attack: 'attack',
+  hurt: 'hurt',
+  die: 'die',
+  die2: 'die2',
+  jump: 'jump',
+};
+
+// Legacy file name mappings (fallback for existing assets)
 const SPRITE_FILE_MAP: Record<CatAnimationType, string[]> = {
-  idle: ['IdleCattt', 'IdleCatttt', 'IdleCatt', 'IdleCatb'],
-  idle2: ['Idle2Cattt', 'Idle2Catttt', 'Idle2Catt', 'Idle2Catb'],
-  walk: ['RunCattt', 'RunCatttt', 'RunCatt', 'RunCatb'], // Use run sprites for walk
-  run: ['RunCattt', 'RunCatttt', 'RunCatt', 'RunCatb'],
-  sit: ['Sittinggg', 'Sittingggg', 'Sittingg', 'Sittingb'],
-  sleep: ['SleepCattt', 'SleepCatttt', 'SleepCatt', 'SleepCatb'],
-  attack: ['AttackCattt', 'AttackCatttt', 'AttackCatt', 'AttackCatb'],
-  hurt: ['HurtCatttt', 'HurtCattttt', 'HurtCattt', 'HurtCatb'],
-  die: ['DieCattt', 'DieCatttt', 'DieCatt', 'DieCatb'],
-  die2: ['Die2Cattt', 'Die2Cattttt', 'Die2Catt', 'Die2Catb'],
-  jump: ['JumpCatttt', 'JumpCattttt', 'JumpCattt', 'JumpCabt'],
+  idle: ['idle', 'IdleCattt', 'IdleCatttt', 'IdleCatt', 'IdleCatb'],
+  idle2: ['idle2', 'Idle2Cattt', 'Idle2Catttt', 'Idle2Catt', 'Idle2Catb'],
+  walk: ['walk', 'RunCattt', 'RunCatttt', 'RunCatt', 'RunCatb'], // Use run sprites for walk
+  run: ['run', 'RunCattt', 'RunCatttt', 'RunCatt', 'RunCatb'],
+  sit: ['sit', 'Sittinggg', 'Sittingggg', 'Sittingg', 'Sittingb'],
+  sleep: ['sleep', 'SleepCattt', 'SleepCatttt', 'SleepCatt', 'SleepCatb'],
+  attack: ['attack', 'AttackCattt', 'AttackCatttt', 'AttackCatt', 'AttackCatb'],
+  hurt: ['hurt', 'HurtCatttt', 'HurtCattttt', 'HurtCattt', 'HurtCatb'],
+  die: ['die', 'DieCattt', 'DieCatttt', 'DieCatt', 'DieCatb'],
+  die2: ['die2', 'Die2Cattt', 'Die2Cattttt', 'Die2Catt', 'Die2Catb'],
+  jump: ['jump', 'JumpCatttt', 'JumpCattttt', 'JumpCattt', 'JumpCabt'],
 };
 
 export interface LoadedSprite {
@@ -291,33 +309,30 @@ class CatSpriteManagerClass {
     color: CatColor,
     animation: CatAnimationType
   ): Promise<LoadedSprite | null> {
+    // Path patterns to try in order of priority
+    const pathsToTry: string[] = [];
+
+    // 1. New standardized path: assets/studyquest/cats/{color}/{animation}.png
+    pathsToTry.push(`${CAT_ASSETS_BASE}/${color}/${SPRITE_FILES[animation]}.png`);
+
+    // 2. Legacy paths with color_filename pattern
     const fileVariants = SPRITE_FILE_MAP[animation];
-
-    // Try each variant until one works
     for (const baseName of fileVariants) {
-      const fileName = `${color}_${baseName}`;
-      const path = `../../assets/sprites/studyquest/cats/${fileName}.png`;
-
-      try {
-        const image = await this.loadImage(path);
-        if (image) {
-          const frameCount = Math.floor(image.width / FRAME_WIDTH);
-          return {
-            image,
-            frameCount,
-            frameWidth: FRAME_WIDTH,
-            frameHeight: FRAME_HEIGHT,
-          };
-        }
-      } catch {
-        // Try next variant
-      }
+      // Try new structure
+      pathsToTry.push(`${CAT_ASSETS_BASE}/${color}/${baseName}.png`);
+      // Try flat structure with color prefix
+      pathsToTry.push(`${CAT_ASSETS_BASE}/${color}_${baseName}.png`);
     }
 
-    // Try additional naming patterns specific to certain colors
+    // 3. Try additional color-specific patterns
     const additionalPatterns = this.getColorSpecificPatterns(color, animation);
     for (const pattern of additionalPatterns) {
-      const path = `../../assets/sprites/studyquest/cats/${pattern}.png`;
+      pathsToTry.push(`${CAT_ASSETS_BASE}/${color}/${pattern}.png`);
+      pathsToTry.push(`${CAT_ASSETS_BASE}/${pattern}.png`);
+    }
+
+    // Try each path until one works
+    for (const path of pathsToTry) {
       try {
         const image = await this.loadImage(path);
         if (image) {
@@ -330,7 +345,7 @@ class CatSpriteManagerClass {
           };
         }
       } catch {
-        // Continue
+        // Try next path
       }
     }
 

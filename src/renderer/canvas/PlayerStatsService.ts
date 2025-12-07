@@ -156,6 +156,29 @@ class PlayerStatsServiceClass {
     logger.info('Player stats reset');
   }
 
+  /**
+   * Update stats directly (for testing/debugging)
+   */
+  update(updates: Partial<StoredStats>): void {
+    if (updates.totalGoldCollected !== undefined) {
+      this.storedStats.totalGoldCollected = updates.totalGoldCollected;
+    }
+    if (updates.treasuresFound !== undefined) {
+      this.storedStats.treasuresFound = updates.treasuresFound;
+    }
+    if (updates.dungeonsCleared !== undefined) {
+      this.storedStats.dungeonsCleared = [...updates.dungeonsCleared];
+    }
+    if (updates.studyBuddyDaysUsed !== undefined) {
+      this.storedStats.studyBuddyDaysUsed = updates.studyBuddyDaysUsed;
+    }
+    if (updates.studyBuddyLastDate !== undefined) {
+      this.storedStats.studyBuddyLastDate = updates.studyBuddyLastDate;
+    }
+    this.saveAndNotify();
+    logger.info('Player stats updated:', updates);
+  }
+
   // ============================================================================
   // Private Methods
   // ============================================================================
