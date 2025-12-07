@@ -298,49 +298,54 @@ export class StudyQuestModal {
     const sprites = theme.sprites;
     const spriteSheet = theme.spriteSheet;
 
-    if (!spriteSheet || !sprites) {
+    // For themes with no sprite sheet but with direct images (like Kenney theme)
+    // we can still apply sprites via themeManager which handles both approaches
+    if (!sprites) {
       this.clearSpriteStyles();
       return;
     }
 
-    const scale = 2;
-
-    try {
-      await spriteRenderer.loadSpriteSheet(spriteSheet);
-    } catch (error) {
-      logger.warn('Failed to load sprite sheet, using CSS fallback:', error);
-      this.clearSpriteStyles();
-      return;
+    // Load sprite sheet if using traditional sprite-based theme
+    if (spriteSheet) {
+      try {
+        await spriteRenderer.loadSpriteSheet(spriteSheet);
+      } catch (error) {
+        logger.warn('Failed to load sprite sheet, using CSS fallback:', error);
+        // Don't return - the theme might still have direct images
+      }
     }
 
-    const cachedImg = spriteRenderer.getCachedImage(spriteSheet);
-    if (!cachedImg) {
-      logger.warn('Sprite sheet not in cache after loading');
-      this.clearSpriteStyles();
-      return;
-    }
-
-    const bgSize = `${cachedImg.width * scale}px ${cachedImg.height * scale}px`;
-
-    // Helper for fixed-size elements (icons, slots)
-    const applyFixedSprite = (el: HTMLElement, region: { x: number; y: number; width: number; height: number }) => {
-      if (region.width <= 1 || region.height <= 1) return;
-      el.style.backgroundImage = `url("${spriteSheet}")`;
-      el.style.backgroundPosition = `-${region.x * scale}px -${region.y * scale}px`;
-      el.style.backgroundSize = bgSize;
-      el.style.backgroundRepeat = 'no-repeat';
-      el.style.imageRendering = 'pixelated';
-    };
-
-    // Skip sprite panels for now - the catUI.png panels have baked-in text/graphics
-    // Cards will use CSS fallback styling (var(--sq-surface) background with border)
-    // TODO: Find plain panel frames in sprite sheets without baked-in content
-    // Inventory slots are fixed-size, use the old approach
-    this.container.querySelectorAll('.studyquest-inventory-slot').forEach((el) => {
-      applyFixedSprite(el as HTMLElement, sprites.inventorySlot);
+    // Apply theme to town location cards (buildings)
+    this.container.querySelectorAll('.studyquest-town-building').forEach((el) => {
+      themeManager.applyThemeToElement(el as HTMLElement, 'panelMedium');
     });
 
-    logger.info(`Theme applied: ${theme.name} (sprites + CSS colors)`);
+    // Apply theme to class/session cards
+    this.container.querySelectorAll('.studyquest-class-card').forEach((el) => {
+      themeManager.applyThemeToElement(el as HTMLElement, 'panelSmall');
+    });
+
+    // Apply theme to dungeon cards
+    this.container.querySelectorAll('.studyquest-dungeon-card').forEach((el) => {
+      themeManager.applyThemeToElement(el as HTMLElement, 'panelMedium');
+    });
+
+    // Apply theme to quest cards
+    this.container.querySelectorAll('.studyquest-quest-card').forEach((el) => {
+      themeManager.applyThemeToElement(el as HTMLElement, 'panelMedium');
+    });
+
+    // Apply theme to shop items
+    this.container.querySelectorAll('.studyquest-shop-item').forEach((el) => {
+      themeManager.applyThemeToElement(el as HTMLElement, 'panelSmall');
+    });
+
+    // Apply theme to inventory slots
+    this.container.querySelectorAll('.studyquest-inventory-slot').forEach((el) => {
+      themeManager.applyThemeToElement(el as HTMLElement, 'inventorySlot');
+    });
+
+    logger.info(`Theme applied: ${theme.name}`);
   }
 
   /**

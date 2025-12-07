@@ -229,10 +229,32 @@ export class StudyQuestThemeManager {
     scale: number = 2
   ): void {
     const theme = this.currentTheme;
+    const sprites = theme.sprites;
 
-    if (theme.sprites && theme.spriteSheet) {
-      const region = theme.sprites[spriteKey];
-      if (region) {
+    if (!sprites) {
+      // Clear sprite styling for default theme
+      element.style.backgroundImage = '';
+      element.style.backgroundPosition = '';
+      element.style.backgroundSize = '';
+      return;
+    }
+
+    // Check for direct image path first (new approach - takes precedence)
+    const imageKey = `${spriteKey}Image` as keyof ThemeSpriteConfig;
+    const directImagePath = sprites[imageKey] as string | undefined;
+
+    if (directImagePath) {
+      // Use the simple direct image method - no sprite slicing!
+      spriteRenderer.applyImageBackground(element, directImagePath, {
+        sizing: '100% 100%',
+      });
+      return;
+    }
+
+    // Fall back to sprite sheet slicing (existing approach)
+    if (theme.spriteSheet) {
+      const region = sprites[spriteKey];
+      if (region && typeof region === 'object' && 'x' in region) {
         // Panel types need to stretch to fit their content
         const isPanelKey = ['panelSmall', 'panelMedium', 'panelLarge', 'panelMenu'].includes(spriteKey);
 
@@ -254,7 +276,7 @@ export class StudyQuestThemeManager {
         }
       }
     } else {
-      // Clear sprite styling for default theme
+      // Clear sprite styling if no sprite sheet and no direct image
       element.style.backgroundImage = '';
       element.style.backgroundPosition = '';
       element.style.backgroundSize = '';

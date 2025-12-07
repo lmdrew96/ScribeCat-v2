@@ -13,6 +13,9 @@ import {
   TOWN_HEIGHT,
   TOWN_TILEMAP,
   TILE_COLORS,
+  TILE_IMAGES,
+  BUILDING_TILES,
+  getTilesToPreload,
   TileType,
   BUILDINGS,
   isWalkable,
@@ -22,6 +25,7 @@ import {
   type Building,
   type BuildingId,
 } from './TownLayout.js';
+import { spriteRenderer } from '../../components/studyquest/StudyQuestSpriteRenderer.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('TownCanvas');
@@ -113,6 +117,10 @@ export class TownCanvas extends GameCanvas {
   private maxAmbientEntities: number = 5;
   private ambientEnabled: boolean = true;
 
+  // Tile rendering
+  private tilesLoaded: boolean = false;
+  private useTileImages: boolean = true; // Set to false to use procedural fallback
+
   constructor(canvas: HTMLCanvasElement) {
     super(canvas, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SCALE);
 
@@ -138,7 +146,25 @@ export class TownCanvas extends GameCanvas {
     // Initialize ambient entities
     this.initializeAmbientEntities();
 
+    // Preload tile images
+    this.preloadTiles();
+
     logger.info('TownCanvas initialized');
+  }
+
+  /**
+   * Preload Kenney tile images for the town
+   */
+  private async preloadTiles(): Promise<void> {
+    try {
+      const tiles = getTilesToPreload();
+      await spriteRenderer.preloadTileSet(tiles);
+      this.tilesLoaded = true;
+      logger.info(`Loaded ${tiles.length} town tile images`);
+    } catch (error) {
+      logger.warn('Failed to load tile images, using procedural fallback:', error);
+      this.tilesLoaded = false;
+    }
   }
 
   /**
@@ -502,12 +528,29 @@ export class TownCanvas extends GameCanvas {
         const screenX = x * TILE_SIZE * TILE_SCALE - this.cameraX;
         const screenY = y * TILE_SIZE * TILE_SCALE - this.cameraY;
 
-        // Draw tile
-        this.ctx.fillStyle = TILE_COLORS[tile];
-        this.ctx.fillRect(screenX, screenY, TILE_SIZE * TILE_SCALE, TILE_SIZE * TILE_SCALE);
+        // Try to draw tile image (Kenney assets)
+        let drewImage = false;
+        if (this.useTileImages && this.tilesLoaded && tile !== TileType.WALL) {
+          const imagePath = TILE_IMAGES[tile];
+          if (imagePath) {
+            drewImage = spriteRenderer.drawTileToCanvas(
+              this.ctx,
+              imagePath,
+              screenX,
+              screenY,
+              TILE_SCALE
+            );
+          }
+        }
 
-        // Add texture/variation
-        this.drawTileDetails(tile, screenX, screenY);
+        // Fallback to colored rectangle if image not available
+        if (!drewImage) {
+          this.ctx.fillStyle = TILE_COLORS[tile];
+          this.ctx.fillRect(screenX, screenY, TILE_SIZE * TILE_SCALE, TILE_SIZE * TILE_SCALE);
+
+          // Add procedural texture/variation for fallback
+          this.drawTileDetails(tile, screenX, screenY);
+        }
       }
     }
   }
@@ -581,6 +624,7 @@ export class TownCanvas extends GameCanvas {
       const screenY = building.y * TILE_SIZE * TILE_SCALE - this.cameraY;
       const width = building.width * TILE_SIZE * TILE_SCALE;
       const height = building.height * TILE_SIZE * TILE_SCALE;
+      const tileW = TILE_SIZE * TILE_SCALE;
 
       // Skip if off-screen
       if (screenX + width < 0 || screenX > CANVAS_WIDTH ||
@@ -588,33 +632,95 @@ export class TownCanvas extends GameCanvas {
         continue;
       }
 
-      // Building body
-      this.ctx.fillStyle = building.color;
-      this.ctx.fillRect(screenX, screenY, width, height);
+      // Try to draw with Kenney tiles
+      if (this.useTileImages && this.tilesLoaded) {
+        // Draw roof row (top of building)
+        const roofTile = this.getRoofTileForBuilding(building.id);
+        for (let tx = 0; tx < building.width; tx++) {
+          spriteRenderer.drawTileToCanvas(
+            this.ctx,
+            roofTile,
+            screenX + tx * tileW,
+            screenY,
+            TILE_SCALE
+          );
+        }
 
-      // Building roof
-      this.ctx.fillStyle = this.darkenColor(building.color, 30);
-      this.ctx.beginPath();
-      this.ctx.moveTo(screenX, screenY);
-      this.ctx.lineTo(screenX + width / 2, screenY - 20);
-      this.ctx.lineTo(screenX + width, screenY);
-      this.ctx.fill();
+        // Draw wall rows (middle of building)
+        for (let ty = 1; ty < building.height; ty++) {
+          for (let tx = 0; tx < building.width; tx++) {
+            const wallTile = BUILDING_TILES.wallWood;
+            spriteRenderer.drawTileToCanvas(
+              this.ctx,
+              wallTile,
+              screenX + tx * tileW,
+              screenY + ty * tileW,
+              TILE_SCALE
+            );
+          }
+        }
 
-      // Door
-      const doorScreenX = building.doorX * TILE_SIZE * TILE_SCALE - this.cameraX;
-      const doorScreenY = (building.doorY - 1) * TILE_SIZE * TILE_SCALE - this.cameraY;
-      this.ctx.fillStyle = '#78350f';
-      this.ctx.fillRect(doorScreenX - 8, doorScreenY, 16, TILE_SIZE * TILE_SCALE);
+        // Draw door
+        const doorScreenX = building.doorX * TILE_SIZE * TILE_SCALE - this.cameraX;
+        const doorScreenY = (building.doorY - 1) * TILE_SIZE * TILE_SCALE - this.cameraY;
+        spriteRenderer.drawTileToCanvas(
+          this.ctx,
+          BUILDING_TILES.doorWood,
+          doorScreenX - tileW / 2,
+          doorScreenY,
+          TILE_SCALE
+        );
+      } else {
+        // Fallback: procedural building rendering
+        // Building body
+        this.ctx.fillStyle = building.color;
+        this.ctx.fillRect(screenX, screenY, width, height);
 
-      // Building icon
-      this.ctx.font = '24px sans-serif';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillText(building.icon, screenX + width / 2, screenY + height / 2 + 8);
+        // Building roof
+        this.ctx.fillStyle = this.darkenColor(building.color, 30);
+        this.ctx.beginPath();
+        this.ctx.moveTo(screenX, screenY);
+        this.ctx.lineTo(screenX + width / 2, screenY - 20);
+        this.ctx.lineTo(screenX + width, screenY);
+        this.ctx.fill();
 
-      // Building name
+        // Door
+        const doorScreenX = building.doorX * TILE_SIZE * TILE_SCALE - this.cameraX;
+        const doorScreenY = (building.doorY - 1) * TILE_SIZE * TILE_SCALE - this.cameraY;
+        this.ctx.fillStyle = '#78350f';
+        this.ctx.fillRect(doorScreenX - 8, doorScreenY, 16, TILE_SIZE * TILE_SCALE);
+
+        // Building icon
+        this.ctx.font = '24px sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(building.icon, screenX + width / 2, screenY + height / 2 + 8);
+      }
+
+      // Building name (always show)
       this.ctx.fillStyle = '#ffffff';
       this.ctx.font = 'bold 10px "Courier New", monospace';
-      this.ctx.fillText(building.name, screenX + width / 2, screenY - 24);
+      this.ctx.textAlign = 'center';
+      this.ctx.fillText(building.name, screenX + width / 2, screenY - 8);
+    }
+  }
+
+  /**
+   * Get the appropriate roof tile for a building
+   */
+  private getRoofTileForBuilding(buildingId: BuildingId): string {
+    switch (buildingId) {
+      case 'shop':
+        return BUILDING_TILES.roofBrown;
+      case 'inn':
+        return BUILDING_TILES.roofBlue;
+      case 'dungeons':
+        return BUILDING_TILES.roofOrange;
+      case 'quests':
+        return BUILDING_TILES.roofBrown;
+      case 'home':
+        return BUILDING_TILES.roofBlue;
+      default:
+        return BUILDING_TILES.roofBrown;
     }
   }
 

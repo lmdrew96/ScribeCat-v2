@@ -15,6 +15,17 @@ import {
   type ContentType,
   Direction as DungeonDirection,
 } from './DungeonGenerator.js';
+import {
+  DUNGEON_TILE_SIZE,
+  FLOOR_TILES,
+  WALL_TILES,
+  DOOR_TILES,
+  PROP_TILES,
+  DECORATION_TILES,
+  getContentTile,
+  getDungeonTilesToPreload,
+} from './DungeonLayout.js';
+import { spriteRenderer } from '../../components/studyquest/StudyQuestSpriteRenderer.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('DungeonCanvas');
@@ -94,6 +105,10 @@ export class DungeonCanvas extends GameCanvas {
   // NPC interaction (requires key press, not auto-trigger)
   private nearbyNpc: RoomContent | null = null;
 
+  // Tile rendering state
+  private tilesLoaded: boolean = false;
+  private useTileImages: boolean = true;
+
   constructor(canvas: HTMLCanvasElement) {
     super(canvas, CANVAS_WIDTH, CANVAS_HEIGHT, 2);
 
@@ -107,7 +122,25 @@ export class DungeonCanvas extends GameCanvas {
       isMoving: false,
     };
 
+    // Preload dungeon tiles
+    this.preloadTiles();
+
     logger.info('DungeonCanvas initialized');
+  }
+
+  /**
+   * Preload all dungeon tile images
+   */
+  private async preloadTiles(): Promise<void> {
+    try {
+      const tiles = getDungeonTilesToPreload();
+      await spriteRenderer.preloadTileSet(tiles);
+      this.tilesLoaded = true;
+      logger.info(`Loaded ${tiles.length} dungeon tile images`);
+    } catch (error) {
+      logger.warn('Failed to load dungeon tile images, using procedural fallback:', error);
+      this.tilesLoaded = false;
+    }
   }
 
   /**
@@ -544,6 +577,66 @@ export class DungeonCanvas extends GameCanvas {
   // ============================================================================
 
   private drawRoom(): void {
+    const scale = 2; // Scale 16px tiles to 32px
+    const tileSize = DUNGEON_TILE_SIZE * scale;
+    const tilesWide = Math.ceil(ROOM_WIDTH / tileSize);
+    const tilesHigh = Math.ceil(ROOM_HEIGHT / tileSize);
+
+    // Try to use tile images
+    if (this.useTileImages && this.tilesLoaded) {
+      // Draw floor tiles
+      for (let ty = 0; ty < tilesHigh; ty++) {
+        for (let tx = 0; tx < tilesWide; tx++) {
+          const x = ROOM_OFFSET_X + tx * tileSize;
+          const y = ROOM_OFFSET_Y + ty * tileSize;
+
+          // Vary floor tiles for visual interest
+          const tileIndex = (tx + ty) % 4;
+          let floorTile = FLOOR_TILES.stone;
+          if (tileIndex === 1) floorTile = FLOOR_TILES.stoneCracked;
+          else if (tileIndex === 2) floorTile = FLOOR_TILES.stoneAlt;
+          else if (tileIndex === 3) floorTile = FLOOR_TILES.stoneDark;
+
+          if (!spriteRenderer.drawTileToCanvas(this.ctx, floorTile, x, y, scale)) {
+            // Fallback to procedural
+            this.drawProceduralRoom();
+            return;
+          }
+        }
+      }
+
+      // Draw wall border (top and bottom edges)
+      for (let tx = 0; tx < tilesWide; tx++) {
+        const x = ROOM_OFFSET_X + tx * tileSize;
+        // Top wall
+        spriteRenderer.drawTileToCanvas(this.ctx, WALL_TILES.edgeTop, x, ROOM_OFFSET_Y - tileSize / 2, scale);
+        // Bottom wall
+        spriteRenderer.drawTileToCanvas(this.ctx, WALL_TILES.edgeBottom, x, ROOM_OFFSET_Y + ROOM_HEIGHT - tileSize / 2, scale);
+      }
+
+      // Draw wall border (left and right edges)
+      for (let ty = 0; ty < tilesHigh; ty++) {
+        const y = ROOM_OFFSET_Y + ty * tileSize;
+        // Left wall
+        spriteRenderer.drawTileToCanvas(this.ctx, WALL_TILES.edgeLeft, ROOM_OFFSET_X - tileSize / 2, y, scale);
+        // Right wall
+        spriteRenderer.drawTileToCanvas(this.ctx, WALL_TILES.edgeRight, ROOM_OFFSET_X + ROOM_WIDTH - tileSize / 2, y, scale);
+      }
+
+      // Draw corner pieces
+      spriteRenderer.drawTileToCanvas(this.ctx, WALL_TILES.cornerTL, ROOM_OFFSET_X - tileSize / 2, ROOM_OFFSET_Y - tileSize / 2, scale);
+      spriteRenderer.drawTileToCanvas(this.ctx, WALL_TILES.cornerTR, ROOM_OFFSET_X + ROOM_WIDTH - tileSize / 2, ROOM_OFFSET_Y - tileSize / 2, scale);
+      spriteRenderer.drawTileToCanvas(this.ctx, WALL_TILES.cornerBL, ROOM_OFFSET_X - tileSize / 2, ROOM_OFFSET_Y + ROOM_HEIGHT - tileSize / 2, scale);
+      spriteRenderer.drawTileToCanvas(this.ctx, WALL_TILES.cornerBR, ROOM_OFFSET_X + ROOM_WIDTH - tileSize / 2, ROOM_OFFSET_Y + ROOM_HEIGHT - tileSize / 2, scale);
+    } else {
+      this.drawProceduralRoom();
+    }
+  }
+
+  /**
+   * Fallback procedural room rendering
+   */
+  private drawProceduralRoom(): void {
     // Room floor
     this.ctx.fillStyle = COLORS.roomFloor;
     this.ctx.fillRect(ROOM_OFFSET_X, ROOM_OFFSET_Y, ROOM_WIDTH, ROOM_HEIGHT);
@@ -574,36 +667,58 @@ export class DungeonCanvas extends GameCanvas {
     if (!this.currentRoom) return;
 
     const doorPositions = this.getDoorPositions();
+    const scale = 2;
+    const tileSize = DUNGEON_TILE_SIZE * scale;
 
     for (const [direction, pos] of Object.entries(doorPositions)) {
       const hasConnection = this.currentRoom.connections[direction as DungeonDirection] !== null;
       if (!hasConnection) continue;
 
       const isHighlighted = this.highlightedDoor === direction;
-      const color = isHighlighted ? COLORS.doorHighlight : COLORS.doorOpen;
 
-      // Draw door
-      this.ctx.fillStyle = color;
-      this.ctx.fillRect(pos.x - DOOR_WIDTH / 2, pos.y - DOOR_HEIGHT / 2, DOOR_WIDTH, DOOR_HEIGHT);
+      // Try to use tile images
+      if (this.useTileImages && this.tilesLoaded) {
+        // Draw door tile
+        const doorTile = isHighlighted ? DOOR_TILES.woodOpen : DOOR_TILES.woodClosed;
+        spriteRenderer.drawTileToCanvas(
+          this.ctx,
+          doorTile,
+          pos.x - tileSize / 2,
+          pos.y - tileSize / 2,
+          scale
+        );
 
-      // Door frame
-      this.ctx.strokeStyle = '#1a1a2e';
-      this.ctx.lineWidth = 3;
-      this.ctx.strokeRect(pos.x - DOOR_WIDTH / 2, pos.y - DOOR_HEIGHT / 2, DOOR_WIDTH, DOOR_HEIGHT);
+        // Draw highlight glow if highlighted
+        if (isHighlighted) {
+          this.ctx.strokeStyle = COLORS.doorHighlight;
+          this.ctx.lineWidth = 3;
+          this.ctx.strokeRect(pos.x - tileSize / 2 - 2, pos.y - tileSize / 2 - 2, tileSize + 4, tileSize + 4);
+        }
+      } else {
+        // Fallback to procedural drawing
+        const color = isHighlighted ? COLORS.doorHighlight : COLORS.doorOpen;
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(pos.x - DOOR_WIDTH / 2, pos.y - DOOR_HEIGHT / 2, DOOR_WIDTH, DOOR_HEIGHT);
 
-      // Arrow indicator
-      this.ctx.fillStyle = '#ffffff';
-      this.ctx.font = '20px sans-serif';
-      this.ctx.textAlign = 'center';
-      this.ctx.textBaseline = 'middle';
+        // Door frame
+        this.ctx.strokeStyle = '#1a1a2e';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(pos.x - DOOR_WIDTH / 2, pos.y - DOOR_HEIGHT / 2, DOOR_WIDTH, DOOR_HEIGHT);
 
-      const arrows: Record<string, string> = {
-        north: '▲',
-        south: '▼',
-        east: '▶',
-        west: '◀',
-      };
-      this.ctx.fillText(arrows[direction], pos.x, pos.y);
+        // Arrow indicator
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '20px sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+
+        const arrows: Record<string, string> = {
+          north: '▲',
+          south: '▼',
+          east: '▶',
+          west: '◀',
+        };
+        this.ctx.fillText(arrows[direction], pos.x, pos.y);
+      }
     }
   }
 
@@ -620,7 +735,48 @@ export class DungeonCanvas extends GameCanvas {
 
   private drawContent(content: RoomContent, x: number, y: number): void {
     const size = 24;
+    const scale = 2;
+    const tileSize = DUNGEON_TILE_SIZE * scale;
 
+    // Try to use tile images
+    if (this.useTileImages && this.tilesLoaded) {
+      // Skip triggered enemies (defeated)
+      if (content.type === 'enemy' && content.triggered) {
+        return;
+      }
+
+      const tilePath = getContentTile(content.type, content.triggered, content.data);
+      const drawn = spriteRenderer.drawTileToCanvas(
+        this.ctx,
+        tilePath,
+        x - tileSize / 2,
+        y - tileSize / 2,
+        scale
+      );
+
+      if (drawn) {
+        // Add visual effects on top of tiles
+        if (content.type === 'exit') {
+          // Portal glow effect
+          const glowSize = 4 + Math.sin(this.frameCounter / 10) * 3;
+          this.ctx.strokeStyle = COLORS.exit;
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.arc(x, y, tileSize / 2 + glowSize, 0, Math.PI * 2);
+          this.ctx.stroke();
+        } else if (content.type === 'interactable' && content.data?.interactType === 'campfire' && !content.triggered) {
+          // Fire flicker effect
+          const flicker = Math.sin(this.frameCounter / 5) * 2;
+          this.ctx.fillStyle = `rgba(255, 200, 50, ${0.3 + Math.sin(this.frameCounter / 3) * 0.2})`;
+          this.ctx.beginPath();
+          this.ctx.arc(x, y - 4 + flicker, 12, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+        return;
+      }
+    }
+
+    // Fallback to procedural drawing
     switch (content.type) {
       case 'enemy':
         if (!content.triggered) {

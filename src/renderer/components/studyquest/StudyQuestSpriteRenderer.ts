@@ -153,6 +153,24 @@ export class StudyQuestSpriteRenderer {
   }
 
   /**
+   * Apply a direct image as background (SIMPLE - no sprite slicing).
+   * Just sets background-image to a single PNG file.
+   * Use this for Kenney individual tiles or any standalone images.
+   */
+  applyImageBackground(
+    element: HTMLElement,
+    imagePath: string,
+    options: { sizing?: 'cover' | 'contain' | '100% 100%' | 'auto'; position?: string } = {}
+  ): void {
+    const { sizing = '100% 100%', position = 'center' } = options;
+    element.style.backgroundImage = `url("${imagePath}")`;
+    element.style.backgroundSize = sizing;
+    element.style.backgroundRepeat = 'no-repeat';
+    element.style.backgroundPosition = position;
+    element.style.imageRendering = 'pixelated';
+  }
+
+  /**
    * Apply sprite as a flexible-width button background
    * Uses the sprite but allows the element to have custom width
    */
@@ -357,6 +375,45 @@ export class StudyQuestSpriteRenderer {
     this.spriteCache.clear();
     this.loadingPromises.clear();
     logger.info('Sprite cache cleared');
+  }
+
+  /**
+   * Draw a tile image directly to canvas.
+   * For use in TownCanvas/DungeonCanvas tile-based rendering.
+   */
+  drawTileToCanvas(
+    ctx: CanvasRenderingContext2D,
+    imagePath: string,
+    destX: number,
+    destY: number,
+    scale: number = 2
+  ): boolean {
+    const img = this.spriteCache.get(imagePath);
+    if (!img) {
+      return false;
+    }
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, destX, destY, img.width * scale, img.height * scale);
+    return true;
+  }
+
+  /**
+   * Preload a set of tile images for efficient rendering
+   */
+  async preloadTileSet(paths: string[]): Promise<void> {
+    const loadPromises = paths.map(p => this.loadSpriteSheet(p).catch(() => null));
+    await Promise.all(loadPromises);
+    logger.info(`Preloaded ${paths.length} tile images`);
+  }
+
+  /**
+   * Get image dimensions (for layout calculations)
+   */
+  getImageSize(path: string): { width: number; height: number } | null {
+    const img = this.spriteCache.get(path);
+    if (!img) return null;
+    return { width: img.width, height: img.height };
   }
 }
 

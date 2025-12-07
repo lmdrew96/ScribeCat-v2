@@ -15,31 +15,51 @@ export interface SpriteRegion {
 
 // Full sprite configuration for a theme
 export interface ThemeSpriteConfig {
-  // Panels
+  // Panels (sprite regions)
   panelSmall: SpriteRegion;      // Small cards (shop items, class cards)
   panelMedium: SpriteRegion;     // Medium panels (town buildings, quest cards)
   panelLarge: SpriteRegion;      // Large panels (dialogs, character sheet)
   panelMenu: SpriteRegion;       // Menu panel (PLAY/SETTINGS/EXIT style)
 
-  // Buttons
+  // Direct image paths for panels (optional - takes precedence over sprite regions)
+  panelSmallImage?: string;
+  panelMediumImage?: string;
+  panelLargeImage?: string;
+  panelMenuImage?: string;
+
+  // Buttons (sprite regions)
   buttonNormal: SpriteRegion;    // Default button state
   buttonHover: SpriteRegion;     // Hover state
   buttonPressed: SpriteRegion;   // Pressed/active state
   buttonSuccess: SpriteRegion;   // Green/success button
   buttonDanger: SpriteRegion;    // Red/danger button
 
-  // Health/Status
+  // Direct image paths for buttons (optional)
+  buttonNormalImage?: string;
+  buttonHoverImage?: string;
+  buttonPressedImage?: string;
+  buttonSuccessImage?: string;
+  buttonDangerImage?: string;
+
+  // Health/Status (sprite regions)
   healthBarBg: SpriteRegion;     // Health bar background
   healthBarFill: SpriteRegion;   // Health bar fill (will be scaled)
   heartFull: SpriteRegion;       // Full heart
   heartHalf: SpriteRegion;       // Half heart
   heartEmpty: SpriteRegion;      // Empty heart
 
-  // Inventory
+  // Direct image paths for health/status (optional)
+  healthBarBgImage?: string;
+  healthBarFillImage?: string;
+
+  // Inventory (sprite regions)
   inventorySlot: SpriteRegion;   // Single inventory slot
   inventoryGrid: SpriteRegion;   // Full inventory grid (optional)
 
-  // Icons (16x16 or similar)
+  // Direct image path for inventory slot (optional)
+  inventorySlotImage?: string;
+
+  // Icons (16x16 or similar) - sprite regions only (small fixed sizes work fine)
   iconCoin: SpriteRegion;
   iconStar: SpriteRegion;
   iconCheck: SpriteRegion;
@@ -113,7 +133,8 @@ export type StudyQuestThemeId =
   | 'minimal'
   | 'elegant-brown'
   | 'royal'
-  | 'horror';
+  | 'horror'
+  | 'kenney';
 
 // =============================================================================
 // THEME DEFINITIONS
@@ -676,6 +697,97 @@ const HORROR_THEME: StudyQuestTheme = {
   },
 };
 
+/**
+ * KENNEY THEME (Direct PNG references)
+ * Uses individual Kenney tiles - no sprite slicing needed!
+ * Clean pixel art UI from Kenney's UI Pack Pixel Adventure.
+ */
+const KENNEY_THEME: StudyQuestTheme = {
+  id: 'kenney',
+  name: 'Kenney Classic',
+  description: 'Clean pixel art UI from Kenney assets - no tiling bugs!',
+  spriteSheet: '', // No sprite sheet - uses direct images
+  recommendedCatColor: 'brown',
+  sliceInset: 0, // Not used with direct images
+
+  sprites: {
+    // Dummy sprite regions (required by interface but won't be used)
+    panelSmall: { x: 0, y: 0, width: 32, height: 32 },
+    panelMedium: { x: 0, y: 0, width: 32, height: 32 },
+    panelLarge: { x: 0, y: 0, width: 32, height: 32 },
+    panelMenu: { x: 0, y: 0, width: 32, height: 32 },
+
+    // DIRECT IMAGE PATHS - these take precedence!
+    panelSmallImage: '../../assets/sprites/studyquest/kenney-ui/panels/panel-brown-light.png',
+    panelMediumImage: '../../assets/sprites/studyquest/kenney-ui/panels/panel-brown-dark.png',
+    panelLargeImage: '../../assets/sprites/studyquest/kenney-ui/panels/panel-brown-fancy.png',
+    panelMenuImage: '../../assets/sprites/studyquest/kenney-ui/panels/panel-cream-fancy.png',
+
+    // Buttons
+    buttonNormal: { x: 0, y: 0, width: 32, height: 32 },
+    buttonHover: { x: 0, y: 0, width: 32, height: 32 },
+    buttonPressed: { x: 0, y: 0, width: 32, height: 32 },
+    buttonSuccess: { x: 0, y: 0, width: 32, height: 32 },
+    buttonDanger: { x: 0, y: 0, width: 32, height: 32 },
+
+    buttonNormalImage: '../../assets/sprites/studyquest/kenney-ui/buttons/button-brown.png',
+    buttonHoverImage: '../../assets/sprites/studyquest/kenney-ui/buttons/button-brown-filled.png',
+    buttonPressedImage: '../../assets/sprites/studyquest/kenney-ui/buttons/button-gray.png',
+    buttonSuccessImage: '../../assets/sprites/studyquest/kenney-ui/buttons/button-gray-filled.png',
+    buttonDangerImage: '../../assets/sprites/studyquest/kenney-ui/buttons/button-gray.png',
+
+    // Health bars
+    healthBarBg: { x: 0, y: 0, width: 32, height: 32 },
+    healthBarFill: { x: 0, y: 0, width: 32, height: 32 },
+    healthBarBgImage: '../../assets/sprites/studyquest/kenney-ui/progress/progress-red-bg.png',
+    healthBarFillImage: '../../assets/sprites/studyquest/kenney-ui/progress/progress-red-fill.png',
+
+    // Hearts (dummy regions - no direct images for now)
+    heartFull: { x: 0, y: 0, width: 16, height: 16 },
+    heartHalf: { x: 0, y: 0, width: 16, height: 16 },
+    heartEmpty: { x: 0, y: 0, width: 16, height: 16 },
+
+    // Inventory
+    inventorySlot: { x: 0, y: 0, width: 32, height: 32 },
+    inventoryGrid: { x: 0, y: 0, width: 80, height: 80 },
+    inventorySlotImage: '../../assets/sprites/studyquest/kenney-ui/icons/slot-hexagon.png',
+
+    // Icons (dummy regions - small icons still work with sprite slicing)
+    iconCoin: { x: 0, y: 0, width: 16, height: 16 },
+    iconStar: { x: 0, y: 0, width: 16, height: 16 },
+    iconCheck: { x: 0, y: 0, width: 16, height: 16 },
+    iconX: { x: 0, y: 0, width: 16, height: 16 },
+    iconArrowLeft: { x: 0, y: 0, width: 16, height: 16 },
+    iconArrowRight: { x: 0, y: 0, width: 16, height: 16 },
+    iconArrowUp: { x: 0, y: 0, width: 16, height: 16 },
+    iconArrowDown: { x: 0, y: 0, width: 16, height: 16 },
+
+    preview: { x: 0, y: 0, width: 80, height: 96 },
+  },
+
+  colors: {
+    primary: '#8B6914',
+    secondary: '#A0522D',
+    accent: '#D2691E',
+    background: '#1C1410',
+    surface: '#2D241C',
+    text: '#F5E6D3',
+    textMuted: '#B8A090',
+    border: '#5C4033',
+    success: '#556B2F',
+    danger: '#8B0000',
+    warning: '#B8860B',
+    surfaceAlt: '#3D342C',
+    shadow: '#0C0805',
+    textOnPrimary: '#ffffff',
+    gold: '#daa520',
+    hp: '#cc3333',
+    hpBg: '#331111',
+    xp: '#33cc33',
+    xpBg: '#113311',
+  },
+};
+
 // =============================================================================
 // THEME REGISTRY
 // =============================================================================
@@ -689,6 +801,7 @@ export const ALL_THEMES: StudyQuestTheme[] = [
   ELEGANT_BROWN_THEME,
   ROYAL_THEME,
   HORROR_THEME,
+  KENNEY_THEME,
 ];
 
 export const DEFAULT_THEME = CAT_THEME;
@@ -703,6 +816,7 @@ export const STUDYQUEST_THEMES: Record<StudyQuestThemeId, StudyQuestTheme> = {
   'elegant-brown': ELEGANT_BROWN_THEME,
   royal: ROYAL_THEME,
   horror: HORROR_THEME,
+  kenney: KENNEY_THEME,
 };
 
 // Backward compatibility alias

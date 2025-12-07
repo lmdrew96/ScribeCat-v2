@@ -3,10 +3,18 @@
  *
  * Renders a small map showing explored dungeon rooms.
  * Can be rendered to canvas or as a standalone DOM element.
+ * Now uses Kenney Minimap Pack tiles.
  */
 
 import { createLogger } from '../../../shared/logger.js';
 import type { DungeonFloor, DungeonRoom, RoomType } from './DungeonGenerator.js';
+import {
+  MINIMAP_TILE_SIZE,
+  MINIMAP_TILES,
+  getMinimapTilesToPreload,
+  getRoomTile,
+} from './MiniMapLayout.js';
+import { spriteRenderer } from '../../components/studyquest/StudyQuestSpriteRenderer.js';
 
 const logger = createLogger('MiniMap');
 
@@ -36,6 +44,11 @@ export class MiniMap {
   private width: number = 150;
   private height: number = 100;
 
+  // Tile rendering state
+  private tilesLoaded: boolean = false;
+  private useTileImages: boolean = true;
+  private scale: number = 2; // Scale 8px tiles to 16px
+
   constructor(canvas?: HTMLCanvasElement) {
     if (canvas) {
       this.canvas = canvas;
@@ -52,6 +65,24 @@ export class MiniMap {
 
     this.ctx = ctx;
     this.injectStyles();
+
+    // Preload minimap tiles
+    this.preloadTiles();
+  }
+
+  /**
+   * Preload all minimap tile images
+   */
+  private async preloadTiles(): Promise<void> {
+    try {
+      const tiles = getMinimapTilesToPreload();
+      await spriteRenderer.preloadTileSet(tiles);
+      this.tilesLoaded = true;
+      logger.info(`Loaded ${tiles.length} minimap tile images`);
+    } catch (error) {
+      logger.warn('Failed to load minimap tile images, using procedural fallback:', error);
+      this.tilesLoaded = false;
+    }
   }
 
   /**
@@ -108,8 +139,16 @@ export class MiniMap {
     const gridWidth = maxX - minX + 1;
     const gridHeight = maxY - minY + 1;
 
-    this.width = gridWidth * (CELL_SIZE + CELL_GAP) + CELL_GAP * 2;
-    this.height = gridHeight * (CELL_SIZE + CELL_GAP) + CELL_GAP * 2;
+    // Use tile-based sizing if tiles are loaded
+    const cellSize = this.useTileImages && this.tilesLoaded
+      ? MINIMAP_TILE_SIZE * this.scale
+      : CELL_SIZE;
+    const cellGap = this.useTileImages && this.tilesLoaded
+      ? MINIMAP_TILE_SIZE * this.scale / 2
+      : CELL_GAP;
+
+    this.width = gridWidth * (cellSize + cellGap) + cellGap * 2;
+    this.height = gridHeight * (cellSize + cellGap) + cellGap * 2;
 
     this.canvas.width = this.width;
     this.canvas.height = this.height;
@@ -162,12 +201,37 @@ export class MiniMap {
    * Draw a single room
    */
   private drawRoom(room: DungeonRoom, offsetX: number, offsetY: number): void {
+    const isCurrent = room.id === this.currentRoomId;
+
+    // Use tile-based rendering if available
+    if (this.useTileImages && this.tilesLoaded) {
+      const tileSize = MINIMAP_TILE_SIZE * this.scale;
+      const gap = tileSize / 2;
+      const x = (room.gridX - offsetX) * (tileSize + gap) + gap;
+      const y = (room.gridY - offsetY) * (tileSize + gap) + gap;
+
+      // Get appropriate tile for this room
+      const tilePath = getRoomTile(room.type, isCurrent, room.visited, room.discovered);
+      const drawn = spriteRenderer.drawTileToCanvas(this.ctx, tilePath, x, y, this.scale);
+
+      if (drawn) {
+        // Add pulsing border for current room
+        if (isCurrent) {
+          const pulse = Math.sin(Date.now() / 200) * 0.5 + 0.5;
+          this.ctx.strokeStyle = `rgba(255, 255, 255, ${pulse})`;
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(x - 1, y - 1, tileSize + 2, tileSize + 2);
+        }
+        return;
+      }
+    }
+
+    // Fallback to procedural rendering
     const x = (room.gridX - offsetX) * (CELL_SIZE + CELL_GAP) + CELL_GAP;
     const y = (room.gridY - offsetY) * (CELL_SIZE + CELL_GAP) + CELL_GAP;
 
     // Determine color
     let color: string;
-    const isCurrent = room.id === this.currentRoomId;
 
     if (isCurrent) {
       color = ROOM_COLORS.current;
@@ -220,30 +284,69 @@ export class MiniMap {
    * Draw connections between rooms
    */
   private drawConnections(room: DungeonRoom, offsetX: number, offsetY: number): void {
-    const x = (room.gridX - offsetX) * (CELL_SIZE + CELL_GAP) + CELL_GAP + CELL_SIZE / 2;
-    const y = (room.gridY - offsetY) * (CELL_SIZE + CELL_GAP) + CELL_GAP + CELL_SIZE / 2;
+    // Use tile-based sizing if available
+    const useTiles = this.useTileImages && this.tilesLoaded;
+    const tileSize = useTiles ? MINIMAP_TILE_SIZE * this.scale : CELL_SIZE;
+    const gap = useTiles ? tileSize / 2 : CELL_GAP;
 
-    this.ctx.strokeStyle = room.visited ? '#4ade80' : '#4a4a6a';
-    this.ctx.lineWidth = CONNECTOR_WIDTH;
+    const x = (room.gridX - offsetX) * (tileSize + gap) + gap + tileSize / 2;
+    const y = (room.gridY - offsetY) * (tileSize + gap) + gap + tileSize / 2;
 
-    // Only draw to south and east to avoid double-drawing
-    if (room.connections.south && this.floor) {
-      const southRoom = this.floor.rooms.get(room.connections.south);
-      if (southRoom?.discovered) {
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y + CELL_SIZE / 2);
-        this.ctx.lineTo(x, y + CELL_SIZE / 2 + CELL_GAP);
-        this.ctx.stroke();
+    // Try to use connector tiles
+    if (useTiles) {
+      const connectorTile = room.visited ? MINIMAP_TILES.connectorHActive : MINIMAP_TILES.connectorH;
+      const connectorTileV = room.visited ? MINIMAP_TILES.connectorVActive : MINIMAP_TILES.connectorV;
+
+      // Only draw to south and east to avoid double-drawing
+      if (room.connections.south && this.floor) {
+        const southRoom = this.floor.rooms.get(room.connections.south);
+        if (southRoom?.discovered) {
+          spriteRenderer.drawTileToCanvas(
+            this.ctx,
+            connectorTileV,
+            x - tileSize / 4,
+            y + tileSize / 4,
+            this.scale / 2
+          );
+        }
       }
-    }
 
-    if (room.connections.east && this.floor) {
-      const eastRoom = this.floor.rooms.get(room.connections.east);
-      if (eastRoom?.discovered) {
-        this.ctx.beginPath();
-        this.ctx.moveTo(x + CELL_SIZE / 2, y);
-        this.ctx.lineTo(x + CELL_SIZE / 2 + CELL_GAP, y);
-        this.ctx.stroke();
+      if (room.connections.east && this.floor) {
+        const eastRoom = this.floor.rooms.get(room.connections.east);
+        if (eastRoom?.discovered) {
+          spriteRenderer.drawTileToCanvas(
+            this.ctx,
+            connectorTile,
+            x + tileSize / 4,
+            y - tileSize / 4,
+            this.scale / 2
+          );
+        }
+      }
+    } else {
+      // Fallback to line-based connectors
+      this.ctx.strokeStyle = room.visited ? '#4ade80' : '#4a4a6a';
+      this.ctx.lineWidth = CONNECTOR_WIDTH;
+
+      // Only draw to south and east to avoid double-drawing
+      if (room.connections.south && this.floor) {
+        const southRoom = this.floor.rooms.get(room.connections.south);
+        if (southRoom?.discovered) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(x, y + tileSize / 2);
+          this.ctx.lineTo(x, y + tileSize / 2 + gap);
+          this.ctx.stroke();
+        }
+      }
+
+      if (room.connections.east && this.floor) {
+        const eastRoom = this.floor.rooms.get(room.connections.east);
+        if (eastRoom?.discovered) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + tileSize / 2, y);
+          this.ctx.lineTo(x + tileSize / 2 + gap, y);
+          this.ctx.stroke();
+        }
       }
     }
   }

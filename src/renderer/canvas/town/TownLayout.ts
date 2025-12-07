@@ -125,7 +125,7 @@ export const INTERACTION_ZONES: InteractionZone[] = BUILDINGS.map((b) => ({
   height: 2,
 }));
 
-// Tile color mapping for rendering
+// Tile color mapping for rendering (fallback if images not loaded)
 export const TILE_COLORS: Record<TileType, string> = {
   [TileType.EMPTY]: '#1a1a2e',
   [TileType.GRASS]: '#2d5016',
@@ -138,6 +138,78 @@ export const TILE_COLORS: Record<TileType, string> = {
   [TileType.BUILDING_FLOOR]: '#4a4a6a',
   [TileType.WALL]: '#374151',
 };
+
+// Base path for Kenney town tiles
+const TOWN_TILE_BASE = '../../assets/sprites/studyquest/kenney/town/';
+
+// Kenney Tiny Town tile mapping (based on preview layout)
+// Row 0: Grass, Row 1: Trees, Row 2: Roofs, Row 3: Fences
+// Row 4-5: Walls, Row 6: Paths, Row 7: Water/Bridge, Row 8-9: Props
+// Tiles are 16x16 pixels
+export const TILE_IMAGES: Partial<Record<TileType, string>> = {
+  [TileType.GRASS]: `${TOWN_TILE_BASE}tile_0000.png`,    // Grass center (Row 0)
+  [TileType.PATH]: `${TOWN_TILE_BASE}tile_0072.png`,     // Path/road tile (Row 6)
+  [TileType.WATER]: `${TOWN_TILE_BASE}tile_0084.png`,    // Water tile (Row 7)
+  [TileType.BRIDGE]: `${TOWN_TILE_BASE}tile_0088.png`,   // Bridge/planks (Row 7)
+  [TileType.TREE]: `${TOWN_TILE_BASE}tile_0012.png`,     // Tree (Row 1)
+  [TileType.ROCK]: `${TOWN_TILE_BASE}tile_0108.png`,     // Rock/stone (Row 9)
+  [TileType.FLOWER]: `${TOWN_TILE_BASE}tile_0018.png`,   // Flower/bush (Row 1)
+  [TileType.BUILDING_FLOOR]: `${TOWN_TILE_BASE}tile_0073.png`, // Door mat (Row 6)
+};
+
+// Building sprites (using Kenney tiles for walls/roofs)
+// Row 2 (24-35): Roofs, Row 4-5 (48-71): Walls with windows/doors
+export const BUILDING_TILES = {
+  // Wall tiles (Row 4-5: tiles 48-71)
+  wallStone: `${TOWN_TILE_BASE}tile_0060.png`,
+  wallWood: `${TOWN_TILE_BASE}tile_0048.png`,
+
+  // Roof tiles (Row 2: tiles 24-35)
+  roofBlue: `${TOWN_TILE_BASE}tile_0024.png`,
+  roofBrown: `${TOWN_TILE_BASE}tile_0027.png`,
+  roofOrange: `${TOWN_TILE_BASE}tile_0030.png`,
+
+  // Door tiles (Row 4-5)
+  doorWood: `${TOWN_TILE_BASE}tile_0049.png`,
+  doorOpen: `${TOWN_TILE_BASE}tile_0050.png`,
+
+  // Window tiles (Row 4-5)
+  window: `${TOWN_TILE_BASE}tile_0051.png`,
+
+  // Signs (Row 8: props)
+  signShop: `${TOWN_TILE_BASE}tile_0096.png`,
+  signInn: `${TOWN_TILE_BASE}tile_0097.png`,
+};
+
+// Props/decorations (Row 8-9: tiles 96-119)
+export const PROP_TILES = {
+  barrel: `${TOWN_TILE_BASE}tile_0098.png`,
+  crate: `${TOWN_TILE_BASE}tile_0099.png`,
+  fence: `${TOWN_TILE_BASE}tile_0036.png`,  // Row 3: fences
+  lamp: `${TOWN_TILE_BASE}tile_0100.png`,
+};
+
+// List of all tile images to preload
+export function getTilesToPreload(): string[] {
+  const tiles: string[] = [];
+
+  // Add base tile images
+  Object.values(TILE_IMAGES).forEach(path => {
+    if (path) tiles.push(path);
+  });
+
+  // Add building tiles
+  Object.values(BUILDING_TILES).forEach(path => {
+    tiles.push(path);
+  });
+
+  // Add prop tiles
+  Object.values(PROP_TILES).forEach(path => {
+    tiles.push(path);
+  });
+
+  return tiles;
+}
 
 // Walkable tiles (not blocked)
 export const WALKABLE_TILES = new Set([
