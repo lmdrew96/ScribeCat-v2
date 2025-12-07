@@ -27,7 +27,17 @@ export type StudyQuestSoundName =
   | 'item-pickup'    // Item/gold collected
   | 'quest-complete' // Quest completed
   | 'error'          // Invalid action
-  | 'flee';          // Escape from battle
+  | 'flee'           // Escape from battle
+  // Exploration sounds
+  | 'footstep'       // Walking/movement
+  | 'door-open'      // Entering a building
+  | 'dungeon-enter'  // Starting a dungeon
+  | 'floor-advance'  // Going to next floor
+  | 'chest-open'     // Opening a chest
+  | 'trap-trigger'   // Triggering a trap
+  | 'unlock'         // Unlocking something new
+  | 'ambient-nature' // Ambient bird/nature sounds
+  | 'rain-loop';     // Rain weather sound
 
 // Map sound names to file paths
 const SOUND_FILES: Record<StudyQuestSoundName, string> = {
@@ -49,6 +59,16 @@ const SOUND_FILES: Record<StudyQuestSoundName, string> = {
   'quest-complete': 'assets/sounds/studyquest/powerup.wav',
   'error': 'assets/sounds/studyquest/error.wav',
   'flee': 'assets/sounds/studyquest/flee.wav',
+  // Exploration sounds (using existing files as fallbacks)
+  'footstep': 'assets/sounds/studyquest/tap.wav',
+  'door-open': 'assets/sounds/studyquest/equip.wav',
+  'dungeon-enter': 'assets/sounds/studyquest/explosion.wav',
+  'floor-advance': 'assets/sounds/studyquest/powerup.wav',
+  'chest-open': 'assets/sounds/studyquest/coin.wav',
+  'trap-trigger': 'assets/sounds/studyquest/hurt.wav',
+  'unlock': 'assets/sounds/studyquest/levelup.wav',
+  'ambient-nature': 'assets/sounds/studyquest/select.wav', // placeholder
+  'rain-loop': 'assets/sounds/studyquest/select.wav', // placeholder
 };
 
 // Volume multipliers for different sound categories (quieter UI, louder effects)
@@ -60,6 +80,16 @@ const VOLUME_MULTIPLIERS: Partial<Record<StudyQuestSoundName, number>> = {
   'level-up': 0.8,
   'victory': 0.7,
   'quest-complete': 0.7,
+  // Exploration sounds - mostly quiet
+  'footstep': 0.2,
+  'door-open': 0.4,
+  'dungeon-enter': 0.6,
+  'floor-advance': 0.5,
+  'chest-open': 0.5,
+  'trap-trigger': 0.6,
+  'unlock': 0.7,
+  'ambient-nature': 0.1,
+  'rain-loop': 0.15,
 };
 
 class StudyQuestSoundManager {

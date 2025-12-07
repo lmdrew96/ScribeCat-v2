@@ -35,6 +35,7 @@ import { getButtonController, ButtonController } from './components/ButtonContro
 import { StudyQuestManager } from './managers/StudyQuestManager.js';
 import { StudyQuestModal } from './components/StudyQuestModal.js';
 import { studyQuestIntegration } from './managers/StudyQuestIntegration.js';
+import { StudyBuddyWidget } from './components/StudyBuddyWidget.js';
 
 // App initialization modules
 import {
@@ -72,6 +73,7 @@ let confettiManager: ConfettiManager;
 let buttonController: ButtonController;
 let studyQuestManager: StudyQuestManager;
 let studyQuestModal: StudyQuestModal;
+let studyBuddyWidget: StudyBuddyWidget;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -140,6 +142,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Connect StudyQuest integration service
   studyQuestIntegration.setManager(studyQuestManager);
+
+  // Initialize Study Buddy widget (cat companion in corner)
+  studyBuddyWidget = new StudyBuddyWidget();
+  studyBuddyWidget.setOnOpenStudyQuest(() => {
+    // Claim any pending rewards when opening StudyQuest
+    const rewards = studyBuddyWidget.claimRewards();
+    if (rewards.xp > 0 || rewards.gold > 0) {
+      notificationTicker.success(`Claimed ${rewards.xp} XP and ${rewards.gold} gold from study time!`);
+    }
+    studyQuestModal.show();
+  });
+  studyBuddyWidget.mount();
+  window.studyBuddyWidget = studyBuddyWidget;
 
   // Initialize recording controls
   recordingControls = new AppRecordingControls({

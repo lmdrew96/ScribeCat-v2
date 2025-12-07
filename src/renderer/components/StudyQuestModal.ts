@@ -11,6 +11,12 @@ import type { StudyQuestManager, StudyQuestState } from '../managers/StudyQuestM
 import type { StudyQuestCharacterData, CharacterClassData } from '../../domain/entities/StudyQuestCharacter.js';
 import type { StudyQuestBattleData, BattleLogEntry } from '../../domain/entities/StudyQuestBattle.js';
 import { BattleCanvas } from './studyquest/BattleCanvas.js';
+import { TownView, createTownModeToggle } from './studyquest/TownView.js';
+import { DungeonExploreView } from './studyquest/DungeonExploreView.js';
+import { CollectionScreen } from './studyquest/CollectionScreen.js';
+import { unlockCelebration } from './studyquest/UnlockCelebration.js';
+import { UnlockManager } from '../canvas/UnlockManager.js';
+import { PlayerStatsService } from '../canvas/PlayerStatsService.js';
 
 // Helper to generate pixel art icon img tags
 const pixelIcon = (name: string, size: number = 16): string => {
@@ -109,7 +115,8 @@ type ViewType =
   | 'dungeon-complete'
   | 'battle'
   | 'quests'
-  | 'leaderboard';
+  | 'leaderboard'
+  | 'collection';
 
 export class StudyQuestModal {
   private manager: StudyQuestManager;
@@ -120,6 +127,11 @@ export class StudyQuestModal {
   private unsubscribe: (() => void) | null = null;
   private classes: CharacterClassData[] = [];
   private battleCanvas: BattleCanvas | null = null;
+  private townView: TownView | null = null;
+  private dungeonExploreView: DungeonExploreView | null = null;
+  private collectionScreen: CollectionScreen | null = null;
+  private townMode: 'canvas' | 'cards' = 'canvas';
+  private dungeonMode: 'explore' | 'classic' = 'explore';
   private isBattleProcessing = false;
   private isCurrentBattleBoss = false;
   private selectedColor: CatColor = 'brown';
@@ -447,8 +459,16 @@ export class StudyQuestModal {
 
         <!-- Town View -->
         <div class="studyquest-view" id="view-town">
-          <h2 class="studyquest-section-title">Cat Village</h2>
-          <div class="studyquest-town">
+          <div class="studyquest-town-header">
+            <h2 class="studyquest-section-title">Cat Village</h2>
+            <div class="studyquest-town-mode-toggle" id="town-mode-toggle"></div>
+          </div>
+
+          <!-- Canvas-based town (default) -->
+          <div class="studyquest-town-canvas-wrapper" id="town-canvas-container"></div>
+
+          <!-- Card-based town (fallback) -->
+          <div class="studyquest-town studyquest-town-cards" id="town-cards-container" style="display: none;">
             <div class="studyquest-town-building" data-building="dungeon">
               <div class="studyquest-building-icon">${SQ_ICONS.castle}</div>
               <h3 class="studyquest-building-name">Dungeons</h3>
@@ -468,6 +488,11 @@ export class StudyQuestModal {
               <div class="studyquest-building-icon">${SQ_ICONS.questBoard}</div>
               <h3 class="studyquest-building-name">Quest Board</h3>
               <p class="studyquest-building-desc">Accept and complete quests</p>
+            </div>
+            <div class="studyquest-town-building" data-building="home">
+              <div class="studyquest-building-icon">${pixelIcon('heart', 32)}</div>
+              <h3 class="studyquest-building-name">Home</h3>
+              <p class="studyquest-building-desc">Collection & settings</p>
             </div>
           </div>
         </div>
@@ -518,8 +543,16 @@ export class StudyQuestModal {
 
         <!-- Dungeon Run -->
         <div class="studyquest-view" id="view-dungeon-run">
-          <h2 class="studyquest-section-title" id="dungeon-name">Dungeon</h2>
-          <div id="dungeon-run-content">
+          <div class="studyquest-dungeon-header">
+            <h2 class="studyquest-section-title" id="dungeon-name">Dungeon</h2>
+            <div class="studyquest-dungeon-mode-toggle" id="dungeon-mode-toggle"></div>
+          </div>
+
+          <!-- Canvas-based exploration (default) -->
+          <div class="studyquest-dungeon-canvas-wrapper" id="dungeon-canvas-container"></div>
+
+          <!-- Classic button-based mode (fallback) -->
+          <div id="dungeon-run-content" style="display: none;">
             <!-- Populated dynamically -->
           </div>
         </div>
@@ -570,6 +603,16 @@ export class StudyQuestModal {
           <h2 class="studyquest-section-title">Rankings</h2>
           <div class="studyquest-leaderboard" id="leaderboard-content">
             <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Collection -->
+        <div class="studyquest-view" id="view-collection">
+          <div id="collection-container">
+            <!-- CollectionScreen component mounted here -->
+          </div>
+          <div style="margin-top: 16px; text-align: center;">
+            <button class="pixel-btn" id="btn-collection-back">Back to Town</button>
           </div>
         </div>
       </div>
@@ -652,12 +695,20 @@ export class StudyQuestModal {
       });
     }
 
-    // Town buildings
+    // Town buildings (for card mode)
     this.container.querySelectorAll('.studyquest-town-building').forEach((building) => {
       building.addEventListener('click', (e) => {
         const type = (e.currentTarget as HTMLElement).dataset.building;
         this.handleBuildingClick(type);
       });
+    });
+
+    // Initialize TownView (canvas mode)
+    this.initializeTownView();
+
+    // Collection back button
+    this.container.querySelector('#btn-collection-back')?.addEventListener('click', () => {
+      this.showView('town');
     });
 
     // Back buttons
@@ -691,6 +742,195 @@ export class StudyQuestModal {
   }
 
   /**
+   * Initialize TownView canvas component
+   */
+  private initializeTownView(): void {
+    if (!this.container) return;
+
+    const canvasContainer = this.container.querySelector('#town-canvas-container');
+    const cardsContainer = this.container.querySelector('#town-cards-container');
+    const toggleContainer = this.container.querySelector('#town-mode-toggle');
+
+    if (!canvasContainer || !cardsContainer || !toggleContainer) return;
+
+    // Create TownView with building callbacks
+    this.townView = new TownView({
+      onShop: () => this.handleBuildingClick('shop'),
+      onInn: () => this.handleBuildingClick('inn'),
+      onDungeons: () => this.handleBuildingClick('dungeon'),
+      onQuests: () => this.handleBuildingClick('quests'),
+      onHome: () => this.handleBuildingClick('home'),
+    });
+
+    // Set cat color
+    const savedColor = localStorage.getItem('studyquest-cat-color') as CatColor | null;
+    if (savedColor) {
+      this.townView.setCatColor(savedColor);
+    }
+
+    // Mount TownView
+    canvasContainer.appendChild(this.townView.getElement());
+
+    // Create mode toggle
+    const toggle = createTownModeToggle(
+      () => {
+        this.townMode = 'canvas';
+        (canvasContainer as HTMLElement).style.display = 'block';
+        (cardsContainer as HTMLElement).style.display = 'none';
+        this.townView?.start();
+      },
+      () => {
+        this.townMode = 'cards';
+        (canvasContainer as HTMLElement).style.display = 'none';
+        (cardsContainer as HTMLElement).style.display = 'grid';
+        this.townView?.stop();
+      },
+      this.townMode
+    );
+    toggleContainer.appendChild(toggle);
+
+    logger.info('TownView initialized');
+  }
+
+  /**
+   * Initialize DungeonExploreView canvas component
+   */
+  private initializeDungeonExploreView(): void {
+    if (!this.container) return;
+
+    const canvasContainer = this.container.querySelector('#dungeon-canvas-container');
+    const classicContainer = this.container.querySelector('#dungeon-run-content');
+    const toggleContainer = this.container.querySelector('#dungeon-mode-toggle');
+
+    if (!canvasContainer || !classicContainer || !toggleContainer) return;
+
+    // Create DungeonExploreView with callbacks
+    this.dungeonExploreView = new DungeonExploreView({
+      onEnemyEncounter: async (enemyData: any, isBoss: boolean) => {
+        this.isCurrentBattleBoss = isBoss;
+        const battle = await this.manager.startBattle(isBoss);
+        if (battle) {
+          this.showView('battle');
+        }
+      },
+      onChestOpen: async (lootData: any) => {
+        // Award chest loot
+        const goldAmount = lootData?.gold || Math.floor(Math.random() * 50) + 10;
+        await this.manager.awardGold(goldAmount);
+        this.showToast(`Found ${goldAmount} gold!`);
+        StudyQuestSound.play('item-pickup');
+      },
+      onTrapTriggered: async (trapData: any) => {
+        // Take trap damage
+        const damage = trapData?.damage || Math.floor(Math.random() * 10) + 5;
+        await this.manager.takeDamage(damage);
+        this.showToast(`Trap! Took ${damage} damage!`);
+        StudyQuestSound.play('damage-taken');
+      },
+      onMerchantInteract: () => {
+        // Open shop from dungeon
+        this.showView('shop');
+      },
+      onRestPointUse: async (healPercent: number) => {
+        const state = this.manager.getState();
+        const char = state.character;
+        if (char) {
+          const healAmount = Math.floor(char.maxHp * (healPercent / 100));
+          await this.manager.healCharacterDirect(healAmount);
+          this.showToast(`Rested and recovered ${healAmount} HP!`);
+          StudyQuestSound.play('heal');
+        }
+      },
+      onFloorExit: () => {
+        // Advance to next floor
+        this.dungeonExploreView?.advanceFloor();
+        this.showToast('Descending to next floor...');
+      },
+      onDungeonComplete: async () => {
+        // Complete the dungeon
+        const completionResult = await this.manager.completeDungeon();
+        if (completionResult) {
+          this.dungeonCompletionRewards = completionResult;
+        }
+        this.dungeonExploreView?.stop();
+        this.showView('dungeon-complete');
+      },
+      onFlee: async () => {
+        await this.manager.abandonDungeon();
+        this.dungeonExploreView?.stop();
+        this.showView('town');
+      },
+    });
+
+    // Set cat color
+    const savedColor = localStorage.getItem('studyquest-cat-color') as CatColor | null;
+    if (savedColor) {
+      this.dungeonExploreView.setCatColor(savedColor);
+    }
+
+    // Mount DungeonExploreView
+    canvasContainer.appendChild(this.dungeonExploreView.getElement());
+
+    // Create mode toggle
+    const toggle = this.createDungeonModeToggle(
+      () => {
+        this.dungeonMode = 'explore';
+        (canvasContainer as HTMLElement).style.display = 'block';
+        (classicContainer as HTMLElement).style.display = 'none';
+        this.dungeonExploreView?.start();
+      },
+      () => {
+        this.dungeonMode = 'classic';
+        (canvasContainer as HTMLElement).style.display = 'none';
+        (classicContainer as HTMLElement).style.display = 'block';
+        this.dungeonExploreView?.stop();
+        this.renderDungeonRunClassic();
+      },
+      this.dungeonMode
+    );
+    toggleContainer.appendChild(toggle);
+
+    logger.info('DungeonExploreView initialized');
+  }
+
+  /**
+   * Create dungeon mode toggle element
+   */
+  private createDungeonModeToggle(
+    onExplore: () => void,
+    onClassic: () => void,
+    initialMode: 'explore' | 'classic'
+  ): HTMLElement {
+    const toggle = document.createElement('div');
+    toggle.className = 'dungeon-mode-toggle';
+    toggle.innerHTML = `
+      <button class="dungeon-mode-btn ${initialMode === 'explore' ? 'active' : ''}" data-mode="explore">
+        Explore
+      </button>
+      <button class="dungeon-mode-btn ${initialMode === 'classic' ? 'active' : ''}" data-mode="classic">
+        Classic
+      </button>
+    `;
+
+    const exploreBtn = toggle.querySelector('[data-mode="explore"]');
+    const classicBtn = toggle.querySelector('[data-mode="classic"]');
+
+    exploreBtn?.addEventListener('click', () => {
+      exploreBtn.classList.add('active');
+      classicBtn?.classList.remove('active');
+      onExplore();
+    });
+
+    classicBtn?.addEventListener('click', () => {
+      classicBtn.classList.add('active');
+      exploreBtn?.classList.remove('active');
+      onClassic();
+    });
+
+    return toggle;
+  }
+
+  /**
    * Handle back button click - navigate to appropriate parent view
    */
   private handleBackButton(): void {
@@ -701,6 +941,7 @@ export class StudyQuestModal {
       shop: 'town',
       'dungeon-run': 'town',
       battle: 'dungeon-run',
+      collection: 'town',
     };
 
     const parentView = parentViews[this.currentView] || 'town';
@@ -749,7 +990,7 @@ export class StudyQuestModal {
     if (playerInfo) playerInfo.style.display = showNav ? 'flex' : 'none';
 
     // Show back button for views that can go back
-    const viewsWithBack: ViewType[] = ['town', 'dungeon-select', 'shop', 'dungeon-run', 'battle'];
+    const viewsWithBack: ViewType[] = ['town', 'dungeon-select', 'shop', 'dungeon-run', 'battle', 'collection'];
     if (backBtn) backBtn.style.display = viewsWithBack.includes(view) ? 'flex' : 'none';
 
     // Load view-specific data
@@ -762,7 +1003,25 @@ export class StudyQuestModal {
    * Load data for specific view
    */
   private async loadViewData(view: ViewType): Promise<void> {
+    // Stop town canvas when leaving town view
+    if (view !== 'town' && this.townView?.isRunning()) {
+      this.townView.stop();
+    }
+
+    // Stop dungeon canvas when leaving dungeon-run view
+    if (view !== 'dungeon-run' && this.dungeonExploreView?.isRunning()) {
+      this.dungeonExploreView.stop();
+    }
+
     switch (view) {
+      case 'town':
+        // Start town canvas if in canvas mode
+        if (this.townMode === 'canvas') {
+          this.townView?.start();
+        }
+        // Check for unlock updates
+        this.checkUnlocks();
+        break;
       case 'character-sheet':
         this.renderCharacterSheet();
         break;
@@ -776,7 +1035,7 @@ export class StudyQuestModal {
         await this.loadDungeons();
         break;
       case 'dungeon-run':
-        this.renderDungeonRun();
+        this.initDungeonRun();
         break;
       case 'dungeon-complete':
         this.renderDungeonComplete();
@@ -789,6 +1048,9 @@ export class StudyQuestModal {
         break;
       case 'leaderboard':
         await this.loadLeaderboard();
+        break;
+      case 'collection':
+        this.loadCollection();
         break;
     }
   }
@@ -945,6 +1207,9 @@ export class StudyQuestModal {
         break;
       case 'quests':
         this.showView('quests');
+        break;
+      case 'home':
+        this.showView('collection');
         break;
     }
   }
@@ -1384,14 +1649,131 @@ export class StudyQuestModal {
     `;
   }
 
+  /**
+   * Load collection screen
+   */
+  private loadCollection(): void {
+    const container = this.container?.querySelector('#collection-container');
+    if (!container) return;
+
+    // Create or refresh collection screen
+    if (!this.collectionScreen) {
+      this.collectionScreen = new CollectionScreen();
+      container.appendChild(this.collectionScreen.getElement());
+    } else {
+      this.collectionScreen.refresh();
+    }
+  }
+
+  /**
+   * Check for new unlocks and show celebration
+   */
+  private checkUnlocks(): void {
+    const state = this.manager.getState();
+    const character = state.character;
+    if (!character) return;
+
+    // Build stats for unlock checking
+    const stats = PlayerStatsService.getStats();
+
+    // Update stats from character data
+    stats.level = character.level;
+    stats.battlesWon = character.battlesWon;
+    stats.totalGoldCollected = character.totalGoldEarned || 0;
+    stats.questsCompleted = character.questsCompleted;
+    stats.characterName = character.name;
+    stats.currentMonth = new Date().getMonth() + 1;
+
+    // Check for unlocks
+    const newUnlocks = UnlockManager.checkUnlocks(stats);
+
+    // Show celebration for new unlocks
+    if (newUnlocks.length > 0) {
+      const unlockables = UnlockManager.getNewUnlocks();
+      if (unlockables.length > 0) {
+        unlockCelebration.show(unlockables);
+        UnlockManager.clearNewUnlocks();
+      }
+    }
+  }
+
   // ============================================================================
   // Dungeon Run
   // ============================================================================
 
   /**
-   * Render dungeon run view
+   * Initialize dungeon run view
    */
-  private renderDungeonRun(): void {
+  private initDungeonRun(): void {
+    const state = this.manager.getState();
+    const dungeonState = state.dungeonState;
+    const nameEl = this.container?.querySelector('#dungeon-name');
+
+    if (!dungeonState) {
+      this.showView('town');
+      return;
+    }
+
+    // Find dungeon info
+    const dungeon = state.dungeons.find((d) => d.id === dungeonState.dungeonId);
+    if (nameEl && dungeon) {
+      nameEl.textContent = dungeon.name;
+    }
+
+    const totalFloors = dungeon?.floorCount || 5;
+
+    // Initialize DungeonExploreView if not already done
+    if (!this.dungeonExploreView) {
+      this.initializeDungeonExploreView();
+    }
+
+    // Set up dungeon in explore view
+    if (this.dungeonMode === 'explore' && this.dungeonExploreView) {
+      const canvasContainer = this.container?.querySelector('#dungeon-canvas-container') as HTMLElement;
+      const classicContainer = this.container?.querySelector('#dungeon-run-content') as HTMLElement;
+
+      if (canvasContainer) canvasContainer.style.display = 'block';
+      if (classicContainer) classicContainer.style.display = 'none';
+
+      // Initialize dungeon in explore view
+      this.dungeonExploreView.initialize(
+        dungeonState.dungeonId,
+        dungeon?.name || 'Dungeon',
+        totalFloors
+      );
+
+      // Update player HP
+      const char = state.character;
+      if (char) {
+        this.dungeonExploreView.updatePlayerHp(char.hp, char.maxHp);
+      }
+
+      this.dungeonExploreView.start();
+    } else {
+      // Classic mode
+      const canvasContainer = this.container?.querySelector('#dungeon-canvas-container') as HTMLElement;
+      const classicContainer = this.container?.querySelector('#dungeon-run-content') as HTMLElement;
+
+      if (canvasContainer) canvasContainer.style.display = 'none';
+      if (classicContainer) classicContainer.style.display = 'block';
+
+      this.renderDungeonRunClassic();
+    }
+  }
+
+  /**
+   * Resume dungeon exploration after battle
+   */
+  resumeDungeonExploration(): void {
+    if (this.dungeonMode === 'explore' && this.dungeonExploreView) {
+      this.dungeonExploreView.resume();
+    }
+  }
+
+  /**
+   * Render classic dungeon run view (button-based)
+   */
+  private renderDungeonRunClassic(): void {
     const content = this.container?.querySelector('#dungeon-run-content');
     const nameEl = this.container?.querySelector('#dungeon-name');
     const state = this.manager.getState();
@@ -1451,7 +1833,7 @@ export class StudyQuestModal {
       const state = this.manager.getState();
       if (state.dungeonState) {
         state.dungeonState.currentFloor++;
-        this.renderDungeonRun();
+        this.renderDungeonRunClassic();
       }
     });
 
@@ -1766,16 +2148,20 @@ export class StudyQuestModal {
       this.isCurrentBattleBoss = false;
 
       if (battle.result === 'defeat') {
+        this.dungeonExploreView?.stop();
         this.showView('town');
       } else if (isBossVictoryOnFinalFloor) {
         // Complete the dungeon and show completion screen
+        this.dungeonExploreView?.stop();
         const completionResult = await this.manager.completeDungeon();
         if (completionResult) {
           this.dungeonCompletionRewards = completionResult;
         }
         this.showView('dungeon-complete');
       } else {
+        // Resume exploration after victory or flee
         this.showView('dungeon-run');
+        this.resumeDungeonExploration();
       }
     }, 2500);
   }

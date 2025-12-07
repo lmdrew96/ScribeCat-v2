@@ -1037,6 +1037,94 @@ export class StudyQuestManager {
   }
 
   /**
+   * Award gold directly (e.g., from dungeon chests)
+   */
+  async awardGold(amount: number): Promise<boolean> {
+    if (!this.state.character || amount <= 0) return false;
+
+    try {
+      const result = await window.scribeCat.invoke(
+        'studyquest:award-gold',
+        {
+          characterId: this.state.character.id,
+          amount,
+        }
+      );
+
+      if (result.success) {
+        this.setState({ character: result.character });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error('Failed to award gold:', error);
+      // Fallback: update local state
+      this.state.character.gold += amount;
+      this.state.character.totalGoldEarned = (this.state.character.totalGoldEarned || 0) + amount;
+      this.notifyListeners();
+      return true;
+    }
+  }
+
+  /**
+   * Take damage directly (e.g., from dungeon traps)
+   */
+  async takeDamage(amount: number): Promise<boolean> {
+    if (!this.state.character || amount <= 0) return false;
+
+    try {
+      const result = await window.scribeCat.invoke(
+        'studyquest:take-damage',
+        {
+          characterId: this.state.character.id,
+          amount,
+        }
+      );
+
+      if (result.success) {
+        this.setState({ character: result.character });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error('Failed to apply damage:', error);
+      // Fallback: update local state
+      this.state.character.hp = Math.max(0, this.state.character.hp - amount);
+      this.notifyListeners();
+      return true;
+    }
+  }
+
+  /**
+   * Heal character directly by a specific amount (e.g., from dungeon rest points)
+   */
+  async healCharacterDirect(amount: number): Promise<boolean> {
+    if (!this.state.character || amount <= 0) return false;
+
+    try {
+      const result = await window.scribeCat.invoke(
+        'studyquest:heal-direct',
+        {
+          characterId: this.state.character.id,
+          amount,
+        }
+      );
+
+      if (result.success) {
+        this.setState({ character: result.character });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error('Failed to heal character:', error);
+      // Fallback: update local state
+      this.state.character.hp = Math.min(this.state.character.maxHp, this.state.character.hp + amount);
+      this.notifyListeners();
+      return true;
+    }
+  }
+
+  /**
    * Full initialization - load all data
    */
   async initialize(): Promise<void> {
