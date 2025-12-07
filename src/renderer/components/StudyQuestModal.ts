@@ -18,6 +18,9 @@ const pixelIcon = (name: string, size: number = 16): string => {
 };
 import type { CatColor } from './studyquest/SpriteLoader.js';
 import { StudyQuestSound } from './studyquest/StudyQuestSound.js';
+import { getSettingsPanel } from './studyquest/StudyQuestSettingsPanel.js';
+import { themeManager } from './studyquest/StudyQuestThemeManager.js';
+import { spriteRenderer } from './studyquest/StudyQuestSpriteRenderer.js';
 
 // Available cat colors for character creation
 const CAT_COLORS: { id: CatColor; name: string; hex: string }[] = [
@@ -126,6 +129,7 @@ export class StudyQuestModal {
     goldBonus: number;
     dungeonName: string;
   } | null = null;
+  private themeUnsubscribe: (() => void) | null = null;
 
   constructor(manager: StudyQuestManager) {
     this.manager = manager;
@@ -150,6 +154,15 @@ export class StudyQuestModal {
     this.isOpen = true;
     this.backdrop?.classList.add('active');
     this.container?.classList.add('active');
+
+    // Initialize theme manager with container
+    if (this.container) {
+      await themeManager.initialize(this.container);
+      // Apply sprite theming to UI elements
+      this.applySpritesToUI();
+      // Subscribe to theme changes for live updates
+      this.themeUnsubscribe = themeManager.subscribe(() => this.applySpritesToUI());
+    }
 
     // Subscribe to state changes
     this.unsubscribe = this.manager.subscribe((state) => this.onStateChange(state));
@@ -184,6 +197,12 @@ export class StudyQuestModal {
       this.unsubscribe = null;
     }
 
+    // Unsubscribe from theme changes
+    if (this.themeUnsubscribe) {
+      this.themeUnsubscribe();
+      this.themeUnsubscribe = null;
+    }
+
     logger.info('StudyQuest closed');
   }
 
@@ -203,6 +222,106 @@ export class StudyQuestModal {
    */
   public isVisible(): boolean {
     return this.isOpen;
+  }
+
+  /**
+   * Apply theme styling to UI elements based on current theme
+   * Applies sprite backgrounds to PANELS and CARDS (which don't have baked text)
+   * Buttons use CSS colors only (sprite buttons have baked text like "PLAY", "EXIT")
+   */
+  private applySpritesToUI(): void {
+    if (!this.container) return;
+
+    const theme = themeManager.getTheme();
+    const sprites = theme.sprites;
+    const spriteSheet = theme.spriteSheet;
+
+    // If no sprite sheet (default theme), clear sprite styling and use CSS only
+    if (!spriteSheet || !sprites) {
+      this.clearSpriteStyles();
+      return;
+    }
+
+    const scale = 2; // 2x scale for pixel art
+
+    // Helper to apply sprite background to an element
+    const applySprite = (el: HTMLElement, region: { x: number; y: number; width: number; height: number }) => {
+      // Skip if region is placeholder (1x1)
+      if (region.width <= 1 || region.height <= 1) return;
+
+      el.style.backgroundImage = `url("${spriteSheet}")`;
+      el.style.backgroundPosition = `-${region.x * scale}px -${region.y * scale}px`;
+      el.style.backgroundRepeat = 'no-repeat';
+      el.style.imageRendering = 'pixelated';
+    };
+
+    // Apply panel sprites to CARDS/PANELS (not buttons - they have baked text)
+    // Town buildings get panelMedium
+    this.container.querySelectorAll('.studyquest-town-building').forEach((el) => {
+      applySprite(el as HTMLElement, sprites.panelMedium);
+    });
+
+    // Pixel cards get panelSmall
+    this.container.querySelectorAll('.pixel-card').forEach((el) => {
+      applySprite(el as HTMLElement, sprites.panelSmall);
+    });
+
+    // Class cards, shop items, quest cards get panelSmall
+    this.container.querySelectorAll('.studyquest-class-card').forEach((el) => {
+      applySprite(el as HTMLElement, sprites.panelSmall);
+    });
+    this.container.querySelectorAll('.studyquest-shop-item').forEach((el) => {
+      applySprite(el as HTMLElement, sprites.panelSmall);
+    });
+    this.container.querySelectorAll('.studyquest-quest-card').forEach((el) => {
+      applySprite(el as HTMLElement, sprites.panelMedium);
+    });
+
+    // Dungeon cards get panelLarge
+    this.container.querySelectorAll('.studyquest-dungeon-card').forEach((el) => {
+      applySprite(el as HTMLElement, sprites.panelLarge);
+    });
+
+    // Inventory slots
+    this.container.querySelectorAll('.studyquest-inventory-slot').forEach((el) => {
+      applySprite(el as HTMLElement, sprites.inventorySlot);
+    });
+
+    // NOTE: Buttons (.pixel-btn, .studyquest-nav-btn, etc.) use CSS colors only
+    // because sprite buttons have baked-in text that doesn't match our dynamic content
+
+    logger.info(`Theme applied: ${theme.name} (sprites + CSS colors)`);
+  }
+
+  /**
+   * Clear sprite styling (for default CSS theme)
+   */
+  private clearSpriteStyles(): void {
+    if (!this.container) return;
+
+    const clearElement = (el: HTMLElement) => {
+      el.style.backgroundImage = '';
+      el.style.backgroundPosition = '';
+      el.style.backgroundSize = '';
+      el.style.backgroundRepeat = '';
+      el.classList.remove('sq-sprite-btn');
+    };
+
+    this.container.querySelectorAll('.pixel-btn').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.pixel-btn-success').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.studyquest-town-building').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.studyquest-class-card').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.pixel-card').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.studyquest-shop-item').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.studyquest-dungeon-card').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.studyquest-quest-card').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.studyquest-inventory-slot').forEach((el) => clearElement(el as HTMLElement));
+    this.container.querySelectorAll('.studyquest-nav-btn').forEach((el) => clearElement(el as HTMLElement));
+
+    const backBtn = this.container.querySelector('.studyquest-back-btn');
+    if (backBtn) clearElement(backBtn as HTMLElement);
+
+    logger.info('Cleared sprite styling (using default CSS theme)');
   }
 
   /**
@@ -253,7 +372,12 @@ export class StudyQuestModal {
             <span class="studyquest-stat-value" id="studyquest-gold">--</span>
           </div>
         </div>
-        <button class="studyquest-close-btn" id="studyquest-close">EXIT</button>
+        <div class="studyquest-header-actions">
+          <button class="studyquest-settings-btn" id="studyquest-settings" title="Settings">
+            <span style="font-size: 16px;">&#9881;</span>
+          </button>
+          <button class="studyquest-close-btn" id="studyquest-close">EXIT</button>
+        </div>
       </div>
 
       <!-- Navigation (hidden on title screen) -->
@@ -461,6 +585,12 @@ export class StudyQuestModal {
     // Close button
     this.container.querySelector('#studyquest-close')?.addEventListener('click', () => {
       this.close();
+    });
+
+    // Settings button
+    this.container.querySelector('#studyquest-settings')?.addEventListener('click', () => {
+      StudyQuestSound.play('menu-select');
+      getSettingsPanel().show();
     });
 
     // Back button - return to town from sub-views

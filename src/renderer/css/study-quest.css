@@ -10,6 +10,24 @@
 :root {
   /* Pixel font - uses Courier New for retro monospace look (CSP blocks Google Fonts) */
   --sq-pixel-font: 'Courier New', 'Consolas', monospace;
+
+  /* Theme Colors (Default) - can be overridden per theme */
+  --sq-primary: #4a90d9;
+  --sq-secondary: #2a5a9a;
+  --sq-accent: #ffd700;
+  --sq-background: #1a1a2e;
+  --sq-surface: #2a2a4e;
+  --sq-surface-alt: #3a3a5e;
+  --sq-border: #4a4a6a;
+  --sq-shadow: #0a0a1e;
+  --sq-text: #ffffff;
+  --sq-text-muted: #8a8aaa;
+  --sq-text-on-primary: #ffffff;
+  --sq-gold: #ffd700;
+  --sq-hp: #ff4444;
+  --sq-hp-bg: #441111;
+  --sq-xp: #44ff44;
+  --sq-xp-bg: #114411;
 }
 
 /* ============================================================================
@@ -37,7 +55,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: #1a1a2e;
+  background: var(--sq-background, #1a1a2e);
   z-index: 10050;
   overflow: hidden;
   display: none;
@@ -60,9 +78,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
-  background: linear-gradient(180deg, #2a2a4e 0%, #1a1a2e 100%);
-  border-bottom: 4px solid #4a4a6a;
-  box-shadow: 0 4px 0 #0a0a1e;
+  background: linear-gradient(180deg, var(--sq-surface, #2a2a4e) 0%, var(--sq-background, #1a1a2e) 100%);
+  border-bottom: 4px solid var(--sq-border, #4a4a6a);
+  box-shadow: 0 4px 0 var(--sq-shadow, #0a0a1e);
 }
 
 .studyquest-back-btn {
@@ -225,25 +243,25 @@
 }
 
 .studyquest-nav-btn {
-  background: #2a2a4e;
-  border: 3px solid #3a3a5e;
-  color: #8a8aaa;
+  background: var(--sq-surface, #2a2a4e);
+  border: 3px solid var(--sq-surface-alt, #3a3a5e);
+  color: var(--sq-text-muted, #8a8aaa);
   font-family: var(--sq-pixel-font);
   font-size: 8px;
   padding: 10px 16px;
   cursor: pointer;
-  box-shadow: 2px 2px 0 #0a0a1e;
+  box-shadow: 2px 2px 0 var(--sq-shadow, #0a0a1e);
   transition: all 0.1s;
 }
 
 .studyquest-nav-btn:hover {
-  background: #3a3a5e;
-  color: #ffffff;
+  background: var(--sq-surface-alt, #3a3a5e);
+  color: var(--sq-text, #ffffff);
 }
 
 .studyquest-nav-btn.active {
-  background: #4a4a8e;
-  border-color: #6a6aae;
+  background: var(--sq-primary, #4a4a8e);
+  border-color: var(--sq-accent, #6a6aae);
   color: #ffd700;
   box-shadow:
     inset 2px 2px 0 #6a6aae,
@@ -255,17 +273,17 @@
    ============================================================================ */
 
 .pixel-btn {
-  background: linear-gradient(180deg, #4a90d9 0%, #2a5a9a 100%);
-  border: 3px solid #1a3a6a;
-  color: #ffffff;
+  background: linear-gradient(180deg, var(--sq-primary, #4a90d9) 0%, var(--sq-secondary, #2a5a9a) 100%);
+  border: 3px solid var(--sq-border, #1a3a6a);
+  color: var(--sq-text-on-primary, #ffffff);
   font-family: var(--sq-pixel-font);
   font-size: 10px;
   padding: 12px 20px;
   cursor: pointer;
   box-shadow:
-    inset 2px 2px 0 #6ab0f9,
-    inset -2px -2px 0 #1a4a8a,
-    4px 4px 0 #0a0a1e;
+    inset 2px 2px 0 rgba(255, 255, 255, 0.2),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3),
+    4px 4px 0 var(--sq-shadow, #0a0a1e);
   transition: all 0.1s;
   text-transform: uppercase;
 }
@@ -273,28 +291,28 @@
 .pixel-btn:hover {
   transform: translate(-2px, -2px);
   box-shadow:
-    inset 2px 2px 0 #6ab0f9,
-    inset -2px -2px 0 #1a4a8a,
-    6px 6px 0 #0a0a1e;
+    inset 2px 2px 0 rgba(255, 255, 255, 0.2),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3),
+    6px 6px 0 var(--sq-shadow, #0a0a1e);
 }
 
 .pixel-btn:active {
   transform: translate(2px, 2px);
   box-shadow:
-    inset 2px 2px 0 #6ab0f9,
-    inset -2px -2px 0 #1a4a8a,
-    2px 2px 0 #0a0a1e;
+    inset 2px 2px 0 rgba(255, 255, 255, 0.2),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3),
+    2px 2px 0 var(--sq-shadow, #0a0a1e);
 }
 
 .pixel-btn:disabled {
-  background: linear-gradient(180deg, #5a5a6a 0%, #3a3a4a 100%);
-  border-color: #2a2a3a;
-  color: #8a8a9a;
+  background: linear-gradient(180deg, var(--sq-surface-alt, #5a5a6a) 0%, var(--sq-surface, #3a3a4a) 100%);
+  border-color: var(--sq-border, #2a2a3a);
+  color: var(--sq-text-muted, #8a8a9a);
   cursor: not-allowed;
   box-shadow:
-    inset 2px 2px 0 #6a6a7a,
-    inset -2px -2px 0 #2a2a3a,
-    4px 4px 0 #0a0a1e;
+    inset 2px 2px 0 rgba(255, 255, 255, 0.1),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.2),
+    4px 4px 0 var(--sq-shadow, #0a0a1e);
 }
 
 .pixel-btn-success {
@@ -376,17 +394,17 @@
    ============================================================================ */
 
 .pixel-card {
-  background: #2a2a4e;
-  border: 4px solid #4a4a6a;
+  background: var(--sq-surface, #2a2a4e);
+  border: 4px solid var(--sq-border, #4a4a6a);
   padding: 16px;
-  box-shadow: 6px 6px 0 #0a0a1e;
+  box-shadow: 6px 6px 0 var(--sq-shadow, #0a0a1e);
 }
 
 .pixel-card-title {
   font-size: 12px;
-  color: #ffd700;
+  color: var(--sq-accent, #ffd700);
   margin: 0 0 12px 0;
-  text-shadow: 2px 2px 0 #8b4513;
+  text-shadow: 2px 2px 0 var(--sq-shadow, #8b4513);
 }
 
 .pixel-card-content {
@@ -624,19 +642,19 @@
 }
 
 .studyquest-town-building {
-  background: #2a2a4e;
-  border: 4px solid #4a4a6a;
+  background: var(--sq-surface, #2a2a4e);
+  border: 4px solid var(--sq-border, #4a4a6a);
   padding: 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.1s;
-  box-shadow: 4px 4px 0 #0a0a1e;
+  box-shadow: 4px 4px 0 var(--sq-shadow, #0a0a1e);
 }
 
 .studyquest-town-building:hover {
   transform: translate(-2px, -2px);
-  border-color: #6a6aae;
-  box-shadow: 6px 6px 0 #0a0a1e;
+  border-color: var(--sq-primary, #6a6aae);
+  box-shadow: 6px 6px 0 var(--sq-shadow, #0a0a1e);
 }
 
 .studyquest-building-icon {
@@ -1811,5 +1829,351 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   Settings Panel
+   ============================================================================ */
+
+.sq-settings-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 10100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sq-pixel-font);
+}
+
+.sq-settings-panel.active {
+  display: flex;
+  animation: settingsFadeIn 0.2s ease-out;
+}
+
+@keyframes settingsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sq-settings-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.sq-settings-content {
+  position: relative;
+  background: var(--sq-surface);
+  border: 4px solid var(--sq-border);
+  padding: 0;
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 8px 0 var(--sq-shadow);
+  animation: settingsSlideIn 0.3s ease-out;
+}
+
+@keyframes settingsSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.sq-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(180deg, var(--sq-surface-alt) 0%, var(--sq-surface) 100%);
+  border-bottom: 3px solid var(--sq-border);
+}
+
+.sq-settings-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sq-gold);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 2px;
+}
+
+.sq-settings-close {
+  padding: 6px 12px;
+  font-size: 10px;
+}
+
+.sq-settings-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sq-settings-section {
+  margin-bottom: 24px;
+}
+
+.sq-settings-section:last-child {
+  margin-bottom: 0;
+}
+
+.sq-settings-label {
+  display: block;
+  font-size: 10px;
+  color: var(--sq-text-muted);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Theme Grid */
+.sq-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.sq-theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  background: var(--sq-background);
+  border: 3px solid var(--sq-border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 3px 3px 0 var(--sq-shadow);
+}
+
+.sq-theme-option:hover {
+  border-color: var(--sq-primary);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--sq-shadow);
+}
+
+.sq-theme-option.selected {
+  border-color: var(--sq-gold);
+  box-shadow: 0 0 0 2px var(--sq-gold), 3px 3px 0 var(--sq-shadow);
+}
+
+.sq-theme-preview {
+  width: 48px;
+  height: 48px;
+  border: 2px solid;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sq-theme-preview-accent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+}
+
+.sq-theme-name {
+  font-size: 8px;
+  color: var(--sq-text);
+  text-align: center;
+}
+
+/* Volume Control */
+.sq-volume-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sq-sound-toggle {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sq-volume-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  background: var(--sq-background);
+  border: 3px solid var(--sq-border);
+  cursor: pointer;
+}
+
+.sq-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--sq-primary);
+  border: 3px solid var(--sq-border);
+  cursor: grab;
+  box-shadow: 2px 2px 0 var(--sq-shadow);
+}
+
+.sq-volume-slider::-webkit-slider-thumb:hover {
+  background: var(--sq-accent);
+}
+
+.sq-volume-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sq-volume-slider:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+  background: var(--sq-border);
+}
+
+.sq-volume-value {
+  font-size: 10px;
+  color: var(--sq-text);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ============================================================================
+   Settings Button in Header
+   ============================================================================ */
+
+.studyquest-settings-btn {
+  background: linear-gradient(180deg, var(--sq-surface-alt) 0%, var(--sq-surface) 100%);
+  border: 3px solid var(--sq-border);
+  color: var(--sq-text);
+  font-family: var(--sq-pixel-font);
+  font-size: 14px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 3px 3px 0 var(--sq-shadow);
+  transition: all 0.1s ease;
+}
+
+.studyquest-settings-btn:hover {
+  background: linear-gradient(180deg, var(--sq-border) 0%, var(--sq-surface-alt) 100%);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--sq-shadow);
+}
+
+.studyquest-settings-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--sq-shadow);
+}
+
+/* ============================================================================
+   Sprite-Based UI Elements
+   ============================================================================ */
+
+/* Sprite button base - uses background-image from sprite sheet */
+.sq-sprite-btn {
+  background-size: auto;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: none;
+  cursor: pointer;
+  font-family: var(--sq-pixel-font);
+  color: var(--sq-text);
+  text-shadow: 1px 1px 0 var(--sq-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.1s ease;
+}
+
+.sq-sprite-btn:hover {
+  filter: brightness(1.2);
+}
+
+.sq-sprite-btn:active {
+  filter: brightness(0.9);
+}
+
+.sq-sprite-btn:disabled {
+  filter: grayscale(0.7) brightness(0.7);
+  cursor: not-allowed;
+}
+
+/* 9-slice panel container */
+.sq-9slice-panel {
+  display: grid;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.sq-9slice-panel > div {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Sprite bar (HP/XP) */
+.sq-sprite-bar {
+  position: relative;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.sq-sprite-bar-bg {
+  position: absolute;
+  inset: 0;
+  background-size: auto;
+  background-repeat: no-repeat;
+}
+
+.sq-sprite-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-size: auto;
+  background-repeat: no-repeat;
+  transition: width 0.3s ease;
+}
+
+/* ============================================================================
+   Header Actions Group
+   ============================================================================ */
+
+.studyquest-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================================================================
+   Responsive Settings Panel
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .sq-theme-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sq-settings-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .sq-theme-preview {
+    width: 40px;
+    height: 40px;
   }
 }
