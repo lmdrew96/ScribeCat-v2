@@ -10,8 +10,12 @@ import { createLogger } from '../../shared/logger.js';
 import type { StudyQuestManager, StudyQuestState } from '../managers/StudyQuestManager.js';
 import type { StudyQuestCharacterData, CharacterClassData } from '../../domain/entities/StudyQuestCharacter.js';
 import type { StudyQuestBattleData, BattleLogEntry } from '../../domain/entities/StudyQuestBattle.js';
-import { getIconHTML } from '../utils/iconMap.js';
 import { BattleCanvas } from './studyquest/BattleCanvas.js';
+
+// Helper to generate pixel art icon img tags
+const pixelIcon = (name: string, size: number = 16): string => {
+  return `<img src="../../assets/sprites/studyquest/icons/${name}.png" width="${size}" height="${size}" style="image-rendering: pixelated; vertical-align: middle;" alt="${name}" />`;
+};
 import type { CatColor } from './studyquest/SpriteLoader.js';
 import { StudyQuestSound } from './studyquest/StudyQuestSound.js';
 
@@ -26,68 +30,68 @@ const CAT_COLORS: { id: CatColor; name: string; hex: string }[] = [
 
 const logger = createLogger('StudyQuestModal');
 
-// SVG icon constants for StudyQuest (16-bit retro style)
+// Pixel art icon constants for StudyQuest (16-bit retro style)
 const SQ_ICONS = {
   // Header icons
-  gamepad: getIconHTML('gamepad', { size: 24, strokeWidth: 2 }),
-  heart: getIconHTML('flame', { size: 14, strokeWidth: 2, color: '#ff4444' }),
-  star: getIconHTML('star', { size: 14, strokeWidth: 2, color: '#ffd700' }),
-  coin: getIconHTML('gem', { size: 14, strokeWidth: 2, color: '#ffd700' }),
+  gamepad: pixelIcon('ducky', 24),
+  heart: pixelIcon('heart', 14),
+  star: pixelIcon('stars', 14),
+  coin: pixelIcon('tuna_coin', 14),
 
   // Character class icons (24px for cards)
-  scholar: getIconHTML('book', { size: 24, strokeWidth: 2 }),
-  knight: getIconHTML('shield', { size: 24, strokeWidth: 2 }),
-  rogue: getIconHTML('zap', { size: 24, strokeWidth: 2 }),
-  cat: getIconHTML('smile', { size: 24, strokeWidth: 2 }),
+  scholar: pixelIcon('magic', 24),
+  knight: pixelIcon('shield', 24),
+  rogue: pixelIcon('sword', 24),
+  cat: pixelIcon('catnip', 24),
 
   // Building icons (32px for town)
-  castle: getIconHTML('map', { size: 32, strokeWidth: 2 }),
-  shop: getIconHTML('gem', { size: 32, strokeWidth: 2 }),
-  inn: getIconHTML('coffee', { size: 32, strokeWidth: 2 }),
-  questBoard: getIconHTML('clipboard', { size: 32, strokeWidth: 2 }),
+  castle: pixelIcon('sword', 32),
+  shop: pixelIcon('gem', 32),
+  inn: pixelIcon('potion', 32),
+  questBoard: pixelIcon('scratching_post', 32),
 
   // Item type icons
-  weapon: getIconHTML('zap', { size: 20, strokeWidth: 2 }),
-  armor: getIconHTML('shield', { size: 20, strokeWidth: 2 }),
-  potion: getIconHTML('flame', { size: 20, strokeWidth: 2, color: '#66ff66' }),
-  keyItem: getIconHTML('lock', { size: 20, strokeWidth: 2 }),
-  item: getIconHTML('gem', { size: 20, strokeWidth: 2 }),
+  weapon: pixelIcon('sword', 20),
+  armor: pixelIcon('shield', 20),
+  potion: pixelIcon('potion', 20),
+  keyItem: pixelIcon('gem_1', 20),
+  item: pixelIcon('gem', 20),
 
   // Battle action icons
-  attack: getIconHTML('zap', { size: 16, strokeWidth: 2 }),
-  defend: getIconHTML('shield', { size: 16, strokeWidth: 2 }),
-  itemUse: getIconHTML('flame', { size: 16, strokeWidth: 2 }),
-  flee: getIconHTML('arrowRight', { size: 16, strokeWidth: 2 }),
-  arrowLeft: getIconHTML('arrowLeft', { size: 16, strokeWidth: 2 }),
+  attack: pixelIcon('sword', 16),
+  defend: pixelIcon('shield', 16),
+  itemUse: pixelIcon('potion', 16),
+  flee: pixelIcon('heart_2', 16),
+  arrowLeft: pixelIcon('heart_1', 16),
 
   // Dungeon icons (32px)
-  training: getIconHTML('target', { size: 32, strokeWidth: 2 }),
-  forest: getIconHTML('flame', { size: 32, strokeWidth: 2, color: '#4a9a4a' }),
-  crystal: getIconHTML('gem', { size: 32, strokeWidth: 2, color: '#66ccff' }),
-  library: getIconHTML('book', { size: 32, strokeWidth: 2 }),
-  volcano: getIconHTML('flame', { size: 32, strokeWidth: 2, color: '#ff6600' }),
-  void: getIconHTML('sparkles', { size: 32, strokeWidth: 2, color: '#aa66ff' }),
-  lock: getIconHTML('lock', { size: 16, strokeWidth: 2 }),
+  training: pixelIcon('sword', 32),
+  forest: pixelIcon('catnip', 32),
+  crystal: pixelIcon('gem_2', 32),
+  library: pixelIcon('magic', 32),
+  volcano: pixelIcon('fire', 32),
+  void: pixelIcon('snowflake', 32),
+  lock: pixelIcon('gem_3', 16),
 
   // Stat icons
-  hp: getIconHTML('flame', { size: 14, strokeWidth: 2, color: '#ff4444' }),
-  atk: getIconHTML('zap', { size: 14, strokeWidth: 2, color: '#ff8844' }),
-  def: getIconHTML('shield', { size: 14, strokeWidth: 2, color: '#4488ff' }),
-  spd: getIconHTML('rocket', { size: 14, strokeWidth: 2, color: '#44ff88' }),
-  gold: getIconHTML('gem', { size: 14, strokeWidth: 2, color: '#ffd700' }),
-  trophy: getIconHTML('trophy', { size: 14, strokeWidth: 2, color: '#ffd700' }),
-  quest: getIconHTML('clipboard', { size: 14, strokeWidth: 2 }),
+  hp: pixelIcon('heart', 14),
+  atk: pixelIcon('sword', 14),
+  def: pixelIcon('shield', 14),
+  spd: pixelIcon('stars', 14),
+  gold: pixelIcon('tuna_coin', 14),
+  trophy: pixelIcon('stars2', 14),
+  quest: pixelIcon('scratching_post', 14),
 
   // Quest type icons
-  daily: getIconHTML('calendar', { size: 14, strokeWidth: 2 }),
-  weekly: getIconHTML('calendar', { size: 14, strokeWidth: 2 }),
-  story: getIconHTML('book', { size: 14, strokeWidth: 2 }),
+  daily: pixelIcon('yarn', 14),
+  weekly: pixelIcon('ducky', 14),
+  story: pixelIcon('magic', 14),
 
   // Large portrait icons (48px)
-  scholarLarge: getIconHTML('book', { size: 48, strokeWidth: 1.5 }),
-  knightLarge: getIconHTML('shield', { size: 48, strokeWidth: 1.5 }),
-  rogueLarge: getIconHTML('zap', { size: 48, strokeWidth: 1.5 }),
-  catLarge: getIconHTML('smile', { size: 48, strokeWidth: 1.5 }),
+  scholarLarge: pixelIcon('magic', 48),
+  knightLarge: pixelIcon('shield', 48),
+  rogueLarge: pixelIcon('sword', 48),
+  catLarge: pixelIcon('catnip', 48),
 };
 
 type ViewType =
@@ -99,6 +103,7 @@ type ViewType =
   | 'shop'
   | 'dungeon-select'
   | 'dungeon-run'
+  | 'dungeon-complete'
   | 'battle'
   | 'quests'
   | 'leaderboard';
@@ -113,7 +118,14 @@ export class StudyQuestModal {
   private classes: CharacterClassData[] = [];
   private battleCanvas: BattleCanvas | null = null;
   private isBattleProcessing = false;
+  private isCurrentBattleBoss = false;
   private selectedColor: CatColor = 'brown';
+  private dungeonCompletionRewards: {
+    success: boolean;
+    xpBonus: number;
+    goldBonus: number;
+    dungeonName: string;
+  } | null = null;
 
   constructor(manager: StudyQuestManager) {
     this.manager = manager;
@@ -388,6 +400,13 @@ export class StudyQuestModal {
           </div>
         </div>
 
+        <!-- Dungeon Complete -->
+        <div class="studyquest-view" id="view-dungeon-complete">
+          <div class="studyquest-content">
+            <!-- Populated dynamically by renderDungeonComplete -->
+          </div>
+        </div>
+
         <!-- Battle -->
         <div class="studyquest-view" id="view-battle">
           <div class="studyquest-battle" id="battle-content">
@@ -628,6 +647,9 @@ export class StudyQuestModal {
         break;
       case 'dungeon-run':
         this.renderDungeonRun();
+        break;
+      case 'dungeon-complete':
+        this.renderDungeonComplete();
         break;
       case 'battle':
         this.initBattle();
@@ -896,14 +918,14 @@ export class StudyQuestModal {
     if (!content || !char) return;
 
     const classIcons: Record<string, string> = {
-      scholar: getIconHTML('book', { size: 96, strokeWidth: 1 }),
-      knight: getIconHTML('shield', { size: 96, strokeWidth: 1 }),
-      rogue: getIconHTML('zap', { size: 96, strokeWidth: 1 }),
+      scholar: pixelIcon('magic', 96),
+      knight: pixelIcon('shield', 96),
+      rogue: pixelIcon('sword', 96),
     };
 
     content.innerHTML = `
       <div class="pixel-card studyquest-character-portrait">
-        <div class="studyquest-portrait-icon">${classIcons[char.classId] || getIconHTML('smile', { size: 96, strokeWidth: 1 })}</div>
+        <div class="studyquest-portrait-icon">${classIcons[char.classId] || pixelIcon('catnip', 96)}</div>
         <h3 class="studyquest-character-name">${char.name}</h3>
         <p class="studyquest-character-class">${char.classId.charAt(0).toUpperCase() + char.classId.slice(1)}</p>
         <p class="studyquest-character-level">Level ${char.level}</p>
@@ -1314,9 +1336,74 @@ export class StudyQuestModal {
   }
 
   /**
+   * Render dungeon completion screen
+   */
+  private renderDungeonComplete(): void {
+    const content = this.container?.querySelector('#view-dungeon-complete .studyquest-content') as HTMLElement;
+    if (!content) return;
+
+    const rewards = this.dungeonCompletionRewards;
+    const state = this.manager.getState();
+    const character = state.character;
+
+    if (!rewards || !character) {
+      this.showView('town');
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="studyquest-dungeon-complete">
+        <div class="dungeon-complete-banner">
+          <div class="dungeon-complete-icon">${pixelIcon('stars', 64)}</div>
+          <h2 class="dungeon-complete-title">DUNGEON COMPLETE!</h2>
+          <p class="dungeon-complete-subtitle">${rewards.dungeonName}</p>
+        </div>
+
+        <div class="dungeon-complete-rewards pixel-card">
+          <h3>Completion Rewards</h3>
+          <div class="reward-row">
+            <span class="reward-icon">${SQ_ICONS.star}</span>
+            <span class="reward-value">+${rewards.xpBonus} XP</span>
+          </div>
+          <div class="reward-row">
+            <span class="reward-icon">${SQ_ICONS.coin}</span>
+            <span class="reward-value">+${rewards.goldBonus} Gold</span>
+          </div>
+        </div>
+
+        <div class="dungeon-complete-stats pixel-card">
+          <h3>Character Stats</h3>
+          <div class="stat-row">
+            <span>Level:</span>
+            <span class="stat-value">${character.level}</span>
+          </div>
+          <div class="stat-row">
+            <span>Dungeons Completed:</span>
+            <span class="stat-value">${character.dungeonsCompleted}</span>
+          </div>
+          <div class="stat-row">
+            <span>Battles Won:</span>
+            <span class="stat-value">${character.battlesWon}</span>
+          </div>
+        </div>
+
+        <button id="btn-return-to-town" class="studyquest-btn studyquest-btn-primary" style="margin-top: 24px;">
+          ${SQ_ICONS.arrowLeft} Return to Town
+        </button>
+      </div>
+    `;
+
+    content.querySelector('#btn-return-to-town')?.addEventListener('click', () => {
+      this.dungeonCompletionRewards = null;
+      this.showView('town');
+    });
+  }
+
+  /**
    * Start a battle encounter
    */
   private async startEncounter(isBoss: boolean): Promise<void> {
+    this.isCurrentBattleBoss = isBoss;
     const battle = await this.manager.startBattle(isBoss);
     if (battle) {
       this.showView('battle');
@@ -1510,6 +1597,12 @@ export class StudyQuestModal {
   private async handleBattleEnd(battle: StudyQuestBattleData): Promise<void> {
     this.updateBattleActionButtons(false);
 
+    // Check if this was a boss victory on final floor (dungeon complete!)
+    const isBossVictoryOnFinalFloor =
+      battle.result === 'victory' &&
+      this.isCurrentBattleBoss &&
+      this.manager.isOnFinalFloor();
+
     if (battle.result === 'victory') {
       // Play death animation for enemy before victory fanfare
       await this.battleCanvas?.playDeathAnimation('enemy');
@@ -1519,6 +1612,10 @@ export class StudyQuestModal {
       if (battle.rewards) {
         this.addBattleLogEntry(`+${battle.rewards.xp} XP, +${battle.rewards.gold} Gold`, 'heal');
         setTimeout(() => StudyQuestSound.play('item-pickup'), 500);
+      }
+
+      if (isBossVictoryOnFinalFloor) {
+        this.addBattleLogEntry('DUNGEON COMPLETE!', 'crit');
       }
     } else if (battle.result === 'defeat') {
       // Play death animation for player before defeat message
@@ -1533,12 +1630,20 @@ export class StudyQuestModal {
     }
 
     // Wait, then return to appropriate view
-    setTimeout(() => {
+    setTimeout(async () => {
       this.battleCanvas?.clear();
       this.isBattleProcessing = false;
+      this.isCurrentBattleBoss = false;
 
       if (battle.result === 'defeat') {
         this.showView('town');
+      } else if (isBossVictoryOnFinalFloor) {
+        // Complete the dungeon and show completion screen
+        const completionResult = await this.manager.completeDungeon();
+        if (completionResult) {
+          this.dungeonCompletionRewards = completionResult;
+        }
+        this.showView('dungeon-complete');
       } else {
         this.showView('dungeon-run');
       }
@@ -1569,6 +1674,8 @@ export class StudyQuestModal {
 
     if (consumables.length === 0) {
       this.addBattleLogEntry('No items available!', 'miss');
+      // Re-enable action buttons since we're not showing items panel
+      this.updateBattleActionButtons(true);
       return;
     }
 
@@ -1610,6 +1717,9 @@ export class StudyQuestModal {
 
     if (actionsPanel) actionsPanel.style.display = 'grid';
     if (itemsPanel) itemsPanel.style.display = 'none';
+
+    // Re-enable action buttons when returning from items panel
+    this.updateBattleActionButtons(true);
   }
 
   /**

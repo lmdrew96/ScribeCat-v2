@@ -97,15 +97,62 @@ export class BattleCanvas {
     this.battle = battle;
     this.playerColor = playerColor;
 
-    // Check if enemy should use HD battler or sprite sheet
-    this.battlerType = this.guessBattlerType(battle.enemy.name);
-    this.enemyType = this.guessEnemyType(battle.enemy.name);
-    this.backgroundType = this.guessBackgroundType(battle.enemy.name);
+    // Use sprite keys from battle data if available, otherwise guess
+    if (battle.enemySpriteKey) {
+      // Check if it's a valid BattlerType
+      this.battlerType = this.validateBattlerType(battle.enemySpriteKey);
+      // If not a battler, check if it's an animated enemy type
+      if (!this.battlerType) {
+        this.enemyType = this.validateEnemyType(battle.enemySpriteKey);
+      }
+    } else {
+      this.battlerType = this.guessBattlerType(battle.enemy.name);
+      this.enemyType = this.guessEnemyType(battle.enemy.name);
+    }
+
+    // Use background key from battle data if available
+    if (battle.backgroundKey) {
+      this.backgroundType = this.validateBackgroundType(battle.backgroundKey);
+    } else {
+      this.backgroundType = this.guessBackgroundType(battle.enemy.name);
+    }
 
     // Load sprites and assets
     await this.loadSprites();
 
     this.startRenderLoop();
+  }
+
+  /**
+   * Validate and return battler type if valid
+   */
+  private validateBattlerType(key: string): BattlerType | null {
+    const validBattlers: BattlerType[] = [
+      'yarn_elemental', 'roomba', 'rubber_ducky',
+      'dog_warrior', 'dog', 'fishmonger', 'nerf_ranger', 'rat', 'rat_fighter',
+      'rat_mage', 'rat_necromancer', 'rat_ranger', 'rat_warrior', 'ruff_dog',
+      'squirrel_warrior', 'can_opener_boss', 'tuna_can', 'big_rubber_ducky'
+    ];
+    return validBattlers.includes(key as BattlerType) ? (key as BattlerType) : null;
+  }
+
+  /**
+   * Validate and return enemy type if valid (for animated sprites)
+   */
+  private validateEnemyType(key: string): EnemyType {
+    if (key === 'slime' || key === 'ghost') return key;
+    return 'slime'; // Default
+  }
+
+  /**
+   * Validate and return background type if valid
+   */
+  private validateBackgroundType(key: string): BackgroundType {
+    const validBackgrounds: BackgroundType[] = [
+      'town', 'shop', 'alley', 'inn', 'battle_default',
+      'fish_docks', 'tuna_springs', 'alley_night', 'moonlake'
+    ];
+    return validBackgrounds.includes(key as BackgroundType) ? (key as BackgroundType) : 'alley';
   }
 
   /**
@@ -146,7 +193,7 @@ export class BattleCanvas {
 
     // Add floating damage number
     const x = target === 'player' ? 120 : 360;
-    const y = target === 'player' ? 160 : 80;
+    const y = target === 'player' ? 160 : 120;
 
     this.animation.damageNumbers.push({
       x: x + (Math.random() * 20 - 10),
@@ -181,7 +228,7 @@ export class BattleCanvas {
    */
   playHealAnimation(target: 'player' | 'enemy', amount: number): void {
     const x = target === 'player' ? 120 : 360;
-    const y = target === 'player' ? 160 : 80;
+    const y = target === 'player' ? 160 : 120;
 
     this.animation.damageNumbers.push({
       x,
@@ -199,7 +246,7 @@ export class BattleCanvas {
    */
   playMissAnimation(target: 'player' | 'enemy'): void {
     const x = target === 'player' ? 120 : 360;
-    const y = target === 'player' ? 160 : 80;
+    const y = target === 'player' ? 160 : 120;
 
     this.animation.damageNumbers.push({
       x,
@@ -331,7 +378,7 @@ export class BattleCanvas {
     this.drawCharacter(
       this.battle.enemy,
       360,
-      80,
+      120,
       this.animation.enemyShake,
       this.animation.enemyFlash > 0,
       false, // isPlayer

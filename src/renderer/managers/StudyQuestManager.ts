@@ -603,6 +603,104 @@ export class StudyQuestManager {
     }
   }
 
+  /**
+   * Complete current dungeon run (after defeating boss on final floor)
+   * Returns dungeon completion rewards
+   */
+  async completeDungeon(): Promise<{
+    success: boolean;
+    xpBonus: number;
+    goldBonus: number;
+    dungeonName: string;
+  } | null> {
+    if (!this.state.character || !this.state.dungeonState) return null;
+
+    const dungeonState = this.state.dungeonState;
+    const dungeon = this.state.dungeons.find((d) => d.id === dungeonState.dungeonId);
+    const dungeonName = dungeon?.name || 'Unknown Dungeon';
+
+    try {
+      const result = await window.scribeCat.invoke(
+        'studyquest:complete-dungeon',
+        this.state.character.id
+      );
+
+      if (result.success) {
+        // Calculate completion bonuses based on dungeon difficulty
+        const baseXpBonus = 100;
+        const baseGoldBonus = 50;
+        const floorMultiplier = dungeonState.currentFloor;
+        const xpBonus = baseXpBonus * floorMultiplier;
+        const goldBonus = baseGoldBonus * floorMultiplier;
+
+        // Add XP bonus for dungeon completion
+        const xpResult = await window.scribeCat.invoke('studyquest:add-xp', {
+          characterId: this.state.character.id,
+          amount: xpBonus,
+        });
+
+        // Add gold bonus for dungeon completion
+        const goldResult = await window.scribeCat.invoke('studyquest:add-gold', {
+          characterId: this.state.character.id,
+          amount: goldBonus,
+        });
+
+        // Update quest progress for dungeon completion
+        await this.updateQuestProgress('dungeon_complete', 1);
+
+        // Use the latest character data
+        const updatedCharacter = goldResult.success ? goldResult.character : result.character;
+
+        this.setState({
+          character: updatedCharacter,
+          dungeonState: null,
+          currentBattle: null,
+        });
+
+        // Check for level up
+        if (xpResult.success && xpResult.result?.levelsGained > 0) {
+          const statIncreases = {
+            hp: xpResult.result.hpGained || 10,
+            attack: xpResult.result.attackGained || 2,
+            defense: xpResult.result.defenseGained || 1,
+            speed: xpResult.result.speedGained || 1,
+          };
+          const oldLevel = xpResult.result.newLevel - xpResult.result.levelsGained;
+          this.levelUpOverlay.show(oldLevel, xpResult.result.newLevel, statIncreases);
+        } else {
+          this.showNotification(`${dungeonName} Complete! +${xpBonus} XP, +${goldBonus} Gold`, 'crown');
+        }
+
+        StudyQuestSound.play('level-up');
+
+        logger.info(`Dungeon completed: ${dungeonName}`);
+        return { success: true, xpBonus, goldBonus, dungeonName };
+      }
+      return null;
+    } catch (error) {
+      logger.error('Failed to complete dungeon:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if current dungeon run is on the final floor
+   */
+  isOnFinalFloor(): boolean {
+    if (!this.state.dungeonState) return false;
+    const dungeon = this.state.dungeons.find((d) => d.id === this.state.dungeonState?.dungeonId);
+    if (!dungeon) return false;
+    return this.state.dungeonState.currentFloor >= dungeon.floorCount;
+  }
+
+  /**
+   * Get current dungeon data
+   */
+  getCurrentDungeon(): StudyQuestDungeonData | null {
+    if (!this.state.dungeonState) return null;
+    return this.state.dungeons.find((d) => d.id === this.state.dungeonState?.dungeonId) || null;
+  }
+
   // ============================================================================
   // Battles
   // ============================================================================

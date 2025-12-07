@@ -33,10 +33,38 @@ export type CatColor = 'brown' | 'white' | 'black' | 'orange' | 'grey';
 export type EnemyType = 'slime' | 'ghost';
 
 // Battler types (static HD images from asset packs)
-export type BattlerType = 'yarn_elemental' | 'roomba' | 'rubber_ducky' | 'slime_green' | 'slime_purple';
+// Note: slimes use animated sprite sheets, not static battlers
+export type BattlerType =
+  | 'yarn_elemental'
+  | 'roomba'
+  | 'rubber_ducky'
+  | 'dog_warrior'
+  | 'dog'
+  | 'fishmonger'
+  | 'nerf_ranger'
+  | 'rat'
+  | 'rat_fighter'
+  | 'rat_mage'
+  | 'rat_necromancer'
+  | 'rat_ranger'
+  | 'rat_warrior'
+  | 'ruff_dog'
+  | 'squirrel_warrior'
+  | 'can_opener_boss'
+  | 'tuna_can'
+  | 'big_rubber_ducky';
 
 // Background types
-export type BackgroundType = 'town' | 'shop' | 'alley' | 'inn' | 'battle_default';
+export type BackgroundType =
+  | 'town'
+  | 'shop'
+  | 'alley'
+  | 'inn'
+  | 'battle_default'
+  | 'fish_docks'
+  | 'tuna_springs'
+  | 'alley_night'
+  | 'moonlake';
 
 // Sprite file name mappings for cats (color prefix is added)
 const CAT_SPRITE_FILES: Record<AnimationType, string> = {
@@ -73,8 +101,21 @@ const BATTLER_FILES: Record<BattlerType, string> = {
   yarn_elemental: 'battlers/yarn_elemental.png',
   roomba: 'battlers/roomba.png',
   rubber_ducky: 'battlers/rubber_ducky.png',
-  slime_green: 'battlers/slime_green.png',
-  slime_purple: 'battlers/slime_purple.png',
+  dog_warrior: 'battlers/dog_warrior.png',
+  dog: 'battlers/dog.png',
+  fishmonger: 'battlers/fishmonger.png',
+  nerf_ranger: 'battlers/nerf_ranger.png',
+  rat: 'battlers/rat.png',
+  rat_fighter: 'battlers/rat_fighter.png',
+  rat_mage: 'battlers/rat_mage.png',
+  rat_necromancer: 'battlers/rat_necromancer.png',
+  rat_ranger: 'battlers/rat_ranger.png',
+  rat_warrior: 'battlers/rat_warrior.png',
+  ruff_dog: 'battlers/ruff_dog.png',
+  squirrel_warrior: 'battlers/squirrel_warrior.png',
+  can_opener_boss: 'battlers/can_opener_boss.png',
+  tuna_can: 'battlers/tuna_can.png',
+  big_rubber_ducky: 'battlers/big_rubber_ducky.png',
 };
 
 // Background image files
@@ -84,6 +125,10 @@ const BACKGROUND_FILES: Record<BackgroundType, string> = {
   alley: 'backgrounds/alley.png',
   inn: 'backgrounds/inn.png',
   battle_default: 'backgrounds/alley.png', // Default battle background
+  fish_docks: 'backgrounds/fish_docks.png',
+  tuna_springs: 'backgrounds/tuna_springs.png',
+  alley_night: 'backgrounds/alley_night.png',
+  moonlake: 'backgrounds/moonlake.png',
 };
 
 interface LoadedSprite {
@@ -177,7 +222,7 @@ class SpriteLoaderClass {
     if (this.battlerImages.has(battlerType)) return;
 
     const fileName = BATTLER_FILES[battlerType];
-    const path = `assets/sprites/studyquest/${fileName}`;
+    const path = `../../assets/sprites/studyquest/${fileName}`;
 
     try {
       const image = await this.loadImage(path);
@@ -202,7 +247,7 @@ class SpriteLoaderClass {
     if (this.backgroundImages.has(bgType)) return;
 
     const fileName = BACKGROUND_FILES[bgType];
-    const path = `assets/sprites/studyquest/${fileName}`;
+    const path = `../../assets/sprites/studyquest/${fileName}`;
 
     try {
       const image = await this.loadImage(path);
@@ -311,7 +356,7 @@ class SpriteLoaderClass {
     const possibleNames = this.getCatFileVariants(color, baseName);
 
     for (const fileName of possibleNames) {
-      const path = `assets/sprites/studyquest/cats/${fileName}.png`;
+      const path = `../../assets/sprites/studyquest/cats/${fileName}.png`;
       try {
         const image = await this.loadImage(path);
         if (image) {
@@ -333,7 +378,7 @@ class SpriteLoaderClass {
 
   private async loadEnemySprite(enemyType: EnemyType, animation: AnimationType): Promise<LoadedSprite | null> {
     const fileName = ENEMY_SPRITE_FILES[enemyType][animation];
-    const path = `assets/sprites/studyquest/enemies/${fileName}.png`;
+    const path = `../../assets/sprites/studyquest/enemies/${fileName}.png`;
 
     try {
       const image = await this.loadImage(path);
@@ -361,8 +406,9 @@ class SpriteLoaderClass {
     // This generates all possible variants to try - order matters, most common first
     const variants: string[] = [];
 
+    // Our asset files use 'tt' suffix (baseName ends in 't', so tt gives us 3 t's total)
     // Try most common suffixes first based on actual file names
-    const suffixes = ['ttt', 'tttt', 'tt', 'ttttt', 't', 'b', '', 'g', 'gg', 'ggg', 'gggg'];
+    const suffixes = ['tt', 'ttt', 't', 'tttt', 'ttttt', 'b', '', 'g', 'gg', 'ggg', 'gggg'];
 
     for (const suffix of suffixes) {
       variants.push(`${color}_${baseName}${suffix}`);
@@ -370,12 +416,12 @@ class SpriteLoaderClass {
 
     // Special cases for specific animations that have known variants
     if (baseName === 'HurtCat') {
-      // Brown uses 4 t's, others use 3-4
-      variants.unshift(`${color}_HurtCatttt`, `${color}_HurtCattt`);
+      // Some files may have extra t's
+      variants.unshift(`${color}_HurtCattt`, `${color}_HurtCatttt`);
     }
     if (baseName === 'JumpCat') {
-      // Brown uses 4 t's
-      variants.unshift(`${color}_JumpCatttt`, `${color}_JumpCattt`);
+      // Some files may have extra t's
+      variants.unshift(`${color}_JumpCattt`, `${color}_JumpCatttt`);
     }
 
     return variants;

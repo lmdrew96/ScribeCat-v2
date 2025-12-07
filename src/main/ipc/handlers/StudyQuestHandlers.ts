@@ -342,6 +342,8 @@ export function registerStudyQuestHandlers(): void {
           scaledEnemyStats: scaledStats,
           dungeonId: params.dungeonId,
           floorNumber: params.floorNumber,
+          enemySpriteKey: enemy.spriteKey,
+          backgroundKey: dungeon?.spriteKey,
         });
 
         // Store in memory

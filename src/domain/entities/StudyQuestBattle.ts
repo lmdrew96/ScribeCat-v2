@@ -54,6 +54,8 @@ export interface StudyQuestBattleData {
   readonly rewards?: BattleRewards;
   readonly startedAt: Date;
   readonly endedAt?: Date;
+  readonly enemySpriteKey?: string; // Battler asset key for enemy
+  readonly backgroundKey?: string; // Background asset key for dungeon
 }
 
 /**
@@ -78,8 +80,10 @@ export class StudyQuestBattle {
     scaledEnemyStats: { hp: number; attack: number; defense: number; speed: number };
     dungeonId?: string;
     floorNumber: number;
+    enemySpriteKey?: string;
+    backgroundKey?: string;
   }): StudyQuestBattle {
-    const { id, character, enemy, scaledEnemyStats, dungeonId, floorNumber } = params;
+    const { id, character, enemy, scaledEnemyStats, dungeonId, floorNumber, enemySpriteKey, backgroundKey } = params;
 
     const playerParticipant: BattleParticipant = {
       name: character.name,
@@ -117,6 +121,8 @@ export class StudyQuestBattle {
       result: 'in_progress',
       log: [],
       startedAt: new Date(),
+      enemySpriteKey,
+      backgroundKey,
     });
   }
 
