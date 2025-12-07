@@ -140,7 +140,8 @@ export const TILE_COLORS: Record<TileType, string> = {
 };
 
 // Base path for Kenney town tiles
-const TOWN_TILE_BASE = '../../assets/sprites/studyquest/kenney/town/';
+// From src/renderer/canvas/town/ to project root assets
+const TOWN_TILE_BASE = '../../../../assets/sprites/studyquest/kenney/town/';
 
 // Kenney Tiny Town tile mapping (based on preview layout)
 // Row 0: Grass, Row 1: Trees, Row 2: Roofs, Row 3: Fences

@@ -6,7 +6,8 @@
  */
 
 // Base path for Kenney minimap tiles
-const MINIMAP_TILE_BASE = '../../assets/sprites/studyquest/kenney/minimap/';
+// From src/renderer/canvas/dungeon/ to project root assets
+const MINIMAP_TILE_BASE = '../../../../assets/sprites/studyquest/kenney/minimap/';
 
 // Tile size in pixels (Kenney minimap tiles are 8x8)
 export const MINIMAP_TILE_SIZE = 8;
