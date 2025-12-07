@@ -119,6 +119,17 @@ export function registerStudyQuestHandlers(): void {
     }
   });
 
+  ipcMain.handle('studyquest:delete-character-by-user', async (_event, userId: string) => {
+    try {
+      await studyQuestRepo.deleteCharacterByUserId(userId);
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Failed to delete character by user:', error);
+      return { success: false, error: message };
+    }
+  });
+
   // ============================================================================
   // Inventory Handlers
   // ============================================================================

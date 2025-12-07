@@ -953,7 +953,8 @@
   line-height: 1.4;
 }
 
-.studyquest-confirm-buttons {
+.studyquest-confirm-buttons,
+.studyquest-confirm-actions {
   display: flex;
   gap: 12px;
   justify-content: center;

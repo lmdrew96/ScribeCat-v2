@@ -164,6 +164,7 @@ export class StudyQuestManager {
    */
   async loadCharacter(): Promise<StudyQuestCharacterData | null> {
     const userId = this.authManager.getCurrentUser()?.id;
+    logger.debug('loadCharacter called, userId:', userId);
     if (!userId) {
       logger.warn('Cannot load character: no user logged in');
       return null;
@@ -172,7 +173,10 @@ export class StudyQuestManager {
     this.setState({ isLoading: true, error: null });
 
     try {
+      logger.debug('Invoking studyquest:get-character for userId:', userId);
       const result = await window.scribeCat.invoke('studyquest:get-character', userId);
+      logger.debug('studyquest:get-character result:', result);
+
       if (result.success) {
         this.setState({
           character: result.character,
@@ -181,6 +185,7 @@ export class StudyQuestManager {
         logger.info('Character loaded:', result.character?.name ?? 'none');
         return result.character;
       } else {
+        logger.warn('loadCharacter failed:', result.error);
         this.setState({ isLoading: false, error: result.error });
         return null;
       }
@@ -214,12 +219,24 @@ export class StudyQuestManager {
 
   /**
    * Create a new character
+   * @param forceReplace If true, delete existing character first
    */
-  async createCharacter(name: string, classId: CharacterClass): Promise<boolean> {
+  async createCharacter(name: string, classId: CharacterClass, forceReplace = false): Promise<boolean> {
     const userId = this.authManager.getCurrentUser()?.id;
     if (!userId) {
       logger.warn('Cannot create character: no user logged in');
+      this.showNotification('Please sign in to create a character', 'x');
       return false;
+    }
+
+    // If forceReplace, delete existing character first
+    if (forceReplace) {
+      logger.info('Force replacing character - deleting existing first');
+      const deleted = await this.deleteCharacterByUser(userId);
+      if (!deleted) {
+        this.showNotification('Failed to delete existing character', 'x');
+        return false;
+      }
     }
 
     this.setState({ isLoading: true, error: null });
@@ -244,15 +261,59 @@ export class StudyQuestManager {
         this.showNotification(`Welcome, ${name}! Your adventure begins!`, 'sword');
         return true;
       } else {
+        // Check if this is a duplicate character error
+        const isDuplicate = result.error?.includes('duplicate key') ||
+                           result.error?.includes('unique constraint');
+
+        if (isDuplicate) {
+          this.setState({ isLoading: false, error: 'character_exists' });
+          // Return special value to indicate character exists
+          return false;
+        }
+
         this.setState({ isLoading: false, error: result.error });
+        this.showNotification(result.error || 'Failed to create character', 'x');
         return false;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Failed to create character:', error);
       this.setState({ isLoading: false, error: message });
+      this.showNotification(message, 'x');
       return false;
     }
+  }
+
+  /**
+   * Delete character by user ID (used when character can't be loaded)
+   */
+  async deleteCharacterByUser(userId: string): Promise<boolean> {
+    try {
+      const result = await window.scribeCat.invoke('studyquest:delete-character-by-user', userId);
+      if (result.success) {
+        this.setState({
+          character: null,
+          inventory: [],
+          activeQuests: [],
+          currentBattle: null,
+          dungeonState: null,
+        });
+        logger.info('Character deleted by user ID');
+        return true;
+      }
+      logger.error('Failed to delete character:', result.error);
+      return false;
+    } catch (error) {
+      logger.error('Failed to delete character by user:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if the last error was a duplicate character error
+   */
+  hasExistingCharacterError(): boolean {
+    return this.state.error === 'character_exists';
   }
 
   /**

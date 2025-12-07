@@ -656,7 +656,13 @@ export class StudyQuestModal {
     this.container.querySelector('#btn-back-to-title')?.addEventListener('click', () => this.showView('title'));
 
     this.container.querySelector('#btn-create-character')?.addEventListener('click', async () => {
-      const success = await this.characterHandler?.createCharacter();
+      logger.debug('Begin Adventure button clicked');
+      if (!this.characterHandler) {
+        logger.error('characterHandler is null - cannot create character');
+        return;
+      }
+      const success = await this.characterHandler.createCharacter();
+      logger.debug('Character creation result:', success);
       if (success) {
         this.showView('town');
       }

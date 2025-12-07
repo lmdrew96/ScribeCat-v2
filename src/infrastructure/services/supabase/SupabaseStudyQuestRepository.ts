@@ -288,6 +288,18 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
     }
   }
 
+  async deleteCharacterByUserId(userId: string): Promise<void> {
+    const { error } = await this.getClient()
+      .from('study_quest_characters')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Failed to delete character by user ID:', error);
+      throw new Error(`Failed to delete character: ${error.message}`);
+    }
+  }
+
   // ============================================================================
   // Inventory Operations
   // ============================================================================

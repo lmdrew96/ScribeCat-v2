@@ -143,8 +143,9 @@ export class StudyQuestCharacterHandler {
 
   /**
    * Create character
+   * @param forceReplace If true, delete existing character first
    */
-  async createCharacter(): Promise<boolean> {
+  async createCharacter(forceReplace = false): Promise<boolean> {
     const nameInput = this.container.querySelector('#character-name-input') as HTMLInputElement;
     const selectedClass = this.container.querySelector('.studyquest-class-card.selected');
 
@@ -155,15 +156,73 @@ export class StudyQuestCharacterHandler {
 
     if (!classId) return false;
 
-    const success = await this.manager.createCharacter(name, classId as CharacterClass);
+    const success = await this.manager.createCharacter(name, classId as CharacterClass, forceReplace);
     if (success) {
       StudyQuestSound.play('menu-confirm');
       this.stopPreviewAnimation();
       return true;
     } else {
-      StudyQuestSound.play('error');
+      // Check if this is a duplicate character error
+      if (this.manager.hasExistingCharacterError()) {
+        // Show confirmation dialog
+        const confirmed = await this.showReplaceConfirmation();
+        if (confirmed) {
+          // Retry with force replace
+          return this.createCharacter(true);
+        }
+      } else {
+        StudyQuestSound.play('error');
+      }
       return false;
     }
+  }
+
+  /**
+   * Show confirmation dialog for replacing existing character
+   */
+  private showReplaceConfirmation(): Promise<boolean> {
+    return new Promise((resolve) => {
+      // Create confirmation overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'studyquest-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="studyquest-confirm-dialog pixel-card">
+          <h3 class="studyquest-confirm-title">${pixelIcon('warning', 24)} Character Exists</h3>
+          <p class="studyquest-confirm-message">
+            You already have a character. Starting a new game will <strong>permanently delete</strong> all your progress, items, and gold.
+          </p>
+          <div class="studyquest-confirm-actions">
+            <button class="pixel-btn" id="confirm-cancel">Cancel</button>
+            <button class="pixel-btn pixel-btn-danger" id="confirm-replace">Delete & Start New</button>
+          </div>
+        </div>
+      `;
+
+      this.container.appendChild(overlay);
+      StudyQuestSound.play('menu-open');
+
+      // Add event listeners
+      overlay.querySelector('#confirm-cancel')?.addEventListener('click', () => {
+        StudyQuestSound.play('menu-close');
+        overlay.remove();
+        resolve(false);
+      });
+
+      overlay.querySelector('#confirm-replace')?.addEventListener('click', () => {
+        StudyQuestSound.play('menu-confirm');
+        overlay.remove();
+        resolve(true);
+      });
+
+      // Close on backdrop click
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          StudyQuestSound.play('menu-close');
+          overlay.remove();
+          resolve(false);
+        }
+      });
+    });
   }
 
   // ============================================================================
@@ -255,7 +314,10 @@ export class StudyQuestCharacterHandler {
     const sprite = SpriteLoader.getCatSprite(this.selectedColor, 'idle');
     if (sprite) {
       const frameIndex = Math.floor(this.previewFrameCounter / 8) % sprite.frameCount;
-      SpriteLoader.drawFrame(ctx, sprite, frameIndex, 64, 80, 3, false);
+      // Scale 3 = 96x96 sprite. Center on 128x128 canvas:
+      // x = 64 (center, drawFrame uses x - width/2)
+      // y = (128 - 96) / 2 = 16 (top of sprite for vertical centering)
+      SpriteLoader.drawFrame(ctx, sprite, frameIndex, 64, 16, 3, false);
     }
   }
 

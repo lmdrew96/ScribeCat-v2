@@ -528,6 +528,8 @@ const electronAPI = {
     getCharacter: (userId: string) => ipcRenderer.invoke('studyquest:get-character', userId),
     createCharacter: (params: { userId: string; name: string; classId: string }) =>
       ipcRenderer.invoke('studyquest:create-character', params),
+    deleteCharacterByUser: (userId: string) =>
+      ipcRenderer.invoke('studyquest:delete-character-by-user', userId),
     addXp: (params: { userId: string; xp: number }) =>
       ipcRenderer.invoke('studyquest:add-xp', params),
     addGold: (params: { userId: string; gold: number }) =>
