@@ -354,3 +354,66 @@ export const CHARACTER_CLASSES: Record<CharacterClass, CharacterClassData> = {
     spriteKey: 'rogue',
   },
 };
+
+// ============================================================================
+// Centralized XP Formula Utilities (Item 8)
+// Use these instead of inline calculations like "100 + (level * 50)"
+// ============================================================================
+
+/**
+ * Calculate XP required to reach the next level from a given level.
+ * Formula: 100 + (level * 50)
+ *
+ * @param level - The current level
+ * @returns XP needed to reach the next level
+ */
+export function getXpRequiredForLevel(level: number): number {
+  return 100 + level * 50;
+}
+
+/**
+ * Get XP progress information for a character.
+ *
+ * @param character - Character data with level and currentXp
+ * @returns Object with current XP, required XP, and percentage progress
+ */
+export function getXpProgress(character: { level: number; currentXp: number }): {
+  current: number;
+  required: number;
+  percent: number;
+} {
+  const required = getXpRequiredForLevel(character.level);
+  const current = character.currentXp || 0;
+  const percent = Math.min(100, Math.round((current / required) * 100));
+  return { current, required, percent };
+}
+
+/**
+ * Calculate how many levels would be gained from a given amount of XP.
+ *
+ * @param currentLevel - Starting level
+ * @param currentXp - Current XP at that level
+ * @param xpToAdd - Amount of XP being added
+ * @returns Object with new level, remaining XP, and levels gained
+ */
+export function calculateLevelUp(
+  currentLevel: number,
+  currentXp: number,
+  xpToAdd: number
+): {
+  newLevel: number;
+  newXp: number;
+  levelsGained: number;
+} {
+  let level = currentLevel;
+  let xp = currentXp + xpToAdd;
+  let levelsGained = 0;
+
+  while (xp >= getXpRequiredForLevel(level) && level < 50) {
+    xp -= getXpRequiredForLevel(level);
+    level++;
+    levelsGained++;
+  }
+
+  return { newLevel: level, newXp: xp, levelsGained };
+}

@@ -542,6 +542,8 @@ const electronAPI = {
       ipcRenderer.invoke('studyquest:unequip-item', params),
     useItem: (params: { userId: string; itemId: string }) =>
       ipcRenderer.invoke('studyquest:use-item', params),
+    dropItem: (params: { characterId: string; itemId: string }) =>
+      ipcRenderer.invoke('studyquest:drop-item', params),
     // Shop operations
     getShopItems: () => ipcRenderer.invoke('studyquest:get-shop-items'),
     buyItem: (params: { userId: string; itemId: string }) =>

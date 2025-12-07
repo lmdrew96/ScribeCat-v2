@@ -2177,3 +2177,950 @@
     height: 40px;
   }
 }
+
+/* ============================================================================
+   Item 1: Inventory Item Popup
+   ============================================================================ */
+
+.studyquest-item-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10070;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  animation: popupFadeIn 0.2s ease-out;
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.studyquest-item-popup {
+  background: var(--sq-surface, #2a2a4e);
+  border: 4px solid var(--sq-border, #4a4a6a);
+  padding: 20px;
+  min-width: 280px;
+  max-width: 350px;
+  box-shadow: 8px 8px 0 var(--sq-shadow, #0a0a1e);
+  animation: popupSlideIn 0.3s ease-out;
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.studyquest-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid var(--sq-border, #4a4a6a);
+}
+
+.studyquest-popup-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.studyquest-popup-title {
+  flex: 1;
+}
+
+.studyquest-popup-title h3 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: var(--sq-text, #ffffff);
+}
+
+.studyquest-popup-title .item-type {
+  font-size: 9px;
+  color: var(--sq-text-muted, #8a8aaa);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.studyquest-popup-title .item-equipped {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: var(--sq-gold, #ffd700);
+  color: var(--sq-background, #1a1a2e);
+  font-size: 7px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.studyquest-popup-stats {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--sq-background, #1a1a2e);
+  border: 2px solid var(--sq-border, #4a4a6a);
+}
+
+.studyquest-popup-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 10px;
+}
+
+.studyquest-popup-stat .stat-label {
+  color: var(--sq-text-muted, #8a8aaa);
+}
+
+.studyquest-popup-stat .stat-value {
+  color: #66ff66;
+  font-weight: bold;
+}
+
+.studyquest-popup-stat .stat-value.negative {
+  color: #ff6666;
+}
+
+.studyquest-popup-desc {
+  font-size: 9px;
+  color: var(--sq-text-muted, #8a8aaa);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.studyquest-popup-qty {
+  font-size: 9px;
+  color: var(--sq-text-muted, #8a8aaa);
+  margin-bottom: 16px;
+}
+
+.studyquest-popup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studyquest-popup-actions .pixel-btn {
+  width: 100%;
+  font-size: 9px;
+  padding: 10px 16px;
+}
+
+.studyquest-popup-actions .btn-use {
+  background: linear-gradient(180deg, #4ad94a 0%, #2a9a2a 100%);
+  border-color: #1a6a1a;
+}
+
+.studyquest-popup-actions .btn-equip {
+  background: linear-gradient(180deg, #4a90d9 0%, #2a5a9a 100%);
+  border-color: #1a3a6a;
+}
+
+.studyquest-popup-actions .btn-unequip {
+  background: linear-gradient(180deg, #d9a84a 0%, #9a7a2a 100%);
+  border-color: #6a5a1a;
+}
+
+.studyquest-popup-actions .btn-drop {
+  background: linear-gradient(180deg, #d94a4a 0%, #9a2a2a 100%);
+  border-color: #6a1a1a;
+}
+
+.studyquest-popup-actions .btn-cancel {
+  background: linear-gradient(180deg, #5a5a6a 0%, #3a3a4a 100%);
+  border-color: #2a2a3a;
+}
+
+/* ============================================================================
+   Item 3: Dungeon Random Events Overlay
+   ============================================================================ */
+
+.studyquest-event-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10065;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  animation: eventFadeIn 0.3s ease-out;
+}
+
+@keyframes eventFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.studyquest-event-content {
+  background: var(--sq-surface, #2a2a4e);
+  border: 4px solid var(--sq-border, #4a4a6a);
+  padding: 32px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 8px 8px 0 var(--sq-shadow, #0a0a1e);
+  animation: eventSlideIn 0.4s ease-out;
+}
+
+@keyframes eventSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.studyquest-event-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: eventIconPulse 2s ease-in-out infinite;
+}
+
+@keyframes eventIconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.studyquest-event-title {
+  font-size: 18px;
+  color: var(--sq-gold, #ffd700);
+  margin: 0 0 12px 0;
+  text-shadow: 2px 2px 0 var(--sq-shadow, #8b4513);
+}
+
+.studyquest-event-desc {
+  font-size: 11px;
+  color: var(--sq-text, #ffffff);
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.studyquest-event-result {
+  font-size: 12px;
+  color: #66ff66;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--sq-background, #1a1a2e);
+  border: 2px solid var(--sq-border, #4a4a6a);
+}
+
+.studyquest-event-result.negative {
+  color: #ff6666;
+}
+
+.studyquest-event-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studyquest-event-actions .pixel-btn {
+  width: 100%;
+}
+
+/* Event type-specific colors */
+.studyquest-event-content.event-battle {
+  border-color: #ff4444;
+}
+
+.studyquest-event-content.event-treasure {
+  border-color: #ffd700;
+}
+
+.studyquest-event-content.event-trap {
+  border-color: #9966ff;
+}
+
+.studyquest-event-content.event-rest {
+  border-color: #66ff66;
+}
+
+.studyquest-event-content.event-mystery {
+  border-color: #66ccff;
+}
+
+/* ============================================================================
+   Item 4: Battle Action Tooltips
+   ============================================================================ */
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::before,
+[data-tooltip]::after {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 8px 12px;
+  background: var(--sq-background, #1a1a2e);
+  border: 3px solid var(--sq-border, #4a4a6a);
+  color: var(--sq-text, #ffffff);
+  font-size: 9px;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 200px;
+  text-align: center;
+  box-shadow: 4px 4px 0 var(--sq-shadow, #0a0a1e);
+}
+
+[data-tooltip]::after {
+  content: '';
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--sq-border, #4a4a6a);
+}
+
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+[data-tooltip]:hover::before {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================================
+   Item 5: Character Creation Cat Preview
+   ============================================================================ */
+
+.studyquest-cat-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--sq-background, #1a1a2e);
+  border: 4px solid var(--sq-border, #4a4a6a);
+  box-shadow: 4px 4px 0 var(--sq-shadow, #0a0a1e);
+}
+
+#cat-preview-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: transparent;
+  margin-bottom: 8px;
+}
+
+.studyquest-cat-preview .preview-label {
+  font-size: 10px;
+  color: var(--sq-text-muted, #8a8aaa);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ============================================================================
+   Item 6: Battle Item Panel Transition
+   ============================================================================ */
+
+.studyquest-battle-items {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
+  padding: 0 12px;
+}
+
+.studyquest-battle-items.visible {
+  max-height: 300px;
+  opacity: 1;
+  padding: 12px;
+}
+
+.studyquest-battle-items.hiding {
+  animation: itemPanelSlideOut 0.3s ease-out forwards;
+}
+
+@keyframes itemPanelSlideOut {
+  from {
+    max-height: 300px;
+    opacity: 1;
+    padding: 12px;
+  }
+  to {
+    max-height: 0;
+    opacity: 0;
+    padding: 0 12px;
+  }
+}
+
+/* ============================================================================
+   Item 7: Stat Explanations
+   ============================================================================ */
+
+.stat-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  background: var(--sq-surface-alt, #3a3a5e);
+  border: 2px solid var(--sq-border, #4a4a6a);
+  border-radius: 50%;
+  font-size: 8px;
+  color: var(--sq-text-muted, #8a8aaa);
+  cursor: help;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+}
+
+.stat-info:hover {
+  background: var(--sq-primary, #4a90d9);
+  border-color: var(--sq-accent, #6a6aae);
+  color: var(--sq-text, #ffffff);
+}
+
+/* Equipment section styling */
+.studyquest-equipment-section {
+  grid-column: 1 / -1;
+  margin-top: 16px;
+}
+
+.studyquest-equipment-section h3 {
+  font-size: 12px;
+  color: var(--sq-gold, #ffd700);
+  margin: 0 0 12px 0;
+  text-shadow: 2px 2px 0 var(--sq-shadow, #8b4513);
+}
+
+.studyquest-equipment-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studyquest-equipment-slot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--sq-background, #1a1a2e);
+  border: 2px solid var(--sq-border, #4a4a6a);
+  font-size: 10px;
+}
+
+.studyquest-equipment-slot .slot-label {
+  color: var(--sq-text-muted, #8a8aaa);
+}
+
+.studyquest-equipment-slot .slot-value {
+  color: var(--sq-text, #ffffff);
+}
+
+/* ============================================================================
+   Item 12: Save Indicator
+   ============================================================================ */
+
+.studyquest-save-indicator {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 10055;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--sq-surface, #2a2a4e);
+  border: 3px solid var(--sq-border, #4a4a6a);
+  box-shadow: 4px 4px 0 var(--sq-shadow, #0a0a1e);
+  font-size: 10px;
+  color: var(--sq-text, #ffffff);
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.studyquest-save-indicator.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.studyquest-save-indicator .save-icon {
+  animation: saveIconSpin 1s linear infinite;
+}
+
+@keyframes saveIconSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.studyquest-save-indicator.saved .save-icon {
+  animation: none;
+  color: #66ff66;
+}
+
+/* ============================================================================
+   Item 13: Boss Introduction Screen
+   ============================================================================ */
+
+.studyquest-boss-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10080;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  animation: bossIntroFadeIn 0.5s ease-out;
+}
+
+@keyframes bossIntroFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.boss-intro-warning {
+  font-size: 16px;
+  color: #ff4444;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin-bottom: 32px;
+  animation: warningFlash 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes warningFlash {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.boss-intro-sprite {
+  margin-bottom: 24px;
+  animation: bossAppear 0.8s ease-out 0.3s both;
+}
+
+.boss-intro-sprite canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+@keyframes bossAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.boss-intro-name {
+  font-size: 28px;
+  color: var(--sq-gold, #ffd700);
+  text-shadow:
+    3px 3px 0 #8b4513,
+    0 0 20px rgba(255, 68, 68, 0.5);
+  margin: 0 0 8px 0;
+  animation: bossNameAppear 0.6s ease-out 0.6s both;
+}
+
+@keyframes bossNameAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.boss-intro-title {
+  font-size: 12px;
+  color: #ff6666;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 24px 0;
+  animation: bossNameAppear 0.6s ease-out 0.8s both;
+}
+
+.boss-intro-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+  animation: bossNameAppear 0.6s ease-out 1s both;
+}
+
+.boss-stat {
+  text-align: center;
+}
+
+.boss-stat .stat-icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.boss-stat .stat-value {
+  font-size: 14px;
+  color: var(--sq-text, #ffffff);
+  font-weight: bold;
+}
+
+.boss-stat .stat-label {
+  font-size: 8px;
+  color: var(--sq-text-muted, #8a8aaa);
+  text-transform: uppercase;
+}
+
+.boss-intro-continue {
+  font-size: 10px;
+  color: var(--sq-text-muted, #8a8aaa);
+  animation: pulse-opacity 1.5s infinite, bossNameAppear 0.6s ease-out 1.2s both;
+}
+
+/* ============================================================================
+   Item 14: Inn Healing Animation
+   ============================================================================ */
+
+.studyquest-inn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10075;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 30, 0.95);
+  animation: innFadeIn 0.5s ease-out;
+}
+
+@keyframes innFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.inn-cat-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.inn-cat-sprite {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.inn-zzz {
+  position: absolute;
+  font-size: 24px;
+  color: var(--sq-text, #ffffff);
+  opacity: 0;
+  animation: zzzFloat 2s ease-in-out infinite;
+}
+
+.inn-zzz:nth-child(2) {
+  right: -20px;
+  top: 0;
+  animation-delay: 0s;
+}
+
+.inn-zzz:nth-child(3) {
+  right: -35px;
+  top: -20px;
+  font-size: 20px;
+  animation-delay: 0.5s;
+}
+
+.inn-zzz:nth-child(4) {
+  right: -45px;
+  top: -40px;
+  font-size: 16px;
+  animation-delay: 1s;
+}
+
+@keyframes zzzFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0);
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px) translateX(15px);
+  }
+}
+
+.inn-message {
+  font-size: 14px;
+  color: var(--sq-text, #ffffff);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.inn-hp-restore {
+  font-size: 18px;
+  color: #66ff66;
+  font-weight: bold;
+  animation: hpRestorePulse 0.5s ease-out;
+}
+
+@keyframes hpRestorePulse {
+  0% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   Item 15: Victory/Defeat Overlay Screens
+   ============================================================================ */
+
+.studyquest-battle-result-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10085;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: resultFadeIn 0.5s ease-out;
+}
+
+@keyframes resultFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Victory Screen */
+.studyquest-battle-result-overlay.victory {
+  background: radial-gradient(ellipse at center, rgba(255, 215, 0, 0.2) 0%, rgba(0, 0, 0, 0.9) 100%);
+}
+
+.victory-banner {
+  margin-bottom: 32px;
+  animation: victoryAppear 0.6s ease-out;
+}
+
+@keyframes victoryAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.victory-title {
+  font-size: 48px;
+  color: var(--sq-gold, #ffd700);
+  text-shadow:
+    4px 4px 0 #8b4513,
+    0 0 30px rgba(255, 215, 0, 0.5);
+  margin: 0;
+  letter-spacing: 6px;
+  animation: victoryGlow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes victoryGlow {
+  from {
+    text-shadow:
+      4px 4px 0 #8b4513,
+      0 0 20px rgba(255, 215, 0, 0.3);
+  }
+  to {
+    text-shadow:
+      4px 4px 0 #8b4513,
+      0 0 40px rgba(255, 215, 0, 0.7);
+  }
+}
+
+.victory-rewards {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 32px;
+  animation: rewardsSlideUp 0.6s ease-out 0.3s both;
+}
+
+@keyframes rewardsSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.victory-reward {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: var(--sq-surface, #2a2a4e);
+  border: 4px solid var(--sq-border, #4a4a6a);
+  box-shadow: 4px 4px 0 var(--sq-shadow, #0a0a1e);
+}
+
+.victory-reward .reward-icon {
+  font-size: 32px;
+}
+
+.victory-reward .reward-value {
+  font-size: 18px;
+  color: var(--sq-gold, #ffd700);
+  font-weight: bold;
+}
+
+.victory-reward .reward-label {
+  font-size: 9px;
+  color: var(--sq-text-muted, #8a8aaa);
+  text-transform: uppercase;
+}
+
+.victory-continue {
+  font-size: 10px;
+  color: var(--sq-text-muted, #8a8aaa);
+  animation: pulse-opacity 1.5s infinite, rewardsSlideUp 0.6s ease-out 0.6s both;
+}
+
+/* Defeat Screen */
+.studyquest-battle-result-overlay.defeat {
+  background: radial-gradient(ellipse at center, rgba(255, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.95) 100%);
+}
+
+.defeat-banner {
+  margin-bottom: 32px;
+  animation: defeatAppear 0.8s ease-out;
+}
+
+@keyframes defeatAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.defeat-title {
+  font-size: 36px;
+  color: #ff4444;
+  text-shadow:
+    3px 3px 0 #440000,
+    0 0 20px rgba(255, 68, 68, 0.5);
+  margin: 0;
+  letter-spacing: 4px;
+}
+
+.defeat-message {
+  font-size: 12px;
+  color: var(--sq-text-muted, #8a8aaa);
+  margin-bottom: 24px;
+  animation: defeatAppear 0.8s ease-out 0.3s both;
+}
+
+.defeat-lost {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+  animation: defeatAppear 0.8s ease-out 0.5s both;
+}
+
+.defeat-lost-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 20px;
+  background: rgba(68, 0, 0, 0.5);
+  border: 3px solid #660000;
+}
+
+.defeat-lost-item .lost-value {
+  font-size: 16px;
+  color: #ff6666;
+  font-weight: bold;
+}
+
+.defeat-lost-item .lost-label {
+  font-size: 8px;
+  color: #aa6666;
+  text-transform: uppercase;
+}
+
+.defeat-actions {
+  display: flex;
+  gap: 16px;
+  animation: defeatAppear 0.8s ease-out 0.7s both;
+}
+
+.defeat-actions .pixel-btn {
+  min-width: 120px;
+}

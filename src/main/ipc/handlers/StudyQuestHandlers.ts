@@ -243,6 +243,25 @@ export function registerStudyQuestHandlers(): void {
     }
   );
 
+  // Item 2: Drop item handler
+  ipcMain.handle(
+    'studyquest:drop-item',
+    async (_event, params: { characterId: string; itemId: string }) => {
+      try {
+        const success = await studyQuestRepo.removeFromInventory({
+          characterId: params.characterId,
+          itemId: params.itemId,
+          quantity: 1,
+        });
+        return { success };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Failed to drop item:', error);
+        return { success: false, error: message };
+      }
+    }
+  );
+
   // ============================================================================
   // Dungeon Handlers
   // ============================================================================

@@ -46,6 +46,7 @@ const GOLD_PER_AI_TOOL = 2;
 const GOLD_PER_AI_CHAT = 1;
 const GOLD_SESSION_COMPLETE_BONUS = 25;
 
+// Item 10: Consolidated state interface
 export interface StudyQuestState {
   character: StudyQuestCharacterData | null;
   inventory: InventorySlot[];
@@ -55,6 +56,8 @@ export interface StudyQuestState {
   dungeonState: DungeonRunState | null;
   isLoading: boolean;
   error: string | null;
+  // UI preferences (persisted via localStorage)
+  selectedCatColor: 'brown' | 'orange' | 'grey' | 'black' | 'white';
 }
 
 export interface StudyRewardResult {
@@ -80,6 +83,8 @@ export class StudyQuestManager {
     dungeonState: null,
     isLoading: false,
     error: null,
+    // Load saved color from localStorage or default to brown
+    selectedCatColor: (localStorage.getItem('studyquest-cat-color') as StudyQuestState['selectedCatColor']) || 'brown',
   };
 
   private stateListeners: Set<(state: StudyQuestState) => void> = new Set();
@@ -128,6 +133,26 @@ export class StudyQuestManager {
    */
   getState(): StudyQuestState {
     return { ...this.state };
+  }
+
+  // ============================================================================
+  // Item 10: Consolidated Preferences
+  // ============================================================================
+
+  /**
+   * Get selected cat color
+   */
+  getSelectedCatColor(): StudyQuestState['selectedCatColor'] {
+    return this.state.selectedCatColor;
+  }
+
+  /**
+   * Set selected cat color (persists to localStorage)
+   */
+  setSelectedCatColor(color: StudyQuestState['selectedCatColor']): void {
+    this.state.selectedCatColor = color;
+    localStorage.setItem('studyquest-cat-color', color);
+    this.notifyListeners();
   }
 
   // ============================================================================
@@ -451,11 +476,59 @@ export class StudyQuestManager {
 
       if (result.success) {
         this.setState({ character: result.character });
+        await this.loadInventory();
         return true;
       }
       return false;
     } catch (error) {
       logger.error('Failed to equip item:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Unequip an item (Item 2: Equipment System)
+   */
+  async unequipItem(itemId: string): Promise<boolean> {
+    if (!this.state.character) return false;
+
+    try {
+      const result = await window.scribeCat.invoke('studyquest:unequip-item', {
+        characterId: this.state.character.id,
+        itemId,
+      });
+
+      if (result.success) {
+        this.setState({ character: result.character });
+        await this.loadInventory();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error('Failed to unequip item:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Drop an item from inventory (Item 2: Equipment System)
+   */
+  async dropItem(itemId: string): Promise<boolean> {
+    if (!this.state.character) return false;
+
+    try {
+      const result = await window.scribeCat.invoke('studyquest:drop-item', {
+        characterId: this.state.character.id,
+        itemId,
+      });
+
+      if (result.success) {
+        await this.loadInventory();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error('Failed to drop item:', error);
       return false;
     }
   }

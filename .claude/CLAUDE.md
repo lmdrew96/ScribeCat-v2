@@ -17,12 +17,31 @@ If something's broken, fix it properly. Don't patch over symptoms - diagnose and
 - BAD: "Just restart the service when it fails"
 - GOOD: "The service is failing because of Y. Let's fix Y."
 
+**COMPLETE ALL ASPECTS OF EVERY PLAN!**
+
+When given a task or plan, execute it fully. Don't stop partway through or leave loose ends. If a plan has 5 steps, complete all 5. If you're implementing a feature, finish all its components before moving on.
+
+**Examples:**
+- BAD: Implementing 3 of 5 planned functions and saying "the rest follows the same pattern"
+- GOOD: Implementing all 5 functions completely
+- BAD: Creating a component without its styles, tests, or integration
+- GOOD: Delivering the complete, working feature
+
 ## 🚦 Before You Start ANY Work
 
-1. **Check version** in package.json (currently v1.74.0)
+1. **Check version** in package.json (currently v1.90.0)
 2. **Run `npm run clean`** to delete old build artifacts
 3. **Read these instructions** fully before coding
-4. **Known Issue:** `npm run dev` does not work successfully. Do not attempt to run it without being prompted. This is a known issue we'll address eventually.
+
+## ⛔ CRITICAL: Do NOT Run `npm run dev`
+
+**`npm run dev` does not work in this project.** It fails in Claude Code for unresolved reasons. Do not attempt to run it unless explicitly asked to debug it.
+
+**Instead, use:**
+- `npm run compile` — Compile TypeScript
+- `npm run build` — Full production build
+
+This is a known issue we'll address eventually, but for now, avoid `npm run dev` entirely.
 
 ## Key Features
 
@@ -193,11 +212,11 @@ npm run clean   # Delete dist/ folder
 
 ### ALWAYS Update Version Before Commits
 Update `version` in package.json using semantic versioning:
-- **Patch** (1.74.0 → 1.74.1): Bug fixes
-- **Minor** (1.74.0 → 1.75.0): New features
-- **Major** (1.74.0 → 2.0.0): Breaking changes
+- **Patch** (1.90.0 → 1.90.1): Bug fixes
+- **Minor** (1.90.0 → 1.91.0): New features
+- **Major** (1.90.0 → 2.0.0): Breaking changes
 
-**Commit format:** `"v1.74.1: Brief description of change"`
+**Commit format:** `"v1.90.1: Brief description of change"`
 
 ## Build Process
 
@@ -208,7 +227,7 @@ npm run build:mac/win/linux  # Platform-specific builds
 npm run clean            # Delete dist/
 ```
 
-**Note:** `npm run dev` is currently broken - do not attempt without prompting.
+**⛔ DO NOT USE:** `npm run dev` — It's broken and will not work.
 
 **Build outputs:** `dist/main/`, `dist/preload/`, `dist/renderer/`
 
@@ -246,6 +265,7 @@ npm run clean            # Delete dist/
 - Dump 5+ options without a recommendation
 - Use vague suggestions like "you could try..."
 - Suggest bandaid fixes that don't address root causes
+- Leave tasks partially completed
 
 ## Testing
 
@@ -273,6 +293,7 @@ npm run test:ui           # Visual UI
 3. Test locally before committing
 4. Clean build (`npm run clean`) before final testing
 5. Update version in package.json
+6. **Complete ALL aspects of the plan before moving on**
 
 ## Security
 
@@ -298,13 +319,14 @@ npm run test:ui           # Visual UI
 
 1. **Starting work:** Check issues or ask what to work on
 2. **Before building:** `npm run clean`
-3. **After changes:** Test locally
+3. **After changes:** Test locally (use `npm run compile` or `npm run build`, NOT `npm run dev`)
 4. **Before committing:** Update version, include in commit message
 5. **Commit format:** `"v1.x.x: Brief description"`
+6. **Always:** Complete all aspects of the plan — no partial implementations
 
 ## Recent Version History
 
-- **v1.85-87.x:** Major refactoring (FriendsModal, AnalyticsDashboard, TutorialManager, managers)
+- **v1.85-90.x:** Major refactoring (FriendsModal, AnalyticsDashboard, TutorialManager, managers)
 - **v1.75-84.x:** Component refactoring, Neomail direct messages, module extraction
 - **v1.74.0:** Theme redesign for visual distinction
 - **v1.70-73.x:** Neobrutalism design, SVG icons, custom fonts, avatar uploads
@@ -312,4 +334,4 @@ npm run test:ui           # Visual UI
 
 ## Remember
 
-You're helping a busy student juggling school and development. Be supportive, clear, and actionable. Small wins matter. Fix things properly the first time!
+You're helping a busy student juggling school and development. Be supportive, clear, and actionable. Small wins matter. Fix things properly the first time — and finish what you start!
