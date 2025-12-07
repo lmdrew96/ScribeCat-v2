@@ -215,6 +215,7 @@ export class StudyQuestSpriteRenderer {
   applyThemeColors(container: HTMLElement, theme: StudyQuestTheme): void {
     const colors = theme.colors;
 
+    // Core colors
     container.style.setProperty('--sq-primary', colors.primary);
     container.style.setProperty('--sq-secondary', colors.secondary);
     container.style.setProperty('--sq-accent', colors.accent);
@@ -231,6 +232,11 @@ export class StudyQuestSpriteRenderer {
     container.style.setProperty('--sq-hp-bg', colors.hpBg);
     container.style.setProperty('--sq-xp', colors.xp);
     container.style.setProperty('--sq-xp-bg', colors.xpBg);
+
+    // New semantic colors
+    container.style.setProperty('--sq-success', colors.success);
+    container.style.setProperty('--sq-danger', colors.danger);
+    container.style.setProperty('--sq-warning', colors.warning);
   }
 
   /**

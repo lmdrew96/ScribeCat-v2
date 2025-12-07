@@ -9,10 +9,14 @@ import { createLogger } from '../../../shared/logger.js';
 import {
   type StudyQuestTheme,
   type StudyQuestThemeId,
-  type ThemeSpriteMap,
+  type ThemeSpriteConfig,
   STUDYQUEST_THEMES,
   getTheme,
+  migrateThemeId,
 } from './StudyQuestThemes.js';
+
+// Backward compatibility alias
+type ThemeSpriteMap = ThemeSpriteConfig;
 import { spriteRenderer } from './StudyQuestSpriteRenderer.js';
 
 const logger = createLogger('StudyQuestThemeManager');
@@ -29,7 +33,7 @@ interface RegisteredElement {
 
 export class StudyQuestThemeManager {
   private static instance: StudyQuestThemeManager;
-  private currentThemeId: StudyQuestThemeId = 'default';
+  private currentThemeId: StudyQuestThemeId = 'cat';
   private currentTheme: StudyQuestTheme;
   private listeners: Set<ThemeChangeListener> = new Set();
   private registeredElements: RegisteredElement[] = [];
@@ -37,7 +41,7 @@ export class StudyQuestThemeManager {
   private isInitialized = false;
 
   private constructor() {
-    this.currentTheme = STUDYQUEST_THEMES.default;
+    this.currentTheme = STUDYQUEST_THEMES.cat;
     this.loadFromStorage();
   }
 
@@ -63,9 +67,9 @@ export class StudyQuestThemeManager {
         await spriteRenderer.loadSpriteSheet(this.currentTheme.spriteSheet);
       } catch (error) {
         logger.error('Failed to load theme sprite sheet:', error);
-        // Fall back to default theme
-        this.currentThemeId = 'default';
-        this.currentTheme = STUDYQUEST_THEMES.default;
+        // Fall back to cat theme (new default)
+        this.currentThemeId = 'cat';
+        this.currentTheme = STUDYQUEST_THEMES.cat;
       }
     }
 
@@ -82,10 +86,19 @@ export class StudyQuestThemeManager {
   private loadFromStorage(): void {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && saved in STUDYQUEST_THEMES) {
-        this.currentThemeId = saved as StudyQuestThemeId;
-        this.currentTheme = getTheme(this.currentThemeId);
-        logger.info(`Loaded saved theme: ${this.currentThemeId}`);
+      if (saved) {
+        // Migrate old theme IDs to new ones
+        const migratedId = migrateThemeId(saved);
+        if (migratedId in STUDYQUEST_THEMES) {
+          this.currentThemeId = migratedId;
+          this.currentTheme = getTheme(this.currentThemeId);
+          // Save migrated ID back to storage if it changed
+          if (saved !== migratedId) {
+            localStorage.setItem(STORAGE_KEY, migratedId);
+            logger.info(`Migrated theme from '${saved}' to '${migratedId}'`);
+          }
+          logger.info(`Loaded saved theme: ${this.currentThemeId}`);
+        }
       }
     } catch (error) {
       logger.warn('Failed to load theme from storage:', error);
