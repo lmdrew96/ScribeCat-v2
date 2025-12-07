@@ -5,8 +5,8 @@
  * Maps content types, room elements, and decorations to specific tile images.
  */
 
-// Base path for Kenney dungeon tiles (from src/renderer/canvas/dungeon/ to project root)
-const DUNGEON_TILE_BASE = '../../../../assets/sprites/studyquest/kenney/dungeon/';
+// Base path for Kenney dungeon tiles (from dist/renderer/ to project root assets)
+const DUNGEON_TILE_BASE = '../../assets/sprites/studyquest/kenney/dungeon/';
 
 // Tile size in pixels (before scaling)
 export const DUNGEON_TILE_SIZE = 16;
