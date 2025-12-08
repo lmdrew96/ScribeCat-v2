@@ -8,3 +8,4 @@
 export { StudyBuddyGame } from './StudyBuddyGame.js';
 export { TownGame } from './TownGame.js';
 export { DungeonGame } from './DungeonGame.js';
+export { UITestGame, runUITest } from './UITestGame.js';

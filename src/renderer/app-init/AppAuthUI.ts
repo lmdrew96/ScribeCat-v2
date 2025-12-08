@@ -13,9 +13,7 @@ import type { BrowseRoomsModal } from '../components/BrowseRoomsModal.js';
 import type { StudyRoomView } from '../components/StudyRoomView.js';
 import type { RealtimeNotificationManager } from '../managers/RealtimeNotificationManager.js';
 import type { notificationTicker } from '../managers/NotificationTicker.js';
-// TODO: StudyQuest will be rebuilt with KAPLAY
-// import type { StudyQuestManager } from '../managers/StudyQuestManager.js';
-// import type { StudyQuestModal } from '../components/StudyQuestModal.js';
+import type { StudyQuestModal } from '../components/StudyQuestModal.js';
 
 export interface AuthUIDependencies {
   authManager: AuthManager;
@@ -27,7 +25,7 @@ export interface AuthUIDependencies {
   studyRoomView: StudyRoomView;
   realtimeNotificationManager: RealtimeNotificationManager;
   notificationTicker: typeof notificationTicker;
-  // TODO: studyQuestManager and studyQuestModal will be rebuilt with KAPLAY
+  studyQuestModal: StudyQuestModal;
 }
 
 export class AppAuthUI {
@@ -56,10 +54,10 @@ export class AppAuthUI {
       deps.authScreen.show();
     });
 
-    // TODO: StudyQuest button click will be rebuilt with KAPLAY
-    // studyQuestBtn?.addEventListener('click', () => {
-    //   deps.studyQuestModal?.open();
-    // });
+    // StudyQuest button click - opens the game modal
+    studyQuestBtn?.addEventListener('click', () => {
+      deps.studyQuestModal?.open();
+    });
   }
 
   /**
