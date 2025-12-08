@@ -9,7 +9,8 @@ import { AIClient } from './AIClient.js';
 import { ContentAnalyzer } from './ContentAnalyzer.js';
 import { SmartSuggestionEngine } from './SmartSuggestionEngine.js';
 import { config } from '../../config.js';
-import { studyQuestIntegration } from '../managers/StudyQuestIntegration.js';
+// TODO: StudyQuest integration will be rebuilt with KAPLAY
+// import { studyQuestIntegration } from '../managers/StudyQuestIntegration.js';
 
 export class AIManager {
   private chatUI: ChatUI;
@@ -371,8 +372,8 @@ export class AIManager {
     this.chatUI.clearInput();
     this.chatUI.addUserMessage(message);
 
-    // Track for StudyQuest rewards
-    studyQuestIntegration.recordAIChatMessage();
+    // TODO: Track for StudyQuest rewards - will be rebuilt with KAPLAY
+    // studyQuestIntegration.recordAIChatMessage();
 
     // Prepare options
     const contextOptions = this.chatUI.getContextOptions();

@@ -1,102 +1,90 @@
 /**
- * Player Component Factory
+ * Player Component
  *
- * Creates the player entity with all necessary components.
- * Movement logic is handled by the movement system, not here.
+ * Creates and manages the player cat entity.
  */
 
 import type { KAPLAYCtx, GameObj } from 'kaplay';
-import { loadCatSprites, getCatSpriteName, type CatColor, type Direction } from '../sprites/catSprites.js';
+import { loadCatSprites, getCatSpriteName, type CatColor } from '../sprites/catSprites.js';
 
 export interface PlayerConfig {
+  k: KAPLAYCtx;
   x: number;
   y: number;
   color: CatColor;
 }
 
-export interface PlayerComp {
-  direction: Direction;
+export interface Player {
+  entity: GameObj;
+  color: CatColor;
   isMoving: boolean;
   canMove: boolean;
-  setMoving(moving: boolean): void;
-  setDirection(dir: Direction): void;
+
   freeze(): void;
   unfreeze(): void;
+  moveTo(x: number, y: number): void;
+  setAnimation(anim: 'idle' | 'walk'): void;
 }
 
-/**
- * Custom player behavior component
- */
-function playerBehavior(): PlayerComp & { id: string } {
-  return {
-    id: 'playerBehavior',
-    direction: 'down' as Direction,
-    isMoving: false,
-    canMove: true,
+export async function createPlayer(config: PlayerConfig): Promise<Player> {
+  const { k, x, y, color } = config;
 
-    setMoving(moving: boolean) {
-      this.isMoving = moving;
-    },
+  await loadCatSprites(k, color);
 
-    setDirection(dir: Direction) {
-      this.direction = dir;
-    },
-
-    freeze() {
-      this.canMove = false;
-    },
-
-    unfreeze() {
-      this.canMove = true;
-    },
-  };
-}
-
-/**
- * Create a player entity
- */
-export async function createPlayer(k: KAPLAYCtx, config: PlayerConfig): Promise<GameObj> {
-  // Ensure sprites are loaded
-  await loadCatSprites(k, config.color);
-
-  const player = k.add([
-    k.sprite(getCatSpriteName(config.color, 'idle')),
-    k.pos(config.x, config.y),
+  const entity = k.add([
+    k.sprite(getCatSpriteName(color, 'idle')),
+    k.pos(x, y),
     k.anchor('center'),
     k.scale(2),
     k.area({ scale: 0.5 }),
     k.z(10),
     'player',
-    playerBehavior(),
   ]);
 
-  player.play('idle');
+  entity.play('idle');
+
+  let isMoving = false;
+  let canMove = true;
+  let currentAnim: 'idle' | 'walk' = 'idle';
+
+  const player: Player = {
+    entity,
+    color,
+
+    get isMoving() {
+      return isMoving;
+    },
+    set isMoving(val: boolean) {
+      isMoving = val;
+    },
+
+    get canMove() {
+      return canMove;
+    },
+    set canMove(val: boolean) {
+      canMove = val;
+    },
+
+    freeze() {
+      canMove = false;
+    },
+
+    unfreeze() {
+      canMove = true;
+    },
+
+    moveTo(newX: number, newY: number) {
+      entity.pos.x = newX;
+      entity.pos.y = newY;
+    },
+
+    setAnimation(anim: 'idle' | 'walk') {
+      if (currentAnim === anim) return;
+      currentAnim = anim;
+      entity.use(k.sprite(getCatSpriteName(color, anim)));
+      entity.play(anim);
+    },
+  };
 
   return player;
-}
-
-/**
- * Update player animation based on state
- */
-export function updatePlayerAnimation(k: KAPLAYCtx, player: GameObj, color: CatColor): void {
-  const behavior = player as unknown as GameObj & PlayerComp;
-
-  if (behavior.isMoving) {
-    const walkSprite = getCatSpriteName(color, 'walk');
-    // Check if we need to switch sprites
-    try {
-      player.use(k.sprite(walkSprite));
-      player.play('walk');
-    } catch {
-      // Sprite already loaded
-    }
-  } else {
-    const idleSprite = getCatSpriteName(color, 'idle');
-    try {
-      player.use(k.sprite(idleSprite));
-      player.play('idle');
-    } catch {
-      // Sprite already loaded
-    }
-  }
 }

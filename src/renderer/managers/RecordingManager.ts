@@ -16,7 +16,8 @@ import { ChatUI } from '../ai/ChatUI.js';
 import { createLogger } from '../../shared/logger.js';
 import { config } from '../../config.js';
 import { Transcription, TranscriptionSegment } from '../../domain/entities/Transcription.js';
-import { studyQuestIntegration } from './StudyQuestIntegration.js';
+// TODO: StudyQuest integration will be rebuilt with KAPLAY
+// import { studyQuestIntegration } from './StudyQuestIntegration.js';
 
 const logger = createLogger('RecordingManager');
 
@@ -127,8 +128,8 @@ export class RecordingManager {
     // Start live AI suggestions
     this.chatUI.startRecording();
 
-    // Start StudyQuest session tracking
-    studyQuestIntegration.startSession();
+    // TODO: Start StudyQuest session tracking - will be rebuilt with KAPLAY
+    // studyQuestIntegration.startSession();
 
     // Update UI
     this.viewManager.updateRecordingState(true, transcriptionMode);
@@ -332,13 +333,13 @@ export class RecordingManager {
           });
       }
 
-      // Award StudyQuest XP and gold for completed study session via integration
-      if (sessionId) {
-        logger.info('Ending StudyQuest session tracking and awarding rewards');
-        studyQuestIntegration.endSession(true).catch(error => {
-          logger.warn('Failed to end StudyQuest session:', error);
-        });
-      }
+      // TODO: Award StudyQuest XP and gold - will be rebuilt with KAPLAY
+      // if (sessionId) {
+      //   logger.info('Ending StudyQuest session tracking and awarding rewards');
+      //   studyQuestIntegration.endSession(true).catch(error => {
+      //     logger.warn('Failed to end StudyQuest session:', error);
+      //   });
+      // }
 
       // If there was a save error, throw it now (after attempting recovery)
       if (saveError) {

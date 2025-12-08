@@ -2,10 +2,8 @@
  * Game Configuration
  *
  * Constants and configuration for StudyQuest game features.
+ * KAPLAY is now the only game engine.
  */
-
-// Feature flag for gradual migration
-export const USE_KAPLAY = true;
 
 // Canvas dimensions
 export const STUDY_BUDDY_WIDTH = 100;

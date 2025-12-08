@@ -1,14 +1,11 @@
 /**
  * Movement System
  *
- * Handles player movement input and physics.
- * Extracted from DungeonScene for reuse.
+ * Handles player input and movement.
  */
 
-import type { KAPLAYCtx, GameObj } from 'kaplay';
-import { PLAYER_SPEED } from '../config.js';
-import { updatePlayerAnimation, type PlayerComp } from '../components/player.js';
-import type { CatColor } from '../sprites/catSprites.js';
+import type { KAPLAYCtx } from 'kaplay';
+import type { Player } from '../components/Player.js';
 
 export interface MovementBounds {
   minX: number;
@@ -17,30 +14,21 @@ export interface MovementBounds {
   maxY: number;
 }
 
-export interface MovementSystemConfig {
-  player: GameObj;
-  catColor: CatColor;
+export interface MovementConfig {
+  k: KAPLAYCtx;
+  player: Player;
+  speed: number;
   bounds: MovementBounds;
-  speed?: number;
 }
 
-/**
- * Setup movement system for a player
- * Returns a cancel function to stop the system
- */
-export function setupMovementSystem(k: KAPLAYCtx, config: MovementSystemConfig): () => void {
-  const { player, catColor, bounds, speed = PLAYER_SPEED } = config;
-  const behavior = player as unknown as GameObj & PlayerComp;
-
-  // Track last sprite state to avoid unnecessary updates
-  let lastMovingState = false;
+export function setupMovement(config: MovementConfig): () => void {
+  const { k, player, speed, bounds } = config;
 
   const cancel = k.onUpdate(() => {
-    // Skip if player can't move (during transitions, dialogs, etc.)
-    if (!behavior.canMove) {
-      if (behavior.isMoving) {
-        behavior.setMoving(false);
-        updatePlayerAnimation(k, player, catColor);
+    if (!player.canMove) {
+      if (player.isMoving) {
+        player.isMoving = false;
+        player.setAnimation('idle');
       }
       return;
     }
@@ -57,30 +45,28 @@ export function setupMovementSystem(k: KAPLAYCtx, config: MovementSystemConfig):
     const moving = dx !== 0 || dy !== 0;
 
     if (moving) {
-      // Normalize diagonal movement
+      // Normalize diagonal
       const len = Math.sqrt(dx * dx + dy * dy);
       const moveX = (dx / len) * speed * k.dt();
       const moveY = (dy / len) * speed * k.dt();
 
-      // Apply movement with bounds clamping
-      player.pos.x = Math.max(bounds.minX, Math.min(player.pos.x + moveX, bounds.maxX));
-      player.pos.y = Math.max(bounds.minY, Math.min(player.pos.y + moveY, bounds.maxY));
+      // Apply with bounds
+      const newX = Math.max(bounds.minX, Math.min(player.entity.pos.x + moveX, bounds.maxX));
+      const newY = Math.max(bounds.minY, Math.min(player.entity.pos.y + moveY, bounds.maxY));
+      player.moveTo(newX, newY);
 
-      // Update direction
-      if (dy < 0) behavior.setDirection('up');
-      else if (dy > 0) behavior.setDirection('down');
-      else if (dx < 0) behavior.setDirection('left');
-      else if (dx > 0) behavior.setDirection('right');
+      // Flip sprite
+      player.entity.flipX = dx < 0;
 
-      // Flip sprite for left movement
-      player.flipX = dx < 0;
-    }
-
-    // Update animation if state changed
-    if (moving !== lastMovingState) {
-      behavior.setMoving(moving);
-      updatePlayerAnimation(k, player, catColor);
-      lastMovingState = moving;
+      if (!player.isMoving) {
+        player.isMoving = true;
+        player.setAnimation('walk');
+      }
+    } else {
+      if (player.isMoving) {
+        player.isMoving = false;
+        player.setAnimation('idle');
+      }
     }
   });
 

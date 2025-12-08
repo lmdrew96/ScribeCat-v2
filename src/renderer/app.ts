@@ -32,10 +32,12 @@ import { initEmojiPicker } from './components/editor/EmojiPicker.js';
 import { initializeShortcutValidation } from './managers/ShortcutRegistry.js';
 import { AnimationService } from './effects/AnimationService.js';
 import { getButtonController, ButtonController } from './components/ButtonController.js';
-import { StudyQuestManager } from './managers/StudyQuestManager.js';
-import { StudyQuestModal } from './components/StudyQuestModal.js';
-import { studyQuestIntegration } from './managers/StudyQuestIntegration.js';
-import { StudyBuddyWidget } from './components/StudyBuddyWidget.js';
+
+// TODO: StudyQuest components will be rebuilt with KAPLAY
+// import { StudyQuestManager } from './managers/StudyQuestManager.js';
+// import { StudyQuestModal } from './components/StudyQuestModal.js';
+// import { studyQuestIntegration } from './managers/StudyQuestIntegration.js';
+// import { StudyBuddyWidget } from './components/StudyBuddyWidget.js';
 
 // App initialization modules
 import {
@@ -71,9 +73,10 @@ let layoutManager: LayoutManager;
 let layoutPicker: WorkspaceLayoutPicker;
 let confettiManager: ConfettiManager;
 let buttonController: ButtonController;
-let studyQuestManager: StudyQuestManager;
-let studyQuestModal: StudyQuestModal;
-let studyBuddyWidget: StudyBuddyWidget;
+// TODO: StudyQuest will be rebuilt with KAPLAY
+// let studyQuestManager: StudyQuestManager;
+// let studyQuestModal: StudyQuestModal;
+// let studyBuddyWidget: StudyBuddyWidget;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -132,29 +135,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize social managers (friends, study rooms, messages)
   socialManagers = AppSocialManagers.initialize();
 
-  // Initialize StudyQuest RPG
-  studyQuestManager = new StudyQuestManager(authManager);
-  studyQuestManager.setNotificationTicker(notificationTicker);
-  studyQuestModal = new StudyQuestModal(studyQuestManager);
-  studyQuestModal.initialize();
-  window.studyQuestManager = studyQuestManager;
-  window.studyQuestModal = studyQuestModal;
+  // TODO: StudyQuest RPG will be rebuilt with KAPLAY
+  // studyQuestManager = new StudyQuestManager(authManager);
+  // studyQuestManager.setNotificationTicker(notificationTicker);
+  // studyQuestModal = new StudyQuestModal(studyQuestManager);
+  // studyQuestModal.initialize();
+  // window.studyQuestManager = studyQuestManager;
+  // window.studyQuestModal = studyQuestModal;
 
   // Connect StudyQuest integration service
-  studyQuestIntegration.setManager(studyQuestManager);
+  // studyQuestIntegration.setManager(studyQuestManager);
 
-  // Initialize Study Buddy widget (cat companion in corner)
-  studyBuddyWidget = new StudyBuddyWidget();
-  studyBuddyWidget.setOnOpenStudyQuest(() => {
-    // Claim any pending rewards when opening StudyQuest
-    const rewards = studyBuddyWidget.claimRewards();
-    if (rewards.xp > 0 || rewards.gold > 0) {
-      notificationTicker.success(`Claimed ${rewards.xp} XP and ${rewards.gold} gold from study time!`);
-    }
-    studyQuestModal.show();
-  });
-  studyBuddyWidget.mount();
-  window.studyBuddyWidget = studyBuddyWidget;
+  // TODO: Study Buddy widget will be rebuilt with KAPLAY
+  // studyBuddyWidget = new StudyBuddyWidget();
+  // studyBuddyWidget.setOnOpenStudyQuest(() => {
+  //   const rewards = studyBuddyWidget.claimRewards();
+  //   if (rewards.xp > 0 || rewards.gold > 0) {
+  //     notificationTicker.success(`Claimed ${rewards.xp} XP and ${rewards.gold} gold from study time!`);
+  //   }
+  //   studyQuestModal.show();
+  // });
+  // studyBuddyWidget.mount();
+  // window.studyBuddyWidget = studyBuddyWidget;
 
   // Initialize recording controls
   recordingControls = new AppRecordingControls({
@@ -175,8 +177,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     studyRoomView: socialManagers.studyRoomView,
     realtimeNotificationManager: socialManagers.realtimeNotificationManager,
     notificationTicker,
-    studyQuestManager,
-    studyQuestModal,
+    // TODO: studyQuestManager and studyQuestModal will be rebuilt with KAPLAY
   });
 
   // Set up event listeners

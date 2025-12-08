@@ -13,8 +13,9 @@ import type { BrowseRoomsModal } from '../components/BrowseRoomsModal.js';
 import type { StudyRoomView } from '../components/StudyRoomView.js';
 import type { RealtimeNotificationManager } from '../managers/RealtimeNotificationManager.js';
 import type { notificationTicker } from '../managers/NotificationTicker.js';
-import type { StudyQuestManager } from '../managers/StudyQuestManager.js';
-import type { StudyQuestModal } from '../components/StudyQuestModal.js';
+// TODO: StudyQuest will be rebuilt with KAPLAY
+// import type { StudyQuestManager } from '../managers/StudyQuestManager.js';
+// import type { StudyQuestModal } from '../components/StudyQuestModal.js';
 
 export interface AuthUIDependencies {
   authManager: AuthManager;
@@ -26,8 +27,7 @@ export interface AuthUIDependencies {
   studyRoomView: StudyRoomView;
   realtimeNotificationManager: RealtimeNotificationManager;
   notificationTicker: typeof notificationTicker;
-  studyQuestManager?: StudyQuestManager;
-  studyQuestModal?: StudyQuestModal;
+  // TODO: studyQuestManager and studyQuestModal will be rebuilt with KAPLAY
 }
 
 export class AppAuthUI {
@@ -56,10 +56,10 @@ export class AppAuthUI {
       deps.authScreen.show();
     });
 
-    // Add click listener to StudyQuest button
-    studyQuestBtn?.addEventListener('click', () => {
-      deps.studyQuestModal?.open();
-    });
+    // TODO: StudyQuest button click will be rebuilt with KAPLAY
+    // studyQuestBtn?.addEventListener('click', () => {
+    //   deps.studyQuestModal?.open();
+    // });
   }
 
   /**
@@ -90,10 +90,10 @@ export class AppAuthUI {
     await deps.studyRoomsManager.initialize(user.id);
     await deps.messagesManager.initialize(user.id);
 
-    // Initialize StudyQuest manager
-    if (deps.studyQuestManager) {
-      await deps.studyQuestManager.initialize();
-    }
+    // TODO: Initialize StudyQuest manager - will be rebuilt with KAPLAY
+    // if (deps.studyQuestManager) {
+    //   await deps.studyQuestManager.initialize();
+    // }
 
     // Initialize realtime notification manager
     deps.realtimeNotificationManager.initialize(
@@ -142,10 +142,10 @@ export class AppAuthUI {
     deps.messagesManager.clear();
     deps.realtimeNotificationManager.clear();
 
-    // Clear StudyQuest manager
-    if (deps.studyQuestManager) {
-      deps.studyQuestManager.cleanup();
-    }
+    // TODO: Clear StudyQuest manager - will be rebuilt with KAPLAY
+    // if (deps.studyQuestManager) {
+    //   deps.studyQuestManager.cleanup();
+    // }
 
     // Clear user ID from study rooms UI components
     deps.browseRoomsModal.setCurrentUserId(null);
