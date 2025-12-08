@@ -14,19 +14,24 @@ import { DungeonGenerator, type DungeonFloor, type DungeonRoom, type RoomContent
 
 export class DungeonGame {
   private k: KAPLAYCtx;
+  private canvas: HTMLCanvasElement;
   private canvasId: string;
   private catColor: CatColor = 'brown';
   private dungeonId: string = 'training';
-  private currentFloor: number = 1;
+  private currentFloorNumber: number = 1;
   private floor: DungeonFloor | null = null;
+  private currentRoomId: string = '';
+  private isRunning: boolean = false;
 
   // Callbacks
   private onContentTrigger?: (content: RoomContent, room: DungeonRoom) => void;
   private onRoomEnter?: (room: DungeonRoom) => void;
   private onRoomClear?: (room: DungeonRoom) => void;
   private onFloorComplete?: (floorNumber: number) => void;
+  private onRoomChange?: (roomId: string) => void;
 
   constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
     this.canvasId = canvas.id || `dungeon-${Date.now()}`;
     canvas.id = this.canvasId;
 
@@ -87,33 +92,101 @@ export class DungeonGame {
   }
 
   /**
-   * Start a new dungeon run
+   * Set callback for room changes (for minimap updates)
    */
-  start(floorNumber: number = 1): void {
-    this.currentFloor = floorNumber;
+  setOnRoomChange(callback: (roomId: string) => void): void {
+    this.onRoomChange = callback;
+  }
 
-    // Generate floor
-    const generator = new DungeonGenerator(this.dungeonId);
-    this.floor = generator.generate(floorNumber);
+  /**
+   * Set the floor data (called by DungeonExploreView)
+   */
+  setFloor(floor: DungeonFloor): void {
+    this.floor = floor;
+    this.currentRoomId = floor.startRoomId;
+  }
+
+  /**
+   * Start the dungeon game (uses pre-set floor if available)
+   */
+  start(floorNumber?: number): void {
+    if (floorNumber !== undefined) {
+      this.currentFloorNumber = floorNumber;
+    }
+
+    // Generate floor if not pre-set
+    if (!this.floor) {
+      const generator = new DungeonGenerator(this.dungeonId);
+      this.floor = generator.generate(this.currentFloorNumber);
+      this.currentRoomId = this.floor.startRoomId;
+    }
+
+    this.isRunning = true;
+
+    // Wrap callbacks to track room changes
+    const wrappedOnRoomEnter = (room: DungeonRoom) => {
+      this.currentRoomId = room.id;
+      if (this.onRoomChange) {
+        this.onRoomChange(room.id);
+      }
+      if (this.onRoomEnter) {
+        this.onRoomEnter(room);
+      }
+    };
 
     this.k.go('dungeon', {
       catColor: this.catColor,
       dungeonId: this.dungeonId,
-      floorNumber: this.currentFloor,
+      floorNumber: this.currentFloorNumber,
       floor: this.floor,
       onContentTrigger: this.onContentTrigger,
-      onRoomEnter: this.onRoomEnter,
+      onRoomEnter: wrappedOnRoomEnter,
       onRoomClear: this.onRoomClear,
       onFloorComplete: this.onFloorComplete,
     } as DungeonSceneData);
   }
 
   /**
+   * Stop the dungeon game
+   */
+  stop(): void {
+    this.isRunning = false;
+    // KAPLAY doesn't have a pause/stop for scenes, but we can track state
+  }
+
+  /**
+   * Update the dungeon (trigger re-render if needed)
+   */
+  update(): void {
+    // KAPLAY handles its own update loop, this is for API compatibility
+  }
+
+  /**
+   * Reposition player to current room center
+   */
+  repositionPlayerToRoomCenter(): void {
+    // This would need scene communication - for now, restart scene at same room
+    // The scene should handle repositioning based on currentRoomId
+    if (this.floor && this.isRunning) {
+      this.start();
+    }
+  }
+
+  /**
+   * Get the current room
+   */
+  getCurrentRoom(): DungeonRoom | null {
+    if (!this.floor || !this.currentRoomId) return null;
+    return this.floor.rooms.get(this.currentRoomId) || null;
+  }
+
+  /**
    * Continue to next floor
    */
   nextFloor(): void {
-    this.currentFloor++;
-    this.start(this.currentFloor);
+    this.currentFloorNumber++;
+    this.floor = null; // Clear floor so start() generates new one
+    this.start(this.currentFloorNumber);
   }
 
   /**
@@ -127,7 +200,7 @@ export class DungeonGame {
    * Get current floor number
    */
   getFloorNumber(): number {
-    return this.currentFloor;
+    return this.currentFloorNumber;
   }
 
   /**

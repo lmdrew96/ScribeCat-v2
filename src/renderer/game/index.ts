@@ -2,13 +2,15 @@
  * KAPLAY Game Engine Initialization
  *
  * Central initialization for KAPLAY game instances.
- * Supports multiple independent game contexts for different UI components.
+ * Uses singleton pattern - only one KAPLAY instance per canvas.
  */
 
 import kaplay, { KAPLAYCtx } from 'kaplay';
 
-// Store references to game instances by canvas ID
-const gameInstances = new Map<string, KAPLAYCtx>();
+// Store references to game instances by canvas element (WeakMap for automatic cleanup)
+const gameInstancesByCanvas = new WeakMap<HTMLCanvasElement, KAPLAYCtx>();
+// Also store by ID for lookup convenience
+const gameInstancesById = new Map<string, KAPLAYCtx>();
 
 export interface GameConfig {
   canvas: HTMLCanvasElement;
@@ -20,7 +22,8 @@ export interface GameConfig {
 }
 
 /**
- * Initialize a KAPLAY game instance on a canvas
+ * Initialize a KAPLAY game instance on a canvas.
+ * Returns existing instance if canvas already has one (singleton pattern).
  */
 export function initGame(config: GameConfig): KAPLAYCtx {
   const {
@@ -32,6 +35,21 @@ export function initGame(config: GameConfig): KAPLAYCtx {
     debug = false,
   } = config;
 
+  // Check if instance already exists for this canvas
+  const existingInstance = gameInstancesByCanvas.get(canvas);
+  if (existingInstance) {
+    return existingInstance;
+  }
+
+  // Also check by ID if canvas has one
+  if (canvas.id && gameInstancesById.has(canvas.id)) {
+    const instanceById = gameInstancesById.get(canvas.id)!;
+    // Store in WeakMap too for future lookups
+    gameInstancesByCanvas.set(canvas, instanceById);
+    return instanceById;
+  }
+
+  // Create new KAPLAY instance
   const k = kaplay({
     canvas,
     width,
@@ -43,29 +61,51 @@ export function initGame(config: GameConfig): KAPLAYCtx {
     global: false, // Don't pollute global scope
   });
 
-  // Store reference by canvas ID if available
+  // Store references
+  gameInstancesByCanvas.set(canvas, k);
   if (canvas.id) {
-    gameInstances.set(canvas.id, k);
+    gameInstancesById.set(canvas.id, k);
   }
 
   return k;
 }
 
 /**
- * Get a game instance by canvas ID
+ * Get a game instance by canvas element
  */
-export function getGameByCanvasId(canvasId: string): KAPLAYCtx | null {
-  return gameInstances.get(canvasId) || null;
+export function getGameByCanvas(canvas: HTMLCanvasElement): KAPLAYCtx | null {
+  return gameInstancesByCanvas.get(canvas) || null;
 }
 
 /**
- * Destroy a game instance
+ * Get a game instance by canvas ID
  */
-export function destroyGame(canvasId: string): void {
-  const k = gameInstances.get(canvasId);
+export function getGameByCanvasId(canvasId: string): KAPLAYCtx | null {
+  return gameInstancesById.get(canvasId) || null;
+}
+
+/**
+ * Destroy a game instance by canvas
+ */
+export function destroyGameByCanvas(canvas: HTMLCanvasElement): void {
+  const k = gameInstancesByCanvas.get(canvas);
   if (k) {
     k.quit();
-    gameInstances.delete(canvasId);
+    gameInstancesByCanvas.delete(canvas);
+    if (canvas.id) {
+      gameInstancesById.delete(canvas.id);
+    }
+  }
+}
+
+/**
+ * Destroy a game instance by ID
+ */
+export function destroyGame(canvasId: string): void {
+  const k = gameInstancesById.get(canvasId);
+  if (k) {
+    k.quit();
+    gameInstancesById.delete(canvasId);
   }
 }
 
@@ -73,10 +113,10 @@ export function destroyGame(canvasId: string): void {
  * Destroy all game instances
  */
 export function destroyAllGames(): void {
-  for (const [id, k] of gameInstances) {
+  for (const [id, k] of gameInstancesById) {
     k.quit();
   }
-  gameInstances.clear();
+  gameInstancesById.clear();
 }
 
 // Re-export types from kaplay for convenience

@@ -60,11 +60,12 @@ export function registerStudyBuddyScene(k: KAPLAYCtx): void {
       });
     });
 
-    // Draw shadow under cat
+    // Draw shadow under cat (using scaled circle since KAPLAY doesn't have ellipse component)
     const shadow = k.add([
-      k.ellipse(25, 8),
+      k.circle(25),
       k.pos(k.width() / 2, k.height() - 22),
       k.anchor('center'),
+      k.scale(1, 0.32), // Scale Y to create ellipse effect
       k.color(0, 0, 0),
       k.opacity(0.2),
     ]);

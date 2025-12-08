@@ -176,7 +176,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
     player.play('idle');
 
     // Camera setup
-    k.camScale(1);
+    k.setCamScale(1);
 
     // Player movement
     k.onUpdate(() => {
@@ -225,7 +225,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
       // Update camera to follow player
       const camX = Math.max(CANVAS_WIDTH / 2, Math.min(player.pos.x, TOWN_WIDTH * tileSize - CANVAS_WIDTH / 2));
       const camY = Math.max(CANVAS_HEIGHT / 2, Math.min(player.pos.y, TOWN_HEIGHT * tileSize - CANVAS_HEIGHT / 2));
-      k.camPos(camX, camY);
+      k.setCamPos(camX, camY);
     });
 
     // Check for building interactions
@@ -353,10 +353,11 @@ export function registerTownScene(k: KAPLAYCtx): void {
     if (weatherEnabled && currentWeather !== 'clear') {
       // Spawn weather particles
       k.loop(0.05, () => {
+        const camPos = k.getCamPos();
         if (currentWeather === 'rain') {
           k.add([
             k.rect(1, 10),
-            k.pos(k.camPos().x - CANVAS_WIDTH / 2 + Math.random() * CANVAS_WIDTH, k.camPos().y - CANVAS_HEIGHT / 2 - 10),
+            k.pos(camPos.x - CANVAS_WIDTH / 2 + Math.random() * CANVAS_WIDTH, camPos.y - CANVAS_HEIGHT / 2 - 10),
             k.color(155, 185, 255),
             k.opacity(0.6),
             k.move(k.vec2(-1, 1).unit(), 400),
@@ -366,7 +367,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
         } else if (currentWeather === 'snow') {
           k.add([
             k.circle(2 + Math.random() * 2),
-            k.pos(k.camPos().x - CANVAS_WIDTH / 2 + Math.random() * CANVAS_WIDTH, k.camPos().y - CANVAS_HEIGHT / 2 - 10),
+            k.pos(camPos.x - CANVAS_WIDTH / 2 + Math.random() * CANVAS_WIDTH, camPos.y - CANVAS_HEIGHT / 2 - 10),
             k.color(255, 255, 255),
             k.opacity(0.8),
             k.move(k.vec2(-0.2, 1).unit(), 50 + Math.random() * 50),
