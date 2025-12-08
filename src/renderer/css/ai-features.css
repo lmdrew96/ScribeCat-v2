@@ -1,6 +1,7 @@
 /* ===== Floating AI Chat Button ===== */
 .floating-chat-btn {
-  position: fixed;
+  position: fixed !important;
+  overflow: visible !important; /* Override button-system.css to show badge */
   bottom: 24px;
   right: 24px;
   width: 75px;
