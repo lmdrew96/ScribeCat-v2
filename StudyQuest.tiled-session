@@ -1,0 +1,105 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "": {
+            "scaleInDock": 1
+        },
+        "/Users/nae/Desktop/cat_village.tmx": {
+            "scale": 0.891,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 297.4186307519641,
+                "y": 299.10213243546576
+            }
+        },
+        "/Users/nae/Desktop/cat_village.tmx#TinyTown": {
+            "scaleInDock": 1
+        },
+        "/Users/nae/Desktop/simple_map.tmx": {
+            "scale": 1.02421875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 133.76048817696415,
+                "y": 183.0663615560641
+            }
+        },
+        "/Users/nae/Desktop/simple_map.tmx#basic": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "/Users/nae/Downloads/The Fan-tasy Tileset (Free)/Tiled/Tilemaps/Rules/RockSlopes_Rules.tmx": {
+            "scale": 1.5791,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 328.03495662085993,
+                "y": 534.4816667722121
+            }
+        },
+        "/Users/nae/Downloads/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Tileset_RockSlope.tsx": {
+            "scaleInDock": 1
+        },
+        ":/automap-tiles.tsx": {
+            "scaleInDock": 1
+        },
+        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled/sampleMap.tmx": {
+            "scale": 0.5974609375,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 46.86498855835241,
+                "y": 160.679960771494
+            }
+        },
+        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled/sampleSheet.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "assets/Tiles/CatVillageMap.tmx": {
+            "scale": 1.1755,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 239.89791578051899,
+                "y": 241.17396852403235
+            }
+        },
+        "assets/Tiles/GrassWaterTiles/WaterGrassTiles.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 3.2426
+        },
+        "assets/Tiles/PixelAdventure/InterfaceTiles.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "assets/Tiles/Tiny Town/TinyTownTiles.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 0.1644
+        }
+    },
+    "last.imagePath": "/Users/nae/Desktop/ScribeCat-v2/assets/Kenney Assets/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline",
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "openFiles": [
+    ],
+    "project": "StudyQuest.tiled-project",
+    "recentFiles": [
+        "/Users/nae/Desktop/cat_village.tmx",
+        "/Users/nae/Desktop/simple_map.tmx",
+        "/Users/nae/Downloads/The Fan-tasy Tileset (Free)/Tiled/Tilemaps/Rules/RockSlopes_Rules.tmx",
+        "assets/Tiles/GrassWaterTiles/WaterGrassTiles.tsx",
+        "assets/Tiles/PixelAdventure/InterfaceTiles.tsx",
+        "assets/Tiles/Tiny Town/TinyTownTiles.tsx",
+        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled/sampleMap.tmx",
+        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled/sampleSheet.tsx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.type": 1
+}

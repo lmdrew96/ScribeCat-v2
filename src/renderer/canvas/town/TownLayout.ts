@@ -24,6 +24,15 @@ export enum TileType {
   FLOWER = 7,
   BUILDING_FLOOR = 8,
   WALL = 9,
+  // Shore edge tiles for water
+  WATER_SHORE_TL = 10,    // Top-left corner
+  WATER_SHORE_T = 11,     // Top edge
+  WATER_SHORE_TR = 12,    // Top-right corner
+  WATER_SHORE_L = 13,     // Left edge
+  WATER_SHORE_R = 14,     // Right edge
+  WATER_SHORE_BL = 15,    // Bottom-left corner
+  WATER_SHORE_B = 16,     // Bottom edge
+  WATER_SHORE_BR = 17,    // Bottom-right corner
 }
 
 // Building IDs
@@ -137,10 +146,22 @@ export const TILE_COLORS: Record<TileType, string> = {
   [TileType.FLOWER]: '#4ade80',
   [TileType.BUILDING_FLOOR]: '#4a4a6a',
   [TileType.WALL]: '#374151',
+  // Shore tiles (same blue as water for fallback)
+  [TileType.WATER_SHORE_TL]: '#1e40af',
+  [TileType.WATER_SHORE_T]: '#1e40af',
+  [TileType.WATER_SHORE_TR]: '#1e40af',
+  [TileType.WATER_SHORE_L]: '#1e40af',
+  [TileType.WATER_SHORE_R]: '#1e40af',
+  [TileType.WATER_SHORE_BL]: '#1e40af',
+  [TileType.WATER_SHORE_B]: '#1e40af',
+  [TileType.WATER_SHORE_BR]: '#1e40af',
 };
 
-// Base path for Kenney town tiles (from dist/renderer/ to project root assets)
-const TOWN_TILE_BASE = '../../assets/sprites/studyquest/kenney/town/';
+// Base path for Kenney Tiny Town tiles (from dist/renderer/ to project root assets)
+const TOWN_TILE_BASE = '../../assets/tiles/Tiny Town/';
+
+// Base path for water/grass tiles
+const WATER_TILE_BASE = '../../assets/tiles/GrassWaterTiles/';
 
 // Kenney Tiny Town tile mapping (based on preview layout)
 // Row 0: Grass, Row 1: Trees, Row 2: Roofs, Row 3: Fences
@@ -149,12 +170,21 @@ const TOWN_TILE_BASE = '../../assets/sprites/studyquest/kenney/town/';
 export const TILE_IMAGES: Partial<Record<TileType, string>> = {
   [TileType.GRASS]: `${TOWN_TILE_BASE}tile_0000.png`,    // Grass center (Row 0)
   [TileType.PATH]: `${TOWN_TILE_BASE}tile_0072.png`,     // Path/road tile (Row 6)
-  [TileType.WATER]: `${TOWN_TILE_BASE}tile_0084.png`,    // Water tile (Row 7)
+  [TileType.WATER]: `${WATER_TILE_BASE}tile_0037.png`,   // Solid water center
   [TileType.BRIDGE]: `${TOWN_TILE_BASE}tile_0088.png`,   // Bridge/planks (Row 7)
   [TileType.TREE]: `${TOWN_TILE_BASE}tile_0012.png`,     // Tree (Row 1)
   [TileType.ROCK]: `${TOWN_TILE_BASE}tile_0108.png`,     // Rock/stone (Row 9)
   [TileType.FLOWER]: `${TOWN_TILE_BASE}tile_0018.png`,   // Flower/bush (Row 1)
   [TileType.BUILDING_FLOOR]: `${TOWN_TILE_BASE}tile_0073.png`, // Door mat (Row 6)
+  // Shore edge tiles (GrassWaterTiles - 3 rows: top 0018-0020, middle 0036-0038, bottom 0054-0056)
+  [TileType.WATER_SHORE_TL]: `${WATER_TILE_BASE}tile_0018.png`,  // Top-left corner
+  [TileType.WATER_SHORE_T]: `${WATER_TILE_BASE}tile_0019.png`,   // Top edge
+  [TileType.WATER_SHORE_TR]: `${WATER_TILE_BASE}tile_0020.png`,  // Top-right corner
+  [TileType.WATER_SHORE_L]: `${WATER_TILE_BASE}tile_0036.png`,   // Left edge
+  [TileType.WATER_SHORE_R]: `${WATER_TILE_BASE}tile_0038.png`,   // Right edge
+  [TileType.WATER_SHORE_BL]: `${WATER_TILE_BASE}tile_0054.png`,  // Bottom-left corner
+  [TileType.WATER_SHORE_B]: `${WATER_TILE_BASE}tile_0055.png`,   // Bottom edge
+  [TileType.WATER_SHORE_BR]: `${WATER_TILE_BASE}tile_0056.png`,  // Bottom-right corner
 };
 
 // Building sprites (using Kenney tiles for walls/roofs)
@@ -229,16 +259,24 @@ export function generateTownTilemap(): TileType[][] {
     .fill(null)
     .map(() => Array(TOWN_WIDTH).fill(TileType.GRASS));
 
-  // Add water/pond in the center
-  for (let y = 5; y <= 7; y++) {
-    for (let x = 8; x <= 11; x++) {
-      tilemap[y][x] = TileType.WATER;
-    }
-  }
+  // Add water/pond in the center with proper shore tiles
+  // Row 5 (top): shore edges
+  tilemap[5][8] = TileType.WATER_SHORE_TL;
+  tilemap[5][9] = TileType.WATER_SHORE_T;
+  tilemap[5][10] = TileType.WATER_SHORE_T;
+  tilemap[5][11] = TileType.WATER_SHORE_TR;
 
-  // Add bridge over pond
-  tilemap[6][8] = TileType.BRIDGE;
-  tilemap[6][11] = TileType.BRIDGE;
+  // Row 6 (middle): left/right edges with center water (will be overwritten by bridge)
+  tilemap[6][8] = TileType.WATER_SHORE_L;
+  tilemap[6][9] = TileType.WATER;
+  tilemap[6][10] = TileType.WATER;
+  tilemap[6][11] = TileType.WATER_SHORE_R;
+
+  // Row 7 (bottom): shore edges
+  tilemap[7][8] = TileType.WATER_SHORE_BL;
+  tilemap[7][9] = TileType.WATER_SHORE_B;
+  tilemap[7][10] = TileType.WATER_SHORE_B;
+  tilemap[7][11] = TileType.WATER_SHORE_BR;
 
   // Add main paths
   // Horizontal paths
