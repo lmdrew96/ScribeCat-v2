@@ -8,7 +8,9 @@
 
 import { createLogger } from '../../shared/logger.js';
 import { PlayerStatsService } from '../canvas/PlayerStatsService.js';
-import type { CatColor } from '../canvas/CatSpriteManager.js';
+import type { CatColor } from '../game/sprites/catSprites.js';
+
+// Legacy imports (used when canvas is available)
 import type { BuddyState, StudyBuddyCanvas } from '../canvas/StudyBuddyCanvas.js';
 
 const logger = createLogger('StudyBuddyManager');
@@ -94,6 +96,32 @@ class StudyBuddyManagerClass {
     }
 
     logger.info('StudyBuddyManager initialized');
+  }
+
+  /**
+   * Initialize without a canvas (for KAPLAY mode)
+   * The game handles its own rendering, manager just tracks state and rewards
+   */
+  initializeWithoutCanvas(callbacks?: {
+    onStateChange?: StateChangeCallback;
+    onReward?: RewardCallback;
+    onMilestone?: MilestoneCallback;
+  }): void {
+    this.canvas = null;
+
+    if (callbacks) {
+      this.onStateChange = callbacks.onStateChange ?? null;
+      this.onReward = callbacks.onReward ?? null;
+      this.onMilestone = callbacks.onMilestone ?? null;
+    }
+
+    // Load equipped cat from storage
+    const savedCat = localStorage.getItem('studyquest-cat-color') as CatColor | null;
+    if (savedCat) {
+      this.state.equippedCat = savedCat;
+    }
+
+    logger.info('StudyBuddyManager initialized (without canvas)');
   }
 
   /**

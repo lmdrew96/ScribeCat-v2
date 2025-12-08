@@ -7,15 +7,18 @@
  */
 
 import { createLogger } from '../../../shared/logger.js';
+import { DungeonGame } from '../../game/DungeonGame.js';
+import { USE_KAPLAY } from '../../game/config.js';
+import type { CatColor } from '../../game/sprites/catSprites.js';
 import {
-  DungeonCanvas,
   DungeonGenerator,
-  MiniMap,
   type DungeonFloor,
   type DungeonRoom,
   type RoomContent,
-} from '../../canvas/dungeon/index.js';
-import type { CatColor } from '../../canvas/CatSpriteManager.js';
+} from '../../canvas/dungeon/DungeonGenerator.js';
+
+// Legacy imports for fallback
+import { DungeonCanvas, MiniMap } from '../../canvas/dungeon/index.js';
 
 const logger = createLogger('DungeonExploreView');
 
@@ -45,6 +48,7 @@ export class DungeonExploreView {
   private canvasWrapper: HTMLDivElement;
   private canvas: HTMLCanvasElement;
   private dungeonCanvas: DungeonCanvas | null = null;
+  private dungeonGame: DungeonGame | null = null;
   private miniMap: MiniMap | null = null;
   private generator: DungeonGenerator | null = null;
   private currentFloor: DungeonFloor | null = null;
@@ -139,26 +143,41 @@ export class DungeonExploreView {
     this.dungeonState.currentFloor = floorNumber;
     this.currentFloor = this.generator.generate(floorNumber);
 
-    // Initialize canvas if not already
-    if (!this.dungeonCanvas) {
-      this.dungeonCanvas = new DungeonCanvas(this.canvas);
-      this.dungeonCanvas.setCatColor(this.catColor);
+    if (USE_KAPLAY) {
+      // Initialize KAPLAY game if not already
+      if (!this.dungeonGame) {
+        this.dungeonGame = new DungeonGame(this.canvas);
+        this.dungeonGame.setCatColor(this.catColor);
+        this.dungeonGame.setOnContentTrigger((content, room) => {
+          this.handleContentTrigger(content, room);
+        });
+        this.dungeonGame.setOnRoomChange((roomId) => {
+          this.miniMap?.setCurrentRoom(roomId);
+        });
+      }
+      this.dungeonGame.setFloor(this.currentFloor);
+    } else {
+      // Legacy: Initialize canvas if not already
+      if (!this.dungeonCanvas) {
+        this.dungeonCanvas = new DungeonCanvas(this.canvas);
+        this.dungeonCanvas.setCatColor(this.catColor);
 
-      // Set up content trigger callback
-      this.dungeonCanvas.setOnContentTrigger((content, room) => {
-        this.handleContentTrigger(content, room);
-      });
+        // Set up content trigger callback
+        this.dungeonCanvas.setOnContentTrigger((content, room) => {
+          this.handleContentTrigger(content, room);
+        });
 
-      // Set up door transition callback
-      this.dungeonCanvas.setOnDoorTransition((direction) => {
-        logger.info(`Door transition: ${direction}`);
-      });
+        // Set up door transition callback
+        this.dungeonCanvas.setOnDoorTransition((direction) => {
+          logger.info(`Door transition: ${direction}`);
+        });
+      }
+
+      // Set the floor on canvas
+      this.dungeonCanvas.setFloor(this.currentFloor);
     }
 
-    // Set the floor on canvas
-    this.dungeonCanvas.setFloor(this.currentFloor);
-
-    // Initialize minimap
+    // Initialize minimap (used by both KAPLAY and legacy)
     if (!this.miniMap) {
       this.miniMap = new MiniMap();
       const minimapContainer = this.container.querySelector('#dungeon-minimap');
@@ -259,7 +278,11 @@ export class DungeonExploreView {
    * Reposition player to room center (used when resuming dungeon to avoid re-triggering content)
    */
   repositionPlayer(): void {
-    this.dungeonCanvas?.repositionPlayerToRoomCenter();
+    if (USE_KAPLAY) {
+      this.dungeonGame?.repositionPlayerToRoomCenter();
+    } else {
+      this.dungeonCanvas?.repositionPlayerToRoomCenter();
+    }
   }
 
   /**
@@ -269,7 +292,11 @@ export class DungeonExploreView {
     this.start();
 
     // Reposition player to room center after battle to ensure valid position
-    this.dungeonCanvas?.repositionPlayerToRoomCenter();
+    if (USE_KAPLAY) {
+      this.dungeonGame?.repositionPlayerToRoomCenter();
+    } else {
+      this.dungeonCanvas?.repositionPlayerToRoomCenter();
+    }
 
     // Mark current room as cleared if it was an enemy room
     const currentRoom = this.getCurrentRoom();
@@ -281,7 +308,11 @@ export class DungeonExploreView {
     }
 
     // Update displays
-    this.dungeonCanvas?.update();
+    if (USE_KAPLAY) {
+      this.dungeonGame?.update();
+    } else {
+      this.dungeonCanvas?.update();
+    }
     this.miniMap?.update();
   }
 
@@ -289,6 +320,9 @@ export class DungeonExploreView {
    * Get current room
    */
   private getCurrentRoom(): DungeonRoom | null {
+    if (USE_KAPLAY) {
+      return this.dungeonGame?.getCurrentRoom() || null;
+    }
     return this.dungeonCanvas?.getCurrentRoom() || null;
   }
 
@@ -298,9 +332,13 @@ export class DungeonExploreView {
   start(): void {
     if (this.isActive) return;
 
-    this.dungeonCanvas?.start();
+    if (USE_KAPLAY) {
+      this.dungeonGame?.start();
+    } else {
+      this.dungeonCanvas?.start();
+    }
     this.isActive = true;
-    logger.info('Dungeon exploration started');
+    logger.info('Dungeon exploration started (KAPLAY:', USE_KAPLAY, ')');
   }
 
   /**
@@ -309,7 +347,11 @@ export class DungeonExploreView {
   stop(): void {
     if (!this.isActive) return;
 
-    this.dungeonCanvas?.stop();
+    if (USE_KAPLAY) {
+      this.dungeonGame?.stop();
+    } else {
+      this.dungeonCanvas?.stop();
+    }
     this.isActive = false;
     logger.info('Dungeon exploration stopped');
   }
@@ -319,7 +361,11 @@ export class DungeonExploreView {
    */
   setCatColor(color: CatColor): void {
     this.catColor = color;
-    this.dungeonCanvas?.setCatColor(color);
+    if (USE_KAPLAY) {
+      this.dungeonGame?.setCatColor(color);
+    } else {
+      this.dungeonCanvas?.setCatColor(color);
+    }
   }
 
   /**
@@ -483,7 +529,12 @@ export class DungeonExploreView {
    */
   destroy(): void {
     this.stop();
-    this.dungeonCanvas = null;
+    if (USE_KAPLAY) {
+      this.dungeonGame?.destroy();
+      this.dungeonGame = null;
+    } else {
+      this.dungeonCanvas = null;
+    }
     this.miniMap = null;
     this.generator = null;
     this.currentFloor = null;

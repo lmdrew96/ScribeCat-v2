@@ -10,9 +10,14 @@
  */
 
 import { createLogger } from '../../shared/logger.js';
-import { StudyBuddyCanvas } from '../canvas/StudyBuddyCanvas.js';
+import { StudyBuddyGame } from '../game/StudyBuddyGame.js';
 import { StudyBuddyManager, type PendingRewards } from '../managers/StudyBuddyManager.js';
-import { CatSpriteManager, type CatColor } from '../canvas/CatSpriteManager.js';
+import type { CatColor } from '../game/sprites/catSprites.js';
+import { USE_KAPLAY } from '../game/config.js';
+
+// Legacy imports for fallback (when USE_KAPLAY is false)
+import { StudyBuddyCanvas } from '../canvas/StudyBuddyCanvas.js';
+import { CatSpriteManager } from '../canvas/CatSpriteManager.js';
 
 const logger = createLogger('StudyBuddyWidget');
 
@@ -51,6 +56,7 @@ export class StudyBuddyWidget {
   private container: HTMLDivElement;
   private canvas: HTMLCanvasElement;
   private buddyCanvas: StudyBuddyCanvas | null = null;
+  private buddyGame: StudyBuddyGame | null = null;
   private timerElement: HTMLDivElement | null = null;
   private settingsPanel: HTMLDivElement | null = null;
 
@@ -92,17 +98,35 @@ export class StudyBuddyWidget {
 
     parent.appendChild(this.container);
 
-    // Initialize canvas
-    this.buddyCanvas = new StudyBuddyCanvas(this.canvas);
+    if (USE_KAPLAY) {
+      // Initialize KAPLAY game
+      this.buddyGame = new StudyBuddyGame(this.canvas);
+      this.buddyGame.start();
 
-    // Initialize manager with canvas
-    StudyBuddyManager.initialize(this.buddyCanvas, {
-      onReward: (xp, gold) => this.onReward(xp, gold),
-      onMilestone: (minutes, milestone) => this.onMilestone(minutes, milestone),
-    });
+      // Initialize manager with legacy canvas interface (for compatibility)
+      // The manager will work without canvas-specific features
+      StudyBuddyManager.initializeWithoutCanvas({
+        onReward: (xp, gold) => this.onReward(xp, gold),
+        onMilestone: (minutes, milestone) => this.onMilestone(minutes, milestone),
+      });
+    } else {
+      // Legacy: Initialize canvas
+      this.buddyCanvas = new StudyBuddyCanvas(this.canvas);
 
-    // Start the canvas
-    this.buddyCanvas.start();
+      // Initialize manager with canvas
+      StudyBuddyManager.initialize(this.buddyCanvas, {
+        onReward: (xp, gold) => this.onReward(xp, gold),
+        onMilestone: (minutes, milestone) => this.onMilestone(minutes, milestone),
+      });
+
+      // Start the canvas
+      this.buddyCanvas.start();
+
+      // Preload cat sprites
+      CatSpriteManager.preloadStarters().catch((err) => {
+        logger.warn('Failed to preload cat sprites:', err);
+      });
+    }
 
     // Start tracking activity
     StudyBuddyManager.start();
@@ -115,12 +139,7 @@ export class StudyBuddyWidget {
       this.startBreakReminders();
     }
 
-    // Preload cat sprites
-    CatSpriteManager.preloadStarters().catch((err) => {
-      logger.warn('Failed to preload cat sprites:', err);
-    });
-
-    logger.info('Study Buddy widget mounted');
+    logger.info('Study Buddy widget mounted (KAPLAY:', USE_KAPLAY, ')');
   }
 
   /**
@@ -128,7 +147,14 @@ export class StudyBuddyWidget {
    */
   unmount(): void {
     StudyBuddyManager.stop();
-    this.buddyCanvas?.stop();
+
+    if (USE_KAPLAY) {
+      this.buddyGame?.destroy();
+      this.buddyGame = null;
+    } else {
+      this.buddyCanvas?.stop();
+      this.buddyCanvas = null;
+    }
 
     if (this.breakReminderInterval) {
       clearInterval(this.breakReminderInterval);

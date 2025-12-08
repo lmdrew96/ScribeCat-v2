@@ -6,8 +6,13 @@
  */
 
 import { createLogger } from '../../../shared/logger.js';
-import { TownCanvas, type BuildingId } from '../../canvas/town/index.js';
-import type { CatColor } from '../../canvas/CatSpriteManager.js';
+import { TownGame } from '../../game/TownGame.js';
+import { USE_KAPLAY } from '../../game/config.js';
+import type { CatColor } from '../../game/sprites/catSprites.js';
+import type { BuildingId } from '../../canvas/town/TownLayout.js';
+
+// Legacy import for fallback
+import { TownCanvas } from '../../canvas/town/index.js';
 
 const logger = createLogger('TownView');
 
@@ -26,6 +31,7 @@ export class TownView {
   private container: HTMLDivElement;
   private canvas: HTMLCanvasElement;
   private townCanvas: TownCanvas | null = null;
+  private townGame: TownGame | null = null;
   private callbacks: TownViewCallbacks;
   private isActive: boolean = false;
   private catColor: CatColor = 'brown';
@@ -68,18 +74,30 @@ export class TownView {
   start(): void {
     if (this.isActive) return;
 
-    // Create canvas if not already created
-    if (!this.townCanvas) {
-      this.townCanvas = new TownCanvas(this.canvas);
-      this.townCanvas.setCatColor(this.catColor);
-      this.townCanvas.setOnBuildingInteract((buildingId) => {
-        this.handleBuildingInteraction(buildingId);
-      });
+    if (USE_KAPLAY) {
+      // Create KAPLAY game if not already created
+      if (!this.townGame) {
+        this.townGame = new TownGame(this.canvas);
+        this.townGame.setCatColor(this.catColor);
+        this.townGame.setOnBuildingInteract((buildingId) => {
+          this.handleBuildingInteraction(buildingId);
+        });
+      }
+      this.townGame.start();
+    } else {
+      // Legacy: Create canvas if not already created
+      if (!this.townCanvas) {
+        this.townCanvas = new TownCanvas(this.canvas);
+        this.townCanvas.setCatColor(this.catColor);
+        this.townCanvas.setOnBuildingInteract((buildingId) => {
+          this.handleBuildingInteraction(buildingId);
+        });
+      }
+      this.townCanvas.start();
     }
 
-    this.townCanvas.start();
     this.isActive = true;
-    logger.info('Town view started');
+    logger.info('Town view started (KAPLAY:', USE_KAPLAY, ')');
   }
 
   /**
@@ -88,7 +106,11 @@ export class TownView {
   stop(): void {
     if (!this.isActive) return;
 
-    this.townCanvas?.stop();
+    if (USE_KAPLAY) {
+      // KAPLAY game persists, no stop needed
+    } else {
+      this.townCanvas?.stop();
+    }
     this.isActive = false;
     logger.info('Town view stopped');
   }
@@ -98,7 +120,11 @@ export class TownView {
    */
   setCatColor(color: CatColor): void {
     this.catColor = color;
-    this.townCanvas?.setCatColor(color);
+    if (USE_KAPLAY) {
+      this.townGame?.setCatColor(color);
+    } else {
+      this.townCanvas?.setCatColor(color);
+    }
   }
 
   /**
@@ -226,7 +252,12 @@ export class TownView {
    */
   destroy(): void {
     this.stop();
-    this.townCanvas = null;
+    if (USE_KAPLAY) {
+      this.townGame?.destroy();
+      this.townGame = null;
+    } else {
+      this.townCanvas = null;
+    }
   }
 }
 
