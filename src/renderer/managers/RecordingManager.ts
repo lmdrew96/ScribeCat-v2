@@ -3,7 +3,7 @@
  * Coordinates recording, transcription, and audio streaming
  */
 
-import { AudioManager } from '../audio-manager.js';
+import { AudioManager } from '../audio/AudioManager.js';
 import { TranscriptionManager } from './TranscriptionManager.js';
 import { ViewManager } from './ViewManager.js';
 import { TiptapEditorManager } from './TiptapEditorManager.js';

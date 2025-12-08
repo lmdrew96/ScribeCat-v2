@@ -4,7 +4,7 @@
  * Initializes core managers: audio, view, editor, transcription, AI.
  */
 
-import { AudioManager } from '../audio-manager.js';
+import { AudioManager } from '../audio/AudioManager.js';
 import { ViewManager } from '../managers/ViewManager.js';
 import { TiptapEditorManager } from '../managers/TiptapEditorManager.js';
 import { TranscriptionManager } from '../managers/TranscriptionManager.js';

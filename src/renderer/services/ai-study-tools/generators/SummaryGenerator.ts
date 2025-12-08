@@ -5,7 +5,7 @@
  */
 
 import type { Session } from '../../../../domain/entities/Session.js';
-import { renderMarkdown } from '../../../markdown-renderer.js';
+import { renderMarkdown } from '../../../utils/markdown-renderer.js';
 import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 
 export class SummaryGenerator extends BaseAIToolGenerator {

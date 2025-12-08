@@ -4,9 +4,9 @@
  */
 
 import { ChatMessage } from '../../shared/types.js';
-import { renderMarkdown } from '../markdown-renderer.js';
+import { renderMarkdown } from '../utils/markdown-renderer.js';
 import { getRandomCatFact } from '../utils/cat-facts.js';
-import { LiveSuggestionsPanel } from '../components/FloatingAIChip.js';
+import { LiveSuggestionsPanel } from '../components/LiveSuggestionsPanel.js';
 import { ContentAnalyzer } from './ContentAnalyzer.js';
 
 export class ChatUI {

@@ -5,7 +5,7 @@
  */
 
 import type { Session } from '../../../../domain/entities/Session.js';
-import { renderMarkdown } from '../../../markdown-renderer.js';
+import { renderMarkdown } from '../../../utils/markdown-renderer.js';
 import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';

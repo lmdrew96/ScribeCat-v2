@@ -4,8 +4,8 @@
  * Manages AssemblyAI transcription for recording sessions.
  */
 
-import { AssemblyAITranscriptionService, TranscriptionSettings, TranscriptionError } from '../assemblyai-transcription-service.js';
-import { AudioManager } from '../audio-manager.js';
+import { AssemblyAITranscriptionService, TranscriptionSettings, TranscriptionError } from './AssemblyAITranscriptionService.js';
+import { AudioManager } from '../audio/AudioManager.js';
 import { TranscriptionManager } from '../managers/TranscriptionManager.js';
 
 export type TranscriptionMode = 'assemblyai';

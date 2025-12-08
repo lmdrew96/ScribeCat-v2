@@ -5,7 +5,7 @@
 
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { escapeHtml } from './utils/formatting.js';
+import { escapeHtml } from './formatting.js';
 
 /**
  * Configure marked options for better rendering

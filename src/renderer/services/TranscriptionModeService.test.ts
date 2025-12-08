@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { TranscriptionModeService } from './TranscriptionModeService';
-import { AudioManager } from '../audio-manager';
+import { AudioManager } from '../audio/AudioManager';
 import { TranscriptionManager } from '../managers/TranscriptionManager';
 
 // Mock AssemblyAITranscriptionService
-vi.mock('../assemblyai-transcription-service', () => {
+vi.mock('./AssemblyAITranscriptionService', () => {
   const MockAssemblyAIService = function(this: any) {
     this.initialize = vi.fn().mockResolvedValue(undefined);
     this.start = vi.fn().mockResolvedValue('assemblyai-session-123');

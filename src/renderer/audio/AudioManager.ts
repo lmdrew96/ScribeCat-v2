@@ -5,8 +5,8 @@
  * Uses a single shared audio stream to avoid conflicts.
  */
 
-import { AudioRecorderService, AudioDevice, RecordingConfig, RecordingResult } from '../main/services/audio/AudioRecorderService.js';
-import { AudioAnalyzerService, AudioLevelData, AnalyzerConfig } from '../main/services/audio/AudioAnalyzerService.js';
+import { AudioRecorderService, AudioDevice, RecordingConfig, RecordingResult } from '../../main/services/audio/AudioRecorderService.js';
+import { AudioAnalyzerService, AudioLevelData, AnalyzerConfig } from '../../main/services/audio/AudioAnalyzerService.js';
 
 export class AudioManager {
   private recorder: AudioRecorderService;

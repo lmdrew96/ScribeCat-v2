@@ -7,7 +7,7 @@
  * and circuit breaker pattern to prevent infinite retry loops.
  */
 
-import { WebSocketErrorHandler, CircuitState } from './utils/WebSocketErrorHandler.js';
+import { WebSocketErrorHandler, CircuitState } from '../utils/WebSocketErrorHandler.js';
 
 export interface TranscriptionSettings {
   speechModel?: 'best' | 'nano';
