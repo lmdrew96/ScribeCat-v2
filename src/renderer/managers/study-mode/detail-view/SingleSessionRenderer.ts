@@ -274,10 +274,6 @@ export class SingleSessionRenderer {
                     <span class="tool-icon">${getIconHTML('clipboard', { size: 16 })}</span>
                     <span class="tool-label">Quiz</span>
                   </button>
-                  <button class="study-tool-btn" id="learn-mode-btn" data-session-id="${session.id}">
-                    <span class="tool-icon">${getIconHTML('library', { size: 16 })}</span>
-                    <span class="tool-label">Learn Mode</span>
-                  </button>
 
                   <!-- Row 3: Advanced Tools -->
                   <button class="study-tool-btn" id="eli5-explainer-btn" data-session-id="${session.id}">

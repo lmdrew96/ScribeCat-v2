@@ -713,6 +713,8 @@ export class StudyModeManager {
           const updatedSession = this.sessions.find(s => s.id === sess.id);
           if (updatedSession) {
             await this.detailViewManager.render(updatedSession, true);
+            // Reinitialize AI tools to restore proper layout
+            this.aiToolsManager.initialize(updatedSession);
           }
         }
       }
