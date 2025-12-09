@@ -2,15 +2,15 @@
  * StudyQuestModal
  *
  * A modal overlay that displays the StudyQuest game canvas.
- * Uses the UITestGame for now during development.
+ * This is the main entry point for playing StudyQuest.
  */
 
-import { UITestGame } from '../game/UITestGame.js';
+import { StudyQuestGame } from '../game/StudyQuestGame.js';
 
 export class StudyQuestModal {
   private modal: HTMLDivElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
-  private game: UITestGame | null = null;
+  private game: StudyQuestGame | null = null;
   private isOpen = false;
 
   constructor() {
@@ -34,11 +34,11 @@ export class StudyQuestModal {
           <button class="studyquest-modal-close" title="Close (Esc)">&times;</button>
         </div>
         <div class="studyquest-modal-body">
-          <canvas id="studyquest-canvas" width="480" height="320"></canvas>
+          <canvas id="studyquest-canvas" width="640" height="400"></canvas>
         </div>
         <div class="studyquest-modal-footer">
           <span class="studyquest-controls-hint">
-            1-3: Health | 4-6: XP | 7-9: Currency | B/P/G/R: Theme
+            Arrow/WASD: Move | ENTER: Select/Interact | Click X or outside to close
           </span>
         </div>
       </div>
@@ -169,13 +169,11 @@ export class StudyQuestModal {
 
   /**
    * Setup keyboard shortcut to close modal
+   * Note: ESC is used in-game for menu, so we don't use it to close the modal
    */
   private setupKeyboardClose(): void {
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.isOpen) {
-        this.close();
-      }
-    });
+    // ESC is handled by the game itself (returns to title screen)
+    // Modal is closed via X button or clicking backdrop
   }
 
   /**
@@ -189,7 +187,7 @@ export class StudyQuestModal {
 
     // Start the game if not already running
     if (this.canvas && !this.game) {
-      this.game = new UITestGame(this.canvas);
+      this.game = new StudyQuestGame(this.canvas);
       this.game.start();
     }
   }

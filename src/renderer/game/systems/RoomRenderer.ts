@@ -40,7 +40,7 @@ const CONTENT_ICONS: Partial<Record<ContentType, string>> = {
   chest: '$',
   trap: 'X',
   npc: '?',
-  exit: '↓',
+  exit: 'v',
 };
 
 export class RoomRenderer {

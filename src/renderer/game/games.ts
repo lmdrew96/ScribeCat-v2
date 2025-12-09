@@ -5,7 +5,11 @@
  * These provide easy-to-use APIs for integrating with the rest of the application.
  */
 
-export { StudyBuddyGame } from './StudyBuddyGame.js';
-export { TownGame } from './TownGame.js';
+// Main game
+export { StudyQuestGame } from './StudyQuestGame.js';
+
+// Specialized game modes
 export { DungeonGame } from './DungeonGame.js';
-export { UITestGame, runUITest } from './UITestGame.js';
+
+// Development/testing (can be removed in production)
+export { UITestGame, runUITest, runPlayerTest, type TestScene } from './UITestGame.js';

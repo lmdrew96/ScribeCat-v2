@@ -1,17 +1,22 @@
 /**
  * UI Test Game
  *
- * A standalone game wrapper for testing the UI system.
- * Creates a canvas and runs the UI test scene.
+ * A standalone game wrapper for testing UI and player systems.
+ * Creates a canvas and runs test scenes.
  */
 
 import { initGame } from './index.js';
 import { registerUITestScene } from './scenes/UITestScene.js';
+import { registerPlayerTestScene } from './scenes/PlayerTestScene.js';
 import type { KAPLAYCtx } from 'kaplay';
+import type { CatColor } from './sprites/catSprites.js';
+
+export type TestScene = 'ui-test' | 'player-test';
 
 export class UITestGame {
   private k: KAPLAYCtx;
   private canvasId: string;
+  private currentScene: TestScene = 'ui-test';
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvasId = canvas.id || `ui-test-${Date.now()}`;
@@ -26,15 +31,56 @@ export class UITestGame {
       debug: false,
     });
 
-    // Register the test scene
+    // Register all test scenes
     registerUITestScene(this.k);
+    registerPlayerTestScene(this.k);
+
+    // Setup scene switching hotkey (T key in both scenes)
+    this.setupSceneSwitching();
   }
 
   /**
-   * Start the UI test scene
+   * Setup T key to toggle between scenes
+   */
+  private setupSceneSwitching(): void {
+    this.k.onKeyPress('t', () => {
+      if (this.currentScene === 'ui-test') {
+        this.goToScene('player-test');
+      } else {
+        this.goToScene('ui-test');
+      }
+    });
+  }
+
+  /**
+   * Start with UI test scene (default)
    */
   start(): void {
     this.k.go('ui-test');
+    this.currentScene = 'ui-test';
+  }
+
+  /**
+   * Start with player test scene
+   */
+  startPlayerTest(catColor?: CatColor): void {
+    this.k.go('player-test', { catColor });
+    this.currentScene = 'player-test';
+  }
+
+  /**
+   * Go to a specific scene
+   */
+  goToScene(scene: TestScene, data?: Record<string, unknown>): void {
+    this.k.go(scene, data);
+    this.currentScene = scene;
+  }
+
+  /**
+   * Get current scene
+   */
+  getCurrentScene(): TestScene {
+    return this.currentScene;
   }
 
   /**
@@ -58,5 +104,14 @@ export class UITestGame {
 export function runUITest(canvas: HTMLCanvasElement): UITestGame {
   const game = new UITestGame(canvas);
   game.start();
+  return game;
+}
+
+/**
+ * Quick helper to create and start a player test game on a canvas
+ */
+export function runPlayerTest(canvas: HTMLCanvasElement, catColor?: CatColor): UITestGame {
+  const game = new UITestGame(canvas);
+  game.startPlayerTest(catColor);
   return game;
 }

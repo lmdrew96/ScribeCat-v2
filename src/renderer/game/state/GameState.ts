@@ -23,7 +23,7 @@ export interface DungeonData {
 
 class GameStateManager {
   player: PlayerData = {
-    catColor: 'brown',
+    catColor: 'grey',
     health: 100,
     maxHealth: 100,
     xp: 0,

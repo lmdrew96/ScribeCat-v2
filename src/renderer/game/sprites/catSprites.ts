@@ -2,7 +2,7 @@
  * Cat Sprite Definitions for KAPLAY
  *
  * Handles loading and managing cat sprite animations.
- * Ported from CatSpriteManager.ts
+ * Assets are in: assets/CATS/<COLOR>_CAT/<Animation>.png
  */
 
 import type { KAPLAYCtx } from 'kaplay';
@@ -31,135 +31,313 @@ export type Direction = 'up' | 'down' | 'left' | 'right';
 // Cat colors - starter and unlockable
 export type CatColor =
   // Starters
-  | 'brown'
+  | 'grey'
   | 'white'
   | 'black'
-  | 'orange'
-  | 'grey'
   // Unlockable breeds
   | 'siamese'
-  | 'tiger'
-  | 'calico'
-  // Themed
-  | 'pirate'
+  | 'bengal'
+  | 'tricolor'
+  // Themed/Special
   | 'egypt'
   | 'batman'
-  | 'demonic'
-  | 'halloween'
-  | 'christmas'
-  | 'pixel'
-  | 'zombie';
+  | 'demon'
+  | 'pumpkin'
+  | 'vampire'
+  | 'wizard'
+  | 'xmas'
+  | 'superhero';
 
 // Starter cats available immediately
-export const STARTER_CATS: CatColor[] = ['brown', 'white', 'black', 'orange', 'grey'];
+export const STARTER_CATS: CatColor[] = ['grey', 'white', 'black'];
 
-// Animation frame counts (varies by animation)
+// Frame counts based on actual sprite dimensions (width / 32)
+// Audited from GREY_CAT sprites:
 export const ANIMATION_FRAMES: Record<CatAnimationType, number> = {
+  idle: 7, // 224px / 32 = 7 frames
+  idle2: 14, // 448px / 32 = 14 frames
+  walk: 7, // 224px / 32 = 7 frames (uses Run sprite)
+  run: 7, // 224px / 32 = 7 frames
+  sit: 3, // 96px / 32 = 3 frames
+  sleep: 3, // 96px / 32 = 3 frames
+  attack: 9, // 288px / 32 = 9 frames
+  hurt: 7, // 224px / 32 = 7 frames
+  die: 15, // 480px / 32 = 15 frames
+  die2: 14, // 448px / 32 = 14 frames
+  jump: 13, // 416px / 32 = 13 frames
+};
+
+// Animation speeds (KAPLAY FPS format)
+export const ANIMATION_SPEEDS: Record<CatAnimationType, number> = {
   idle: 8,
-  idle2: 8,
-  walk: 6,
-  run: 6,
-  sit: 8,
-  sleep: 8,
-  attack: 10,
-  hurt: 8,
+  idle2: 6,
+  walk: 10,
+  run: 12,
+  sit: 4,
+  sleep: 3,
+  attack: 12,
+  hurt: 10,
   die: 8,
   die2: 8,
   jump: 10,
 };
 
-// Animation speeds (converted to KAPLAY's FPS format)
-// Original was "frames to hold" - KAPLAY uses FPS
-// 60fps / holdFrames = animFPS
-export const ANIMATION_SPEEDS: Record<CatAnimationType, number> = {
-  idle: 7, // was 8 hold frames
-  idle2: 6, // was 10 hold frames
-  walk: 10, // was 6 hold frames
-  run: 15, // was 4 hold frames
-  sit: 5, // was 12 hold frames
-  sleep: 4, // was 16 hold frames
-  attack: 15, // was 4 hold frames
-  hurt: 10, // was 6 hold frames
-  die: 7,
-  die2: 7,
-  jump: 12, // was 5 hold frames
+// Animations that should NOT loop
+const NON_LOOPING_ANIMS = ['die', 'die2', 'hurt', 'attack', 'jump'];
+
+// Base asset path for cat sprites (relative from dist/renderer/)
+const CAT_ASSETS_BASE = '../../assets/CATS';
+
+// Map cat color to folder name
+const CAT_FOLDER_NAMES: Record<CatColor, string> = {
+  grey: 'GREY_CAT',
+  white: 'WHITE_CAT',
+  black: 'BLACK_CAT',
+  siamese: 'SIAMESE_CAT',
+  bengal: 'BENGAL_CAT',
+  tricolor: 'TRICOLOR_CAT',
+  egypt: 'EGYPT_CAT',
+  batman: 'BATMAN_CAT',
+  demon: 'DEMON_CAT',
+  pumpkin: 'PUMPKIN_CAT',
+  vampire: 'VAMPIRE_CAT',
+  wizard: 'WIZARD_CAT',
+  xmas: 'XMAS_CAT',
+  superhero: 'SUPERHERO_CAT',
 };
 
-// Animations that should NOT loop
-const NON_LOOPING_ANIMS = ['die', 'die2', 'hurt', 'attack'];
+// Sprite file names for each animation type
+// Files follow pattern: <Animation><Suffix>.png where suffix varies by cat
+interface CatSpriteConfig {
+  folder: string;
+  files: Record<CatAnimationType, string>;
+}
 
-// Base asset path for cat sprites
-const CAT_ASSETS_BASE = 'assets/sprites/studyquest/cats';
-
-// Starter cat color type
-type StarterCatColor = 'brown' | 'white' | 'black' | 'orange' | 'grey';
-
-// Exact sprite file names for each cat color and animation
-const CAT_SPRITE_FILES: Record<StarterCatColor, Record<CatAnimationType, string>> = {
-  brown: {
-    idle: 'brown_IdleCattt',
-    idle2: 'brown_Idle2Cattt',
-    walk: 'brown_RunCattt',
-    run: 'brown_RunCattt',
-    sit: 'brown_Sittinggg',
-    sleep: 'brown_SleepCattt',
-    attack: 'brown_AttackCattt',
-    hurt: 'brown_HurtCatttt',
-    die: 'brown_DieCattt',
-    die2: 'brown_Die2Cattt',
-    jump: 'brown_JumpCatttt',
+// Configuration for each cat color
+const CAT_CONFIGS: Record<CatColor, CatSpriteConfig> = {
+  grey: {
+    folder: 'GREY_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
   },
   white: {
-    idle: 'white_IdleCatttt',
-    idle2: 'white_Idle2Catttt',
-    walk: 'white_RunCatttt',
-    run: 'white_RunCatttt',
-    sit: 'white_Sittingggg',
-    sleep: 'white_SleepCatttt',
-    attack: 'white_AttackCattt',
-    hurt: 'white_HurtCattttt',
-    die: 'white_DieCattt',
-    die2: 'white_Die2Cattttt',
-    jump: 'white_JumpCattttt',
+    folder: 'WHITE_CAT',
+    files: {
+      idle: 'IdleCatttt',
+      idle2: 'Idle2Catttt',
+      walk: 'RunCatttt',
+      run: 'RunCatttt',
+      sit: 'Sittingggg',
+      sleep: 'SleepCatttt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCattttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattttt',
+      jump: 'JumpCattttt',
+    },
   },
   black: {
-    idle: 'black_IdleCatb',
-    idle2: 'black_Idle2Catb',
-    walk: 'black_RunCatb',
-    run: 'black_RunCatb',
-    sit: 'black_Sittingb',
-    sleep: 'black_SleepCatb',
-    attack: 'black_AttackCatb',
-    hurt: 'black_HurtCatb',
-    die: 'black_DieCatb',
-    die2: 'black_Die2Catb',
-    jump: 'black_JumpCabt',
+    folder: 'BLACK_CAT',
+    files: {
+      idle: 'IdleCatb',
+      idle2: 'Idle2Catb',
+      walk: 'RunCatb',
+      run: 'RunCatb',
+      sit: 'Sittingb',
+      sleep: 'SleepCatb',
+      attack: 'AttackCatb',
+      hurt: 'HurtCatb',
+      die: 'DieCatb',
+      die2: 'Die2Catb',
+      jump: 'JumpCabt',
+    },
   },
-  orange: {
-    idle: 'orange_IdleCatt',
-    idle2: 'orange_Idle2Catt',
-    walk: 'orange_RunCatt',
-    run: 'orange_RunCatt',
-    sit: 'orange_Sittingg',
-    sleep: 'orange_SleepCatt',
-    attack: 'orange_AttackCatt',
-    hurt: 'orange_HurtCattt',
-    die: 'orange_DieCatt',
-    die2: 'orange_Die2Catt',
-    jump: 'orange_JumpCattt',
+  siamese: {
+    folder: 'SIAMESE_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
   },
-  grey: {
-    idle: 'grey_IdleCattt',
-    idle2: 'grey_Idle2Cattt',
-    walk: 'grey_RunCattt',
-    run: 'grey_RunCattt',
-    sit: 'grey_Sittinggg',
-    sleep: 'grey_SleepCattt',
-    attack: 'grey_AttackCattt',
-    hurt: 'grey_HurtCatttt',
-    die: 'grey_DieCattt',
-    die2: 'grey_Die2',
-    jump: 'grey_JumpCatttt',
+  bengal: {
+    folder: 'BENGAL_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  tricolor: {
+    folder: 'TRICOLOR_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  egypt: {
+    folder: 'EGYPT_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  batman: {
+    folder: 'BATMAN_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  demon: {
+    folder: 'DEMON_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  pumpkin: {
+    folder: 'PUMPKIN_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  vampire: {
+    folder: 'VAMPIRE_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  wizard: {
+    folder: 'WIZARD_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  xmas: {
+    folder: 'XMAS_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
+  },
+  superhero: {
+    folder: 'SUPERHERO_CAT',
+    files: {
+      idle: 'IdleCattt',
+      idle2: 'Idle2Cattt',
+      walk: 'RunCattt',
+      run: 'RunCattt',
+      sit: 'Sittinggg',
+      sleep: 'SleepCattt',
+      attack: 'AttackCattt',
+      hurt: 'HurtCatttt',
+      die: 'DieCattt',
+      die2: 'Die2Cattt',
+      jump: 'JumpCatttt',
+    },
   },
 };
 
@@ -174,10 +352,10 @@ export function getCatSpriteName(color: CatColor, anim: CatAnimationType): strin
 }
 
 /**
- * Check if a cat color is a starter cat
+ * Check if a cat color has sprite configuration
  */
-function isStarterCat(color: CatColor): color is StarterCatColor {
-  return (STARTER_CATS as CatColor[]).includes(color);
+function hasSpriteConfig(color: CatColor): boolean {
+  return color in CAT_CONFIGS;
 }
 
 /**
@@ -195,22 +373,23 @@ export async function loadCatSprites(k: KAPLAYCtx, color: CatColor): Promise<voi
     return;
   }
 
-  // Only starter cats have exact file mappings
-  if (!isStarterCat(color)) {
-    console.warn(`Cat color ${color} not yet supported in KAPLAY sprite system`);
+  // Check if we have config for this cat
+  if (!hasSpriteConfig(color)) {
+    console.warn(`Cat color ${color} not yet configured in sprite system`);
     return;
   }
 
-  const files = CAT_SPRITE_FILES[color];
+  const config = CAT_CONFIGS[color];
 
   // Load each animation as a separate sprite
-  const loadPromises = Object.entries(files).map(async ([anim, filename]) => {
+  const loadPromises = Object.entries(config.files).map(async ([anim, filename]) => {
     const animType = anim as CatAnimationType;
     const frameCount = ANIMATION_FRAMES[animType];
     const spriteName = getCatSpriteName(color, animType);
+    const spritePath = `${CAT_ASSETS_BASE}/${config.folder}/${filename}.png`;
 
     try {
-      await k.loadSprite(spriteName, `${CAT_ASSETS_BASE}/${filename}.png`, {
+      await k.loadSprite(spriteName, spritePath, {
         sliceX: frameCount,
         sliceY: 1,
         anims: {
@@ -223,7 +402,7 @@ export async function loadCatSprites(k: KAPLAYCtx, color: CatColor): Promise<voi
         },
       });
     } catch (error) {
-      console.warn(`Failed to load ${spriteName}:`, error);
+      console.warn(`Failed to load ${spriteName} from ${spritePath}:`, error);
     }
   });
 

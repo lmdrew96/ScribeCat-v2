@@ -5,3 +5,9 @@ export {
   DEFAULT_ROOM_CONFIG,
   type DungeonDirection,
 } from './RoomRenderer.js';
+export {
+  setupInteraction,
+  type Interactable,
+  type InteractionConfig,
+  type InteractionSystem,
+} from './interaction.js';
