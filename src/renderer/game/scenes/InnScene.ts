@@ -175,8 +175,8 @@ export function registerInnScene(k: KAPLAYCtx): void {
     function updateHPDisplay(): void {
       if (hpDisplay) k.destroy(hpDisplay);
 
-      const hp = GameState.player.hp;
-      const maxHp = GameState.player.maxHp;
+      const hp = GameState.player.health;
+      const maxHp = GameState.player.maxHealth;
       const color = hp < maxHp ? k.rgb(255, 100, 100) : k.rgb(100, 255, 100);
 
       hpDisplay = k.add([
@@ -248,8 +248,8 @@ export function registerInnScene(k: KAPLAYCtx): void {
     // Controls hint
     k.add([
       k.text('Arrow/WASD: Move | ENTER: Interact | ESC: Back', { size: 8 }),
-      k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 10),
-      k.anchor('bottom'),
+      k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 15),
+      k.anchor('center'),
       k.color(200, 200, 200),
       k.z(50),
     ]);
@@ -267,7 +267,7 @@ export function registerInnScene(k: KAPLAYCtx): void {
  * Handle the rest/heal interaction
  */
 function handleRest(k: KAPLAYCtx, updateHPDisplay: () => void): void {
-  const { hp, maxHp, gold } = GameState.player;
+  const { health: hp, maxHealth: maxHp, gold } = GameState.player;
 
   // Already at full HP
   if (hp >= maxHp) {
@@ -283,7 +283,7 @@ function handleRest(k: KAPLAYCtx, updateHPDisplay: () => void): void {
 
   // Heal the player
   GameState.player.gold -= HEAL_COST;
-  GameState.player.hp = maxHp;
+  GameState.player.health = maxHp;
 
   // Update displays
   updateHPDisplay();

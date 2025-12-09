@@ -18,6 +18,8 @@ import {
 } from '../../canvas/dungeon/DungeonGenerator.js';
 import type { CatColor } from '../sprites/catSprites.js';
 import { PLAYER_SPEED } from '../config.js';
+import { getRandomEnemy, ENEMIES } from '../data/enemies.js';
+import type { BattleSceneData } from './BattleScene.js';
 
 const CANVAS_WIDTH = 480;
 const CANVAS_HEIGHT = 320;
@@ -32,6 +34,8 @@ export interface DungeonSceneData {
   onContentTrigger?: (content: RoomContent, room: DungeonRoom) => void;
   onRoomEnter?: (room: DungeonRoom) => void;
   onRoomClear?: (room: DungeonRoom) => void;
+  // Set to true when returning from battle
+  returnFromBattle?: boolean;
 }
 
 export function registerDungeonScene(k: KAPLAYCtx): void {
@@ -105,7 +109,31 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         const y = bounds.minY - 16 + content.y * roomHeight;
 
         if (player.entity.pos.dist(k.vec2(x, y)) < TRIGGER_DISTANCE) {
-          if (content.type !== 'npc') {
+          if (content.type === 'enemy') {
+            // Mark as triggered before battle
+            content.triggered = true;
+
+            // Get enemy definition
+            const enemyId = content.data as string || 'grey_slime';
+            const enemyDef = ENEMIES[enemyId] || getRandomEnemy();
+
+            // Transition to battle
+            const battleData: BattleSceneData = {
+              enemyDef,
+              floorLevel: GameState.dungeon.floorNumber,
+              returnScene: 'dungeon',
+              returnData: {
+                catColor,
+                dungeonId: GameState.dungeon.dungeonId,
+                floorNumber: GameState.dungeon.floorNumber,
+                floor: GameState.dungeon.floor,
+                returnFromBattle: true,
+              } as DungeonSceneData,
+            };
+
+            k.go('battle', battleData);
+            return;
+          } else if (content.type !== 'npc') {
             content.triggered = true;
             if (data.onContentTrigger) data.onContentTrigger(content, room);
 

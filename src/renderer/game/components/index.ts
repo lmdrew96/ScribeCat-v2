@@ -7,3 +7,9 @@ export {
   type Building,
   type BuildingConfig,
 } from './Door.js';
+export {
+  createEnemy,
+  createPlaceholderEnemy,
+  type Enemy,
+  type EnemyConfig,
+} from './Enemy.js';

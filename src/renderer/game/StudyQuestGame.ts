@@ -13,6 +13,7 @@ import { registerHomeScene } from './scenes/HomeScene.js';
 import { registerShopScene } from './scenes/ShopScene.js';
 import { registerInnScene } from './scenes/InnScene.js';
 import { registerDungeonScene } from './scenes/DungeonScene.js';
+import { registerBattleScene } from './scenes/BattleScene.js';
 import { GameState } from './state/GameState.js';
 import type { CatColor } from './sprites/catSprites.js';
 
@@ -47,8 +48,7 @@ export class StudyQuestGame {
     registerShopScene(this.k);
     registerInnScene(this.k);
     registerDungeonScene(this.k);
-    // Future scenes:
-    // registerBattleScene(this.k);
+    registerBattleScene(this.k);
   }
 
   /**

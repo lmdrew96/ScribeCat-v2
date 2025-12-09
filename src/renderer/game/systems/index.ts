@@ -11,3 +11,5 @@ export {
   type InteractionConfig,
   type InteractionSystem,
 } from './interaction.js';
+export * from './effects.js';
+export * from './battle.js';

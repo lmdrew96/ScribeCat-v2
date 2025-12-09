@@ -227,7 +227,7 @@ export class RoomRenderer {
         k.pos(x, y),
         k.anchor('center'),
         k.color(color[0], color[1], color[2]),
-        k.area({ shape: new k.Circle(k.vec2(0, 0), 22) }),
+        k.area({ shape: new k.Rect(k.vec2(-12, -12), 24, 24) }),
         k.z(5),
         'content',
         { contentData: content },

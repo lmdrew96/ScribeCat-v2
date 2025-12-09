@@ -5,6 +5,7 @@ export { registerHomeScene, type HomeSceneData } from './HomeScene.js';
 export { registerShopScene, type ShopSceneData } from './ShopScene.js';
 export { registerInnScene, type InnSceneData } from './InnScene.js';
 export { registerDungeonScene, type DungeonSceneData } from './DungeonScene.js';
+export { registerBattleScene, type BattleSceneData } from './BattleScene.js';
 
 // Test scenes (kept for development)
 export { registerUITestScene } from './UITestScene.js';

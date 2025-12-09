@@ -5,11 +5,9 @@
  * - Consumable items (potions, etc.)
  * - Equipment (weapons, armor)
  * - Furniture for their home
- *
- * Placeholder implementation - will be expanded later.
  */
 
-import type { KAPLAYCtx } from 'kaplay';
+import type { KAPLAYCtx, GameObj } from 'kaplay';
 import { GameState } from '../state/GameState.js';
 import { createPlayer } from '../components/Player.js';
 import { setupMovement } from '../systems/movement.js';
@@ -17,6 +15,7 @@ import { setupInteraction, type Interactable } from '../systems/interaction.js';
 import { createDoor } from '../components/Door.js';
 import { PLAYER_SPEED } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
+import { getItem, SHOP_INVENTORY, type ItemDefinition } from '../data/items.js';
 
 const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 400;
@@ -150,13 +149,211 @@ export function registerShopScene(k: KAPLAYCtx): void {
       },
     });
 
+    // --- SHOP STATE ---
+    let shopOpen = false;
+    let selectedTab = 0;
+    let selectedItem = 0;
+    let shopUIElements: GameObj[] = [];
+    let goldDisplay: GameObj;
+
+    const tabs = ['Items', 'Weapons', 'Armor'];
+    const tabInventories = [
+      SHOP_INVENTORY.consumables,
+      SHOP_INVENTORY.weapons,
+      SHOP_INVENTORY.armor,
+    ];
+
+    // --- GOLD DISPLAY ---
+    const goldBg = k.add([
+      k.rect(100, 30),
+      k.pos(CANVAS_WIDTH - 110, 10),
+      k.color(0, 0, 0),
+      k.opacity(0.6),
+      k.z(50),
+    ]);
+
+    goldDisplay = k.add([
+      k.text(`Gold: ${GameState.player.gold}`, { size: 12 }),
+      k.pos(CANVAS_WIDTH - 100, 18),
+      k.color(251, 191, 36),
+      k.z(51),
+    ]);
+
+    function updateGoldDisplay(): void {
+      goldDisplay.text = `Gold: ${GameState.player.gold}`;
+    }
+
+    // --- SHOP UI ---
+    function openShop(): void {
+      if (shopOpen) return;
+      shopOpen = true;
+      player.freeze();
+      selectedTab = 0;
+      selectedItem = 0;
+      renderShopUI();
+    }
+
+    function closeShop(): void {
+      if (!shopOpen) return;
+      shopOpen = false;
+      player.unfreeze();
+      clearShopUI();
+    }
+
+    function clearShopUI(): void {
+      shopUIElements.forEach((e) => k.destroy(e));
+      shopUIElements = [];
+    }
+
+    function renderShopUI(): void {
+      clearShopUI();
+
+      // Background
+      const bg = k.add([
+        k.rect(400, 250),
+        k.pos(CANVAS_WIDTH / 2 - 200, 60),
+        k.color(30, 30, 50),
+        k.outline(3, k.rgb(100, 100, 150)),
+        k.z(100),
+      ]);
+      shopUIElements.push(bg);
+
+      // Title
+      const title = k.add([
+        k.text("Welcome to the Shop!", { size: 14 }),
+        k.pos(CANVAS_WIDTH / 2, 80),
+        k.anchor('center'),
+        k.color(255, 255, 255),
+        k.z(101),
+      ]);
+      shopUIElements.push(title);
+
+      // Tabs
+      tabs.forEach((tab, i) => {
+        const isSelected = i === selectedTab;
+        const tabBg = k.add([
+          k.rect(80, 25),
+          k.pos(170 + i * 90, 100),
+          k.color(isSelected ? 100 : 50, isSelected ? 100 : 50, isSelected ? 150 : 80),
+          k.outline(2, k.rgb(100, 100, 150)),
+          k.z(101),
+        ]);
+        shopUIElements.push(tabBg);
+
+        const tabText = k.add([
+          k.text(tab, { size: 10 }),
+          k.pos(210 + i * 90, 113),
+          k.anchor('center'),
+          k.color(isSelected ? 255 : 180, isSelected ? 255 : 180, isSelected ? 100 : 180),
+          k.z(102),
+        ]);
+        shopUIElements.push(tabText);
+      });
+
+      // Item list
+      const currentItems = tabInventories[selectedTab];
+      currentItems.forEach((itemId, i) => {
+        const item = getItem(itemId);
+        if (!item) return;
+
+        const isSelected = i === selectedItem;
+        const y = 140 + i * 35;
+
+        // Item background
+        const itemBg = k.add([
+          k.rect(380, 30),
+          k.pos(CANVAS_WIDTH / 2 - 190, y),
+          k.color(isSelected ? 60 : 40, isSelected ? 60 : 40, isSelected ? 100 : 60),
+          k.outline(isSelected ? 2 : 1, k.rgb(isSelected ? 251 : 80, isSelected ? 191 : 80, isSelected ? 36 : 100)),
+          k.z(101),
+        ]);
+        shopUIElements.push(itemBg);
+
+        // Item icon (color rectangle)
+        const iconColor = item.iconColor || [100, 100, 100];
+        const icon = k.add([
+          k.rect(20, 20),
+          k.pos(CANVAS_WIDTH / 2 - 180, y + 5),
+          k.color(iconColor[0], iconColor[1], iconColor[2]),
+          k.outline(1, k.rgb(0, 0, 0)),
+          k.z(102),
+        ]);
+        shopUIElements.push(icon);
+
+        // Item name
+        const nameText = k.add([
+          k.text(item.name, { size: 10 }),
+          k.pos(CANVAS_WIDTH / 2 - 150, y + 10),
+          k.color(255, 255, 255),
+          k.z(102),
+        ]);
+        shopUIElements.push(nameText);
+
+        // Item price
+        const priceText = k.add([
+          k.text(`${item.buyPrice}G`, { size: 10 }),
+          k.pos(CANVAS_WIDTH / 2 + 150, y + 10),
+          k.color(251, 191, 36),
+          k.z(102),
+        ]);
+        shopUIElements.push(priceText);
+
+        // Owned count (for consumables)
+        if (item.type === 'consumable') {
+          const owned = GameState.getItemCount(itemId);
+          const ownedText = k.add([
+            k.text(`Owned: ${owned}`, { size: 8 }),
+            k.pos(CANVAS_WIDTH / 2 + 80, y + 12),
+            k.color(150, 150, 150),
+            k.z(102),
+          ]);
+          shopUIElements.push(ownedText);
+        }
+      });
+
+      // Instructions
+      const instructions = k.add([
+        k.text('Arrows: Navigate | Q/E: Switch Tab | ENTER: Buy | ESC: Close', { size: 8 }),
+        k.pos(CANVAS_WIDTH / 2, 290),
+        k.anchor('center'),
+        k.color(150, 150, 150),
+        k.z(101),
+      ]);
+      shopUIElements.push(instructions);
+    }
+
+    function purchaseItem(): void {
+      const currentItems = tabInventories[selectedTab];
+      if (selectedItem >= currentItems.length) return;
+
+      const itemId = currentItems[selectedItem];
+      const item = getItem(itemId);
+      if (!item) return;
+
+      // Check gold
+      if (GameState.player.gold < item.buyPrice) {
+        showShopMessage(k, "Not enough gold!");
+        return;
+      }
+
+      // Purchase
+      GameState.spendGold(item.buyPrice);
+      GameState.addItem(itemId, 1);
+      updateGoldDisplay();
+
+      showShopMessage(k, `Purchased ${item.name}!`);
+      renderShopUI();
+    }
+
     // --- INTERACTIONS ---
     const interactables: Interactable[] = [
       {
         entity: exitDoor.entity,
         type: 'door',
         promptText: exitDoor.getPromptText(),
-        onInteract: () => exitDoor.enter(),
+        onInteract: () => {
+          if (!shopOpen) exitDoor.enter();
+        },
       },
       {
         entity: shopkeeper,
@@ -164,9 +361,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
         promptText: 'ENTER to browse wares',
         range: 80,
         onInteract: () => {
-          // Placeholder - would open shop UI
-          console.log('Shop UI would open here!');
-          showShopMessage(k, 'Welcome! (Shop UI coming soon)');
+          openShop();
         },
       },
     ];
@@ -178,22 +373,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     // --- UI ---
-    // Gold display
-    k.add([
-      k.rect(100, 30),
-      k.pos(CANVAS_WIDTH - 110, 10),
-      k.color(0, 0, 0),
-      k.opacity(0.6),
-      k.z(50),
-    ]);
-
-    k.add([
-      k.text(`Gold: ${GameState.player.gold}`, { size: 12 }),
-      k.pos(CANVAS_WIDTH - 100, 18),
-      k.color(251, 191, 36),
-      k.z(51),
-    ]);
-
     // Scene label
     k.add([
       k.text('Shop', { size: 16 }),
@@ -205,15 +384,79 @@ export function registerShopScene(k: KAPLAYCtx): void {
     // Controls hint
     k.add([
       k.text('Arrow/WASD: Move | ENTER: Interact | ESC: Back', { size: 8 }),
-      k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 10),
-      k.anchor('bottom'),
+      k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 15),
+      k.anchor('center'),
       k.color(200, 200, 200),
       k.z(50),
     ]);
 
-    // --- ESC to go back ---
+    // --- INPUT ---
     k.onKeyPress('escape', () => {
-      k.go('town');
+      if (shopOpen) {
+        closeShop();
+      } else {
+        k.go('town');
+      }
+    });
+
+    k.onKeyPress('up', () => {
+      if (!shopOpen) return;
+      const currentItems = tabInventories[selectedTab];
+      if (selectedItem > 0) {
+        selectedItem--;
+        renderShopUI();
+      }
+    });
+
+    k.onKeyPress('down', () => {
+      if (!shopOpen) return;
+      const currentItems = tabInventories[selectedTab];
+      if (selectedItem < currentItems.length - 1) {
+        selectedItem++;
+        renderShopUI();
+      }
+    });
+
+    k.onKeyPress('q', () => {
+      if (!shopOpen) return;
+      if (selectedTab > 0) {
+        selectedTab--;
+        selectedItem = 0;
+        renderShopUI();
+      }
+    });
+
+    k.onKeyPress('e', () => {
+      if (!shopOpen) return;
+      if (selectedTab < tabs.length - 1) {
+        selectedTab++;
+        selectedItem = 0;
+        renderShopUI();
+      }
+    });
+
+    k.onKeyPress('left', () => {
+      if (!shopOpen) return;
+      if (selectedTab > 0) {
+        selectedTab--;
+        selectedItem = 0;
+        renderShopUI();
+      }
+    });
+
+    k.onKeyPress('right', () => {
+      if (!shopOpen) return;
+      if (selectedTab < tabs.length - 1) {
+        selectedTab++;
+        selectedItem = 0;
+        renderShopUI();
+      }
+    });
+
+    k.onKeyPress('enter', () => {
+      if (shopOpen) {
+        purchaseItem();
+      }
     });
 
     console.log('=== StudyQuest Shop ===');
@@ -226,22 +469,22 @@ export function registerShopScene(k: KAPLAYCtx): void {
 function showShopMessage(k: KAPLAYCtx, text: string): void {
   const msgBg = k.add([
     k.rect(300, 40),
-    k.pos(170, 120),
+    k.pos(170, 30),
     k.color(0, 0, 0),
-    k.opacity(0.8),
-    k.z(200),
+    k.opacity(0.9),
+    k.z(300),
   ]);
 
   const msgText = k.add([
     k.text(text, { size: 12 }),
-    k.pos(320, 140),
+    k.pos(320, 50),
     k.anchor('center'),
     k.color(255, 255, 255),
-    k.z(201),
+    k.z(301),
   ]);
 
-  // Auto-hide after 2 seconds
-  k.wait(2, () => {
+  // Auto-hide after 1.5 seconds
+  k.wait(1.5, () => {
     k.destroy(msgBg);
     k.destroy(msgText);
   });
