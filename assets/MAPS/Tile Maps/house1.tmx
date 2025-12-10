@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="5" height="4" tilewidth="16" tileheight="16" infinite="0" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" source="../../Tiles/Tiny Town/TinyTownTiles.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="5" height="4">
+  <data encoding="csv">
+89,93,93,78,2,
+12,16,16,79,22,
+1,57,80,80,68,
+1,80,57,75,68
+</data>
+ </layer>
+</map>

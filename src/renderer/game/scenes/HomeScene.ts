@@ -17,6 +17,7 @@ import { setupInteraction, type Interactable } from '../systems/interaction.js';
 import { createDoor } from '../components/Door.js';
 import { PLAYER_SPEED } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
+import { loadTownTiles, TOWN_TILES } from '../sprites/townSprites.js';
 
 const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 400;
@@ -30,30 +31,83 @@ export function registerHomeScene(k: KAPLAYCtx): void {
   k.scene('home', async (data: HomeSceneData = {}) => {
     const catColor = data.catColor || GameState.player.catColor;
 
-    // --- BACKGROUND ---
-    // Floor
-    k.add([
-      k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
-      k.pos(0, 0),
-      k.color(139, 119, 101), // Warm wood floor
-      k.z(0),
-    ]);
+    // --- BACKGROUND (HD Image or Tiled Floor) ---
+    let bgLoaded = false;
+    try {
+      await k.loadSprite('home-bg', '../../assets/BACKGROUNDS/cat_indoors_background.png');
+      bgLoaded = true;
+    } catch {
+      console.log('HD home background not available, using tiled floor');
+    }
 
-    // Wall
-    k.add([
-      k.rect(CANVAS_WIDTH, 150),
-      k.pos(0, 0),
-      k.color(255, 228, 196), // Bisque/cream wall
-      k.z(1),
-    ]);
+    if (bgLoaded) {
+      const bgSprite = k.add([
+        k.sprite('home-bg'),
+        k.pos(0, 0),
+        k.z(0),
+      ]);
+      // Scale to cover canvas
+      const bgScale = Math.max(CANVAS_WIDTH / 1024, CANVAS_HEIGHT / 576);
+      bgSprite.scale = k.vec2(bgScale, bgScale);
+    } else {
+      // Fallback: Try tiled floor, else solid color
+      let tilesLoaded = false;
+      try {
+        await loadTownTiles(k);
+        tilesLoaded = true;
+      } catch {
+        console.log('Tiles not available, using solid colors');
+      }
 
-    // Wall border
-    k.add([
-      k.rect(CANVAS_WIDTH, 8),
-      k.pos(0, 150),
-      k.color(139, 90, 43), // Wood trim
-      k.z(2),
-    ]);
+      // Wall (solid color background)
+      k.add([
+        k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
+        k.pos(0, 0),
+        k.color(255, 228, 196), // Bisque/cream
+        k.z(0),
+      ]);
+
+      // Floor area
+      if (tilesLoaded) {
+        // Tiled wood floor
+        const TILE_SCALE = 2;
+        const TILE_SIZE = 16 * TILE_SCALE; // 32px
+        const floorStartY = 150;
+
+        for (let x = 0; x < CANVAS_WIDTH; x += TILE_SIZE) {
+          for (let y = floorStartY; y < CANVAS_HEIGHT; y += TILE_SIZE) {
+            // Alternate between two floor tile types for visual variety
+            const tileId = (Math.floor(x / TILE_SIZE) + Math.floor(y / TILE_SIZE)) % 2 === 0
+              ? TOWN_TILES.PATH_DIRT
+              : TOWN_TILES.PATH_STONE_1;
+            const spriteName = `town_tile_${tileId.toString().padStart(4, '0')}`;
+
+            k.add([
+              k.sprite(spriteName),
+              k.pos(x, y),
+              k.scale(TILE_SCALE),
+              k.z(1),
+            ]);
+          }
+        }
+      } else {
+        // Solid color floor fallback
+        k.add([
+          k.rect(CANVAS_WIDTH, CANVAS_HEIGHT - 150),
+          k.pos(0, 150),
+          k.color(139, 119, 101),
+          k.z(1),
+        ]);
+      }
+
+      // Wall border
+      k.add([
+        k.rect(CANVAS_WIDTH, 8),
+        k.pos(0, 150),
+        k.color(139, 90, 43),
+        k.z(2),
+      ]);
+    }
 
     // --- DECORATIVE FURNITURE (placeholders) ---
     // Bed

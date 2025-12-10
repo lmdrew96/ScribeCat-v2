@@ -6,6 +6,12 @@
  */
 
 import type { KAPLAYCtx, GameObj, Color } from 'kaplay';
+import {
+  createTiledBuilding,
+  type BuildingType,
+  type TiledBuildingResult,
+  SCALED_TILE,
+} from '../sprites/townSprites.js';
 
 export interface DoorConfig {
   k: KAPLAYCtx;
@@ -120,6 +126,10 @@ export interface BuildingConfig {
   targetData?: Record<string, unknown>;
   buildingColor: Color;
   roofColor?: Color;
+  /** Use tile sprites instead of colored rectangles */
+  useTiles?: boolean;
+  /** Building type for tile composition (required if useTiles is true) */
+  buildingType?: BuildingType;
 }
 
 export interface Building {
@@ -128,6 +138,7 @@ export interface Building {
   doorEntity: GameObj;
   labelEntity: GameObj;
   door: Door;
+  tiledBuilding?: TiledBuildingResult;
   destroy: () => void;
 }
 
@@ -141,8 +152,16 @@ export function createBuilding(config: BuildingConfig): Building {
     targetData = {},
     buildingColor,
     roofColor = k.rgb(50, 50, 50),
+    useTiles = false,
+    buildingType,
   } = config;
 
+  // Use tiled building if enabled and buildingType is provided
+  if (useTiles && buildingType) {
+    return createTiledBuildingWrapper(config, buildingType);
+  }
+
+  // Original rectangle-based building
   const buildingWidth = 80;
   const buildingHeight = 100;
   const roofHeight = 20;
@@ -212,6 +231,61 @@ export function createBuilding(config: BuildingConfig): Building {
       k.destroy(buildingEntity);
       k.destroy(roofEntity);
       k.destroy(doorEntity);
+      k.destroy(labelEntity);
+      door.destroy();
+    },
+  };
+}
+
+/**
+ * Create a tiled building wrapper that returns the Building interface
+ */
+function createTiledBuildingWrapper(config: BuildingConfig, buildingType: BuildingType): Building {
+  const { k, x, y, label, targetScene, targetData = {} } = config;
+
+  // Create the tiled building
+  const tiledBuilding = createTiledBuilding(k, buildingType, x, y);
+
+  // Use first tile entity as the "main" building entity for interface compatibility
+  const buildingEntity = tiledBuilding.tileEntities[0];
+  const roofEntity = tiledBuilding.tileEntities[1] || buildingEntity;
+  const doorEntity = tiledBuilding.tileEntities[tiledBuilding.tileEntities.length - 2] || buildingEntity;
+
+  // Label above building
+  const labelEntity = k.add([
+    k.text(label, { size: 10 }),
+    k.pos(x, y - tiledBuilding.height - 8),
+    k.anchor('center'),
+    k.color(255, 255, 255),
+    k.z(10),
+    'building-label',
+  ]);
+
+  // Create interactable door (invisible, positioned at door tile)
+  const doorWidth = SCALED_TILE;
+  const doorHeight = SCALED_TILE;
+  const door = createDoor({
+    k,
+    x: tiledBuilding.doorX,
+    y: tiledBuilding.doorY,
+    width: doorWidth + 20,
+    height: doorHeight + 20,
+    label,
+    targetScene,
+    targetData,
+    visible: false,
+  });
+
+  return {
+    buildingEntity,
+    roofEntity,
+    doorEntity,
+    labelEntity,
+    door,
+    tiledBuilding,
+
+    destroy(): void {
+      tiledBuilding.destroy();
       k.destroy(labelEntity);
       door.destroy();
     },

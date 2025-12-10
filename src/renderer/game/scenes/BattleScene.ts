@@ -79,21 +79,64 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     let selectedAction = 0;
     let menuVisible = false;
 
-    // --- BACKGROUND ---
-    k.add([
-      k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
-      k.pos(0, 0),
-      k.color(40, 40, 60),
-      k.z(0),
-    ]);
+    // --- BACKGROUND (HD Image) ---
+    let bgLoaded = false;
+    try {
+      // Try to load HD background
+      await k.loadSprite('battle-bg', '../../assets/BACKGROUNDS/Alley.png');
+      bgLoaded = true;
+    } catch {
+      console.log('HD background not available, using fallback');
+    }
 
-    // Ground
-    k.add([
-      k.rect(CANVAS_WIDTH, 150),
-      k.pos(0, CANVAS_HEIGHT - 150),
-      k.color(60, 80, 60),
-      k.z(1),
-    ]);
+    if (bgLoaded) {
+      // Use HD background scaled to fit canvas
+      const bgSprite = k.add([
+        k.sprite('battle-bg'),
+        k.pos(0, 0),
+        k.z(0),
+      ]);
+      // Scale to cover canvas (assuming background is larger)
+      const bgScale = Math.max(CANVAS_WIDTH / 1024, CANVAS_HEIGHT / 576);
+      bgSprite.scale = k.vec2(bgScale, bgScale);
+    } else {
+      // Fallback: gradient-like background with multiple rects
+      // Dark sky gradient
+      k.add([
+        k.rect(CANVAS_WIDTH, CANVAS_HEIGHT / 2),
+        k.pos(0, 0),
+        k.color(30, 30, 50),
+        k.z(0),
+      ]);
+      k.add([
+        k.rect(CANVAS_WIDTH, CANVAS_HEIGHT / 2),
+        k.pos(0, CANVAS_HEIGHT / 2),
+        k.color(45, 45, 70),
+        k.z(0),
+      ]);
+
+      // Ground with texture pattern
+      k.add([
+        k.rect(CANVAS_WIDTH, 150),
+        k.pos(0, CANVAS_HEIGHT - 150),
+        k.color(50, 70, 50),
+        k.z(1),
+      ]);
+      // Ground highlight stripe
+      k.add([
+        k.rect(CANVAS_WIDTH, 4),
+        k.pos(0, CANVAS_HEIGHT - 150),
+        k.color(70, 100, 70),
+        k.z(1),
+      ]);
+      // Ground shadow at bottom
+      k.add([
+        k.rect(CANVAS_WIDTH, 20),
+        k.pos(0, CANVAS_HEIGHT - 20),
+        k.color(35, 50, 35),
+        k.z(1),
+      ]);
+    }
 
     // --- HEADER ---
     const enemyNameLabel = k.add([
@@ -138,53 +181,111 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     ]);
     playerEntity.play('idle');
 
-    // --- HP BARS ---
+    // --- HP BARS (Styled with borders and gradient effect) ---
     // Enemy HP bar
-    const enemyHpBarBg = k.add([
-      k.rect(150, 14),
-      k.pos(CANVAS_WIDTH - 180, 40),
-      k.color(50, 50, 50),
-      k.outline(2, k.rgb(0, 0, 0)),
+    // Outer border (black)
+    k.add([
+      k.rect(156, 20),
+      k.pos(CANVAS_WIDTH - 183, 37),
+      k.color(0, 0, 0),
+      k.z(99),
+    ]);
+    // Inner border (dark grey)
+    k.add([
+      k.rect(152, 16),
+      k.pos(CANVAS_WIDTH - 181, 39),
+      k.color(40, 40, 40),
       k.z(100),
     ]);
-
+    // Background (empty HP - dark red)
+    k.add([
+      k.rect(148, 12),
+      k.pos(CANVAS_WIDTH - 179, 41),
+      k.color(60, 20, 20),
+      k.z(100),
+    ]);
+    // HP fill top (brighter red)
     const enemyHpBar = k.add([
-      k.rect(146, 10),
+      k.rect(146, 5),
       k.pos(CANVAS_WIDTH - 178, 42),
-      k.color(220, 50, 50),
+      k.color(240, 60, 60),
       k.z(101),
+    ]);
+    // HP fill bottom (darker red for gradient)
+    const enemyHpBarBottom = k.add([
+      k.rect(146, 5),
+      k.pos(CANVAS_WIDTH - 178, 47),
+      k.color(180, 40, 40),
+      k.z(101),
+    ]);
+    // HP shine highlight
+    k.add([
+      k.rect(140, 2),
+      k.pos(CANVAS_WIDTH - 175, 43),
+      k.color(255, 150, 150),
+      k.opacity(0.4),
+      k.z(102),
     ]);
 
     const enemyHpLabel = k.add([
       k.text(`${enemyStats.hp}/${enemyStats.maxHp}`, { size: 8 }),
-      k.pos(CANVAS_WIDTH - 105, 43),
+      k.pos(CANVAS_WIDTH - 105, 46),
       k.anchor('center'),
       k.color(255, 255, 255),
-      k.z(102),
+      k.z(103),
     ]);
 
     // Player HP bar
+    // Outer border (black)
     k.add([
-      k.rect(180, 16),
-      k.pos(20, CANVAS_HEIGHT - 110),
-      k.color(50, 50, 50),
-      k.outline(2, k.rgb(0, 0, 0)),
+      k.rect(186, 22),
+      k.pos(17, CANVAS_HEIGHT - 113),
+      k.color(0, 0, 0),
+      k.z(99),
+    ]);
+    // Inner border (dark grey)
+    k.add([
+      k.rect(182, 18),
+      k.pos(19, CANVAS_HEIGHT - 111),
+      k.color(40, 40, 40),
       k.z(100),
     ]);
-
+    // Background (empty HP - dark green)
+    k.add([
+      k.rect(178, 14),
+      k.pos(21, CANVAS_HEIGHT - 109),
+      k.color(20, 50, 30),
+      k.z(100),
+    ]);
+    // HP fill top (brighter green)
     const playerHpBar = k.add([
-      k.rect(176, 12),
+      k.rect(176, 6),
       k.pos(22, CANVAS_HEIGHT - 108),
-      k.color(50, 200, 80),
+      k.color(60, 220, 100),
       k.z(101),
+    ]);
+    // HP fill bottom (darker green for gradient)
+    const playerHpBarBottom = k.add([
+      k.rect(176, 6),
+      k.pos(22, CANVAS_HEIGHT - 102),
+      k.color(40, 160, 70),
+      k.z(101),
+    ]);
+    // HP shine highlight
+    k.add([
+      k.rect(168, 2),
+      k.pos(26, CANVAS_HEIGHT - 106),
+      k.color(180, 255, 200),
+      k.opacity(0.4),
+      k.z(102),
     ]);
 
     const playerHpLabel = k.add([
       k.text(`HP: ${playerStats.hp}/${playerStats.maxHp}`, { size: 10 }),
-      k.pos(110, CANVAS_HEIGHT - 107),
+      k.pos(110, CANVAS_HEIGHT - 102),
       k.anchor('center'),
       k.color(255, 255, 255),
-      k.z(102),
+      k.z(103),
     ]);
 
     // --- ACTION MENU ---
@@ -267,22 +368,29 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     // --- HP UPDATE FUNCTIONS ---
     function updateEnemyHp(): void {
       const ratio = enemyStats.hp / enemyStats.maxHp;
-      enemyHpBar.width = 146 * ratio;
+      const barWidth = 146 * ratio;
+      enemyHpBar.width = barWidth;
+      enemyHpBarBottom.width = barWidth;
       enemyHpLabel.text = `${enemyStats.hp}/${enemyStats.maxHp}`;
     }
 
     function updatePlayerHp(): void {
       const ratio = playerStats.hp / playerStats.maxHp;
-      playerHpBar.width = 176 * ratio;
+      const barWidth = 176 * ratio;
+      playerHpBar.width = barWidth;
+      playerHpBarBottom.width = barWidth;
       playerHpLabel.text = `HP: ${playerStats.hp}/${playerStats.maxHp}`;
 
-      // Color based on HP
+      // Color based on HP (update both gradient parts)
       if (ratio > 0.5) {
-        playerHpBar.color = k.rgb(50, 200, 80);
+        playerHpBar.color = k.rgb(60, 220, 100); // Bright green
+        playerHpBarBottom.color = k.rgb(40, 160, 70); // Dark green
       } else if (ratio > 0.25) {
-        playerHpBar.color = k.rgb(220, 180, 50);
+        playerHpBar.color = k.rgb(240, 200, 60); // Bright yellow
+        playerHpBarBottom.color = k.rgb(180, 150, 40); // Dark yellow
       } else {
-        playerHpBar.color = k.rgb(220, 50, 50);
+        playerHpBar.color = k.rgb(240, 60, 60); // Bright red
+        playerHpBarBottom.color = k.rgb(180, 40, 40); // Dark red
       }
     }
 

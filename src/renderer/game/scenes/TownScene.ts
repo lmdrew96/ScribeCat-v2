@@ -19,6 +19,13 @@ import { createBuilding } from '../components/Door.js';
 import { PLAYER_SPEED } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
 import { parseTMX, loadMapTiles, renderAllLayers } from '../maps/index.js';
+import {
+  loadTownTiles,
+  createDecoration,
+  createTiledPath,
+  createTMXDecoration,
+  type BuildingType,
+} from '../sprites/townSprites.js';
 
 const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 400;
@@ -43,11 +50,17 @@ const SPAWN_Y = CANVAS_HEIGHT - 80;
 
 // Building positions (y is ground level for each building)
 const BUILDING_Y = 200;
-const BUILDINGS_CONFIG = [
-  { x: 100, label: 'Home', scene: 'home', color: [139, 90, 43] as const },
-  { x: 250, label: 'Shop', scene: 'shop', color: [70, 130, 180] as const },
-  { x: 400, label: 'Inn', scene: 'inn', color: [178, 34, 34] as const },
-  { x: 550, label: 'Dungeon', scene: 'dungeon', color: [75, 0, 130] as const },
+const BUILDINGS_CONFIG: Array<{
+  x: number;
+  label: string;
+  scene: string;
+  color: readonly [number, number, number];
+  buildingType: BuildingType;
+}> = [
+  { x: 100, label: 'Home', scene: 'home', color: [139, 90, 43] as const, buildingType: 'home' },
+  { x: 250, label: 'Shop', scene: 'shop', color: [70, 130, 180] as const, buildingType: 'shop' },
+  { x: 400, label: 'Inn', scene: 'inn', color: [178, 34, 34] as const, buildingType: 'inn' },
+  { x: 550, label: 'Dungeon', scene: 'dungeon', color: [75, 0, 130] as const, buildingType: 'dungeon' },
 ];
 
 export interface TownSceneData {
@@ -141,16 +154,19 @@ export function registerTownScene(k: KAPLAYCtx): void {
       console.error('Failed to load tilemap:', err);
     }
 
-    // --- PATH ---
-    // Draw a path connecting buildings
-    k.add([
-      k.rect(CANVAS_WIDTH - 60, 30),
-      k.pos(30, BUILDING_Y + 10),
-      k.color(139, 119, 101), // Tan/brown path
-      k.z(5),
-    ]);
+    // --- LOAD TOWN TILES ---
+    try {
+      await loadTownTiles(k);
+      console.log('Town tiles loaded successfully');
+    } catch (err) {
+      console.error('Failed to load town tiles:', err);
+    }
 
-    // --- BUILDINGS ---
+    // --- PATH ---
+    // Draw a tiled path connecting buildings
+    createTiledPath(k, 30, BUILDING_Y + 10, CANVAS_WIDTH - 60, 5);
+
+    // --- BUILDINGS (using tiled sprites) ---
     const buildings = BUILDINGS_CONFIG.map((cfg) =>
       createBuilding({
         k,
@@ -159,8 +175,29 @@ export function registerTownScene(k: KAPLAYCtx): void {
         label: cfg.label,
         targetScene: cfg.scene,
         buildingColor: k.rgb(cfg.color[0], cfg.color[1], cfg.color[2]),
+        useTiles: true,
+        buildingType: cfg.buildingType,
       })
     );
+
+    // --- DECORATIONS ---
+    // Trees between buildings
+    createDecoration(k, 'tree_green', 175, BUILDING_Y + 20, 4);
+    createDecoration(k, 'tree_yellow', 325, BUILDING_Y + 15, 4);
+    createDecoration(k, 'tree_green', 475, BUILDING_Y + 20, 4);
+
+    // Small bushes/trees at edges
+    createDecoration(k, 'bush', 40, BUILDING_Y + 30, 4);
+    createDecoration(k, 'tree_small', 600, BUILDING_Y + 25, 4);
+
+    // Decorative elements near buildings
+    createDecoration(k, 'mushroom', 130, BUILDING_Y + 35, 4);
+    createDecoration(k, 'mushroom', 370, BUILDING_Y + 38, 4);
+    createDecoration(k, 'sign', 220, BUILDING_Y + 10, 6);
+
+    // TMX-based decorations (tree patches and ponds from user's tilemaps)
+    createTMXDecoration(k, 'tree_patch', 50, CANVAS_HEIGHT - 60, 2);
+    createTMXDecoration(k, 'pond_small', CANVAS_WIDTH - 80, CANVAS_HEIGHT - 40, 2);
 
     // --- PLAYER ---
     const player = await createPlayer({

@@ -5,10 +5,94 @@
     },
     "activeFile": "",
     "expandedProjectPaths": [
+        "assets/Tiles/Tiny Town",
+        ".",
+        "assets/MAPS/Tile Maps",
+        "assets/Tiles",
+        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled",
+        "assets/Tiles/PixelAdventure",
+        "assets/MAPS",
+        "assets",
+        "assets/Kenney Assets",
+        "assets/Tiles/GrassWaterTiles",
+        "assets/Kenney Assets/kenney_tiny-dungeon"
     ],
+    "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
         "": {
             "scaleInDock": 1
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/big_square_pond.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/dungeon1.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/grassy.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 303,
+                "y": 150
+            }
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/house1.tmx": {
+            "scale": 1.3078,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 8.411072029362288,
+                "y": 9.175714941122493
+            }
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/house2.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/house3.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/house4.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/tiny_square_pond.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "/Users/nae/Desktop/StudyQuest/Tile Maps/tree_patch.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 0,
+                "y": 0
+            }
         },
         "/Users/nae/Desktop/cat_village.tmx": {
             "scale": 0.891,
@@ -44,7 +128,22 @@
         "/Users/nae/Downloads/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Tileset_RockSlope.tsx": {
             "scaleInDock": 1
         },
+        "/Users/nae/Downloads/kenney_roguelike-rpg-pack (1)/Map/sample_map.tmx": {
+            "scale": 1.688,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 684.8341232227489,
+                "y": 420.61611374407585
+            }
+        },
+        "/Users/nae/Downloads/kenney_roguelike-rpg-pack (1)/Map/sample_map.tmx#Roguelike": {
+            "scaleInDock": 1
+        },
+        "/Users/nae/Downloads/kenney_tiny-town/tile_0002.tsx": {
+            "dynamicWrapping": false
+        },
         ":/automap-tiles.tsx": {
+            "dynamicWrapping": false,
             "scaleInDock": 1
         },
         "assets/Kenney Assets/kenney_tiny-dungeon/Tiled/sampleMap.tmx": {
@@ -60,6 +159,135 @@
             "scaleInDock": 1,
             "scaleInEditor": 1
         },
+        "assets/MAPS/CatVillage.tmx": {
+            "scale": 1.228,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 249.59283387622148,
+                "y": 185.66775244299674
+            }
+        },
+        "assets/MAPS/Tile Maps/barn1.tmx": {
+            "scale": 0.56,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 317.85714285714283,
+                "y": 242.85714285714283
+            }
+        },
+        "assets/MAPS/Tile Maps/big_square_pond.tmx": {
+            "scale": 3.8474999999999997,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 47.95321637426901,
+                "y": 40.025990903183896
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon1.tmx": {
+            "scale": 0.5686,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -163.55962011959195,
+                "y": 59.7959901512487
+            }
+        },
+        "assets/MAPS/Tile Maps/house1.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -1,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tile Maps/house2.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -1,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tile Maps/house3.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -1,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tile Maps/house4.tmx": {
+            "scale": 4.0671875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 40.07683442182097,
+                "y": 69.33538225124855
+            }
+        },
+        "assets/MAPS/Tile Maps/its_grass.tmx": {
+            "scale": 0.5686,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 626.0991909954274,
+                "y": 459.02215969046784
+            }
+        },
+        "assets/MAPS/Tile Maps/tiny_tree_cluster_green.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -48,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tile Maps/tiny_tree_cluster_yellow.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -48,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tile Maps/tiny_tree_group_green.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -1,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tile Maps/tiny_tree_group_yellow.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -48,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tile Maps/tree_line_green.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -1,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tile Maps/tree_line_yellow.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        "assets/MAPS/Tiny Town/TinyTownTiles.tsx": {
+            "scaleInDock": 1
+        },
+        "assets/ScribeCat-v2/assets/Tiles/GrassWaterTiles/WaterGrassTiles.tsx": {
+            "scaleInDock": 1
+        },
+        "assets/ScribeCat-v2/assets/Tiles/Tiny Town/TinyTownTiles.tsx": {
+            "scaleInDock": 1
+        },
         "assets/Tiles/CatVillageMap.tmx": {
             "scale": 1.1755,
             "selectedLayer": 1,
@@ -68,10 +296,23 @@
                 "y": 241.17396852403235
             }
         },
-        "assets/Tiles/GrassWaterTiles/WaterGrassTiles.tsx": {
+        "assets/Tiles/GrassWaterTiles/GrassWaterTiles.tsx": {
             "dynamicWrapping": true,
             "scaleInDock": 1,
+            "scaleInEditor": 4.8933
+        },
+        "assets/Tiles/GrassWaterTiles/WaterGrassTiles.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 2.361,
             "scaleInEditor": 3.2426
+        },
+        "assets/Tiles/GrassWaterTiles/house4.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -0.5,
+                "y": 0
+            }
         },
         "assets/Tiles/PixelAdventure/InterfaceTiles.tsx": {
             "dynamicWrapping": true,
@@ -79,27 +320,46 @@
             "scaleInEditor": 1
         },
         "assets/Tiles/Tiny Town/TinyTownTiles.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 2.4915,
+            "scaleInEditor": 1.7248
+        },
+        "assets/Tiles/Tiny Town/Tiny_Town_Tiles.tsx": {
             "scaleInDock": 1,
-            "scaleInEditor": 0.1644
+            "scaleInEditor": 1
         }
     },
-    "last.imagePath": "/Users/nae/Desktop/ScribeCat-v2/assets/Kenney Assets/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline",
+    "last.exportedFilePath": "/Users/nae/Desktop/ScribeCat-v2/assets",
+    "last.externalTilesetPath": "/Users/nae/Desktop/ScribeCat-v2/assets/Tiles/Tiny Town",
+    "last.imagePath": "/Users/nae/Desktop/ScribeCat-v2/assets/Tiles/Tiny Town",
+    "last.worldFilePath": "/Users/nae/Desktop/ScribeCat-v2/assets/WORLDS",
+    "loadedWorlds": [
+    ],
+    "map.height": 30,
+    "map.lastUsedExportFilter": "Tiled map files (*.tmx *.xml)",
     "map.lastUsedFormat": "tmx",
     "map.tileHeight": 16,
     "map.tileWidth": 16,
+    "map.width": 40,
     "openFiles": [
     ],
     "project": "StudyQuest.tiled-project",
+    "property.type": "float",
     "recentFiles": [
-        "/Users/nae/Desktop/cat_village.tmx",
-        "/Users/nae/Desktop/simple_map.tmx",
-        "/Users/nae/Downloads/The Fan-tasy Tileset (Free)/Tiled/Tilemaps/Rules/RockSlopes_Rules.tmx",
-        "assets/Tiles/GrassWaterTiles/WaterGrassTiles.tsx",
-        "assets/Tiles/PixelAdventure/InterfaceTiles.tsx",
-        "assets/Tiles/Tiny Town/TinyTownTiles.tsx",
-        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled/sampleMap.tmx",
-        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled/sampleSheet.tsx"
+        "assets/MAPS/Tile Maps/tree_line_green.tmx",
+        "assets/MAPS/Tile Maps/tiny_tree_group_yellow.tmx",
+        "assets/MAPS/Tile Maps/tiny_tree_group_green.tmx",
+        "assets/MAPS/Tile Maps/tiny_tree_cluster_yellow.tmx",
+        "assets/MAPS/Tile Maps/barn1.tmx",
+        "assets/MAPS/Tile Maps/dungeon1.tmx",
+        "assets/MAPS/Tile Maps/its_grass.tmx",
+        "assets/MAPS/Tile Maps/house1.tmx",
+        "assets/MAPS/Tile Maps/house2.tmx",
+        "assets/MAPS/Tile Maps/house3.tmx",
+        "assets/Tiles/GrassWaterTiles/GrassWaterTiles.tsx",
+        "assets/MAPS/Tile Maps/tiny_tree_cluster_green.tmx"
     ],
+    "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
     "tileset.lastUsedFormat": "tsx",
     "tileset.type": 1
 }

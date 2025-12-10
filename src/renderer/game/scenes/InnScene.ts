@@ -30,56 +30,75 @@ export function registerInnScene(k: KAPLAYCtx): void {
   k.scene('inn', async (data: InnSceneData = {}) => {
     const catColor = data.catColor || GameState.player.catColor;
 
-    // --- BACKGROUND ---
-    // Floor
-    k.add([
-      k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
-      k.pos(0, 0),
-      k.color(139, 90, 43), // Warm brown floor
-      k.z(0),
-    ]);
+    // --- BACKGROUND (HD Image) ---
+    let bgLoaded = false;
+    try {
+      await k.loadSprite('inn-bg', '../../assets/BACKGROUNDS/Cozy Living Room by the Fire.png');
+      bgLoaded = true;
+    } catch {
+      console.log('HD inn background not available, using fallback');
+    }
 
-    // Wall
-    k.add([
-      k.rect(CANVAS_WIDTH, 180),
-      k.pos(0, 0),
-      k.color(178, 34, 34), // Firebrick red wall
-      k.z(1),
-    ]);
+    if (bgLoaded) {
+      const bgSprite = k.add([
+        k.sprite('inn-bg'),
+        k.pos(0, 0),
+        k.z(0),
+      ]);
+      // Scale to cover canvas
+      const bgScale = Math.max(CANVAS_WIDTH / 1024, CANVAS_HEIGHT / 576);
+      bgSprite.scale = k.vec2(bgScale, bgScale);
+    } else {
+      // Fallback: original colored rectangles
+      // Floor
+      k.add([
+        k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
+        k.pos(0, 0),
+        k.color(139, 90, 43),
+        k.z(0),
+      ]);
 
-    // Wall border
-    k.add([
-      k.rect(CANVAS_WIDTH, 8),
-      k.pos(0, 180),
-      k.color(128, 0, 0),
-      k.z(2),
-    ]);
+      // Wall
+      k.add([
+        k.rect(CANVAS_WIDTH, 180),
+        k.pos(0, 0),
+        k.color(178, 34, 34),
+        k.z(1),
+      ]);
 
-    // --- DECORATIONS ---
-    // Fireplace
-    k.add([
-      k.rect(100, 80),
-      k.pos(50, 100),
-      k.color(80, 80, 80),
-      k.outline(3, k.rgb(50, 50, 50)),
-      k.z(3),
-    ]);
+      // Wall border
+      k.add([
+        k.rect(CANVAS_WIDTH, 8),
+        k.pos(0, 180),
+        k.color(128, 0, 0),
+        k.z(2),
+      ]);
 
-    // Fire (animated with color cycling would be nice)
-    k.add([
-      k.rect(60, 40),
-      k.pos(70, 130),
-      k.color(255, 100, 0),
-      k.z(4),
-    ]);
+      // Fireplace (only show in fallback mode - HD background has one)
+      k.add([
+        k.rect(100, 80),
+        k.pos(50, 100),
+        k.color(80, 80, 80),
+        k.outline(3, k.rgb(50, 50, 50)),
+        k.z(3),
+      ]);
 
-    // Fire glow effect (inner flame)
-    k.add([
-      k.rect(40, 30),
-      k.pos(80, 135),
-      k.color(255, 200, 50), // Yellow-orange inner flame
-      k.z(5),
-    ]);
+      // Fire
+      k.add([
+        k.rect(60, 40),
+        k.pos(70, 130),
+        k.color(255, 100, 0),
+        k.z(4),
+      ]);
+
+      // Fire glow
+      k.add([
+        k.rect(40, 30),
+        k.pos(80, 135),
+        k.color(255, 200, 50),
+        k.z(5),
+      ]);
+    }
 
     // Tables
     const tables = [

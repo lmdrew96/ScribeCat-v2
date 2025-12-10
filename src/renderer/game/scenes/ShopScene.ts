@@ -29,30 +29,50 @@ export function registerShopScene(k: KAPLAYCtx): void {
   k.scene('shop', async (data: ShopSceneData = {}) => {
     const catColor = data.catColor || GameState.player.catColor;
 
-    // --- BACKGROUND ---
-    // Floor
-    k.add([
-      k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
-      k.pos(0, 0),
-      k.color(101, 67, 33), // Dark wood floor
-      k.z(0),
-    ]);
+    // --- BACKGROUND (HD Image) ---
+    let bgLoaded = false;
+    try {
+      await k.loadSprite('shop-bg', '../../assets/BACKGROUNDS/Cat-Themed General Store Interior.png');
+      bgLoaded = true;
+    } catch {
+      console.log('HD shop background not available, using fallback');
+    }
 
-    // Wall
-    k.add([
-      k.rect(CANVAS_WIDTH, 180),
-      k.pos(0, 0),
-      k.color(70, 130, 180), // Steel blue wall
-      k.z(1),
-    ]);
+    if (bgLoaded) {
+      const bgSprite = k.add([
+        k.sprite('shop-bg'),
+        k.pos(0, 0),
+        k.z(0),
+      ]);
+      // Scale to cover canvas
+      const bgScale = Math.max(CANVAS_WIDTH / 1024, CANVAS_HEIGHT / 576);
+      bgSprite.scale = k.vec2(bgScale, bgScale);
+    } else {
+      // Fallback: original colored rectangles
+      // Floor
+      k.add([
+        k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
+        k.pos(0, 0),
+        k.color(101, 67, 33),
+        k.z(0),
+      ]);
 
-    // Wall border
-    k.add([
-      k.rect(CANVAS_WIDTH, 8),
-      k.pos(0, 180),
-      k.color(50, 50, 50),
-      k.z(2),
-    ]);
+      // Wall
+      k.add([
+        k.rect(CANVAS_WIDTH, 180),
+        k.pos(0, 0),
+        k.color(70, 130, 180),
+        k.z(1),
+      ]);
+
+      // Wall border
+      k.add([
+        k.rect(CANVAS_WIDTH, 8),
+        k.pos(0, 180),
+        k.color(50, 50, 50),
+        k.z(2),
+      ]);
+    }
 
     // --- SHOP COUNTER ---
     k.add([

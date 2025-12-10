@@ -65,7 +65,7 @@ export function flashEntity(
 export type FloatingNumberType = 'damage' | 'heal' | 'xp' | 'gold' | 'miss' | 'crit';
 
 /**
- * Show a floating number that rises and fades
+ * Show a floating number that rises and fades (with drop shadow)
  */
 export function showFloatingNumber(
   k: KAPLAYCtx,
@@ -84,8 +84,22 @@ export function showFloatingNumber(
   if (type === 'miss') displayText = 'MISS';
   if (type === 'crit') displayText = `${value}!`;
 
+  const fontSize = type === 'crit' ? 16 : 12;
+  const shadowOffset = type === 'crit' ? 2 : 1;
+
+  // Create shadow text first (renders behind main text)
+  const shadow = k.add([
+    k.text(displayText, { size: fontSize }),
+    k.pos(x + shadowOffset, y + shadowOffset),
+    k.anchor('center'),
+    k.color(0, 0, 0),
+    k.opacity(0.6),
+    k.z(499),
+  ]);
+
+  // Main text on top
   const text = k.add([
-    k.text(displayText, { size: type === 'crit' ? 16 : 12 }),
+    k.text(displayText, { size: fontSize }),
     k.pos(x, y),
     k.anchor('center'),
     k.color(colorRGB[0], colorRGB[1], colorRGB[2]),
@@ -98,16 +112,20 @@ export function showFloatingNumber(
   const endY = y - 40;
   const duration = 0.8;
 
+  // Animate both text and shadow together
   k.tween(startY, endY, duration, (v) => {
     text.pos.y = v;
+    shadow.pos.y = v + shadowOffset;
   }, k.easings.easeOutQuad);
 
   k.tween(1, 0, duration, (v) => {
     text.opacity = v;
+    shadow.opacity = v * 0.6; // Shadow fades proportionally
   });
 
   k.wait(duration, () => {
     k.destroy(text);
+    k.destroy(shadow);
   });
 }
 
