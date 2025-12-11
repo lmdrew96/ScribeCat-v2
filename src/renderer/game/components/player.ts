@@ -35,7 +35,7 @@ export async function createPlayer(config: PlayerConfig): Promise<Player> {
     k.sprite(getCatSpriteName(color, 'idle')),
     k.pos(x, y),
     k.anchor('center'),
-    k.scale(2),
+    k.scale(1),
     k.area({ scale: 0.5 }),
     k.z(10),
     'player',

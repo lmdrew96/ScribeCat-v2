@@ -26,14 +26,32 @@ interface LayerData {
   data: number[];
 }
 
+// Parsed object from object groups
+export interface MapObject {
+  id: number;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isPoint: boolean;
+}
+
+// Parsed object group
+export interface ObjectGroup {
+  name: string;
+  objects: MapObject[];
+}
+
 // Parsed map data
-interface MapData {
+export interface MapData {
   width: number;
   height: number;
   tileWidth: number;
   tileHeight: number;
   tilesets: TilesetConfig[];
   layers: LayerData[];
+  objectGroups: ObjectGroup[];
 }
 
 // Tileset definitions based on TSX files (actual filenames from .tsx files)
@@ -239,7 +257,7 @@ export function parseTMX(tmxContent: string): MapData {
 
     // Extract tileset name from source path
     let tilesetName = '';
-    if (source.includes('WaterGrassTiles')) {
+    if (source.includes('WaterGrassTiles') || source.includes('GrassWaterTiles')) {
       tilesetName = 'WaterGrassTiles';
     } else if (source.includes('TinyTownTiles') || source.includes('Tiny Town')) {
       tilesetName = 'TinyTownTiles';
@@ -278,7 +296,29 @@ export function parseTMX(tmxContent: string): MapData {
     }
   });
 
-  return { width, height, tileWidth, tileHeight, tilesets, layers };
+  // Parse object groups
+  const objectGroups: ObjectGroup[] = [];
+  doc.querySelectorAll('objectgroup').forEach((groupEl) => {
+    const groupName = groupEl.getAttribute('name') || 'unnamed';
+    const objects: MapObject[] = [];
+
+    groupEl.querySelectorAll('object').forEach((objEl) => {
+      const isPoint = objEl.querySelector('point') !== null;
+      objects.push({
+        id: parseInt(objEl.getAttribute('id') || '0', 10),
+        name: objEl.getAttribute('name') || '',
+        x: parseFloat(objEl.getAttribute('x') || '0'),
+        y: parseFloat(objEl.getAttribute('y') || '0'),
+        width: parseFloat(objEl.getAttribute('width') || '0'),
+        height: parseFloat(objEl.getAttribute('height') || '0'),
+        isPoint,
+      });
+    });
+
+    objectGroups.push({ name: groupName, objects });
+  });
+
+  return { width, height, tileWidth, tileHeight, tilesets, layers, objectGroups };
 }
 
 /**
@@ -437,4 +477,77 @@ export async function loadTMXFromPath(path: string): Promise<string> {
     throw new Error(`Failed to load TMX: ${response.statusText}`);
   }
   return response.text();
+}
+
+/**
+ * Get spawn position from map object groups
+ */
+export function getSpawnPosition(
+  mapData: MapData,
+  scale: number = 1,
+  offsetX: number = 0,
+  offsetY: number = 0
+): { x: number; y: number } | null {
+  const positionsGroup = mapData.objectGroups.find((g) => g.name === 'positions');
+  if (!positionsGroup) return null;
+
+  const spawn = positionsGroup.objects.find((o) => o.name === 'spawn');
+  if (!spawn) return null;
+
+  return {
+    x: spawn.x * scale + offsetX,
+    y: spawn.y * scale + offsetY,
+  };
+}
+
+/**
+ * Get door positions from map object groups
+ */
+export function getDoorPositions(
+  mapData: MapData,
+  scale: number = 1,
+  offsetX: number = 0,
+  offsetY: number = 0
+): Map<string, { x: number; y: number; width: number; height: number }> {
+  const doors = new Map<string, { x: number; y: number; width: number; height: number }>();
+  const positionsGroup = mapData.objectGroups.find((g) => g.name === 'positions');
+  if (!positionsGroup) return doors;
+
+  for (const obj of positionsGroup.objects) {
+    if (obj.name.endsWith('_door')) {
+      doors.set(obj.name, {
+        x: obj.x * scale + offsetX,
+        y: obj.y * scale + offsetY,
+        width: obj.width * scale,
+        height: obj.height * scale,
+      });
+    }
+  }
+
+  return doors;
+}
+
+/**
+ * Get collision rectangles from map object groups
+ */
+export function getColliders(
+  mapData: MapData,
+  scale: number = 1,
+  offsetX: number = 0,
+  offsetY: number = 0
+): Array<{ x: number; y: number; width: number; height: number }> {
+  const colliders: Array<{ x: number; y: number; width: number; height: number }> = [];
+  const collidersGroup = mapData.objectGroups.find((g) => g.name === 'colliders' || g.name === 'collisions');
+  if (!collidersGroup) return colliders;
+
+  for (const obj of collidersGroup.objects) {
+    colliders.push({
+      x: obj.x * scale + offsetX,
+      y: obj.y * scale + offsetY,
+      width: obj.width * scale,
+      height: obj.height * scale,
+    });
+  }
+
+  return colliders;
 }

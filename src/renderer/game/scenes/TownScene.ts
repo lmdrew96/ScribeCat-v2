@@ -15,114 +15,46 @@ import { GameState } from '../state/GameState.js';
 import { createPlayer } from '../components/Player.js';
 import { setupMovement } from '../systems/movement.js';
 import { setupInteraction, type Interactable } from '../systems/interaction.js';
-import { createBuilding } from '../components/Door.js';
+// Building visuals now come from tilemap, but keeping import for future use
+// import { createBuilding } from '../components/Door.js';
 import { PLAYER_SPEED } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
-import { parseTMX, loadMapTiles, renderAllLayers } from '../maps/index.js';
 import {
-  loadTownTiles,
-  createDecoration,
-  createTiledPath,
-  createTMXDecoration,
-  type BuildingType,
-} from '../sprites/townSprites.js';
+  parseTMX,
+  loadMapTiles,
+  renderAllLayers,
+  loadTMXFromPath,
+  getSpawnPosition,
+  getDoorPositions,
+  getColliders,
+} from '../maps/index.js';
+import { loadTownTiles, type BuildingType } from '../sprites/townSprites.js';
 
 const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 400;
 
-// Map scaling - the tilemap is 480x320, we scale to fit 640x400
-// Using 1.25 scale: 480*1.25=600, 320*1.25=400
-const MAP_SCALE = 1.25;
-const MAP_OFFSET_X = (CANVAS_WIDTH - 480 * MAP_SCALE) / 2; // Center horizontally (20px)
+// Map scaling - the tilemap is 640x480 (40x30 tiles at 16px), we scale to fit 640x400
+// Using 0.833 scale: 480*0.833=400 (fits height exactly)
+const MAP_SCALE = CANVAS_HEIGHT / 480; // ~0.833
+const MAP_OFFSET_X = 0;
 const MAP_OFFSET_Y = 0;
 
-// Walkable area bounds (in canvas coordinates, accounting for scale)
-const WALKABLE_BOUNDS = {
-  minX: MAP_OFFSET_X + 30,
-  maxX: MAP_OFFSET_X + 480 * MAP_SCALE - 30,
-  minY: 180, // Keep below buildings
-  maxY: CANVAS_HEIGHT - 40,
+// Door name to scene mapping
+const DOOR_SCENE_MAP: Record<string, { label: string; scene: string; buildingType: BuildingType }> = {
+  home_door: { label: 'Home', scene: 'home', buildingType: 'home' },
+  shop_door: { label: 'Shop', scene: 'shop', buildingType: 'shop' },
+  inn_door: { label: 'Inn', scene: 'inn', buildingType: 'inn' },
+  dungeon_door: { label: 'Dungeon', scene: 'dungeon', buildingType: 'dungeon' },
+  // barn_door: skip for now
 };
-
-// Player spawn position
-const SPAWN_X = CANVAS_WIDTH / 2;
-const SPAWN_Y = CANVAS_HEIGHT - 80;
-
-// Building positions (y is ground level for each building)
-const BUILDING_Y = 200;
-const BUILDINGS_CONFIG: Array<{
-  x: number;
-  label: string;
-  scene: string;
-  color: readonly [number, number, number];
-  buildingType: BuildingType;
-}> = [
-  { x: 100, label: 'Home', scene: 'home', color: [139, 90, 43] as const, buildingType: 'home' },
-  { x: 250, label: 'Shop', scene: 'shop', color: [70, 130, 180] as const, buildingType: 'shop' },
-  { x: 400, label: 'Inn', scene: 'inn', color: [178, 34, 34] as const, buildingType: 'inn' },
-  { x: 550, label: 'Dungeon', scene: 'dungeon', color: [75, 0, 130] as const, buildingType: 'dungeon' },
-];
 
 export interface TownSceneData {
   catColor?: CatColor;
   fromScene?: string;
 }
 
-// Cat Village TMX content (embedded to avoid file loading issues)
-const CAT_VILLAGE_TMX = `<?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="1">
- <tileset firstgid="1" source="../Tiles/GrassWaterTiles/WaterGrassTiles.tsx"/>
- <tileset firstgid="28" source="../Tiles/PixelAdventure/InterfaceTiles.tsx"/>
- <tileset firstgid="119" source="../Tiles/Tiny Town/TinyTownTiles.tsx"/>
- <layer id="1" name="Grass" width="30" height="20">
-  <data encoding="csv">
-1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,3,
-3,1,1,2,1,1,1,1,1,1,1,2,2,3,1,2,2,1,1,1,2,1,1,1,1,1,1,2,3,2,
-1,1,2,3,1,1,1,3,1,1,1,1,3,3,1,1,1,1,1,2,3,2,2,1,3,1,1,2,2,2,
-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,1,1,1,1,1,1,2,2,
-1,1,1,2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,1,
-1,1,1,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,
-1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,
-1,1,1,1,1,1,1,1,3,1,1,1,1,2,3,2,2,1,1,1,1,1,1,1,3,1,1,1,1,1,
-1,1,2,1,1,1,1,1,1,1,1,1,2,2,2,2,1,1,1,1,1,1,1,3,2,1,1,1,1,1,
-1,1,2,2,1,1,1,1,1,1,1,2,3,2,2,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,
-1,1,1,2,3,1,1,1,1,1,1,2,2,2,2,1,1,1,1,3,1,1,1,1,1,1,1,1,3,1,
-3,1,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,3,1,1,1,1,2,2,1,1,
-1,1,1,1,2,2,1,1,1,3,1,1,1,1,1,1,1,1,1,1,3,2,2,1,1,3,2,2,1,1,
-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,2,2,2,2,2,2,2,1,
-1,1,1,1,1,1,1,1,1,1,1,1,1,3,2,2,2,1,1,1,1,1,1,2,2,2,2,2,1,1,
-3,2,2,1,1,1,1,1,1,1,1,1,1,2,2,3,2,1,1,1,1,1,1,1,1,1,1,1,1,2,
-2,2,3,2,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,
-2,2,2,2,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,1,2,2,2,
-3,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,3,2,2,1,1,1,1,1,3,1
-</data>
- </layer>
- <layer id="2" name="Water" width="30" height="20">
-  <data encoding="csv">
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-6,7,7,8,0,0,0,0,0,0,0,0,0,0,0,0,0,6,7,7,7,7,8,0,0,0,0,0,0,0,
-11,12,12,13,0,0,0,0,0,0,0,0,0,0,0,0,0,11,12,12,12,12,13,0,0,0,0,0,0,0,
-15,16,16,17,0,0,0,0,0,0,0,0,0,0,0,0,0,11,12,12,12,12,13,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,12,12,12,12,13,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,16,16,16,17,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-</data>
- </layer>
-</map>`;
+// TMX file path
+const CAT_VILLAGE_TMX_PATH = '../../assets/MAPS/Tile Maps/cat_village.tmx';
 
 export function registerTownScene(k: KAPLAYCtx): void {
   k.scene('town', async (data: TownSceneData = {}) => {
@@ -136,12 +68,18 @@ export function registerTownScene(k: KAPLAYCtx): void {
       k.z(0),
     ]);
 
-    // --- TILEMAP (grass layer only for background) ---
+    // --- LOAD AND RENDER TILEMAP ---
+    let mapData;
+    let colliders: Array<{ x: number; y: number; width: number; height: number }> = [];
+    let spawnPos = { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 80 }; // Default spawn
+    let doorPositions = new Map<string, { x: number; y: number; width: number; height: number }>();
+
     try {
-      const mapData = parseTMX(CAT_VILLAGE_TMX);
+      const tmxContent = await loadTMXFromPath(CAT_VILLAGE_TMX_PATH);
+      mapData = parseTMX(tmxContent);
       await loadMapTiles(k, mapData);
 
-      // Render grass and water layers only (buildings rendered separately)
+      // Render all layers (grass, water, greenery, buildings, items, items2)
       renderAllLayers(k, mapData, {
         scale: MAP_SCALE,
         offsetX: MAP_OFFSET_X,
@@ -149,83 +87,104 @@ export function registerTownScene(k: KAPLAYCtx): void {
         baseZIndex: 1,
       });
 
+      // Get spawn position from TMX
+      const tmxSpawn = getSpawnPosition(mapData, MAP_SCALE, MAP_OFFSET_X, MAP_OFFSET_Y);
+      if (tmxSpawn) {
+        spawnPos = tmxSpawn;
+      }
+
+      // Get door positions from TMX
+      doorPositions = getDoorPositions(mapData, MAP_SCALE, MAP_OFFSET_X, MAP_OFFSET_Y);
+
+      // Get colliders from TMX
+      colliders = getColliders(mapData, MAP_SCALE, MAP_OFFSET_X, MAP_OFFSET_Y);
+
       console.log('Tilemap loaded successfully');
+      console.log(`Spawn: (${spawnPos.x.toFixed(0)}, ${spawnPos.y.toFixed(0)})`);
+      console.log(`Doors: ${doorPositions.size}, Colliders: ${colliders.length}`);
     } catch (err) {
       console.error('Failed to load tilemap:', err);
     }
 
-    // --- LOAD TOWN TILES ---
+    // --- LOAD TOWN TILES (for door sprites) ---
     try {
       await loadTownTiles(k);
-      console.log('Town tiles loaded successfully');
     } catch (err) {
       console.error('Failed to load town tiles:', err);
     }
 
-    // --- PATH ---
-    // Draw a tiled path connecting buildings
-    createTiledPath(k, 30, BUILDING_Y + 10, CANVAS_WIDTH - 60, 5);
+    // --- CREATE DOOR ZONES ---
+    const interactables: Interactable[] = [];
 
-    // --- BUILDINGS (using tiled sprites) ---
-    const buildings = BUILDINGS_CONFIG.map((cfg) =>
-      createBuilding({
-        k,
-        x: cfg.x,
-        y: BUILDING_Y,
-        label: cfg.label,
-        targetScene: cfg.scene,
-        buildingColor: k.rgb(cfg.color[0], cfg.color[1], cfg.color[2]),
-        useTiles: true,
-        buildingType: cfg.buildingType,
-      })
-    );
+    for (const [doorName, doorPos] of doorPositions) {
+      const doorConfig = DOOR_SCENE_MAP[doorName];
+      if (!doorConfig) continue; // Skip unknown doors (like barn_door)
 
-    // --- DECORATIONS ---
-    // Trees between buildings
-    createDecoration(k, 'tree_green', 175, BUILDING_Y + 20, 4);
-    createDecoration(k, 'tree_yellow', 325, BUILDING_Y + 15, 4);
-    createDecoration(k, 'tree_green', 475, BUILDING_Y + 20, 4);
+      // Create invisible door entity for interaction
+      const doorEntity = k.add([
+        k.rect(doorPos.width || 16, doorPos.height || 16),
+        k.pos(doorPos.x, doorPos.y),
+        k.anchor('topleft'),
+        k.opacity(0), // Invisible
+        k.area(),
+        k.z(20),
+        `door_${doorName}`,
+      ]);
 
-    // Small bushes/trees at edges
-    createDecoration(k, 'bush', 40, BUILDING_Y + 30, 4);
-    createDecoration(k, 'tree_small', 600, BUILDING_Y + 25, 4);
-
-    // Decorative elements near buildings
-    createDecoration(k, 'mushroom', 130, BUILDING_Y + 35, 4);
-    createDecoration(k, 'mushroom', 370, BUILDING_Y + 38, 4);
-    createDecoration(k, 'sign', 220, BUILDING_Y + 10, 6);
-
-    // TMX-based decorations (tree patches and ponds from user's tilemaps)
-    createTMXDecoration(k, 'tree_patch', 50, CANVAS_HEIGHT - 60, 2);
-    createTMXDecoration(k, 'pond_small', CANVAS_WIDTH - 80, CANVAS_HEIGHT - 40, 2);
+      interactables.push({
+        entity: doorEntity,
+        type: 'door',
+        promptText: `Enter ${doorConfig.label}`,
+        onInteract: () => {
+          k.go(doorConfig.scene);
+        },
+        range: 30,
+      });
+    }
 
     // --- PLAYER ---
     const player = await createPlayer({
       k,
-      x: SPAWN_X,
-      y: SPAWN_Y,
+      x: spawnPos.x,
+      y: spawnPos.y,
       color: catColor,
     });
 
-    // --- MOVEMENT ---
+    // --- MOVEMENT WITH COLLIDERS ---
+    // Create a collision check function using TMX colliders
+    const isColliding = (x: number, y: number, halfWidth: number, halfHeight: number): boolean => {
+      for (const col of colliders) {
+        // Check if player bounds overlap with collider
+        if (
+          x + halfWidth > col.x &&
+          x - halfWidth < col.x + col.width &&
+          y + halfHeight > col.y &&
+          y - halfHeight < col.y + col.height
+        ) {
+          return true;
+        }
+      }
+      // Also check canvas bounds
+      if (x < halfWidth || x > CANVAS_WIDTH - halfWidth) return true;
+      if (y < halfHeight || y > CANVAS_HEIGHT - halfHeight) return true;
+      return false;
+    };
+
+    // Setup movement with collision callback
     setupMovement({
       k,
       player,
       speed: PLAYER_SPEED,
-      bounds: WALKABLE_BOUNDS,
+      bounds: {
+        minX: 0,
+        maxX: CANVAS_WIDTH,
+        minY: 0,
+        maxY: CANVAS_HEIGHT,
+      },
+      collisionCheck: isColliding,
     });
 
     // --- INTERACTIONS ---
-    const interactables: Interactable[] = buildings.map((building) => ({
-      entity: building.door.entity,
-      type: 'door',
-      promptText: building.door.getPromptText(),
-      onInteract: () => {
-        building.door.enter();
-      },
-      range: 60,
-    }));
-
     setupInteraction({
       k,
       player,
