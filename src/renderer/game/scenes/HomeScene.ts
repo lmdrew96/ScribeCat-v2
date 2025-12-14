@@ -15,12 +15,9 @@ import { createPlayer } from '../components/Player.js';
 import { setupMovement } from '../systems/movement.js';
 import { setupInteraction, type Interactable } from '../systems/interaction.js';
 import { createDoor } from '../components/Door.js';
-import { PLAYER_SPEED } from '../config.js';
+import { PLAYER_SPEED, CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
 import { loadTownTiles, TOWN_TILES } from '../sprites/townSprites.js';
-
-const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 400;
 
 export interface HomeSceneData {
   catColor?: CatColor;

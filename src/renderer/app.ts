@@ -33,8 +33,9 @@ import { initializeShortcutValidation } from './managers/ShortcutRegistry.js';
 import { AnimationService } from './effects/AnimationService.js';
 import { getButtonController, ButtonController } from './components/ButtonController.js';
 
-// StudyQuest modal (KAPLAY-based game)
+// StudyQuest modal (KAPLAY-based game) and manager
 import { StudyQuestModal } from './components/StudyQuestModal.js';
+import { StudyQuestManager } from './managers/StudyQuestManager.js';
 
 // App initialization modules
 import {
@@ -71,6 +72,7 @@ let layoutPicker: WorkspaceLayoutPicker;
 let confettiManager: ConfettiManager;
 let buttonController: ButtonController;
 let studyQuestModal: StudyQuestModal;
+let studyQuestManager: StudyQuestManager;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -129,9 +131,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize social managers (friends, study rooms, messages)
   socialManagers = AppSocialManagers.initialize();
 
-  // Initialize StudyQuest modal (KAPLAY-based game)
+  // Initialize StudyQuest modal (KAPLAY-based game) and manager
   studyQuestModal = new StudyQuestModal();
   window.studyQuestModal = studyQuestModal;
+
+  studyQuestManager = new StudyQuestManager();
+  window.studyQuestManager = studyQuestManager;
 
   // Initialize recording controls
   recordingControls = new AppRecordingControls({
@@ -153,6 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     realtimeNotificationManager: socialManagers.realtimeNotificationManager,
     notificationTicker,
     studyQuestModal,
+    studyQuestManager,
   });
 
   // Set up event listeners

@@ -8,11 +8,12 @@
 import type { KAPLAYCtx } from 'kaplay';
 import { createPlayer } from '../components/Player.js';
 import { setupMovement } from '../systems/movement.js';
-import { PLAYER_SPEED } from '../config.js';
+import { PLAYER_SPEED, DUNGEON_CANVAS_WIDTH, DUNGEON_CANVAS_HEIGHT } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
 
-const CANVAS_WIDTH = 480;
-const CANVAS_HEIGHT = 320;
+// Use dungeon canvas size for test scene
+const CANVAS_WIDTH = DUNGEON_CANVAS_WIDTH;
+const CANVAS_HEIGHT = DUNGEON_CANVAS_HEIGHT;
 const ROOM_PADDING = 40;
 const WALL_THICKNESS = 8;
 

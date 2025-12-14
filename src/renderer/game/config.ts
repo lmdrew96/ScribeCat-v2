@@ -5,15 +5,22 @@
  * KAPLAY is now the only game engine.
  */
 
-// Canvas dimensions
+// Canvas dimensions - Standard sizes for different scene types
+// Main scenes (title, town, shop, inn, home, battle) use the larger canvas
+export const CANVAS_WIDTH = 640;
+export const CANVAS_HEIGHT = 400;
+
+// Dungeon scenes use a smaller, more compact canvas
+export const DUNGEON_CANVAS_WIDTH = 480;
+export const DUNGEON_CANVAS_HEIGHT = 320;
+
+// Legacy aliases (deprecated - use CANVAS_WIDTH/HEIGHT or DUNGEON_CANVAS_*)
 export const STUDY_BUDDY_WIDTH = 100;
 export const STUDY_BUDDY_HEIGHT = 120;
-
-export const TOWN_WIDTH = 480;
-export const TOWN_HEIGHT = 320;
-
-export const DUNGEON_WIDTH = 480;
-export const DUNGEON_HEIGHT = 320;
+export const TOWN_WIDTH = DUNGEON_CANVAS_WIDTH;
+export const TOWN_HEIGHT = DUNGEON_CANVAS_HEIGHT;
+export const DUNGEON_WIDTH = DUNGEON_CANVAS_WIDTH;
+export const DUNGEON_HEIGHT = DUNGEON_CANVAS_HEIGHT;
 
 // Colors
 export const COLORS = {

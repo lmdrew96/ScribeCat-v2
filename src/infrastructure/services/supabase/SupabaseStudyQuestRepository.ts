@@ -194,8 +194,6 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
   }
 
   async addGold(characterId: string, amount: number): Promise<StudyQuestCharacter> {
-    const { data, error } = await this.getClient().rpc('', {}, { head: true });
-
     // First get current gold
     const character = await this.getCharacter(characterId);
     if (!character) {
@@ -854,7 +852,7 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
 
   async updateQuestProgress(params: UpdateQuestProgressParams): Promise<QuestProgress> {
     // Get current progress
-    const { data: current } = await this.getClient()
+    let { data: current } = await this.getClient()
       .from('study_quest_progress')
       .select('*')
       .eq('character_id', params.characterId)
@@ -862,10 +860,20 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
       .single();
 
     if (!current) {
-      // Initialize if doesn't exist
-      const progress = await this.initializeQuestProgress(params.characterId, params.questId);
-      // Then update
-      return this.updateQuestProgress(params);
+      // Initialize if doesn't exist and use the result directly (no recursion)
+      const initialProgress = await this.initializeQuestProgress(params.characterId, params.questId);
+      // Re-fetch the created progress record to get the database row
+      const { data: newCurrent } = await this.getClient()
+        .from('study_quest_progress')
+        .select('*')
+        .eq('character_id', params.characterId)
+        .eq('quest_id', params.questId)
+        .single();
+
+      if (!newCurrent) {
+        throw new Error('Failed to initialize quest progress');
+      }
+      current = newCurrent;
     }
 
     const newProgress = current.current_progress + params.progressDelta;

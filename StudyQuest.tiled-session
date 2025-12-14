@@ -3,19 +3,19 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "",
+    "activeFile": "assets/MAPS/Tile Maps/cat_village.tmx",
     "expandedProjectPaths": [
+        "assets/Tiles/GrassWaterTiles",
+        "assets/MAPS",
+        "assets/Kenney Assets",
+        "assets/Kenney Assets/kenney_tiny-dungeon",
+        "assets/Tiles/PixelAdventure",
+        "assets/Tiles",
+        "assets",
+        "assets/MAPS/Tile Maps",
         "assets/Tiles/Tiny Town",
         ".",
-        "assets/MAPS/Tile Maps",
-        "assets/Tiles",
-        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled",
-        "assets/Tiles/PixelAdventure",
-        "assets/MAPS",
-        "assets",
-        "assets/Kenney Assets",
-        "assets/Tiles/GrassWaterTiles",
-        "assets/Kenney Assets/kenney_tiny-dungeon"
+        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled"
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
@@ -183,6 +183,14 @@
                 "y": 40.025990903183896
             }
         },
+        "assets/MAPS/Tile Maps/cat_village.tmx": {
+            "scale": 0.9358,
+            "selectedLayer": 6,
+            "viewCenter": {
+                "x": 329.6644582175678,
+                "y": 321.6499251976918
+            }
+        },
         "assets/MAPS/Tile Maps/dungeon1.tmx": {
             "scale": 0.5686,
             "selectedLayer": 0,
@@ -298,7 +306,7 @@
         },
         "assets/Tiles/GrassWaterTiles/GrassWaterTiles.tsx": {
             "dynamicWrapping": true,
-            "scaleInDock": 1,
+            "scaleInDock": 2.48,
             "scaleInEditor": 4.8933
         },
         "assets/Tiles/GrassWaterTiles/WaterGrassTiles.tsx": {
@@ -321,7 +329,7 @@
         },
         "assets/Tiles/Tiny Town/TinyTownTiles.tsx": {
             "dynamicWrapping": false,
-            "scaleInDock": 2.4915,
+            "scaleInDock": 2.48,
             "scaleInEditor": 1.7248
         },
         "assets/Tiles/Tiny Town/Tiny_Town_Tiles.tsx": {
@@ -342,10 +350,14 @@
     "map.tileWidth": 16,
     "map.width": 40,
     "openFiles": [
+        "assets/MAPS/Tile Maps/cat_village.tmx",
+        "assets/MAPS/Tile Maps/tree_line_yellow.tmx"
     ],
     "project": "StudyQuest.tiled-project",
     "property.type": "float",
     "recentFiles": [
+        "assets/MAPS/Tile Maps/tree_line_yellow.tmx",
+        "assets/MAPS/Tile Maps/cat_village.tmx",
         "assets/MAPS/Tile Maps/tree_line_green.tmx",
         "assets/MAPS/Tile Maps/tiny_tree_group_yellow.tmx",
         "assets/MAPS/Tile Maps/tiny_tree_group_green.tmx",
@@ -355,9 +367,7 @@
         "assets/MAPS/Tile Maps/its_grass.tmx",
         "assets/MAPS/Tile Maps/house1.tmx",
         "assets/MAPS/Tile Maps/house2.tmx",
-        "assets/MAPS/Tile Maps/house3.tmx",
-        "assets/Tiles/GrassWaterTiles/GrassWaterTiles.tsx",
-        "assets/MAPS/Tile Maps/tiny_tree_cluster_green.tmx"
+        "assets/MAPS/Tile Maps/house3.tmx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
     "tileset.lastUsedFormat": "tsx",

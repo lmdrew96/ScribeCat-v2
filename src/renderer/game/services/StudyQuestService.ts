@@ -35,6 +35,43 @@ export interface InventorySlot {
 // Use the Electron IPC API exposed via preload
 const ipc = (window as Window & { electronAPI?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }).electronAPI;
 
+// IPC timeout and retry configuration
+const IPC_TIMEOUT_MS = 5000; // 5 second timeout
+const IPC_MAX_RETRIES = 3;
+const IPC_RETRY_DELAY_MS = 500;
+
+/**
+ * Wrap an IPC call with timeout and retry logic
+ */
+async function invokeWithRetry<T>(
+  channel: string,
+  ...args: unknown[]
+): Promise<T | null> {
+  if (!ipc?.invoke) return null;
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= IPC_MAX_RETRIES; attempt++) {
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('IPC timeout')), IPC_TIMEOUT_MS)
+      );
+      const ipcPromise = ipc.invoke(channel, ...args) as Promise<T>;
+      return await Promise.race([ipcPromise, timeoutPromise]);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`IPC call ${channel} attempt ${attempt}/${IPC_MAX_RETRIES} failed:`, lastError.message);
+
+      if (attempt < IPC_MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, IPC_RETRY_DELAY_MS));
+      }
+    }
+  }
+
+  console.error(`IPC call ${channel} failed after ${IPC_MAX_RETRIES} attempts:`, lastError);
+  return null;
+}
+
 /**
  * Check if IPC is available (running in Electron)
  */
@@ -109,11 +146,11 @@ export async function saveCharacter(characterId: string, updates: {
   if (!ipc?.invoke) return false;
 
   try {
-    // Update HP if changed
+    // Update HP if changed (use targetHp for absolute value)
     if (updates.hp !== undefined) {
       await ipc.invoke('studyquest:heal-direct', {
         characterId,
-        amount: updates.hp - 0, // We'll calculate the actual delta in a real implementation
+        targetHp: updates.hp,
       });
     }
 

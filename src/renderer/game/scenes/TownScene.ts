@@ -17,7 +17,7 @@ import { setupMovement } from '../systems/movement.js';
 import { setupInteraction, type Interactable } from '../systems/interaction.js';
 // Building visuals now come from tilemap, but keeping import for future use
 // import { createBuilding } from '../components/Door.js';
-import { PLAYER_SPEED } from '../config.js';
+import { PLAYER_SPEED, CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
 import {
   parseTMX,
@@ -29,9 +29,6 @@ import {
   getColliders,
 } from '../maps/index.js';
 import { loadTownTiles, type BuildingType } from '../sprites/townSprites.js';
-
-const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 400;
 
 // Map scaling - the tilemap is 640x480 (40x30 tiles at 16px), we scale to fit 640x400
 // Using 0.833 scale: 480*0.833=400 (fits height exactly)

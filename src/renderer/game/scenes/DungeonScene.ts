@@ -24,33 +24,18 @@ import {
   type RoomContent,
 } from '../../canvas/dungeon/DungeonGenerator.js';
 import type { CatColor } from '../sprites/catSprites.js';
-import { PLAYER_SPEED } from '../config.js';
+import { PLAYER_SPEED, DUNGEON_CANVAS_WIDTH, DUNGEON_CANVAS_HEIGHT } from '../config.js';
 import { getRandomEnemy, ENEMIES } from '../data/enemies.js';
 import { playSound } from '../systems/sound.js';
 import type { BattleSceneData } from './BattleScene.js';
+import { createMerchantUI, createPuzzleUI, createSecretUI } from '../ui/index.js';
 
-const CANVAS_WIDTH = 480;
-const CANVAS_HEIGHT = 320;
+// Use config constants for canvas dimensions
+const CANVAS_WIDTH = DUNGEON_CANVAS_WIDTH;
+const CANVAS_HEIGHT = DUNGEON_CANVAS_HEIGHT;
 const DOOR_SIZE = 48;
 const TRIGGER_DISTANCE = 40;
 const SEARCH_DISTANCE = 50;
-
-// Riddles for puzzle rooms
-const RIDDLES = [
-  { question: "I have keys but no locks. What am I?", answer: 0, options: ["Keyboard", "Piano", "Map"] },
-  { question: "What has hands but can't clap?", answer: 1, options: ["Gloves", "Clock", "Statue"] },
-  { question: "I get wetter as I dry. What am I?", answer: 2, options: ["Sponge", "Rain", "Towel"] },
-  { question: "What has a head and tail but no body?", answer: 0, options: ["Coin", "Snake", "Comet"] },
-  { question: "What can you catch but not throw?", answer: 1, options: ["Ball", "Cold", "Fish"] },
-];
-
-// Sequences for puzzle rooms
-const SEQUENCES = [
-  { pattern: [0, 1, 2], display: "↑ → ↓" },
-  { pattern: [1, 0, 1, 2], display: "→ ↑ → ↓" },
-  { pattern: [2, 2, 0, 1], display: "↓ ↓ ↑ →" },
-  { pattern: [0, 2, 1, 0], display: "↑ ↓ → ↑" },
-];
 
 export interface DungeonSceneData {
   catColor?: CatColor;
@@ -190,10 +175,57 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     let isTransitioning = false;
     let highlightedDoor: DungeonDirection | null = null;
     let puzzleUIElements: GameObj[] = [];
+    let nearbySecret: RoomContent | null = null;
+
+    // Puzzle state - consolidated to prevent inconsistent states
+    // Invariant: if puzzleActive, then currentPuzzle and puzzleState must be non-null
+    // Use setPuzzleState/clearPuzzleState helpers to maintain invariant
     let puzzleActive = false;
     let currentPuzzle: RoomContent | null = null;
-    let puzzleState: any = null;
-    let nearbySecret: RoomContent | null = null;
+    let puzzleState: { type: 'riddle' | 'sequence'; [key: string]: any } | null = null;
+
+    /**
+     * Set puzzle state atomically - ensures all related variables are consistent
+     */
+    function setPuzzleState(puzzle: RoomContent, state: { type: 'riddle' | 'sequence'; [key: string]: any }): void {
+      currentPuzzle = puzzle;
+      puzzleState = state;
+      puzzleActive = true;
+      player.freeze();
+    }
+
+    /**
+     * Clear puzzle state atomically - ensures all related variables are cleared together
+     */
+    function clearPuzzleState(): void {
+      puzzleActive = false;
+      currentPuzzle = null;
+      puzzleState = null;
+      player.unfreeze();
+    }
+
+    /**
+     * Check puzzle state invariant - use in debug builds to catch inconsistencies
+     */
+    function assertPuzzleInvariant(): void {
+      const consistent = puzzleActive === (currentPuzzle !== null && puzzleState !== null);
+      if (!consistent) {
+        console.error('Puzzle state invariant violated:', { puzzleActive, currentPuzzle, puzzleState });
+      }
+    }
+
+    // Track cleanup functions for handlers and timers to prevent leaks
+    const cleanupFunctions: (() => void)[] = [];
+    let puzzleTimerCancel: (() => void) | null = null;
+
+    // Track active tweens to cancel on scene exit (prevents operating on destroyed objects)
+    const activeTweenCancels: Set<() => void> = new Set();
+
+    // Merchant state
+    let merchantActive = false;
+    let merchantUIElements: GameObj[] = [];
+    let merchantSelectedItem = 0;
+    let nearbyMerchant: RoomContent | null = null;
 
     // --- HELPER: Show floating message ---
     function showFloatingMessage(
@@ -211,30 +243,47 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         k.z(200),
       ]);
 
-      k.tween(y, y - 40, 1.0, (v) => { msg.pos.y = v; });
-      k.tween(1, 0, 1.0, (v) => { msg.opacity = v; });
-      k.wait(1.0, () => k.destroy(msg));
+      // Track tweens so they can be cancelled on scene exit
+      const tween1 = k.tween(y, y - 40, 1.0, (v) => {
+        if (msg.exists()) msg.pos.y = v;
+      });
+      const tween2 = k.tween(1, 0, 1.0, (v) => {
+        if (msg.exists()) msg.opacity = v;
+      });
+
+      activeTweenCancels.add(tween1.cancel);
+      activeTweenCancels.add(tween2.cancel);
+
+      const timer = k.wait(1.0, () => {
+        activeTweenCancels.delete(tween1.cancel);
+        activeTweenCancels.delete(tween2.cancel);
+        activeTweenCancels.delete(timer.cancel);
+        if (msg.exists()) k.destroy(msg);
+      });
+      activeTweenCancels.add(timer.cancel);
     }
 
     // --- PUZZLE UI ---
     function clearPuzzleUI(): void {
+      // Cancel any pending puzzle timer to prevent callbacks on destroyed scene
+      if (puzzleTimerCancel) {
+        try { puzzleTimerCancel(); } catch { /* timer may already be complete */ }
+        puzzleTimerCancel = null;
+      }
+
       for (const e of puzzleUIElements) {
         try { k.destroy(e); } catch {}
       }
       puzzleUIElements = [];
-      puzzleActive = false;
-      currentPuzzle = null;
-      puzzleState = null;
-      player.unfreeze();
+
+      // Use atomic clear to maintain state invariant
+      clearPuzzleState();
     }
 
     function showRiddlePuzzle(content: RoomContent, x: number, y: number): void {
-      puzzleActive = true;
-      currentPuzzle = content;
-      player.freeze();
-
       const riddle = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
-      puzzleState = { type: 'riddle', riddle, selectedOption: 0 };
+      // Use atomic set to maintain state invariant
+      setPuzzleState(content, { type: 'riddle', riddle, selectedOption: 0 });
 
       // Background
       puzzleUIElements.push(k.add([
@@ -312,12 +361,9 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     }
 
     function showSequencePuzzle(content: RoomContent, x: number, y: number): void {
-      puzzleActive = true;
-      currentPuzzle = content;
-      player.freeze();
-
       const sequence = SEQUENCES[Math.floor(Math.random() * SEQUENCES.length)];
-      puzzleState = { type: 'sequence', sequence, inputIndex: 0, inputs: [], showPattern: true };
+      // Use atomic set to maintain state invariant
+      setPuzzleState(content, { type: 'sequence', sequence, inputIndex: 0, inputs: [], showPattern: true });
 
       // Background
       puzzleUIElements.push(k.add([
@@ -354,18 +400,36 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         k.z(501),
       ]));
 
-      // Hide pattern after 3 seconds
-      k.wait(3, () => {
+      // Hide pattern after 3 seconds - store cancel function to prevent leak
+      const timerControl = k.wait(3, () => {
+        puzzleTimerCancel = null; // Clear reference since timer completed
         if (puzzleActive && puzzleState?.type === 'sequence') {
           puzzleState.showPattern = false;
           renderSequenceInput();
         }
       });
+      puzzleTimerCancel = timerControl.cancel;
     }
 
     function renderSequenceInput(): void {
-      // Clear and rebuild UI
-      clearPuzzleUI();
+      // Clear UI elements but preserve puzzle state (we're just re-rendering)
+      // Save state before clearing
+      const savedPuzzle = currentPuzzle;
+      const savedState = puzzleState;
+
+      // Cancel timer and clear UI elements only
+      if (puzzleTimerCancel) {
+        try { puzzleTimerCancel(); } catch { /* timer may already be complete */ }
+        puzzleTimerCancel = null;
+      }
+      for (const e of puzzleUIElements) {
+        try { k.destroy(e); } catch {}
+      }
+      puzzleUIElements = [];
+
+      // Restore state and ensure player stays frozen
+      currentPuzzle = savedPuzzle;
+      puzzleState = savedState;
       puzzleActive = true;
       player.freeze();
 
@@ -550,9 +614,208 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       renderer.render(GameState.getCurrentRoom()!);
     }
 
+    // --- MERCHANT UI ---
+    function clearMerchantUI(): void {
+      for (const e of merchantUIElements) {
+        try { k.destroy(e); } catch {}
+      }
+      merchantUIElements = [];
+      merchantActive = false;
+      merchantSelectedItem = 0;
+      player.unfreeze();
+    }
+
+    function showMerchantUI(content: RoomContent): void {
+      merchantActive = true;
+      player.freeze();
+
+      // Background
+      merchantUIElements.push(k.add([
+        k.rect(300, 200),
+        k.pos(CANVAS_WIDTH / 2 - 150, 60),
+        k.color(20, 30, 50),
+        k.outline(3, k.rgb(255, 200, 100)),
+        k.z(500),
+      ]));
+
+      // Title
+      merchantUIElements.push(k.add([
+        k.text('Traveling Merchant', { size: 14 }),
+        k.pos(CANVAS_WIDTH / 2, 78),
+        k.anchor('center'),
+        k.color(255, 200, 100),
+        k.z(501),
+      ]));
+
+      // Gold display
+      merchantUIElements.push(k.add([
+        k.text(`Your Gold: ${GameState.player.gold}`, { size: 10 }),
+        k.pos(CANVAS_WIDTH / 2, 98),
+        k.anchor('center'),
+        k.color(251, 191, 36),
+        k.z(501),
+      ]));
+
+      renderMerchantItems();
+
+      // Instructions
+      merchantUIElements.push(k.add([
+        k.text('Up/Down: Select | ENTER: Buy | ESC: Leave', { size: 9 }),
+        k.pos(CANVAS_WIDTH / 2, 248),
+        k.anchor('center'),
+        k.color(150, 150, 150),
+        k.z(501),
+      ]));
+    }
+
+    function renderMerchantItems(): void {
+      // Remove old item elements
+      merchantUIElements = merchantUIElements.filter(e => {
+        if ((e as any)._isItem) {
+          try { k.destroy(e); } catch {}
+          return false;
+        }
+        return true;
+      });
+
+      // Gold display (update)
+      merchantUIElements = merchantUIElements.filter(e => {
+        if ((e as any)._isGold) {
+          try { k.destroy(e); } catch {}
+          return false;
+        }
+        return true;
+      });
+
+      const goldDisplay = k.add([
+        k.text(`Your Gold: ${GameState.player.gold}`, { size: 10 }),
+        k.pos(CANVAS_WIDTH / 2, 98),
+        k.anchor('center'),
+        k.color(251, 191, 36),
+        k.z(501),
+      ]) as any;
+      goldDisplay._isGold = true;
+      merchantUIElements.push(goldDisplay);
+
+      MERCHANT_ITEMS.forEach((itemId, i) => {
+        const item = ITEMS[itemId];
+        if (!item) return;
+
+        const isSelected = i === merchantSelectedItem;
+        const canAfford = GameState.player.gold >= item.buyPrice;
+
+        const itemBg = k.add([
+          k.rect(260, 36),
+          k.pos(CANVAS_WIDTH / 2 - 130, 115 + i * 42),
+          k.color(isSelected ? 40 : 25, isSelected ? 50 : 30, isSelected ? 70 : 45),
+          k.outline(2, k.rgb(isSelected ? 255 : 100, isSelected ? 200 : 150, isSelected ? 100 : 100)),
+          k.z(501),
+        ]) as any;
+        itemBg._isItem = true;
+        merchantUIElements.push(itemBg);
+
+        const nameText = k.add([
+          k.text(item.name, { size: 11 }),
+          k.pos(CANVAS_WIDTH / 2 - 120, 123 + i * 42),
+          k.color(255, 255, 255),
+          k.z(502),
+        ]) as any;
+        nameText._isItem = true;
+        merchantUIElements.push(nameText);
+
+        const priceColor = canAfford ? [100, 255, 100] : [255, 100, 100];
+        const priceText = k.add([
+          k.text(`${item.buyPrice}g`, { size: 10 }),
+          k.pos(CANVAS_WIDTH / 2 + 100, 124 + i * 42),
+          k.anchor('right'),
+          k.color(...priceColor as [number, number, number]),
+          k.z(502),
+        ]) as any;
+        priceText._isItem = true;
+        merchantUIElements.push(priceText);
+
+        const descText = k.add([
+          k.text(item.description, { size: 9 }),
+          k.pos(CANVAS_WIDTH / 2 - 120, 137 + i * 42),
+          k.color(180, 180, 180),
+          k.z(502),
+        ]) as any;
+        descText._isItem = true;
+        merchantUIElements.push(descText);
+      });
+    }
+
+    function handleMerchantInput(key: string): void {
+      if (!merchantActive) return;
+
+      if (key === 'escape') {
+        clearMerchantUI();
+        showFloatingMessage('Come again!', CANVAS_WIDTH / 2, 140, [255, 200, 100]);
+        return;
+      }
+
+      if (key === 'up' && merchantSelectedItem > 0) {
+        merchantSelectedItem--;
+        renderMerchantItems();
+      } else if (key === 'down' && merchantSelectedItem < MERCHANT_ITEMS.length - 1) {
+        merchantSelectedItem++;
+        renderMerchantItems();
+      } else if (key === 'enter') {
+        const itemId = MERCHANT_ITEMS[merchantSelectedItem];
+        const item = ITEMS[itemId];
+        if (!item) return;
+
+        if (GameState.player.gold >= item.buyPrice) {
+          GameState.player.gold -= item.buyPrice;
+
+          // Apply item effect immediately (for potions)
+          if (item.effect?.type === 'heal') {
+            const healAmount = Math.min(
+              item.effect.value,
+              GameState.player.maxHealth - GameState.player.health
+            );
+            GameState.player.health = Math.min(
+              GameState.player.maxHealth,
+              GameState.player.health + item.effect.value
+            );
+            playSound(k, 'heal');
+            showFloatingMessage(`+${healAmount} HP!`, CANVAS_WIDTH / 2, 60, [100, 255, 100]);
+          }
+
+          playSound(k, 'goldCollect');
+          renderMerchantItems();
+        } else {
+          showFloatingMessage('Not enough gold!', CANVAS_WIDTH / 2, 60, [255, 100, 100]);
+        }
+      }
+    }
+
+    function checkForNearbyMerchants(): void {
+      const room = GameState.getCurrentRoom();
+      if (!room) return;
+
+      nearbyMerchant = null;
+
+      for (const content of room.contents) {
+        if (content.type !== 'npc') continue;
+        if (content.data?.npcType !== 'merchant') continue;
+
+        const bounds = renderer.getMovementBounds();
+        const roomWidth = bounds.maxX - bounds.minX + 32;
+        const roomHeight = bounds.maxY - bounds.minY + 32;
+        const x = bounds.minX - 16 + content.x * roomWidth;
+        const y = bounds.minY - 16 + content.y * roomHeight;
+
+        if (player.entity.pos.dist(k.vec2(x, y)) < SEARCH_DISTANCE) {
+          nearbyMerchant = content;
+          break;
+        }
+      }
+    }
+
     // --- INTERACTION DETECTION ---
     k.onUpdate(() => {
-      if (isTransitioning || puzzleActive) return;
+      if (isTransitioning || puzzleActive || merchantActive) return;
 
       const room = GameState.getCurrentRoom();
       if (!room) return;
@@ -570,6 +833,9 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
 
       // Check for nearby secrets
       checkForNearbySecrets();
+
+      // Check for nearby merchants
+      checkForNearbyMerchants();
 
       // Check content triggers
       for (const content of room.contents) {
@@ -629,6 +895,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
           } as DungeonSceneData,
         };
 
+        cleanup();
         k.go('battle', battleData);
         return;
       }
@@ -712,20 +979,25 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
             k.z(1001),
           ]);
 
-          k.tween(0, 1, 0.3, (v) => {
-            overlay.opacity = v * 0.8;
-            msg.opacity = v;
-            subMsg.opacity = v;
+          const exitTween = k.tween(0, 1, 0.3, (v) => {
+            if (overlay.exists()) overlay.opacity = v * 0.8;
+            if (msg.exists()) msg.opacity = v;
+            if (subMsg.exists()) subMsg.opacity = v;
           });
+          activeTweenCancels.add(exitTween.cancel);
 
           playSound(k, 'victory');
 
-          k.wait(2.5, () => {
+          const exitTimer = k.wait(2.5, () => {
+            activeTweenCancels.delete(exitTween.cancel);
+            activeTweenCancels.delete(exitTimer.cancel);
             GameState.dungeon.floor = null;
             GameState.dungeon.floorNumber = 1;
             GameState.dungeon.currentRoomId = '';
+            cleanup();
             k.go('town');
           });
+          activeTweenCancels.add(exitTimer.cancel);
         } else {
           const msg = k.add([
             k.text(`Floor ${currentFloor} Complete!`, { size: 20 }),
@@ -745,21 +1017,25 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
             k.z(1001),
           ]);
 
-          k.tween(0, 1, 0.3, (v) => {
-            overlay.opacity = v * 0.8;
-            msg.opacity = v;
-            subMsg.opacity = v;
+          const floorTween = k.tween(0, 1, 0.3, (v) => {
+            if (overlay.exists()) overlay.opacity = v * 0.8;
+            if (msg.exists()) msg.opacity = v;
+            if (subMsg.exists()) subMsg.opacity = v;
           });
+          activeTweenCancels.add(floorTween.cancel);
 
           playSound(k, 'doorOpen');
 
-          k.wait(1.5, () => {
+          const floorTimer = k.wait(1.5, () => {
+            activeTweenCancels.delete(floorTween.cancel);
+            activeTweenCancels.delete(floorTimer.cancel);
             const nextFloor = currentFloor + 1;
             const generator = new DungeonGenerator(dungeonId);
             const newFloorData = generator.generate(nextFloor);
 
             GameState.dungeon.currentRoomId = '';
 
+            cleanup();
             k.go('dungeon', {
               catColor,
               dungeonId,
@@ -767,6 +1043,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
               floor: newFloorData,
             } as DungeonSceneData);
           });
+          activeTweenCancels.add(floorTimer.cancel);
         }
         return;
       }
@@ -781,10 +1058,13 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         showFloatingMessage(`-${damage} HP!`, x, y - 20, [240, 60, 60]);
 
         const originalPos = k.camPos();
-        k.tween(0, 1, 0.2, (t) => {
+        const shakeTween = k.tween(0, 1, 0.2, (t) => {
           const shake = Math.sin(t * Math.PI * 4) * 3 * (1 - t);
           k.camPos(originalPos.x + shake, originalPos.y);
         });
+        activeTweenCancels.add(shakeTween.cancel);
+        // Clean up after tween completes
+        k.wait(0.2, () => activeTweenCancels.delete(shakeTween.cancel));
 
         renderer.render(room);
         return;
@@ -826,7 +1106,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
 
     // --- INPUT ---
     const handleInteraction = () => {
-      if (puzzleActive) return;
+      if (puzzleActive || merchantActive) return;
       if (isTransitioning || !highlightedDoor) return;
 
       const room = GameState.getCurrentRoom()!;
@@ -836,42 +1116,69 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       transitionToRoom(targetRoomId, highlightedDoor);
     };
 
-    k.onKeyPress('enter', () => {
-      if (puzzleActive) {
-        handlePuzzleInput('enter');
-      } else {
-        handleInteraction();
-      }
-    });
+    // Store key handler cancel functions to clean up on scene exit
+    cleanupFunctions.push(
+      k.onKeyPress('enter', () => {
+        if (merchantActive) {
+          handleMerchantInput('enter');
+        } else if (puzzleActive) {
+          handlePuzzleInput('enter');
+        } else if (nearbyMerchant) {
+          // Open merchant UI when near merchant and pressing enter
+          showMerchantUI(nearbyMerchant);
+        } else {
+          handleInteraction();
+        }
+      }).cancel,
+      k.onKeyPress('space', () => {
+        if (puzzleActive || merchantActive) return;
 
-    k.onKeyPress('space', () => {
-      if (puzzleActive) return;
+        // Search for secrets or interact with merchant
+        if (nearbySecret) {
+          discoverSecret();
+        } else if (nearbyMerchant) {
+          showMerchantUI(nearbyMerchant);
+        } else {
+          handleInteraction();
+        }
+      }).cancel,
+      k.onKeyPress('escape', () => {
+        if (merchantActive) {
+          handleMerchantInput('escape');
+        } else if (puzzleActive) {
+          handlePuzzleInput('escape');
+        }
+      }).cancel,
+      k.onKeyPress('up', () => {
+        if (merchantActive) handleMerchantInput('up');
+        else if (puzzleActive) handlePuzzleInput('up');
+      }).cancel,
+      k.onKeyPress('down', () => {
+        if (merchantActive) handleMerchantInput('down');
+        else if (puzzleActive) handlePuzzleInput('down');
+      }).cancel,
+      k.onKeyPress('right', () => {
+        if (puzzleActive) handlePuzzleInput('right');
+      }).cancel
+    );
 
-      // Search for secrets
-      if (nearbySecret) {
-        discoverSecret();
-      } else {
-        handleInteraction();
-      }
-    });
+    // --- SCENE CLEANUP ---
+    function cleanup(): void {
+      // Cancel all registered event handlers and timers
+      cleanupFunctions.forEach((cancel) => {
+        try { cancel(); } catch { /* handler may already be cancelled */ }
+      });
+      cleanupFunctions.length = 0;
 
-    k.onKeyPress('escape', () => {
-      if (puzzleActive) {
-        handlePuzzleInput('escape');
-      }
-    });
+      // Cancel all active tweens to prevent callbacks on destroyed objects
+      activeTweenCancels.forEach((cancel) => {
+        try { cancel(); } catch { /* tween may already be complete */ }
+      });
+      activeTweenCancels.clear();
 
-    k.onKeyPress('up', () => {
-      if (puzzleActive) handlePuzzleInput('up');
-    });
-
-    k.onKeyPress('down', () => {
-      if (puzzleActive) handlePuzzleInput('down');
-    });
-
-    k.onKeyPress('right', () => {
-      if (puzzleActive) handlePuzzleInput('right');
-    });
+      clearPuzzleUI();
+      clearMerchantUI();
+    }
 
     // --- ROOM TRANSITION ---
     async function transitionToRoom(targetRoomId: string, fromDir: DungeonDirection) {
@@ -912,7 +1219,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
 
     // --- UI ---
     k.onDraw(() => {
-      if (puzzleActive) return;
+      if (puzzleActive || merchantActive) return;
 
       const room = GameState.getCurrentRoom();
       if (!room) return;
@@ -957,7 +1264,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       }
 
       // Secret search prompt
-      if (nearbySecret && !highlightedDoor) {
+      if (nearbySecret && !highlightedDoor && !nearbyMerchant) {
         k.drawRect({
           pos: k.vec2(CANVAS_WIDTH / 2 - 80, CANVAS_HEIGHT - 28),
           width: 160,
@@ -971,6 +1278,24 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
           size: 10,
           anchor: 'center',
           color: k.rgb(255, 220, 100),
+        });
+      }
+
+      // Merchant interaction prompt
+      if (nearbyMerchant && !highlightedDoor) {
+        k.drawRect({
+          pos: k.vec2(CANVAS_WIDTH / 2 - 80, CANVAS_HEIGHT - 28),
+          width: 160,
+          height: 22,
+          color: k.rgb(0, 0, 0),
+          opacity: 0.7,
+        });
+        k.drawText({
+          text: 'ENTER to browse wares',
+          pos: k.vec2(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 14),
+          size: 10,
+          anchor: 'center',
+          color: k.rgb(255, 200, 100),
         });
       }
     });

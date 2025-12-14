@@ -17,9 +17,7 @@ import {
   type CatColor
 } from '../sprites/catSprites.js';
 import { playSound, playCatMeow } from '../systems/sound.js';
-
-const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 400;
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 
 export function registerTitleScene(k: KAPLAYCtx): void {
   k.scene('title', async () => {

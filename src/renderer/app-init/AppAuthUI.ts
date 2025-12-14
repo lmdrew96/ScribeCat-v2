@@ -14,6 +14,7 @@ import type { StudyRoomView } from '../components/StudyRoomView.js';
 import type { RealtimeNotificationManager } from '../managers/RealtimeNotificationManager.js';
 import type { notificationTicker } from '../managers/NotificationTicker.js';
 import type { StudyQuestModal } from '../components/StudyQuestModal.js';
+import type { StudyQuestManager } from '../managers/StudyQuestManager.js';
 
 export interface AuthUIDependencies {
   authManager: AuthManager;
@@ -26,6 +27,7 @@ export interface AuthUIDependencies {
   realtimeNotificationManager: RealtimeNotificationManager;
   notificationTicker: typeof notificationTicker;
   studyQuestModal: StudyQuestModal;
+  studyQuestManager: StudyQuestManager;
 }
 
 export class AppAuthUI {
@@ -88,10 +90,10 @@ export class AppAuthUI {
     await deps.studyRoomsManager.initialize(user.id);
     await deps.messagesManager.initialize(user.id);
 
-    // TODO: Initialize StudyQuest manager - will be rebuilt with KAPLAY
-    // if (deps.studyQuestManager) {
-    //   await deps.studyQuestManager.initialize();
-    // }
+    // Initialize StudyQuest manager for realtime character updates and rewards
+    if (deps.studyQuestManager) {
+      await deps.studyQuestManager.initialize(user.id);
+    }
 
     // Initialize realtime notification manager
     deps.realtimeNotificationManager.initialize(
@@ -140,10 +142,10 @@ export class AppAuthUI {
     deps.messagesManager.clear();
     deps.realtimeNotificationManager.clear();
 
-    // TODO: Clear StudyQuest manager - will be rebuilt with KAPLAY
-    // if (deps.studyQuestManager) {
-    //   deps.studyQuestManager.cleanup();
-    // }
+    // Cleanup StudyQuest manager (unsubscribe from realtime, clear state)
+    if (deps.studyQuestManager) {
+      deps.studyQuestManager.cleanup();
+    }
 
     // Clear user ID from study rooms UI components
     deps.browseRoomsModal.setCurrentUserId(null);

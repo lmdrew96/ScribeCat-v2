@@ -6,18 +6,49 @@
  */
 
 import { ipcMain } from 'electron';
+import { randomUUID } from 'crypto';
 import { SupabaseStudyQuestRepository } from '../../../infrastructure/services/supabase/SupabaseStudyQuestRepository.js';
 import type { CharacterClass } from '../../../domain/entities/StudyQuestCharacter.js';
 import type { BattleAction } from '../../../domain/entities/StudyQuestBattle.js';
+import type { EquipmentSlot } from '../../../domain/entities/StudyQuestItem.js';
 import {
   StudyQuestBattle,
   createCombatLogRecord,
 } from '../../../domain/entities/StudyQuestBattle.js';
+import { createLogger } from '../../../shared/logger.js';
 
+const logger = createLogger('StudyQuestHandlers');
 const studyQuestRepo = new SupabaseStudyQuestRepository();
 
 // Store active battles in memory (they're short-lived)
-const activeBattles = new Map<string, StudyQuestBattle>();
+// Includes creation timestamp for cleanup of abandoned battles
+interface ActiveBattle {
+  battle: StudyQuestBattle;
+  createdAt: number;
+}
+const activeBattles = new Map<string, ActiveBattle>();
+
+// Cleanup abandoned battles older than 30 minutes
+const BATTLE_TIMEOUT_MS = 30 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
+
+// Battle outcome constants
+const GOLD_LOSS_ON_DEFEAT = 0.25; // 25% gold lost on battle defeat
+const HP_ON_REVIVAL = 1; // HP restored after defeat
+
+setInterval(() => {
+  const now = Date.now();
+  let cleaned = 0;
+  activeBattles.forEach((entry, id) => {
+    if (now - entry.createdAt > BATTLE_TIMEOUT_MS) {
+      activeBattles.delete(id);
+      cleaned++;
+    }
+  });
+  if (cleaned > 0) {
+    logger.info(`Cleaned up ${cleaned} abandoned battle(s)`);
+  }
+}, CLEANUP_INTERVAL_MS);
 
 /**
  * Register all StudyQuest-related IPC handlers
@@ -36,7 +67,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, classes };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get classes:', error);
+      logger.error('Failed to get classes:', error);
       return { success: false, error: message };
     }
   });
@@ -52,7 +83,7 @@ export function registerStudyQuestHandlers(): void {
         return { success: true, character: character.toJSON() };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to create character:', error);
+        logger.error('Failed to create character:', error);
         return { success: false, error: message };
       }
     }
@@ -64,7 +95,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, character: character?.toJSON() ?? null };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get character:', error);
+      logger.error('Failed to get character:', error);
       return { success: false, error: message };
     }
   });
@@ -77,7 +108,7 @@ export function registerStudyQuestHandlers(): void {
         return { success: true, result };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to add XP:', error);
+        logger.error('Failed to add XP:', error);
         return { success: false, error: message };
       }
     }
@@ -91,7 +122,7 @@ export function registerStudyQuestHandlers(): void {
         return { success: true, character: character.toJSON() };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to add gold:', error);
+        logger.error('Failed to add gold:', error);
         return { success: false, error: message };
       }
     }
@@ -103,7 +134,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, character: character.toJSON() };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to heal character:', error);
+      logger.error('Failed to heal character:', error);
       return { success: false, error: message };
     }
   });
@@ -120,24 +151,39 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, character: updated.toJSON() };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to apply damage:', error);
+      logger.error('Failed to apply damage:', error);
       return { success: false, error: message };
     }
   });
 
   // Heal character directly by amount (from dungeon rest points, etc.)
-  ipcMain.handle('studyquest:heal-direct', async (_event, params: { characterId: string; amount: number }) => {
+  ipcMain.handle('studyquest:heal-direct', async (_event, params: {
+    characterId: string;
+    amount?: number;      // Delta to add to current HP
+    targetHp?: number;    // Absolute HP value to set
+  }) => {
     try {
       const character = await studyQuestRepo.getCharacter(params.characterId);
       if (!character) {
         return { success: false, error: 'Character not found' };
       }
-      const newHp = Math.min(character.maxHp, character.hp + params.amount);
+
+      let newHp: number;
+      if (params.targetHp !== undefined) {
+        // Set absolute HP value (clamped to valid range)
+        newHp = Math.max(0, Math.min(character.maxHp, params.targetHp));
+      } else if (params.amount !== undefined) {
+        // Add delta to current HP (original behavior)
+        newHp = Math.max(0, Math.min(character.maxHp, character.hp + params.amount));
+      } else {
+        return { success: false, error: 'Must provide either amount or targetHp' };
+      }
+
       const updated = await studyQuestRepo.updateHp(params.characterId, newHp);
       return { success: true, character: updated.toJSON() };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to heal character:', error);
+      logger.error('Failed to heal character:', error);
       return { success: false, error: message };
     }
   });
@@ -148,7 +194,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to delete character:', error);
+      logger.error('Failed to delete character:', error);
       return { success: false, error: message };
     }
   });
@@ -159,7 +205,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to delete character by user:', error);
+      logger.error('Failed to delete character by user:', error);
       return { success: false, error: message };
     }
   });
@@ -180,7 +226,7 @@ export function registerStudyQuestHandlers(): void {
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get inventory:', error);
+      logger.error('Failed to get inventory:', error);
       return { success: false, error: message };
     }
   });
@@ -191,7 +237,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, items: items.map((item) => item.toJSON()) };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get shop items:', error);
+      logger.error('Failed to get shop items:', error);
       return { success: false, error: message };
     }
   });
@@ -225,7 +271,7 @@ export function registerStudyQuestHandlers(): void {
         };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to buy item:', error);
+        logger.error('Failed to buy item:', error);
         return { success: false, error: message };
       }
     }
@@ -248,7 +294,7 @@ export function registerStudyQuestHandlers(): void {
         };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to use item:', error);
+        logger.error('Failed to use item:', error);
         return { success: false, error: message };
       }
     }
@@ -262,7 +308,7 @@ export function registerStudyQuestHandlers(): void {
         return { success: true, character: character.toJSON() };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to equip item:', error);
+        logger.error('Failed to equip item:', error);
         return { success: false, error: message };
       }
     }
@@ -272,7 +318,7 @@ export function registerStudyQuestHandlers(): void {
     'studyquest:unequip-item',
     async (
       _event,
-      params: { characterId: string; slot: 'weapon' | 'armor' | 'accessory' }
+      params: { characterId: string; slot: EquipmentSlot }
     ) => {
       try {
         const character = await studyQuestRepo.unequipItem(
@@ -282,7 +328,7 @@ export function registerStudyQuestHandlers(): void {
         return { success: true, character: character.toJSON() };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to unequip item:', error);
+        logger.error('Failed to unequip item:', error);
         return { success: false, error: message };
       }
     }
@@ -301,7 +347,7 @@ export function registerStudyQuestHandlers(): void {
         return { success };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to drop item:', error);
+        logger.error('Failed to drop item:', error);
         return { success: false, error: message };
       }
     }
@@ -319,7 +365,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, dungeons: dungeons.map((d) => d.toJSON()) };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get dungeons:', error);
+      logger.error('Failed to get dungeons:', error);
       return { success: false, error: message };
     }
   });
@@ -340,7 +386,7 @@ export function registerStudyQuestHandlers(): void {
         };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to start dungeon:', error);
+        logger.error('Failed to start dungeon:', error);
         return { success: false, error: message };
       }
     }
@@ -352,7 +398,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, character: character.toJSON() };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to abandon dungeon:', error);
+      logger.error('Failed to abandon dungeon:', error);
       return { success: false, error: message };
     }
   });
@@ -363,7 +409,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, character: character.toJSON() };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to complete dungeon:', error);
+      logger.error('Failed to complete dungeon:', error);
       return { success: false, error: message };
     }
   });
@@ -397,7 +443,8 @@ export function registerStudyQuestHandlers(): void {
         const dungeon = await studyQuestRepo.getDungeon(params.dungeonId);
         const scaledStats = enemy.getScaledStats(params.floorNumber);
 
-        const battleId = `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // Use proper UUID for collision-safe battle IDs
+        const battleId = `battle_${randomUUID()}`;
 
         const battle = StudyQuestBattle.create({
           id: battleId,
@@ -410,8 +457,8 @@ export function registerStudyQuestHandlers(): void {
           backgroundKey: dungeon?.spriteKey,
         });
 
-        // Store in memory
-        activeBattles.set(battleId, battle);
+        // Store in memory with timestamp for cleanup tracking
+        activeBattles.set(battleId, { battle, createdAt: Date.now() });
 
         return {
           success: true,
@@ -421,7 +468,7 @@ export function registerStudyQuestHandlers(): void {
         };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to start battle:', error);
+        logger.error('Failed to start battle:', error);
         return { success: false, error: message };
       }
     }
@@ -438,10 +485,11 @@ export function registerStudyQuestHandlers(): void {
       }
     ) => {
       try {
-        const battle = activeBattles.get(params.battleId);
-        if (!battle) {
+        const entry = activeBattles.get(params.battleId);
+        if (!entry) {
           return { success: false, error: 'Battle not found' };
         }
+        const battle = entry.battle;
 
         // Process player action
         const playerLog = battle.processPlayerAction(params.action, params.itemEffect);
@@ -501,8 +549,8 @@ export function registerStudyQuestHandlers(): void {
               });
             }
           } else if (battle.result === 'defeat') {
-            // Lose 25% gold on defeat
-            const goldLoss = Math.floor(character.gold * 0.25);
+            // Lose gold on defeat
+            const goldLoss = Math.floor(character.gold * GOLD_LOSS_ON_DEFEAT);
             await studyQuestRepo.spendGold(character.id, goldLoss);
 
             // Update battle stats and abandon dungeon
@@ -511,7 +559,7 @@ export function registerStudyQuestHandlers(): void {
               battlesLost: character.battlesLost + 1,
               currentDungeonId: null,
               currentFloor: 0,
-              hp: 1, // Revive with 1 HP
+              hp: HP_ON_REVIVAL,
             });
           } else if (battle.result === 'fled') {
             // Just update HP
@@ -537,7 +585,7 @@ export function registerStudyQuestHandlers(): void {
         };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to process battle action:', error);
+        logger.error('Failed to process battle action:', error);
         return { success: false, error: message };
       }
     }
@@ -545,11 +593,11 @@ export function registerStudyQuestHandlers(): void {
 
   ipcMain.handle('studyquest:get-battle', async (_event, battleId: string) => {
     try {
-      const battle = activeBattles.get(battleId);
-      return { success: true, battle: battle?.toJSON() ?? null };
+      const entry = activeBattles.get(battleId);
+      return { success: true, battle: entry?.battle.toJSON() ?? null };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get battle:', error);
+      logger.error('Failed to get battle:', error);
       return { success: false, error: message };
     }
   });
@@ -564,7 +612,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, quests };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get quests:', error);
+      logger.error('Failed to get quests:', error);
       return { success: false, error: message };
     }
   });
@@ -575,7 +623,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, quests };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get active quests:', error);
+      logger.error('Failed to get active quests:', error);
       return { success: false, error: message };
     }
   });
@@ -591,7 +639,7 @@ export function registerStudyQuestHandlers(): void {
         return { success: true, progress: progress.toJSON() };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to update quest progress:', error);
+        logger.error('Failed to update quest progress:', error);
         return { success: false, error: message };
       }
     }
@@ -613,7 +661,7 @@ export function registerStudyQuestHandlers(): void {
         };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to complete quest:', error);
+        logger.error('Failed to complete quest:', error);
         return { success: false, error: message };
       }
     }
@@ -625,7 +673,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to reset daily quests:', error);
+      logger.error('Failed to reset daily quests:', error);
       return { success: false, error: message };
     }
   });
@@ -636,7 +684,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to reset weekly quests:', error);
+      logger.error('Failed to reset weekly quests:', error);
       return { success: false, error: message };
     }
   });
@@ -651,7 +699,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, leaderboard };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get leaderboard:', error);
+      logger.error('Failed to get leaderboard:', error);
       return { success: false, error: message };
     }
   });
@@ -662,7 +710,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, rank };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get rank:', error);
+      logger.error('Failed to get rank:', error);
       return { success: false, error: message };
     }
   });
@@ -677,7 +725,7 @@ export function registerStudyQuestHandlers(): void {
       return { success: true, stats };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to get battle stats:', error);
+      logger.error('Failed to get battle stats:', error);
       return { success: false, error: message };
     }
   });
@@ -693,11 +741,11 @@ export function registerStudyQuestHandlers(): void {
         return { success: true, history };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to get combat history:', error);
+        logger.error('Failed to get combat history:', error);
         return { success: false, error: message };
       }
     }
   );
 
-  console.log('[StudyQuestHandlers] Registered all StudyQuest IPC handlers');
+  logger.info('Registered all StudyQuest IPC handlers');
 }

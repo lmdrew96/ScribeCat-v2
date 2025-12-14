@@ -40,9 +40,8 @@ import {
   calculateXpReward,
 } from '../data/enemies.js';
 import { getItem } from '../data/items.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 
-const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 400;
 const BATTLE_PLAYER_SCALE = 2.5; // Cat sprite ~32px, target ~80px display
 
 export interface BattleSceneData {
@@ -73,11 +72,42 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       luck: GameState.getEffectiveLuck(),
     };
 
-    // Battle state
+    // Battle state with scene lifecycle tracking
     let phase: BattlePhase = 'intro';
     let playerDefending = false;
     let selectedAction = 0;
     let menuVisible = false;
+    let sceneActive = true;  // Track if scene is still active for promise handling
+    let actionInProgress = false;  // Prevent multiple simultaneous actions
+
+    // Track cleanup functions for handlers to prevent accumulation on scene re-entry
+    const cleanupFunctions: (() => void)[] = [];
+
+    // Valid phase transitions to prevent race conditions
+    const validTransitions: Record<BattlePhase, BattlePhase[]> = {
+      intro: ['player_turn'],
+      player_turn: ['player_action'],
+      player_action: ['enemy_turn', 'victory', 'defeat', 'flee'],
+      enemy_turn: ['enemy_action'],
+      enemy_action: ['player_turn', 'victory', 'defeat'],
+      victory: [],
+      defeat: [],
+      flee: [],
+    };
+
+    function setPhase(newPhase: BattlePhase): boolean {
+      if (!sceneActive) return false;
+      if (!validTransitions[phase].includes(newPhase)) {
+        console.warn(`Invalid battle phase transition: ${phase} -> ${newPhase}`);
+        return false;
+      }
+      phase = newPhase;
+      return true;
+    }
+
+    function isBattleEnded(): boolean {
+      return phase === 'victory' || phase === 'defeat' || phase === 'flee';
+    }
 
     // --- BACKGROUND ---
     let bgLoaded = false;
@@ -176,21 +206,51 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     // --- MESSAGE BOX ---
     let messageBox: GameObj | null = null;
     let messageText: GameObj | null = null;
+    let messageTimerCancel: (() => void) | null = null;
 
+    /**
+     * Show a message box with proper lifecycle handling.
+     * Resolves immediately if scene is no longer active to prevent hanging.
+     */
     function showMessage(text: string, duration = 1.5): Promise<void> {
       return new Promise((resolve) => {
-        if (messageBox) k.destroy(messageBox);
-        if (messageText) k.destroy(messageText);
+        // If scene is no longer active, resolve immediately to prevent hanging
+        if (!sceneActive) {
+          resolve();
+          return;
+        }
+
+        // Clean up previous message
+        if (messageBox) { try { k.destroy(messageBox); } catch {} }
+        if (messageText) { try { k.destroy(messageText); } catch {} }
+        if (messageTimerCancel) { try { messageTimerCancel(); } catch {} }
+
         messageBox = k.add([k.rect(400, 50), k.pos(CANVAS_WIDTH / 2 - 200, 70), k.color(0, 0, 0), k.opacity(0.8), k.z(200)]);
         messageText = k.add([k.text(text, { size: 12 }), k.pos(CANVAS_WIDTH / 2, 95), k.anchor('center'), k.color(255, 255, 255), k.z(201)]);
-        k.wait(duration, () => {
-          if (messageBox) k.destroy(messageBox);
-          if (messageText) k.destroy(messageText);
+
+        const timer = k.wait(duration, () => {
+          messageTimerCancel = null;
+          if (!sceneActive) {
+            resolve();
+            return;
+          }
+          if (messageBox) { try { k.destroy(messageBox); } catch {} }
+          if (messageText) { try { k.destroy(messageText); } catch {} }
           messageBox = null;
           messageText = null;
           resolve();
         });
+        messageTimerCancel = timer.cancel;
       });
+    }
+
+    function clearMessage(): void {
+      if (messageTimerCancel) { try { messageTimerCancel(); } catch {} }
+      if (messageBox) { try { k.destroy(messageBox); } catch {} }
+      if (messageText) { try { k.destroy(messageText); } catch {} }
+      messageBox = null;
+      messageText = null;
+      messageTimerCancel = null;
     }
 
     // --- HP UPDATE ---
@@ -246,38 +306,52 @@ export function registerBattleScene(k: KAPLAYCtx): void {
 
     // --- BATTLE ACTIONS ---
     async function playerAttack(): Promise<void> {
-      phase = 'player_action';
+      if (actionInProgress || !setPhase('player_action')) return;
+      actionInProgress = true;
       hideMenu();
-      await showMessage('You attack!', 0.5);
-      playSound(k, 'attack');
-      await playAttackLunge(k, playerEntity, enemyEntity.pos.x);
-      const result = calculateDamage(playerStats, enemyStats, false);
-      if (result.isMiss) {
-        playSound(k, 'miss');
-        showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, 'MISS', 'miss');
-        await showMessage('Miss!', 0.8);
-      } else {
-        applyDamage(enemyStats, result.damage);
-        updateEnemyHp();
-        playSound(k, result.isCrit ? 'criticalHit' : 'hit');
-        await playHurtEffect(k, enemyEntity);
-        shakeCamera(k, result.isCrit ? 8 : 4, 0.2);
-        showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, result.damage, result.isCrit ? 'crit' : 'damage');
-        if (result.isCrit) await showMessage(`Critical! ${result.damage} damage!`, 0.8);
+      try {
+        await showMessage('You attack!', 0.5);
+        if (!sceneActive) return;
+        playSound(k, 'attack');
+        await playAttackLunge(k, playerEntity, enemyEntity.pos.x);
+        if (!sceneActive) return;
+        const result = calculateDamage(playerStats, enemyStats, false);
+        if (result.isMiss) {
+          playSound(k, 'miss');
+          showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, 'MISS', 'miss');
+          await showMessage('Miss!', 0.8);
+        } else {
+          applyDamage(enemyStats, result.damage);
+          updateEnemyHp();
+          playSound(k, result.isCrit ? 'criticalHit' : 'hit');
+          await playHurtEffect(k, enemyEntity);
+          shakeCamera(k, result.isCrit ? 8 : 4, 0.2);
+          showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, result.damage, result.isCrit ? 'crit' : 'damage');
+          if (result.isCrit) await showMessage(`Critical! ${result.damage} damage!`, 0.8);
+        }
+        if (!sceneActive) return;
+        if (isDefeated(enemyStats)) { await handleVictory(); return; }
+        playerDefending = false;
+        await enemyTurn();
+      } finally {
+        actionInProgress = false;
       }
-      if (isDefeated(enemyStats)) { await handleVictory(); return; }
-      playerDefending = false;
-      await enemyTurn();
     }
 
     async function playerDefend(): Promise<void> {
-      phase = 'player_action';
+      if (actionInProgress || !setPhase('player_action')) return;
+      actionInProgress = true;
       hideMenu();
-      playerDefending = true;
-      playSound(k, 'defend');
-      flashEntity(k, playerEntity, [100, 100, 255], 0.3);
-      await showMessage('You brace for impact!', 0.8);
-      await enemyTurn();
+      try {
+        playerDefending = true;
+        playSound(k, 'defend');
+        flashEntity(k, playerEntity, [100, 100, 255], 0.3);
+        await showMessage('You brace for impact!', 0.8);
+        if (!sceneActive) return;
+        await enemyTurn();
+      } finally {
+        actionInProgress = false;
+      }
     }
 
     async function playerUseItem(): Promise<void> {
@@ -290,52 +364,68 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       const itemToUse = consumables[0];
       const itemDef = getItem(itemToUse.id);
       if (!itemDef || !itemDef.effect) return;
-      phase = 'player_action';
+      if (actionInProgress || !setPhase('player_action')) return;
+      actionInProgress = true;
       hideMenu();
-      GameState.removeItem(itemToUse.id, 1);
-      if (itemDef.effect.type === 'heal') {
-        const healAmount = applyHealing(playerStats, itemDef.effect.value);
-        GameState.player.health = playerStats.hp;
-        updatePlayerHp();
-        playSound(k, 'heal');
-        flashEntity(k, playerEntity, EFFECT_COLORS.heal, 0.3);
-        showFloatingNumber(k, playerEntity.pos.x, playerEntity.pos.y - 30, healAmount, 'heal');
-        await showMessage(`Used ${itemDef.name}! Healed ${healAmount} HP!`, 1.0);
+      try {
+        GameState.removeItem(itemToUse.id, 1);
+        if (itemDef.effect.type === 'heal') {
+          const healAmount = applyHealing(playerStats, itemDef.effect.value);
+          GameState.player.health = playerStats.hp;
+          updatePlayerHp();
+          playSound(k, 'heal');
+          flashEntity(k, playerEntity, EFFECT_COLORS.heal, 0.3);
+          showFloatingNumber(k, playerEntity.pos.x, playerEntity.pos.y - 30, healAmount, 'heal');
+          await showMessage(`Used ${itemDef.name}! Healed ${healAmount} HP!`, 1.0);
+        }
+        if (!sceneActive) return;
+        playerDefending = false;
+        await enemyTurn();
+      } finally {
+        actionInProgress = false;
       }
-      playerDefending = false;
-      await enemyTurn();
     }
 
     async function playerFlee(): Promise<void> {
-      phase = 'player_action';
+      if (actionInProgress || !setPhase('player_action')) return;
+      actionInProgress = true;
       hideMenu();
-      await showMessage('Attempting to flee...', 0.8);
-      const success = attemptFlee(GameState.player.level, floorLevel);
-      if (success) {
-        await showMessage('Got away safely!', 1.0);
-        phase = 'flee';
-        await k.wait(0.5);
-        returnToOrigin();
-      } else {
-        await showMessage('Failed to escape!', 0.8);
-        await enemyTurn();
+      try {
+        await showMessage('Attempting to flee...', 0.8);
+        if (!sceneActive) return;
+        const success = attemptFlee(GameState.player.level, floorLevel);
+        if (success) {
+          await showMessage('Got away safely!', 1.0);
+          phase = 'flee';  // Direct set for terminal states
+          await k.wait(0.5);
+          returnToOrigin();
+        } else {
+          await showMessage('Failed to escape!', 0.8);
+          if (!sceneActive) return;
+          await enemyTurn();
+        }
+      } finally {
+        actionInProgress = false;
       }
     }
 
     // --- ENEMY TURN ---
     async function enemyTurn(): Promise<void> {
-      if (phase === 'victory' || phase === 'defeat' || phase === 'flee') return;
-      phase = 'enemy_turn';
+      if (isBattleEnded() || !sceneActive) return;
+      if (!setPhase('enemy_turn')) return;
       const action = decideEnemyAction(enemyDef, enemyStats, playerStats);
       if (action === 'defend') {
         await showMessage(`${enemyDef.name} is defending!`, 0.8);
+        if (!sceneActive) return;
         phase = 'player_turn';
         showMenu();
         return;
       }
       phase = 'enemy_action';
       await showMessage(`${enemyDef.name} attacks!`, 0.5);
+      if (!sceneActive) return;
       await playAttackLunge(k, enemyEntity, playerEntity.pos.x, 20);
+      if (!sceneActive) return;
       const result = calculateDamage(enemyStats, playerStats, playerDefending);
       if (result.isMiss) {
         showFloatingNumber(k, playerEntity.pos.x, playerEntity.pos.y - 30, 'MISS', 'miss');
@@ -349,6 +439,7 @@ export function registerBattleScene(k: KAPLAYCtx): void {
         showFloatingNumber(k, playerEntity.pos.x, playerEntity.pos.y - 30, result.damage, 'damage');
         if (playerDefending) await showMessage(`Blocked! Took ${result.damage} damage.`, 0.8);
       }
+      if (!sceneActive) return;
       if (isDefeated(playerStats)) { await handleDefeat(); return; }
       playerDefending = false;
       phase = 'player_turn';
@@ -357,13 +448,14 @@ export function registerBattleScene(k: KAPLAYCtx): void {
 
     // --- VICTORY ---
     async function handleVictory(): Promise<void> {
-      phase = 'victory';
+      phase = 'victory';  // Terminal state - direct assignment
       hideMenu();
       GameState.recordBattleWin();
       playSound(k, 'victory');
       playVictoryEffect(k, enemyEntity.pos.x, enemyEntity.pos.y);
-      k.tween(1, 0, 0.5, (v) => { enemyEntity.opacity = v; });
+      k.tween(1, 0, 0.5, (v) => { if (sceneActive) enemyEntity.opacity = v; });
       await showMessage('Victory!', 1.5);
+      if (!sceneActive) return;
       const xpGained = calculateXpReward(enemyDef, floorLevel);
       const goldGained = calculateGoldReward(enemyDef, floorLevel);
       GameState.addGold(goldGained);
@@ -372,71 +464,100 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       showFloatingNumber(k, CANVAS_WIDTH / 2 - 40, 150, xpGained, 'xp');
       showFloatingNumber(k, CANVAS_WIDTH / 2 + 40, 150, goldGained, 'gold');
       await showMessage(`Gained ${xpGained} XP and ${goldGained} Gold!`, 2.0);
+      if (!sceneActive) return;
       if (levelsGained > 0) {
         const newLevel = oldLevel + levelsGained;
         playSound(k, 'levelUp');
         flashEntity(k, playerEntity, [255, 215, 0], 0.5);
         shakeCamera(k, 6, 0.3);
         await showMessage(`LEVEL UP! You are now Level ${newLevel}!`, 2.0);
+        if (!sceneActive) return;
         const stats = getLevelUpStats(newLevel);
         await showMessage(`+${stats.maxHp} HP  +${stats.attack} ATK  +${stats.defense} DEF`, 2.0);
+        if (!sceneActive) return;
         playerStats.maxHp = GameState.getEffectiveMaxHealth();
         playerStats.hp = GameState.player.health;
         updatePlayerHp();
       }
       await k.wait(0.5);
+      if (!sceneActive) return;
       returnToOrigin();
     }
 
     // --- DEFEAT ---
     async function handleDefeat(): Promise<void> {
-      phase = 'defeat';
+      phase = 'defeat';  // Terminal state - direct assignment
       hideMenu();
       playSound(k, 'defeat');
-      k.tween(1, 0.3, 0.5, (v) => { playerEntity.opacity = v; });
+      k.tween(1, 0.3, 0.5, (v) => { if (sceneActive) playerEntity.opacity = v; });
       await showMessage('Defeated...', 2.0);
+      if (!sceneActive) return;
       const goldLost = Math.floor(GameState.player.gold * 0.1);
       GameState.player.gold -= goldLost;
       GameState.player.health = Math.floor(GameState.player.maxHealth * 0.5);
-      if (goldLost > 0) await showMessage(`Lost ${goldLost} gold...`, 1.5);
+      if (goldLost > 0) {
+        await showMessage(`Lost ${goldLost} gold...`, 1.5);
+        if (!sceneActive) return;
+      }
       await k.wait(0.5);
+      if (!sceneActive) return;
+      cleanup();
       k.go('town');
     }
 
+    // --- CLEANUP ---
+    function cleanup(): void {
+      // Mark scene as inactive to stop any pending async operations
+      sceneActive = false;
+
+      // Cancel message timer
+      clearMessage();
+
+      // Cancel all registered event handlers to prevent accumulation on scene re-entry
+      cleanupFunctions.forEach((cancel) => {
+        try { cancel(); } catch { /* handler may already be cancelled */ }
+      });
+      cleanupFunctions.length = 0;
+    }
+
     function returnToOrigin(): void {
+      cleanup();
       k.go(returnScene, returnData);
     }
 
     // --- INPUT ---
-    k.onKeyPress('up', () => { if (menuVisible && selectedAction >= 2) { selectedAction -= 2; updateCursor(); } });
-    k.onKeyPress('down', () => { if (menuVisible && selectedAction < 2) { selectedAction += 2; updateCursor(); } });
-    k.onKeyPress('left', () => { if (menuVisible && selectedAction % 2 === 1) { selectedAction--; updateCursor(); } });
-    k.onKeyPress('right', () => { if (menuVisible && selectedAction % 2 === 0 && selectedAction < 3) { selectedAction++; updateCursor(); } });
-
-    k.onKeyPress('enter', () => {
-      if (!menuVisible || phase !== 'player_turn') return;
-      const action = actions[selectedAction];
-      if (action === 'attack') playerAttack();
-      else if (action === 'defend') playerDefend();
-      else if (action === 'item') playerUseItem();
-      else if (action === 'flee') playerFlee();
-    });
-
-    k.onKeyPress('space', () => {
-      if (!menuVisible || phase !== 'player_turn') return;
-      const action = actions[selectedAction];
-      if (action === 'attack') playerAttack();
-      else if (action === 'defend') playerDefend();
-      else if (action === 'item') playerUseItem();
-      else if (action === 'flee') playerFlee();
-    });
+    // Store cancel functions to clean up when leaving scene
+    cleanupFunctions.push(
+      k.onKeyPress('up', () => { if (menuVisible && selectedAction >= 2) { selectedAction -= 2; updateCursor(); } }).cancel,
+      k.onKeyPress('down', () => { if (menuVisible && selectedAction < 2) { selectedAction += 2; updateCursor(); } }).cancel,
+      k.onKeyPress('left', () => { if (menuVisible && selectedAction % 2 === 1) { selectedAction--; updateCursor(); } }).cancel,
+      k.onKeyPress('right', () => { if (menuVisible && selectedAction % 2 === 0 && selectedAction < 3) { selectedAction++; updateCursor(); } }).cancel,
+      k.onKeyPress('enter', () => {
+        if (!menuVisible || phase !== 'player_turn') return;
+        const action = actions[selectedAction];
+        if (action === 'attack') playerAttack();
+        else if (action === 'defend') playerDefend();
+        else if (action === 'item') playerUseItem();
+        else if (action === 'flee') playerFlee();
+      }).cancel,
+      k.onKeyPress('space', () => {
+        if (!menuVisible || phase !== 'player_turn') return;
+        const action = actions[selectedAction];
+        if (action === 'attack') playerAttack();
+        else if (action === 'defend') playerDefend();
+        else if (action === 'item') playerUseItem();
+        else if (action === 'flee') playerFlee();
+      }).cancel
+    );
 
     // --- START ---
     async function startBattle(): Promise<void> {
       playCatMeow(k);
       await showMessage(`A wild ${enemyDef.name} appeared!`, 1.5);
-      phase = 'player_turn';
-      showMenu();
+      if (!sceneActive) return;
+      if (setPhase('player_turn')) {
+        showMenu();
+      }
     }
 
     startBattle();

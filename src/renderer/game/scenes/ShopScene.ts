@@ -16,13 +16,10 @@ import { createPlayer } from '../components/Player.js';
 import { setupMovement } from '../systems/movement.js';
 import { setupInteraction, type Interactable } from '../systems/interaction.js';
 import { createDoor } from '../components/Door.js';
-import { PLAYER_SPEED } from '../config.js';
+import { PLAYER_SPEED, CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
 import { getItem, SHOP_INVENTORY, type ItemDefinition, type EquipmentSlot } from '../data/items.js';
 import { playSound } from '../systems/sound.js';
-
-const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 400;
 
 export interface ShopSceneData {
   catColor?: CatColor;
@@ -36,7 +33,12 @@ export function registerShopScene(k: KAPLAYCtx): void {
     // --- BACKGROUND (HD Image) ---
     let bgLoaded = false;
     try {
-      await k.loadSprite('shop-bg', '../../assets/BACKGROUNDS/Cat-Themed General Store Interior.png');
+      // Add 5-second timeout to prevent indefinite hangs on slow/failed loads
+      const loadPromise = k.loadSprite('shop-bg', '../../assets/BACKGROUNDS/Cat-Themed General Store Interior.png');
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Asset load timeout')), 5000)
+      );
+      await Promise.race([loadPromise, timeoutPromise]);
       bgLoaded = true;
     } catch {
       console.log('HD shop background not available, using fallback');
@@ -729,6 +731,9 @@ export function registerShopScene(k: KAPLAYCtx): void {
 
     // --- INPUT ---
     k.onKeyPress('escape', () => {
+      // Don't allow escape during purchase/equip operations to prevent state desync
+      if (isProcessing) return;
+
       if (shopOpen) {
         closeShop();
       } else {

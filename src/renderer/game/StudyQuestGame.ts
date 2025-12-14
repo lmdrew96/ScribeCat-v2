@@ -73,13 +73,7 @@ export class StudyQuestGame {
     this.k.go('town');
   }
 
-  /**
-   * Continue from saved state (future feature)
-   */
-  continueGame(): void {
-    // TODO: Load saved state
-    this.k.go('town');
-  }
+  // NOTE: continueGame() removed - will be implemented when save/load feature is added
 
   /**
    * Go to a specific scene

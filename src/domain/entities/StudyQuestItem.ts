@@ -5,6 +5,7 @@
  */
 
 export type ItemType = 'weapon' | 'armor' | 'accessory' | 'consumable' | 'key_item';
+export type EquipmentSlot = 'weapon' | 'armor' | 'accessory';
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 export type EffectType = 'heal' | 'damage' | 'buff_attack' | 'buff_defense' | 'buff_speed' | 'cure_status';
 

@@ -231,6 +231,18 @@ class GameStateManager {
     this.listeners.get(event)?.delete(callback);
   }
 
+  /**
+   * Remove all listeners for a specific event, or all listeners if no event specified.
+   * Use this for cleanup when scenes are destroyed to prevent memory leaks.
+   */
+  offAll(event?: string): void {
+    if (event) {
+      this.listeners.delete(event);
+    } else {
+      this.listeners.clear();
+    }
+  }
+
   private emit(event: string, data?: unknown): void {
     this.listeners.get(event)?.forEach((cb) => cb(data));
   }
