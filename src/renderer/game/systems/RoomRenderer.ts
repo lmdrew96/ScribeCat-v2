@@ -6,6 +6,8 @@
 
 import type { KAPLAYCtx, GameObj } from 'kaplay';
 import type { DungeonRoom, ContentType } from '../../canvas/dungeon/DungeonGenerator.js';
+import { createNPC, createFallbackNPC, getNPCColor } from '../components/NPC.js';
+import { createDungeonEnemy } from '../components/Enemy.js';
 
 export interface RoomConfig {
   width: number;
@@ -66,11 +68,11 @@ export class RoomRenderer {
   /**
    * Render a room
    */
-  render(room: DungeonRoom): void {
+  async render(room: DungeonRoom): Promise<void> {
     this.clear();
     this.drawBackground();
     this.drawDoors(room);
-    this.drawContents(room);
+    await this.drawContents(room);
   }
 
   /**
@@ -208,45 +210,103 @@ export class RoomRenderer {
     }
   }
 
-  private drawContents(room: DungeonRoom): void {
+  private async drawContents(room: DungeonRoom): Promise<void> {
     const k = this.k;
     const { width, height, offsetX, offsetY } = this.config;
 
     for (const content of room.contents) {
+      // Skip triggered enemies (they're gone)
       if (content.type === 'enemy' && content.triggered) continue;
+
+      // Skip triggered non-repeatable content (but not NPCs)
+      if (content.triggered && content.type !== 'npc') continue;
 
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
 
-      const colorKey = content.type === 'chest' && content.triggered ? 'chestOpen' : content.type;
-      const color = CONTENT_COLORS[colorKey] || [255, 255, 255];
+      // Handle NPCs with cat sprites
+      if (content.type === 'npc') {
+        try {
+          const npcData = content.data as { name?: string; dialogue?: string[]; npcType?: string } | undefined;
+          const npcColor = getNPCColor(npcData?.npcType);
 
-      // Circle
-      const obj = k.add([
-        k.circle(12),
-        k.pos(x, y),
-        k.anchor('center'),
-        k.color(color[0], color[1], color[2]),
-        k.area({ shape: new k.Rect(k.vec2(-12, -12), 24, 24) }),
-        k.z(5),
-        'content',
-        { contentData: content },
-      ]);
-      this.objects.push(obj);
+          const npc = await createNPC({
+            k,
+            x,
+            y,
+            color: npcColor,
+            name: npcData?.name || 'Stranger',
+            dialogue: npcData?.dialogue || ['...'],
+          });
 
-      // Icon
-      const icon = CONTENT_ICONS[content.type];
-      if (icon) {
-        this.objects.push(
-          k.add([
-            k.text(icon, { size: 14 }),
-            k.pos(x, y),
-            k.anchor('center'),
-            k.color(255, 255, 255),
-            k.z(6),
-          ])
-        );
+          this.objects.push(npc.entity);
+        } catch (err) {
+          console.warn('Failed to create NPC sprite, using fallback:', err);
+          const fallback = createFallbackNPC(k, x, y, 'NPC');
+          this.objects.push(fallback);
+        }
+        continue;
       }
+
+      // Handle enemies with sprites
+      if (content.type === 'enemy') {
+        try {
+          let enemyId = 'grey_slime';
+          if (typeof content.data === 'string') {
+            enemyId = content.data;
+          } else if (content.data?.enemyType) {
+            enemyId = content.data.enemyType;
+          }
+
+          const enemy = await createDungeonEnemy({
+            k,
+            x,
+            y,
+            enemyId,
+          });
+
+          this.objects.push(enemy);
+        } catch (err) {
+          console.warn('Failed to create enemy sprite, using fallback:', err);
+          this.drawFallbackContent(x, y, 'enemy');
+        }
+        continue;
+      }
+
+      // Draw other content types as colored circles
+      this.drawFallbackContent(x, y, content.type, content.triggered);
+    }
+  }
+
+  private drawFallbackContent(x: number, y: number, type: string, triggered = false): void {
+    const k = this.k;
+
+    const colorKey = type === 'chest' && triggered ? 'chestOpen' : type;
+    const color = CONTENT_COLORS[colorKey] || [255, 255, 255];
+
+    const obj = k.add([
+      k.circle(12),
+      k.pos(x, y),
+      k.anchor('center'),
+      k.color(color[0], color[1], color[2]),
+      k.area({ shape: new k.Rect(k.vec2(-12, -12), 24, 24) }),
+      k.z(5),
+      'content',
+      { contentType: type },
+    ]);
+    this.objects.push(obj);
+
+    const icon = CONTENT_ICONS[type as ContentType];
+    if (icon) {
+      this.objects.push(
+        k.add([
+          k.text(icon, { size: 14 }),
+          k.pos(x, y),
+          k.anchor('center'),
+          k.color(255, 255, 255),
+          k.z(6),
+        ])
+      );
     }
   }
 }

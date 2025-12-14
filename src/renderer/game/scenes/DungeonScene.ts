@@ -36,6 +36,9 @@ export interface DungeonSceneData {
   onRoomClear?: (room: DungeonRoom) => void;
   // Set to true when returning from battle
   returnFromBattle?: boolean;
+  // Player position to restore after battle
+  playerX?: number;
+  playerY?: number;
 }
 
 export function registerDungeonScene(k: KAPLAYCtx): void {
@@ -55,8 +58,14 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     // Renderer
     const renderer = new RoomRenderer(k);
 
-    // Player
-    const startPos = renderer.getEntryPosition();
+    // Player - use saved position if returning from battle
+    let startPos: { x: number; y: number };
+    if (data.returnFromBattle && data.playerX !== undefined && data.playerY !== undefined) {
+      startPos = { x: data.playerX, y: data.playerY };
+    } else {
+      startPos = renderer.getEntryPosition();
+    }
+
     const player = await createPlayer({
       k,
       x: startPos.x,
@@ -65,7 +74,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     });
 
     // Render first room
-    renderer.render(GameState.getCurrentRoom()!);
+    await renderer.render(GameState.getCurrentRoom()!);
     if (data.onRoomEnter) data.onRoomEnter(GameState.getCurrentRoom()!);
 
     // Movement
@@ -74,6 +83,74 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       player,
       speed: PLAYER_SPEED,
       bounds: renderer.getMovementBounds(),
+    });
+
+    // --- STATS HUD ---
+    // Background
+    k.add([
+      k.rect(130, 70),
+      k.pos(CANVAS_WIDTH - 140, 10),
+      k.color(0, 0, 0),
+      k.opacity(0.7),
+      k.z(50),
+    ]);
+
+    // HP Label
+    k.add([
+      k.text('HP', { size: 10 }),
+      k.pos(CANVAS_WIDTH - 130, 18),
+      k.color(255, 255, 255),
+      k.z(51),
+    ]);
+
+    // HP Bar background
+    k.add([
+      k.rect(80, 12),
+      k.pos(CANVAS_WIDTH - 100, 15),
+      k.color(60, 20, 20),
+      k.z(51),
+    ]);
+
+    // HP Bar fill (updates each frame)
+    const hpBar = k.add([
+      k.rect(80, 12),
+      k.pos(CANVAS_WIDTH - 100, 15),
+      k.color(60, 220, 100),
+      k.z(52),
+    ]);
+
+    // Gold display
+    const goldText = k.add([
+      k.text(`Gold: ${GameState.player.gold}`, { size: 10 }),
+      k.pos(CANVAS_WIDTH - 130, 38),
+      k.color(251, 191, 36),
+      k.z(51),
+    ]);
+
+    // Floor display
+    k.add([
+      k.text(`Floor ${GameState.dungeon.floorNumber}`, { size: 10 }),
+      k.pos(CANVAS_WIDTH - 130, 55),
+      k.color(200, 200, 200),
+      k.z(51),
+    ]);
+
+    // Update HP bar each frame
+    k.onUpdate(() => {
+      const ratio = GameState.player.health / GameState.player.maxHealth;
+      hpBar.width = 80 * ratio;
+
+      // Color based on HP
+      if (ratio > 0.5) {
+        hpBar.color = k.rgb(60, 220, 100);
+      } else if (ratio > 0.25) {
+        hpBar.color = k.rgb(240, 200, 60);
+      } else {
+        hpBar.color = k.rgb(240, 60, 60);
+      }
+
+      // Update gold (in case it changed)
+      goldText.text = `Gold: ${GameState.player.gold}`;
     });
 
     // --- STATE ---
@@ -124,6 +201,10 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
             }
             const enemyDef = ENEMIES[enemyId] || getRandomEnemy();
 
+            // Save current player position
+            const currentX = player.entity.pos.x;
+            const currentY = player.entity.pos.y;
+
             // Transition to battle
             const battleData: BattleSceneData = {
               enemyDef,
@@ -135,11 +216,45 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
                 floorNumber: GameState.dungeon.floorNumber,
                 floor: GameState.dungeon.floor,
                 returnFromBattle: true,
+                playerX: currentX,
+                playerY: currentY,
               } as DungeonSceneData,
             };
 
             k.go('battle', battleData);
             return;
+          } else if (content.type === 'exit') {
+            content.triggered = true;
+
+            // Show completion message
+            const overlay = k.add([
+              k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
+              k.pos(0, 0),
+              k.color(0, 0, 0),
+              k.opacity(0),
+              k.z(1000),
+            ]);
+
+            const msg = k.add([
+              k.text('Floor Complete!', { size: 20 }),
+              k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
+              k.anchor('center'),
+              k.color(251, 191, 36),
+              k.opacity(0),
+              k.z(1001),
+            ]);
+
+            // Fade in, wait, then go to town
+            k.tween(0, 1, 0.3, (v) => {
+              overlay.opacity = v * 0.8;
+              msg.opacity = v;
+            });
+
+            k.wait(1.5, () => {
+              k.go('town');
+            });
+
+            return; // Stop processing
           } else if (content.type !== 'npc') {
             content.triggered = true;
             if (data.onContentTrigger) data.onContentTrigger(content, room);
@@ -194,7 +309,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       // Switch room
       GameState.setCurrentRoom(targetRoomId);
       const newRoom = GameState.getCurrentRoom()!;
-      renderer.render(newRoom);
+      await renderer.render(newRoom);
 
       // Reposition player
       const opposite: Record<DungeonDirection, DungeonDirection> = {

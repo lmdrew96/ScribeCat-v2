@@ -84,14 +84,23 @@ export function registerShopScene(k: KAPLAYCtx): void {
       k.z(5),
     ]);
 
-    // --- SHOPKEEPER (placeholder) ---
+    // --- SHOPKEEPER (improved placeholder) ---
     const shopkeeper = k.add([
       k.rect(40, 60),
       k.pos(CANVAS_WIDTH / 2 - 20, 140),
-      k.color(255, 182, 193), // Pink (placeholder)
-      k.outline(2, k.rgb(0, 0, 0)),
+      k.color(255, 200, 150), // Skin tone instead of pink
+      k.outline(3, k.rgb(139, 69, 19)), // Brown outline
       k.z(6),
       'shopkeeper',
+    ]);
+
+    // Add a simple face
+    k.add([
+      k.text(':3', { size: 16 }), // Cat face!
+      k.pos(CANVAS_WIDTH / 2, 165),
+      k.anchor('center'),
+      k.color(80, 50, 30),
+      k.z(7),
     ]);
 
     // Shopkeeper label
@@ -153,7 +162,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     const player = await createPlayer({
       k,
       x: CANVAS_WIDTH / 2,
-      y: CANVAS_HEIGHT - 100,
+      y: CANVAS_HEIGHT - 120, // Moved up slightly from -100
       color: catColor,
     });
 
@@ -165,7 +174,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
       bounds: {
         minX: 30,
         maxX: CANVAS_WIDTH - 30,
-        minY: 270,
+        minY: 200, // Changed from 270 — player can now reach counter
         maxY: CANVAS_HEIGHT - 60,
       },
     });

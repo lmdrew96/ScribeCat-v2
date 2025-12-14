@@ -256,6 +256,85 @@ export function getEnemiesByTier(tier: 'low' | 'mid' | 'high' | 'boss'): string[
 }
 
 /**
+ * Create a simpler enemy entity for dungeon exploration (not battle)
+ * Uses placeholders with enemy colors, or sprites if available
+ */
+export async function createDungeonEnemy(config: {
+  k: KAPLAYCtx;
+  x: number;
+  y: number;
+  enemyId: string;
+}): Promise<GameObj> {
+  const { k, x, y, enemyId } = config;
+  const { ENEMIES } = await import('../data/enemies.js');
+  const enemyDef = ENEMIES[enemyId];
+
+  if (!enemyDef) {
+    // Fallback to simple red circle
+    return k.add([
+      k.circle(14),
+      k.pos(x, y),
+      k.anchor('center'),
+      k.color(239, 68, 68),
+      k.outline(2, k.rgb(180, 40, 40)),
+      k.area({ shape: new k.Rect(k.vec2(-14, -14), 28, 28) }),
+      k.z(5),
+      'enemy',
+      { enemyId },
+    ]);
+  }
+
+  // Try to load and use sprite
+  try {
+    await loadEnemySprites(k, enemyDef);
+    const spriteName = getEnemySpriteName(enemyDef.id, 'idle', !enemyDef.spriteFolder);
+
+    const entity = k.add([
+      k.sprite(spriteName),
+      k.pos(x, y),
+      k.anchor('center'),
+      k.scale(1.5), // Smaller than battle scale
+      k.area({ shape: new k.Rect(k.vec2(-16, -16), 32, 32) }),
+      k.z(5),
+      'enemy',
+      { enemyId },
+    ]);
+
+    return entity;
+  } catch {
+    // Fallback to colored circle with enemy initial
+    const color = enemyDef.placeholderColor || [239, 68, 68];
+
+    const body = k.add([
+      k.circle(14),
+      k.pos(x, y),
+      k.anchor('center'),
+      k.color(color[0], color[1], color[2]),
+      k.outline(2, k.rgb(
+        Math.max(0, color[0] - 40),
+        Math.max(0, color[1] - 40),
+        Math.max(0, color[2] - 40)
+      )),
+      k.area({ shape: new k.Rect(k.vec2(-14, -14), 28, 28) }),
+      k.z(5),
+      'enemy',
+      { enemyId },
+    ]);
+
+    // Add enemy initial
+    k.add([
+      k.text(enemyDef.name.charAt(0).toUpperCase(), { size: 12 }),
+      k.pos(x, y),
+      k.anchor('center'),
+      k.color(255, 255, 255),
+      k.z(6),
+    ]);
+
+    return body;
+  }
+}
+
+/**
  * Get appropriate enemy pool for a dungeon floor
  */
 export function getEnemyPoolForFloor(floor: number): string[] {

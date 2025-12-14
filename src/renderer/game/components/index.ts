@@ -10,6 +10,14 @@ export {
 export {
   createEnemy,
   createPlaceholderEnemy,
+  createDungeonEnemy,
   type Enemy,
   type EnemyConfig,
 } from './Enemy.js';
+export {
+  createNPC,
+  createFallbackNPC,
+  getNPCColor,
+  type NPCConfig,
+  type NPCEntity,
+} from './NPC.js';
