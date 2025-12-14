@@ -1,7 +1,12 @@
 /**
  * Room Renderer
  *
- * Draws dungeon rooms. That's it.
+ * Draws dungeon rooms.
+ *
+ * FIXES:
+ * - Secrets are invisible until discovered (player must search)
+ * - Puzzles render with distinct styling
+ * - Enemy wandering bounds passed correctly
  */
 
 import type { KAPLAYCtx, GameObj } from 'kaplay';
@@ -35,14 +40,18 @@ const CONTENT_COLORS: Record<string, [number, number, number]> = {
   npc: [96, 165, 250],
   exit: [168, 85, 247],
   interactable: [34, 197, 94],
+  puzzle: [59, 130, 246],    // Blue for puzzles
+  secret: [234, 179, 8],     // Gold for secrets (when discovered)
 };
 
-const CONTENT_ICONS: Partial<Record<ContentType, string>> = {
+const CONTENT_ICONS: Partial<Record<ContentType | string, string>> = {
   enemy: '!',
   chest: '$',
   trap: 'X',
   npc: '?',
   exit: 'v',
+  puzzle: '?',
+  secret: '*',
 };
 
 export class RoomRenderer {
@@ -55,19 +64,15 @@ export class RoomRenderer {
     this.config = config;
   }
 
-  /**
-   * Clear all rendered objects
-   */
   clear(): void {
     for (const obj of this.objects) {
-      this.k.destroy(obj);
+      try {
+        this.k.destroy(obj);
+      } catch {}
     }
     this.objects = [];
   }
 
-  /**
-   * Render a room
-   */
   async render(room: DungeonRoom): Promise<void> {
     this.clear();
     this.drawBackground();
@@ -75,9 +80,6 @@ export class RoomRenderer {
     await this.drawContents(room);
   }
 
-  /**
-   * Get door positions
-   */
   getDoorPositions(): Record<DungeonDirection, { x: number; y: number }> {
     const { width, height, offsetX, offsetY, doorSize } = this.config;
     return {
@@ -88,9 +90,6 @@ export class RoomRenderer {
     };
   }
 
-  /**
-   * Get movement bounds
-   */
   getMovementBounds() {
     const { width, height, offsetX, offsetY } = this.config;
     const margin = 16;
@@ -102,9 +101,6 @@ export class RoomRenderer {
     };
   }
 
-  /**
-   * Get entry position for a direction
-   */
   getEntryPosition(fromDirection?: DungeonDirection): { x: number; y: number } {
     const { width, height, offsetX, offsetY } = this.config;
     const centerX = offsetX + width / 2;
@@ -129,12 +125,10 @@ export class RoomRenderer {
     const k = this.k;
     const { width, height, offsetX, offsetY } = this.config;
 
-    // Floor
     this.objects.push(
       k.add([k.rect(width, height), k.pos(offsetX, offsetY), k.color(42, 42, 78), k.z(-10)])
     );
 
-    // Border
     const border = k.rgb(26, 26, 46);
     this.objects.push(
       k.add([k.rect(width, 4), k.pos(offsetX, offsetY), k.color(border), k.z(-5)])
@@ -149,7 +143,6 @@ export class RoomRenderer {
       k.add([k.rect(4, height), k.pos(offsetX + width - 4, offsetY), k.color(border), k.z(-5)])
     );
 
-    // Grid
     for (let x = offsetX; x < offsetX + width; x += 32) {
       this.objects.push(
         k.add([
@@ -185,7 +178,6 @@ export class RoomRenderer {
       const targetRoomId = room.connections[direction];
       if (!targetRoomId) continue;
 
-      // Door
       const door = k.add([
         k.rect(doorSize, doorSize),
         k.pos(pos.x - doorSize / 2, pos.y - doorSize / 2),
@@ -197,7 +189,6 @@ export class RoomRenderer {
       ]);
       this.objects.push(door);
 
-      // Arrow
       this.objects.push(
         k.add([
           k.text(arrows[direction], { size: 20 }),
@@ -213,13 +204,40 @@ export class RoomRenderer {
   private async drawContents(room: DungeonRoom): Promise<void> {
     const k = this.k;
     const { width, height, offsetX, offsetY } = this.config;
+    const movementBounds = this.getMovementBounds();
 
     for (const content of room.contents) {
-      // Skip triggered enemies (they're gone)
+      // Skip triggered enemies
       if (content.type === 'enemy' && content.triggered) continue;
 
-      // Skip triggered non-repeatable content (but not NPCs)
-      if (content.triggered && content.type !== 'npc') continue;
+      // Skip triggered content (except NPCs and conditional exits)
+      if (content.triggered && content.type !== 'npc') {
+        // Show exit if boss is defeated
+        if (content.type === 'exit' && content.data?.requiresBossDefeated && content.data?.bossDefeated) {
+          // Continue to draw
+        } else {
+          continue;
+        }
+      }
+
+      // SECRETS: Don't render until discovered!
+      if (content.type === 'secret') {
+        if (!content.data?.discovered) {
+          // Secret is hidden - don't render anything
+          continue;
+        }
+        // Secret is discovered but not claimed - render it
+      }
+
+      // For exit that requires boss defeat, check status
+      if (content.type === 'exit' && content.data?.requiresBossDefeated && !content.data?.bossDefeated) {
+        const bossEnemies = room.contents.filter(c => c.type === 'enemy' && c.data?.isBoss);
+        const allBossDefeated = bossEnemies.every(c => c.triggered);
+        if (!allBossDefeated) {
+          continue;
+        }
+        content.data.bossDefeated = true;
+      }
 
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
@@ -258,11 +276,19 @@ export class RoomRenderer {
             enemyId = content.data.enemyType;
           }
 
+          const enemyBounds = {
+            minX: Math.max(movementBounds.minX + 20, x - 50),
+            maxX: Math.min(movementBounds.maxX - 20, x + 50),
+            minY: Math.max(movementBounds.minY + 20, y - 35),
+            maxY: Math.min(movementBounds.maxY - 20, y + 35),
+          };
+
           const enemy = await createDungeonEnemy({
             k,
             x,
             y,
             enemyId,
+            bounds: enemyBounds,
           });
 
           this.objects.push(enemy);
@@ -273,26 +299,35 @@ export class RoomRenderer {
         continue;
       }
 
-      // Draw other content types as colored circles
-      this.drawFallbackContent(x, y, content.type, content.triggered);
+      // Draw other content types
+      this.drawFallbackContent(x, y, content.type, content.triggered, content.data);
     }
   }
 
-  private drawFallbackContent(x: number, y: number, type: string, triggered = false): void {
+  private drawFallbackContent(
+    x: number,
+    y: number,
+    type: string,
+    triggered = false,
+    data?: any
+  ): void {
     const k = this.k;
 
     const colorKey = type === 'chest' && triggered ? 'chestOpen' : type;
     const color = CONTENT_COLORS[colorKey] || [255, 255, 255];
 
+    // Puzzle and secret are slightly larger
+    const size = (type === 'puzzle' || type === 'secret') ? 16 : 12;
+
     const obj = k.add([
-      k.circle(12),
+      k.circle(size),
       k.pos(x, y),
       k.anchor('center'),
       k.color(color[0], color[1], color[2]),
-      k.area({ shape: new k.Rect(k.vec2(-12, -12), 24, 24) }),
+      k.area({ shape: new k.Rect(k.vec2(-size, -size), size * 2, size * 2) }),
       k.z(5),
       'content',
-      { contentType: type },
+      { contentType: type, contentData: data },
     ]);
     this.objects.push(obj);
 
@@ -300,10 +335,35 @@ export class RoomRenderer {
     if (icon) {
       this.objects.push(
         k.add([
-          k.text(icon, { size: 14 }),
+          k.text(icon, { size: type === 'puzzle' || type === 'secret' ? 16 : 14 }),
           k.pos(x, y),
           k.anchor('center'),
           k.color(255, 255, 255),
+          k.z(6),
+        ])
+      );
+    }
+
+    // Labels for puzzle and secret
+    if (type === 'puzzle' && data?.puzzleName) {
+      this.objects.push(
+        k.add([
+          k.text(data.puzzleName, { size: 8 }),
+          k.pos(x, y + 22),
+          k.anchor('center'),
+          k.color(180, 200, 255),
+          k.z(6),
+        ])
+      );
+    }
+
+    if (type === 'secret' && data?.secretName) {
+      this.objects.push(
+        k.add([
+          k.text(data.secretName, { size: 8 }),
+          k.pos(x, y + 22),
+          k.anchor('center'),
+          k.color(255, 220, 100),
           k.z(6),
         ])
       );

@@ -3,6 +3,10 @@
  *
  * Procedurally generates dungeon floors with connected rooms.
  * Creates room layouts, assigns room types, and populates content.
+ *
+ * FIXES:
+ * - Added content for puzzle and secret room types
+ * - Boss room now has exit content after boss is defeated
  */
 
 import { createLogger } from '../../../shared/logger.js';
@@ -28,7 +32,7 @@ export type RoomType =
 
 export type Direction = 'north' | 'south' | 'east' | 'west';
 
-export type ContentType = 'enemy' | 'chest' | 'trap' | 'npc' | 'interactable' | 'exit';
+export type ContentType = 'enemy' | 'chest' | 'trap' | 'npc' | 'interactable' | 'exit' | 'puzzle' | 'secret';
 
 export interface RoomContent {
   id: string;
@@ -105,7 +109,6 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 3,
     theme: 'grass',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, enemy: 40, trap: 5 },
-    // Low tier enemies only - easy dungeon
     enemyPool: ['grey_slime', 'rat', 'roomba'],
     treasurePool: ['gold_small', 'potion_minor'],
   },
@@ -117,7 +120,6 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 5,
     theme: 'forest',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS },
-    // Mix of low and mid tier enemies
     enemyPool: ['grey_slime', 'rat', 'rat_fighter', 'squirrel_warrior', 'rubber_ducky'],
     treasurePool: ['gold_medium', 'potion_minor', 'herb'],
   },
@@ -129,7 +131,6 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 5,
     theme: 'ice',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, treasure: 20, trap: 15 },
-    // Mid tier enemies with slimes
     enemyPool: ['demon_slime', 'rat_warrior', 'rat_ranger', 'tuna_can_battler'],
     treasurePool: ['gold_large', 'crystal', 'potion_medium'],
   },
@@ -141,7 +142,6 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 5,
     theme: 'gothic',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, puzzle: 15, secret: 10 },
-    // Mid tier enemies with magic users
     enemyPool: ['rat_mage', 'rat_warrior', 'yarn_elemental', 'ruff_dog'],
     treasurePool: ['gold_medium', 'scroll', 'potion_medium'],
   },
@@ -153,7 +153,6 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 7,
     theme: 'fire',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, enemy: 40, trap: 15 },
-    // High tier enemies
     enemyPool: ['demon_slime', 'dog_with_axe', 'yarn_elemental', 'rat_necromancer'],
     treasurePool: ['gold_large', 'fire_crystal', 'potion_large'],
   },
@@ -165,11 +164,26 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 10,
     theme: 'void',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, enemy: 45, secret: 10 },
-    // High tier and boss enemies - endgame
     enemyPool: ['rat_necromancer', 'dog_with_axe', 'yarn_elemental', 'demon_slime'],
     treasurePool: ['gold_huge', 'void_crystal', 'potion_large', 'legendary_item'],
   },
 };
+
+// Puzzle types
+const PUZZLE_TYPES = [
+  { type: 'riddle', name: 'Riddle Stone', reward: 'gold' },
+  { type: 'switch', name: 'Ancient Switch', reward: 'chest' },
+  { type: 'memory', name: 'Memory Tiles', reward: 'item' },
+  { type: 'sequence', name: 'Sequence Lock', reward: 'gold' },
+];
+
+// Secret types
+const SECRET_TYPES = [
+  { type: 'hidden_chest', name: 'Hidden Treasure', reward: 'gold_large' },
+  { type: 'ancient_tome', name: 'Ancient Tome', reward: 'xp_bonus' },
+  { type: 'secret_merchant', name: 'Secret Merchant', reward: 'rare_items' },
+  { type: 'healing_spring', name: 'Healing Spring', reward: 'full_heal' },
+];
 
 // ============================================================================
 // Generator Class
@@ -189,27 +203,20 @@ export class DungeonGenerator {
   generate(floorNumber: number): DungeonFloor {
     logger.info(`Generating floor ${floorNumber} for ${this.config.name}`);
 
-    // Calculate room count based on floor
     const roomCount = this.config.baseRooms + (floorNumber - 1) * this.config.roomsPerFloor;
     const isFinalFloor = floorNumber === this.config.totalFloors;
 
-    // Generate room layout (graph)
     const rooms = this.generateRoomLayout(roomCount);
-
-    // Assign room types
     this.assignRoomTypes(rooms, floorNumber, isFinalFloor);
 
-    // Populate rooms with content
     for (const room of rooms.values()) {
       this.populateRoom(room, floorNumber);
     }
 
-    // Find start and exit rooms
     const startRoom = Array.from(rooms.values()).find((r) => r.type === 'start')!;
     const exitRoom = Array.from(rooms.values()).find((r) => r.type === 'exit' || r.type === 'boss');
     const bossRoom = isFinalFloor ? exitRoom : null;
 
-    // Mark start room as discovered
     startRoom.discovered = true;
     startRoom.visited = true;
 
@@ -227,9 +234,6 @@ export class DungeonGenerator {
     return floor;
   }
 
-  /**
-   * Get dungeon config
-   */
   getConfig(): DungeonConfig {
     return this.config;
   }
@@ -238,14 +242,10 @@ export class DungeonGenerator {
   // Private Methods
   // ============================================================================
 
-  /**
-   * Generate room layout using random walk algorithm
-   */
   private generateRoomLayout(roomCount: number): Map<string, DungeonRoom> {
     const rooms = new Map<string, DungeonRoom>();
-    const grid = new Map<string, string>(); // "x,y" -> roomId
+    const grid = new Map<string, string>();
 
-    // Start at center
     const startRoom = this.createRoom(0, 0, 'start');
     rooms.set(startRoom.id, startRoom);
     grid.set('0,0', startRoom.id);
@@ -254,22 +254,17 @@ export class DungeonGenerator {
     let currentY = 0;
     let lastDirection: Direction | null = null;
 
-    // Random walk to create connected rooms
     while (rooms.size < roomCount) {
-      // Choose random direction (avoid going back)
       const directions: Direction[] = ['north', 'south', 'east', 'west'];
       const availableDirections = directions.filter((d) => d !== this.oppositeDirection(lastDirection));
       const direction = availableDirections[Math.floor(Math.random() * availableDirections.length)];
 
-      // Calculate new position
       const [dx, dy] = this.directionToOffset(direction);
       const newX = currentX + dx;
       const newY = currentY + dy;
       const gridKey = `${newX},${newY}`;
 
-      // Check if room already exists
       if (grid.has(gridKey)) {
-        // Connect to existing room
         const existingRoomId = grid.get(gridKey)!;
         const currentRoom = rooms.get(grid.get(`${currentX},${currentY}`)!)!;
         const existingRoom = rooms.get(existingRoomId)!;
@@ -278,12 +273,10 @@ export class DungeonGenerator {
         currentX = newX;
         currentY = newY;
       } else {
-        // Create new room
         const newRoom = this.createRoom(newX, newY, 'empty');
         rooms.set(newRoom.id, newRoom);
         grid.set(gridKey, newRoom.id);
 
-        // Connect to previous room
         const currentRoom = rooms.get(grid.get(`${currentX},${currentY}`)!)!;
         this.connectRooms(currentRoom, newRoom, direction);
 
@@ -297,26 +290,17 @@ export class DungeonGenerator {
     return rooms;
   }
 
-  /**
-   * Assign room types based on configuration
-   */
   private assignRoomTypes(rooms: Map<string, DungeonRoom>, floor: number, isFinalFloor: boolean): void {
     const roomList = Array.from(rooms.values());
 
-    // First room is always start (already set)
-    // Last room is exit or boss
     const lastRoom = roomList[roomList.length - 1];
     lastRoom.type = isFinalFloor ? 'boss' : 'exit';
 
-    // Assign types to remaining rooms
     for (let i = 1; i < roomList.length - 1; i++) {
       roomList[i].type = this.weightedRandomType();
     }
   }
 
-  /**
-   * Choose random room type based on weights
-   */
   private weightedRandomType(): RoomType {
     const weights = this.config.roomWeights;
     const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
@@ -334,6 +318,7 @@ export class DungeonGenerator {
 
   /**
    * Populate room with content based on type
+   * FIXED: Now handles puzzle and secret room types
    */
   private populateRoom(room: DungeonRoom, floor: number): void {
     room.contents = [];
@@ -353,6 +338,12 @@ export class DungeonGenerator {
         break;
       case 'merchant':
         this.addMerchantContent(room);
+        break;
+      case 'puzzle':
+        this.addPuzzleContent(room, floor); // FIXED: Now handled!
+        break;
+      case 'secret':
+        this.addSecretContent(room, floor); // FIXED: Now handled!
         break;
       case 'boss':
         this.addBossContent(room, floor);
@@ -439,7 +430,55 @@ export class DungeonGenerator {
     });
   }
 
+  /**
+   * FIXED: Add puzzle content to puzzle rooms
+   */
+  private addPuzzleContent(room: DungeonRoom, floor: number): void {
+    const puzzleType = PUZZLE_TYPES[Math.floor(Math.random() * PUZZLE_TYPES.length)];
+
+    room.contents.push({
+      id: this.generateId(),
+      type: 'puzzle',
+      x: 0.5,
+      y: 0.4,
+      data: {
+        puzzleType: puzzleType.type,
+        puzzleName: puzzleType.name,
+        rewardType: puzzleType.reward,
+        goldReward: 20 * floor + Math.floor(Math.random() * 30 * floor),
+        xpReward: 10 * floor,
+        solved: false,
+      },
+      triggered: false,
+    });
+  }
+
+  /**
+   * FIXED: Add secret content to secret rooms
+   */
+  private addSecretContent(room: DungeonRoom, floor: number): void {
+    const secretType = SECRET_TYPES[Math.floor(Math.random() * SECRET_TYPES.length)];
+
+    room.contents.push({
+      id: this.generateId(),
+      type: 'secret',
+      x: 0.5,
+      y: 0.5,
+      data: {
+        secretType: secretType.type,
+        secretName: secretType.name,
+        rewardType: secretType.reward,
+        goldReward: 30 * floor + Math.floor(Math.random() * 50 * floor),
+        xpReward: 20 * floor,
+        healAmount: secretType.reward === 'full_heal' ? 999 : 0,
+        discovered: false,
+      },
+      triggered: false,
+    });
+  }
+
   private addBossContent(room: DungeonRoom, floor: number): void {
+    // Add boss enemy
     room.contents.push({
       id: this.generateId(),
       type: 'enemy',
@@ -449,6 +488,19 @@ export class DungeonGenerator {
         enemyType: 'boss',
         level: floor,
         isBoss: true,
+      },
+      triggered: false,
+    });
+
+    // FIXED: Add exit that appears after boss is defeated
+    room.contents.push({
+      id: this.generateId(),
+      type: 'exit',
+      x: 0.5,
+      y: 0.7,
+      data: {
+        requiresBossDefeated: true,
+        bossDefeated: false,
       },
       triggered: false,
     });

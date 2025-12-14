@@ -43,7 +43,7 @@ export type SoundName = keyof typeof SOUNDS;
 
 // Track loaded state
 let soundsLoaded = false;
-let soundVolume = 0.5;
+let soundVolume = 0.25; // FIXED: Reduced from 0.5 - less overwhelming
 
 /**
  * Load all game sounds
@@ -103,7 +103,7 @@ export function playSound(k: KAPLAYCtx, sound: SoundName, options?: {
 export function playCatMeow(k: KAPLAYCtx): AudioPlay | null {
   const meows: SoundName[] = ['catMeow1', 'catMeow2', 'catMeow3'];
   const randomMeow = meows[Math.floor(Math.random() * meows.length)];
-  return playSound(k, randomMeow, { volume: 0.7 });
+  return playSound(k, randomMeow, { volume: 0.5 }); // Meows at half of already-reduced volume
 }
 
 /**

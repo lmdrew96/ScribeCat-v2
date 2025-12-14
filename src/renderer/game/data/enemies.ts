@@ -3,6 +3,10 @@
  *
  * Each enemy has base stats, sprite info, and reward data.
  * Stats scale with dungeon floor level.
+ *
+ * FIXES:
+ * - Added spriteSize to each enemy for proper scaling calculation
+ * - Slimes have small sprites (32x32), other enemies are large (100-200px)
  */
 
 export type EnemyTier = 'low' | 'mid' | 'high' | 'boss';
@@ -17,6 +21,10 @@ export interface EnemyDefinition {
   // For static enemies: filename in assets/ENEMIES/OTHER_ENEMIES/
   spriteFolder?: string;
   spriteFile?: string; // Single image file for non-animated enemies
+
+  // FIXED: Approximate sprite dimensions for scaling calculation
+  // This is the raw pixel size of the sprite
+  spriteSize: number; // Assumes roughly square sprites
 
   // Base combat stats (scale with floor)
   baseHp: number;
@@ -49,12 +57,13 @@ export interface EnemyDefinition {
  * All enemy definitions
  */
 export const ENEMIES: Record<string, EnemyDefinition> = {
-  // === ANIMATED SLIME ENEMIES ===
+  // === ANIMATED SLIME ENEMIES (small 32x32 sprite sheets) ===
   grey_slime: {
     id: 'grey_slime',
     name: 'Grey Slime',
     description: 'A bouncy grey slime. Harmless but persistent.',
     spriteFolder: 'GREY_CAT_SLIME',
+    spriteSize: 32, // Small sprite sheet frames
     baseHp: 30,
     baseAttack: 8,
     baseDefense: 2,
@@ -64,10 +73,10 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     tier: 'low',
     placeholderColor: [128, 128, 128],
     animations: {
-      idle: 1,
-      attack: 1,
-      hurt: 1,
-      death: 1,
+      idle: 4,
+      attack: 5,
+      hurt: 4,
+      death: 4,
     },
   },
 
@@ -76,6 +85,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Demon Slime',
     description: 'A fiery slime infused with dark energy.',
     spriteFolder: 'DEMONIC_CAT_SLIME',
+    spriteSize: 32, // Small sprite sheet frames
     baseHp: 50,
     baseAttack: 12,
     baseDefense: 4,
@@ -85,19 +95,20 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     tier: 'mid',
     placeholderColor: [200, 50, 50],
     animations: {
-      idle: 1,
-      attack: 1,
-      hurt: 1,
-      death: 1,
+      idle: 4,
+      attack: 5,
+      hurt: 4,
+      death: 4,
     },
   },
 
-  // === RAT ENEMIES (Low to Mid tier) ===
+  // === RAT ENEMIES (large ~150-200px sprites) ===
   rat: {
     id: 'rat',
     name: 'Rat',
     description: 'A common dungeon rat. Quick but weak.',
     spriteFile: 'Rat.png',
+    spriteSize: 100, // Smaller rat sprite
     baseHp: 20,
     baseAttack: 6,
     baseDefense: 1,
@@ -113,6 +124,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Rat Fighter',
     description: 'A rat that has learned to fight back.',
     spriteFile: 'RatFighter.png',
+    spriteSize: 150,
     baseHp: 35,
     baseAttack: 10,
     baseDefense: 3,
@@ -128,6 +140,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Rat Warrior',
     description: 'An armored rat with sword and shield.',
     spriteFile: 'Rat Warrior.png',
+    spriteSize: 200, // Large detailed sprite
     baseHp: 55,
     baseAttack: 14,
     baseDefense: 6,
@@ -143,6 +156,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Rat Ranger',
     description: 'A swift rat archer. High damage, low defense.',
     spriteFile: 'Rat Ranger.png',
+    spriteSize: 180,
     baseHp: 40,
     baseAttack: 16,
     baseDefense: 2,
@@ -158,6 +172,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Rat Mage',
     description: 'A mystical rat wielding dark magic.',
     spriteFile: 'Rat-Mage.png',
+    spriteSize: 180,
     baseHp: 45,
     baseAttack: 18,
     baseDefense: 3,
@@ -173,6 +188,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Rat Necromancer',
     description: 'A powerful rat that commands the undead. Mini-boss.',
     spriteFile: 'Rat Necromancer.png',
+    spriteSize: 200,
     baseHp: 80,
     baseAttack: 20,
     baseDefense: 5,
@@ -183,12 +199,13 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     placeholderColor: [60, 40, 80],
   },
 
-  // === DOG ENEMIES (Mid to High tier) ===
+  // === DOG ENEMIES (large sprites) ===
   ruff_dog: {
     id: 'ruff_dog',
     name: 'Ruff Dog',
     description: 'A tough street dog looking for trouble.',
     spriteFile: 'Ruff Dog.png',
+    spriteSize: 180,
     baseHp: 50,
     baseAttack: 13,
     baseDefense: 4,
@@ -204,6 +221,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Dog with Axe',
     description: 'A fearsome hound wielding a massive battle axe!',
     spriteFile: 'Dog With Axe.png',
+    spriteSize: 220,
     baseHp: 75,
     baseAttack: 22,
     baseDefense: 6,
@@ -220,6 +238,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Squirrel Warrior',
     description: 'A nimble squirrel with tiny but deadly weapons.',
     spriteFile: 'Squirrel Warrior.png',
+    spriteSize: 150,
     baseHp: 38,
     baseAttack: 11,
     baseDefense: 4,
@@ -235,6 +254,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Yarn Elemental',
     description: 'A magical ball of yarn come to life. Cats beware!',
     spriteFile: 'Yarn_Elemental.png',
+    spriteSize: 160,
     baseHp: 70,
     baseAttack: 17,
     baseDefense: 8,
@@ -251,6 +271,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Angry Roomba',
     description: 'A rogue vacuum cleaner with a grudge against cats!',
     spriteFile: 'Roomba.png',
+    spriteSize: 120,
     baseHp: 25,
     baseAttack: 7,
     baseDefense: 5,
@@ -266,6 +287,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Big Rubber Ducky',
     description: 'An oversized bath toy with surprising combat skills.',
     spriteFile: 'Big_Rubber_Duky.png',
+    spriteSize: 140,
     baseHp: 45,
     baseAttack: 9,
     baseDefense: 7,
@@ -281,6 +303,7 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     name: 'Tuna Can Battler',
     description: 'An animated tuna can. Smells fishy...',
     spriteFile: 'TunaCan-Battler.png',
+    spriteSize: 130,
     baseHp: 42,
     baseAttack: 10,
     baseDefense: 6,
@@ -289,6 +312,23 @@ export const ENEMIES: Record<string, EnemyDefinition> = {
     aiType: 'basic',
     tier: 'mid',
     placeholderColor: [192, 192, 192],
+  },
+
+  // === BOSS ENEMY ===
+  boss: {
+    id: 'boss',
+    name: 'Dungeon Guardian',
+    description: 'The fearsome guardian of this dungeon floor.',
+    spriteFile: 'Dog With Axe.png', // Use dog with axe as boss for now
+    spriteSize: 220,
+    baseHp: 150,
+    baseAttack: 25,
+    baseDefense: 10,
+    xpReward: 100,
+    goldReward: [50, 100],
+    aiType: 'aggressive',
+    tier: 'boss',
+    placeholderColor: [180, 40, 40],
   },
 };
 
@@ -347,4 +387,15 @@ export function calculateXpReward(
 ): number {
   const scaleFactor = 1 + (floorLevel - 1) * 0.1;
   return Math.floor(enemy.xpReward * scaleFactor);
+}
+
+/**
+ * Calculate the scale factor needed to display a sprite at a target size
+ * This normalizes all enemies to roughly the same display size
+ */
+export function calculateEnemyScale(
+  enemy: EnemyDefinition,
+  targetSize: number
+): number {
+  return targetSize / enemy.spriteSize;
 }

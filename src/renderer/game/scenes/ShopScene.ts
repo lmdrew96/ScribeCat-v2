@@ -1,10 +1,13 @@
 /**
  * ShopScene
  *
- * Where players can buy:
- * - Consumable items (potions, etc.)
- * - Equipment (weapons, armor)
- * - Furniture for their home
+ * Where players can buy consumable items, equipment, and manage gear.
+ *
+ * FIXES:
+ * - Better UI element cleanup to prevent freeze
+ * - Sound loading check to prevent blocking
+ * - Bounds checking for navigation
+ * - Message overlay properly tracked
  */
 
 import type { KAPLAYCtx, GameObj } from 'kaplay';
@@ -45,28 +48,21 @@ export function registerShopScene(k: KAPLAYCtx): void {
         k.pos(0, 0),
         k.z(0),
       ]);
-      // Scale to cover canvas
       const bgScale = Math.max(CANVAS_WIDTH / 1024, CANVAS_HEIGHT / 576);
       bgSprite.scale = k.vec2(bgScale, bgScale);
     } else {
-      // Fallback: original colored rectangles
-      // Floor
       k.add([
         k.rect(CANVAS_WIDTH, CANVAS_HEIGHT),
         k.pos(0, 0),
         k.color(101, 67, 33),
         k.z(0),
       ]);
-
-      // Wall
       k.add([
         k.rect(CANVAS_WIDTH, 180),
         k.pos(0, 0),
         k.color(70, 130, 180),
         k.z(1),
       ]);
-
-      // Wall border
       k.add([
         k.rect(CANVAS_WIDTH, 8),
         k.pos(0, 180),
@@ -79,31 +75,29 @@ export function registerShopScene(k: KAPLAYCtx): void {
     k.add([
       k.rect(400, 60),
       k.pos(120, 200),
-      k.color(139, 69, 19), // Wood counter
+      k.color(139, 69, 19),
       k.outline(3, k.rgb(0, 0, 0)),
       k.z(5),
     ]);
 
-    // --- SHOPKEEPER (improved placeholder) ---
+    // --- SHOPKEEPER ---
     const shopkeeper = k.add([
       k.rect(40, 60),
       k.pos(CANVAS_WIDTH / 2 - 20, 140),
-      k.color(255, 200, 150), // Skin tone instead of pink
-      k.outline(3, k.rgb(139, 69, 19)), // Brown outline
+      k.color(255, 200, 150),
+      k.outline(3, k.rgb(139, 69, 19)),
       k.z(6),
       'shopkeeper',
     ]);
 
-    // Add a simple face
     k.add([
-      k.text(':3', { size: 16 }), // Cat face!
+      k.text(':3', { size: 16 }),
       k.pos(CANVAS_WIDTH / 2, 165),
       k.anchor('center'),
       k.color(80, 50, 30),
       k.z(7),
     ]);
 
-    // Shopkeeper label
     k.add([
       k.text('Shopkeeper', { size: 10 }),
       k.pos(CANVAS_WIDTH / 2, 130),
@@ -149,7 +143,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
       visible: true,
     });
 
-    // Door label
     k.add([
       k.text('Exit', { size: 10 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 10),
@@ -162,7 +155,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     const player = await createPlayer({
       k,
       x: CANVAS_WIDTH / 2,
-      y: CANVAS_HEIGHT - 120, // Moved up slightly from -100
+      y: CANVAS_HEIGHT - 120,
       color: catColor,
     });
 
@@ -174,7 +167,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
       bounds: {
         minX: 30,
         maxX: CANVAS_WIDTH - 30,
-        minY: 200, // Changed from 270 — player can now reach counter
+        minY: 200,
         maxY: CANVAS_HEIGHT - 60,
       },
     });
@@ -184,17 +177,18 @@ export function registerShopScene(k: KAPLAYCtx): void {
     let selectedTab = 0;
     let selectedItem = 0;
     let shopUIElements: GameObj[] = [];
+    let messageElements: GameObj[] = []; // FIXED: Track message elements separately
     let goldDisplay: GameObj;
+    let isProcessing = false; // FIXED: Prevent double-clicks
 
     const tabs = ['Items', 'Weapons', 'Armor', 'Equip'];
     const tabInventories = [
-      SHOP_INVENTORY.consumables,
-      SHOP_INVENTORY.weapons,
-      SHOP_INVENTORY.armor,
-      [], // Equipment tab shows owned equipment
+      SHOP_INVENTORY.consumables || [],
+      SHOP_INVENTORY.weapons || [],
+      SHOP_INVENTORY.armor || [],
+      [],
     ];
 
-    // Get equipment from player inventory for Equip tab
     function getPlayerEquipment(): { id: string; slot: EquipmentSlot }[] {
       const equipment: { id: string; slot: EquipmentSlot }[] = [];
       for (const invItem of GameState.player.items) {
@@ -209,7 +203,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     }
 
     // --- GOLD DISPLAY ---
-    const goldBg = k.add([
+    k.add([
       k.rect(100, 30),
       k.pos(CANVAS_WIDTH - 110, 10),
       k.color(0, 0, 0),
@@ -225,12 +219,14 @@ export function registerShopScene(k: KAPLAYCtx): void {
     ]);
 
     function updateGoldDisplay(): void {
-      goldDisplay.text = `Gold: ${GameState.player.gold}`;
+      if (goldDisplay && goldDisplay.exists()) {
+        goldDisplay.text = `Gold: ${GameState.player.gold}`;
+      }
     }
 
     // --- SHOP UI ---
     function openShop(): void {
-      if (shopOpen) return;
+      if (shopOpen || isProcessing) return;
       shopOpen = true;
       player.freeze();
       selectedTab = 0;
@@ -243,15 +239,41 @@ export function registerShopScene(k: KAPLAYCtx): void {
       shopOpen = false;
       player.unfreeze();
       clearShopUI();
+      clearMessages();
     }
 
     function clearShopUI(): void {
-      shopUIElements.forEach((e) => k.destroy(e));
+      for (const e of shopUIElements) {
+        try {
+          if (e && e.exists()) {
+            k.destroy(e);
+          }
+        } catch (err) {
+          // Element already destroyed, ignore
+        }
+      }
       shopUIElements = [];
     }
 
+    // FIXED: Separate message cleanup
+    function clearMessages(): void {
+      for (const e of messageElements) {
+        try {
+          if (e && e.exists()) {
+            k.destroy(e);
+          }
+        } catch (err) {
+          // Element already destroyed, ignore
+        }
+      }
+      messageElements = [];
+    }
+
     function renderShopUI(): void {
+      if (isProcessing) return;
+
       clearShopUI();
+      // Don't clear messages here - they have their own timeout
 
       // Background
       const bg = k.add([
@@ -297,7 +319,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
         shopUIElements.push(tabText);
       });
 
-      // Render based on tab
       if (selectedTab === 3) {
         renderEquipmentTab();
       } else {
@@ -306,68 +327,78 @@ export function registerShopScene(k: KAPLAYCtx): void {
     }
 
     function renderShopTab(): void {
-      // Item list
-      const currentItems = tabInventories[selectedTab];
-      currentItems.forEach((itemId, i) => {
-        const item = getItem(itemId);
-        if (!item) return;
+      const currentItems = tabInventories[selectedTab] || [];
 
-        const isSelected = i === selectedItem;
-        const y = 125 + i * 35;
+      // FIXED: Ensure selectedItem is in bounds
+      if (selectedItem >= currentItems.length) {
+        selectedItem = Math.max(0, currentItems.length - 1);
+      }
 
-        // Item background
-        const itemBg = k.add([
-          k.rect(380, 30),
-          k.pos(CANVAS_WIDTH / 2 - 190, y),
-          k.color(isSelected ? 60 : 40, isSelected ? 60 : 40, isSelected ? 100 : 60),
-          k.outline(isSelected ? 2 : 1, k.rgb(isSelected ? 251 : 80, isSelected ? 191 : 80, isSelected ? 36 : 100)),
-          k.z(101),
-        ]);
-        shopUIElements.push(itemBg);
-
-        // Item icon (color rectangle)
-        const iconColor = item.iconColor || [100, 100, 100];
-        const icon = k.add([
-          k.rect(20, 20),
-          k.pos(CANVAS_WIDTH / 2 - 180, y + 5),
-          k.color(iconColor[0], iconColor[1], iconColor[2]),
-          k.outline(1, k.rgb(0, 0, 0)),
+      if (currentItems.length === 0) {
+        const emptyText = k.add([
+          k.text('No items available in this category', { size: 10 }),
+          k.pos(CANVAS_WIDTH / 2, 180),
+          k.anchor('center'),
+          k.color(150, 150, 150),
           k.z(102),
         ]);
-        shopUIElements.push(icon);
+        shopUIElements.push(emptyText);
+      } else {
+        currentItems.forEach((itemId, i) => {
+          const item = getItem(itemId);
+          if (!item) return;
 
-        // Item name
-        const nameText = k.add([
-          k.text(item.name, { size: 10 }),
-          k.pos(CANVAS_WIDTH / 2 - 150, y + 10),
-          k.color(255, 255, 255),
-          k.z(102),
-        ]);
-        shopUIElements.push(nameText);
+          const isSelected = i === selectedItem;
+          const y = 125 + i * 35;
 
-        // Item price
-        const priceText = k.add([
-          k.text(`${item.buyPrice}G`, { size: 10 }),
-          k.pos(CANVAS_WIDTH / 2 + 150, y + 10),
-          k.color(251, 191, 36),
-          k.z(102),
-        ]);
-        shopUIElements.push(priceText);
+          const itemBg = k.add([
+            k.rect(380, 30),
+            k.pos(CANVAS_WIDTH / 2 - 190, y),
+            k.color(isSelected ? 60 : 40, isSelected ? 60 : 40, isSelected ? 100 : 60),
+            k.outline(isSelected ? 2 : 1, k.rgb(isSelected ? 251 : 80, isSelected ? 191 : 80, isSelected ? 36 : 100)),
+            k.z(101),
+          ]);
+          shopUIElements.push(itemBg);
 
-        // Owned count (for consumables)
-        if (item.type === 'consumable') {
-          const owned = GameState.getItemCount(itemId);
-          const ownedText = k.add([
-            k.text(`Owned: ${owned}`, { size: 8 }),
-            k.pos(CANVAS_WIDTH / 2 + 80, y + 12),
-            k.color(150, 150, 150),
+          const iconColor = item.iconColor || [100, 100, 100];
+          const icon = k.add([
+            k.rect(20, 20),
+            k.pos(CANVAS_WIDTH / 2 - 180, y + 5),
+            k.color(iconColor[0], iconColor[1], iconColor[2]),
+            k.outline(1, k.rgb(0, 0, 0)),
             k.z(102),
           ]);
-          shopUIElements.push(ownedText);
-        }
-      });
+          shopUIElements.push(icon);
 
-      // Instructions
+          const nameText = k.add([
+            k.text(item.name, { size: 10 }),
+            k.pos(CANVAS_WIDTH / 2 - 150, y + 10),
+            k.color(255, 255, 255),
+            k.z(102),
+          ]);
+          shopUIElements.push(nameText);
+
+          const priceText = k.add([
+            k.text(`${item.buyPrice}G`, { size: 10 }),
+            k.pos(CANVAS_WIDTH / 2 + 150, y + 10),
+            k.color(251, 191, 36),
+            k.z(102),
+          ]);
+          shopUIElements.push(priceText);
+
+          if (item.type === 'consumable') {
+            const owned = GameState.getItemCount(itemId);
+            const ownedText = k.add([
+              k.text(`Owned: ${owned}`, { size: 8 }),
+              k.pos(CANVAS_WIDTH / 2 + 80, y + 12),
+              k.color(150, 150, 150),
+              k.z(102),
+            ]);
+            shopUIElements.push(ownedText);
+          }
+        });
+      }
+
       const instructions = k.add([
         k.text('Arrows: Navigate | Q/E: Switch Tab | ENTER: Buy | ESC: Close', { size: 8 }),
         k.pos(CANVAS_WIDTH / 2, 310),
@@ -379,7 +410,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
     }
 
     function renderEquipmentTab(): void {
-      // Show currently equipped items
       const equipped = GameState.player.equipped;
       const slots: { slot: EquipmentSlot; label: string; y: number }[] = [
         { slot: 'weapon', label: 'Weapon', y: 125 },
@@ -387,7 +417,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
         { slot: 'accessory', label: 'Accessory', y: 185 },
       ];
 
-      // Section header
       const headerText = k.add([
         k.text('Currently Equipped:', { size: 10 }),
         k.pos(CANVAS_WIDTH / 2 - 180, 125),
@@ -401,7 +430,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
         const item = equippedId ? getItem(equippedId) : null;
         const displayY = y + 15;
 
-        // Slot label
         const slotLabel = k.add([
           k.text(`${label}:`, { size: 9 }),
           k.pos(CANVAS_WIDTH / 2 - 170, displayY),
@@ -410,7 +438,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
         ]);
         shopUIElements.push(slotLabel);
 
-        // Equipped item or "None"
         const itemText = k.add([
           k.text(item ? item.name : '(none)', { size: 9 }),
           k.pos(CANVAS_WIDTH / 2 - 90, displayY),
@@ -419,10 +446,9 @@ export function registerShopScene(k: KAPLAYCtx): void {
         ]);
         shopUIElements.push(itemText);
 
-        // Stats if equipped
         if (item?.stats) {
           const statsStr = Object.entries(item.stats)
-            .map(([k, v]) => `+${v} ${k.substring(0, 3).toUpperCase()}`)
+            .map(([stat, v]) => `+${v} ${stat.substring(0, 3).toUpperCase()}`)
             .join(' ');
           const statsText = k.add([
             k.text(statsStr, { size: 8 }),
@@ -434,7 +460,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
         }
       });
 
-      // Divider
       const divider = k.add([
         k.rect(360, 2),
         k.pos(CANVAS_WIDTH / 2 - 180, 215),
@@ -443,7 +468,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
       ]);
       shopUIElements.push(divider);
 
-      // Available equipment header
       const availableHeader = k.add([
         k.text('Available to Equip:', { size: 10 }),
         k.pos(CANVAS_WIDTH / 2 - 180, 225),
@@ -452,8 +476,12 @@ export function registerShopScene(k: KAPLAYCtx): void {
       ]);
       shopUIElements.push(availableHeader);
 
-      // List available equipment
       const playerEquipment = getPlayerEquipment();
+
+      // FIXED: Ensure selectedItem is in bounds for equipment tab
+      if (selectedItem >= playerEquipment.length) {
+        selectedItem = Math.max(0, playerEquipment.length - 1);
+      }
 
       if (playerEquipment.length === 0) {
         const noItems = k.add([
@@ -466,11 +494,12 @@ export function registerShopScene(k: KAPLAYCtx): void {
         shopUIElements.push(noItems);
       } else {
         playerEquipment.slice(0, 3).forEach((eq, i) => {
-          const item = getItem(eq.id)!;
+          const item = getItem(eq.id);
+          if (!item) return;
+
           const isSelected = i === selectedItem;
           const y = 240 + i * 25;
 
-          // Item background
           const itemBg = k.add([
             k.rect(360, 22),
             k.pos(CANVAS_WIDTH / 2 - 180, y),
@@ -480,7 +509,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
           ]);
           shopUIElements.push(itemBg);
 
-          // Icon
           const iconColor = item.iconColor || [100, 100, 100];
           const icon = k.add([
             k.rect(16, 16),
@@ -491,7 +519,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
           ]);
           shopUIElements.push(icon);
 
-          // Name
           const nameText = k.add([
             k.text(item.name, { size: 9 }),
             k.pos(CANVAS_WIDTH / 2 - 150, y + 6),
@@ -500,9 +527,8 @@ export function registerShopScene(k: KAPLAYCtx): void {
           ]);
           shopUIElements.push(nameText);
 
-          // Slot type
           const slotText = k.add([
-            k.text(`[${eq.slot}]`, { size: 8 }),
+            k.text(`(${eq.slot})`, { size: 8 }),
             k.pos(CANVAS_WIDTH / 2 + 100, y + 7),
             k.color(150, 150, 200),
             k.z(102),
@@ -511,7 +537,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
         });
       }
 
-      // Instructions
       const instructions = k.add([
         k.text('Arrows: Select | ENTER: Equip | U: Unequip slot | ESC: Close', { size: 8 }),
         k.pos(CANVAS_WIDTH / 2, 310),
@@ -523,74 +548,140 @@ export function registerShopScene(k: KAPLAYCtx): void {
     }
 
     function purchaseItem(): void {
-      // Equipment tab has different behavior
+      if (isProcessing) return;
+
       if (selectedTab === 3) {
         equipSelectedItem();
         return;
       }
 
-      const currentItems = tabInventories[selectedTab];
-      if (selectedItem >= currentItems.length) return;
-
-      const itemId = currentItems[selectedItem];
-      const item = getItem(itemId);
-      if (!item) return;
-
-      // Check gold
-      if (GameState.player.gold < item.buyPrice) {
-        showShopMessage(k, "Not enough gold!");
+      const currentItems = tabInventories[selectedTab] || [];
+      if (currentItems.length === 0 || selectedItem >= currentItems.length) {
+        showShopMessage("No item selected!");
         return;
       }
 
-      // Purchase
+      const itemId = currentItems[selectedItem];
+      const item = getItem(itemId);
+      if (!item) {
+        showShopMessage("Item not found!");
+        return;
+      }
+
+      if (GameState.player.gold < item.buyPrice) {
+        showShopMessage("Not enough gold!");
+        return;
+      }
+
+      // FIXED: Set processing flag to prevent double-purchase
+      isProcessing = true;
+
       GameState.spendGold(item.buyPrice);
       GameState.addItem(itemId, 1);
       updateGoldDisplay();
 
-      playSound(k, 'shopBuy');
-      showShopMessage(k, `Purchased ${item.name}!`);
-      renderShopUI();
+      // FIXED: Play sound safely
+      try {
+        playSound(k, 'shopBuy');
+      } catch (err) {
+        console.warn('Could not play shop sound');
+      }
+
+      showShopMessage(`Purchased ${item.name}!`);
+
+      // FIXED: Delay re-render slightly to prevent UI conflicts
+      k.wait(0.1, () => {
+        isProcessing = false;
+        if (shopOpen) {
+          renderShopUI();
+        }
+      });
     }
 
     function equipSelectedItem(): void {
+      if (isProcessing) return;
+
       const playerEquipment = getPlayerEquipment();
-      if (selectedItem >= playerEquipment.length) {
-        showShopMessage(k, "No item selected!");
+      if (playerEquipment.length === 0 || selectedItem >= playerEquipment.length) {
+        showShopMessage("No item selected!");
         return;
       }
+
+      isProcessing = true;
 
       const eq = playerEquipment[selectedItem];
       const success = GameState.equipItem(eq.id);
 
       if (success) {
-        const item = getItem(eq.id)!;
-        playSound(k, 'equip');
-        showShopMessage(k, `Equipped ${item.name}!`);
-        selectedItem = 0; // Reset selection
+        const item = getItem(eq.id);
+        try {
+          playSound(k, 'equip');
+        } catch (err) {
+          console.warn('Could not play equip sound');
+        }
+        showShopMessage(`Equipped ${item?.name || 'item'}!`);
+        selectedItem = 0;
       } else {
-        showShopMessage(k, "Failed to equip!");
+        showShopMessage("Failed to equip!");
       }
 
-      renderShopUI();
+      k.wait(0.1, () => {
+        isProcessing = false;
+        if (shopOpen) {
+          renderShopUI();
+        }
+      });
     }
 
     function unequipSlot(): void {
-      if (selectedTab !== 3) return;
+      if (selectedTab !== 3 || isProcessing) return;
 
-      // Cycle through slots and unequip first equipped
       const slots: EquipmentSlot[] = ['weapon', 'armor', 'accessory'];
       for (const slot of slots) {
         if (GameState.player.equipped[slot]) {
           const itemId = GameState.player.equipped[slot]!;
           const item = getItem(itemId);
           GameState.unequipItem(slot);
-          showShopMessage(k, `Unequipped ${item?.name || slot}!`);
-          renderShopUI();
+          showShopMessage(`Unequipped ${item?.name || slot}!`);
+
+          k.wait(0.1, () => {
+            if (shopOpen) {
+              renderShopUI();
+            }
+          });
           return;
         }
       }
 
-      showShopMessage(k, "Nothing equipped!");
+      showShopMessage("Nothing equipped!");
+    }
+
+    // FIXED: Show message with proper tracking
+    function showShopMessage(text: string): void {
+      // Clear any existing messages first
+      clearMessages();
+
+      const msgBg = k.add([
+        k.rect(300, 40),
+        k.pos(170, 30),
+        k.color(0, 0, 0),
+        k.opacity(0.9),
+        k.z(300),
+      ]);
+      messageElements.push(msgBg);
+
+      const msgText = k.add([
+        k.text(text, { size: 12 }),
+        k.pos(320, 50),
+        k.anchor('center'),
+        k.color(255, 255, 255),
+        k.z(301),
+      ]);
+      messageElements.push(msgText);
+
+      k.wait(1.5, () => {
+        clearMessages();
+      });
     }
 
     // --- INTERACTIONS ---
@@ -621,7 +712,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     // --- UI ---
-    // Scene label
     k.add([
       k.text('Shop', { size: 16 }),
       k.pos(20, 20),
@@ -629,7 +719,6 @@ export function registerShopScene(k: KAPLAYCtx): void {
       k.z(50),
     ]);
 
-    // Controls hint
     k.add([
       k.text('Arrow/WASD: Move | ENTER: Interact | ESC: Back', { size: 8 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 15),
@@ -648,8 +737,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     k.onKeyPress('up', () => {
-      if (!shopOpen) return;
-      const currentItems = tabInventories[selectedTab];
+      if (!shopOpen || isProcessing) return;
       if (selectedItem > 0) {
         selectedItem--;
         renderShopUI();
@@ -657,16 +745,24 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     k.onKeyPress('down', () => {
-      if (!shopOpen) return;
-      const currentItems = tabInventories[selectedTab];
-      if (selectedItem < currentItems.length - 1) {
+      if (!shopOpen || isProcessing) return;
+
+      // FIXED: Get correct max items based on tab
+      let maxItems: number;
+      if (selectedTab === 3) {
+        maxItems = getPlayerEquipment().length;
+      } else {
+        maxItems = (tabInventories[selectedTab] || []).length;
+      }
+
+      if (selectedItem < maxItems - 1) {
         selectedItem++;
         renderShopUI();
       }
     });
 
     k.onKeyPress('q', () => {
-      if (!shopOpen) return;
+      if (!shopOpen || isProcessing) return;
       if (selectedTab > 0) {
         selectedTab--;
         selectedItem = 0;
@@ -675,7 +771,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     k.onKeyPress('e', () => {
-      if (!shopOpen) return;
+      if (!shopOpen || isProcessing) return;
       if (selectedTab < tabs.length - 1) {
         selectedTab++;
         selectedItem = 0;
@@ -684,7 +780,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     k.onKeyPress('left', () => {
-      if (!shopOpen) return;
+      if (!shopOpen || isProcessing) return;
       if (selectedTab > 0) {
         selectedTab--;
         selectedItem = 0;
@@ -693,7 +789,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     k.onKeyPress('right', () => {
-      if (!shopOpen) return;
+      if (!shopOpen || isProcessing) return;
       if (selectedTab < tabs.length - 1) {
         selectedTab++;
         selectedItem = 0;
@@ -702,44 +798,17 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     k.onKeyPress('enter', () => {
-      if (shopOpen) {
+      if (shopOpen && !isProcessing) {
         purchaseItem();
       }
     });
 
     k.onKeyPress('u', () => {
-      if (shopOpen) {
+      if (shopOpen && !isProcessing) {
         unequipSlot();
       }
     });
 
     console.log('=== StudyQuest Shop ===');
-  });
-}
-
-/**
- * Show a temporary message from the shopkeeper
- */
-function showShopMessage(k: KAPLAYCtx, text: string): void {
-  const msgBg = k.add([
-    k.rect(300, 40),
-    k.pos(170, 30),
-    k.color(0, 0, 0),
-    k.opacity(0.9),
-    k.z(300),
-  ]);
-
-  const msgText = k.add([
-    k.text(text, { size: 12 }),
-    k.pos(320, 50),
-    k.anchor('center'),
-    k.color(255, 255, 255),
-    k.z(301),
-  ]);
-
-  // Auto-hide after 1.5 seconds
-  k.wait(1.5, () => {
-    k.destroy(msgBg);
-    k.destroy(msgText);
   });
 }

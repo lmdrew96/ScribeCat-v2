@@ -2,8 +2,12 @@
  * Enemy Component
  *
  * Creates and manages enemy entities for battle.
- * Supports both animated enemies (folder with multiple PNGs) and
- * static enemies (single PNG files).
+ * Supports both animated enemies (sprite sheets) and static enemies (single PNGs).
+ *
+ * FIXES:
+ * - Calculates scale based on sprite size for consistent display
+ * - Sprite sheets properly sliced with sliceX
+ * - Dungeon enemies wander around
  */
 
 import type { KAPLAYCtx, GameObj } from 'kaplay';
@@ -14,7 +18,7 @@ export interface EnemyConfig {
   x: number;
   y: number;
   enemyDef: EnemyDefinition;
-  scale?: number;
+  targetSize?: number; // Desired display size in pixels
 }
 
 export interface Enemy {
@@ -29,8 +33,21 @@ export interface Enemy {
 // Track loaded sprites to avoid reloading
 const loadedSprites = new Set<string>();
 
+// Sprite sheet frame counts for slime animations
+const SLIME_FRAME_COUNTS: Record<string, number> = {
+  'Idle': 4,
+  'Walk': 4,
+  'Attack': 5,
+  'Hurt': 4,
+  'Death1': 4,
+};
+
+// Target display sizes
+const BATTLE_TARGET_SIZE = 80;  // Enemy size in battle
+const DUNGEON_TARGET_SIZE = 32; // Enemy size in dungeon exploration
+
 /**
- * Load enemy sprites - handles both animated (folder) and static (single file) enemies
+ * Load enemy sprites
  */
 async function loadEnemySprites(
   k: KAPLAYCtx,
@@ -38,9 +55,8 @@ async function loadEnemySprites(
 ): Promise<boolean> {
   const spritePrefix = `enemy-${enemyDef.id}`;
 
-  // Check if already loaded
   if (loadedSprites.has(spritePrefix)) {
-    return !!enemyDef.spriteFolder; // Return true if animated
+    return !!enemyDef.spriteFolder;
   }
 
   // Static enemy (single image file)
@@ -52,7 +68,7 @@ async function loadEnemySprites(
       await k.loadSprite(spriteName, spritePath);
       loadedSprites.add(spritePrefix);
       console.log(`Loaded static enemy sprite: ${enemyDef.name}`);
-      return false; // Not animated
+      return false;
     } catch (e) {
       console.warn(`Failed to load static enemy sprite: ${spritePath}`, e);
       createPlaceholderSprite(k, spriteName, enemyDef);
@@ -61,19 +77,33 @@ async function loadEnemySprites(
     }
   }
 
-  // Animated enemy (folder with multiple images)
+  // Animated enemy (folder with sprite sheet PNGs)
   if (enemyDef.spriteFolder) {
     const basePath = `../../assets/ENEMIES/${enemyDef.spriteFolder}`;
-    const animations = ['Idle', 'Attack', 'Hurt', 'Death1'];
-    let loadedCount = 0;
+
+    const animations: Array<{ name: string; file: string; frames: number }> = [
+      { name: 'idle', file: 'Idle', frames: SLIME_FRAME_COUNTS['Idle'] },
+      { name: 'walk', file: 'Walk', frames: SLIME_FRAME_COUNTS['Walk'] },
+      { name: 'attack', file: 'Attack', frames: SLIME_FRAME_COUNTS['Attack'] },
+      { name: 'hurt', file: 'Hurt', frames: SLIME_FRAME_COUNTS['Hurt'] },
+      { name: 'death', file: 'Death1', frames: SLIME_FRAME_COUNTS['Death1'] },
+    ];
 
     for (const anim of animations) {
-      const animLower = anim.toLowerCase().replace('1', '');
-      const spriteName = `${spritePrefix}-${animLower}`;
+      const spriteName = `${spritePrefix}-${anim.name}`;
 
       try {
-        await k.loadSprite(spriteName, `${basePath}/${anim}.png`);
-        loadedCount++;
+        await k.loadSprite(spriteName, `${basePath}/${anim.file}.png`, {
+          sliceX: anim.frames,
+          anims: {
+            [anim.name]: {
+              from: 0,
+              to: anim.frames - 1,
+              loop: anim.name === 'idle' || anim.name === 'walk',
+              speed: 8,
+            },
+          },
+        });
       } catch (e) {
         console.warn(`Failed to load enemy animation: ${spriteName}`, e);
         createPlaceholderSprite(k, spriteName, enemyDef);
@@ -81,8 +111,8 @@ async function loadEnemySprites(
     }
 
     loadedSprites.add(spritePrefix);
-    console.log(`Loaded animated enemy sprites: ${enemyDef.name} (${loadedCount}/${animations.length})`);
-    return true; // Is animated
+    console.log(`Loaded animated enemy sprites: ${enemyDef.name}`);
+    return true;
   }
 
   // No sprite info - create placeholder
@@ -94,7 +124,6 @@ async function loadEnemySprites(
 
 /**
  * Create a colored placeholder for missing sprites
- * Uses the enemy's placeholderColor or a default
  */
 function createPlaceholderSprite(
   k: KAPLAYCtx,
@@ -103,39 +132,33 @@ function createPlaceholderSprite(
 ): void {
   const color = enemyDef.placeholderColor || [100, 100, 100];
 
-  // Create a simple colored canvas
   const canvas = document.createElement('canvas');
   canvas.width = 64;
   canvas.height = 64;
   const ctx = canvas.getContext('2d');
 
   if (ctx) {
-    // Draw body (oval shape)
     ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
     ctx.beginPath();
     ctx.ellipse(32, 40, 28, 20, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Dark outline
     ctx.strokeStyle = `rgb(${Math.max(0, color[0] - 40)}, ${Math.max(0, color[1] - 40)}, ${Math.max(0, color[2] - 40)})`;
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Eyes
     ctx.fillStyle = 'white';
     ctx.beginPath();
     ctx.arc(22, 36, 6, 0, Math.PI * 2);
     ctx.arc(42, 36, 6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Pupils
     ctx.fillStyle = 'black';
     ctx.beginPath();
     ctx.arc(24, 36, 3, 0, Math.PI * 2);
     ctx.arc(44, 36, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Add enemy initial for identification
     ctx.fillStyle = 'white';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
@@ -145,9 +168,6 @@ function createPlaceholderSprite(
   k.loadSprite(name, canvas.toDataURL());
 }
 
-/**
- * Get sprite name for an enemy animation or static sprite
- */
 function getEnemySpriteName(enemyId: string, anim: string, isStatic: boolean): string {
   if (isStatic) {
     return `enemy-${enemyId}-static`;
@@ -156,13 +176,26 @@ function getEnemySpriteName(enemyId: string, anim: string, isStatic: boolean): s
 }
 
 /**
+ * Calculate scale to normalize enemy to target display size
+ * FIXED: Uses sprite size metadata instead of fixed scales
+ */
+function calculateScale(enemyDef: EnemyDefinition, targetSize: number): number {
+  const spriteSize = enemyDef.spriteSize || 64;
+  return targetSize / spriteSize;
+}
+
+/**
  * Create an enemy entity for battle
+ * FIXED: Now scales based on sprite size for consistent display
  */
 export async function createEnemy(config: EnemyConfig): Promise<Enemy> {
-  const { k, x, y, enemyDef, scale = 2.5 } = config;
+  const { k, x, y, enemyDef, targetSize = BATTLE_TARGET_SIZE } = config;
 
   const isAnimated = await loadEnemySprites(k, enemyDef);
   const initialSprite = getEnemySpriteName(enemyDef.id, 'idle', !isAnimated);
+
+  // FIXED: Calculate scale based on sprite size
+  const scale = calculateScale(enemyDef, targetSize);
 
   const entity = k.add([
     k.sprite(initialSprite),
@@ -173,6 +206,15 @@ export async function createEnemy(config: EnemyConfig): Promise<Enemy> {
     'enemy',
   ]);
 
+  // Play idle animation if animated
+  if (isAnimated) {
+    try {
+      entity.play('idle');
+    } catch (e) {
+      console.warn('Could not play idle animation');
+    }
+  }
+
   let currentAnim = 'idle';
 
   const enemy: Enemy = {
@@ -181,21 +223,17 @@ export async function createEnemy(config: EnemyConfig): Promise<Enemy> {
     isAnimated,
 
     playAnimation(anim: 'idle' | 'attack' | 'hurt' | 'death') {
-      // Static enemies don't change sprites on animation
       if (!isAnimated) {
-        // For static enemies, we can do visual effects instead
+        // Static enemies - visual effects
         if (anim === 'attack') {
-          // Quick shake for attack
           const originalX = entity.pos.x;
           entity.pos.x += 5;
           k.wait(0.1, () => { entity.pos.x = originalX - 5; });
           k.wait(0.2, () => { entity.pos.x = originalX; });
         } else if (anim === 'hurt') {
-          // Flash red for hurt
           entity.color = k.rgb(255, 100, 100);
           k.wait(0.15, () => { entity.color = k.rgb(255, 255, 255); });
         } else if (anim === 'death') {
-          // Fade out for death
           entity.opacity = 0.5;
           k.wait(0.2, () => { entity.opacity = 0.2; });
           k.wait(0.4, () => { entity.opacity = 0; });
@@ -203,13 +241,13 @@ export async function createEnemy(config: EnemyConfig): Promise<Enemy> {
         return;
       }
 
-      // Animated enemies - change sprite
       if (currentAnim === anim) return;
       currentAnim = anim;
 
       const spriteName = getEnemySpriteName(enemyDef.id, anim, false);
       try {
         entity.use(k.sprite(spriteName));
+        entity.play(anim);
       } catch (e) {
         console.warn(`Animation not found: ${spriteName}`);
       }
@@ -225,7 +263,6 @@ export async function createEnemy(config: EnemyConfig): Promise<Enemy> {
 
 /**
  * Create a simple placeholder enemy for testing
- * (Uses colored rectangles instead of sprites)
  */
 export function createPlaceholderEnemy(
   k: KAPLAYCtx,
@@ -236,7 +273,7 @@ export function createPlaceholderEnemy(
   const color = enemyDef.placeholderColor || [100, 100, 100];
 
   return k.add([
-    k.rect(64, 48),
+    k.rect(48, 36),
     k.pos(x, y),
     k.anchor('center'),
     k.color(color[0], color[1], color[2]),
@@ -247,66 +284,66 @@ export function createPlaceholderEnemy(
 }
 
 /**
- * Get enemies by tier for floor-based encounters
- */
-export function getEnemiesByTier(tier: 'low' | 'mid' | 'high' | 'boss'): string[] {
-  // Import ENEMIES dynamically to get all enemy IDs by tier
-  const { ENEMIES } = require('../data/enemies.js');
-  return Object.keys(ENEMIES).filter(id => ENEMIES[id].tier === tier);
-}
-
-/**
- * Create a simpler enemy entity for dungeon exploration (not battle)
- * Uses placeholders with enemy colors, or sprites if available
+ * Create a wandering enemy entity for dungeon exploration
+ * FIXED: Now scales based on sprite size
  */
 export async function createDungeonEnemy(config: {
   k: KAPLAYCtx;
   x: number;
   y: number;
   enemyId: string;
+  bounds?: { minX: number; maxX: number; minY: number; maxY: number };
 }): Promise<GameObj> {
-  const { k, x, y, enemyId } = config;
+  const { k, x, y, enemyId, bounds } = config;
   const { ENEMIES } = await import('../data/enemies.js');
   const enemyDef = ENEMIES[enemyId];
 
   if (!enemyDef) {
-    // Fallback to simple red circle
     return k.add([
-      k.circle(14),
+      k.circle(10),
       k.pos(x, y),
       k.anchor('center'),
       k.color(239, 68, 68),
       k.outline(2, k.rgb(180, 40, 40)),
-      k.area({ shape: new k.Rect(k.vec2(-14, -14), 28, 28) }),
+      k.area({ shape: new k.Rect(k.vec2(-10, -10), 20, 20) }),
       k.z(5),
       'enemy',
       { enemyId },
     ]);
   }
 
-  // Try to load and use sprite
   try {
-    await loadEnemySprites(k, enemyDef);
-    const spriteName = getEnemySpriteName(enemyDef.id, 'idle', !enemyDef.spriteFolder);
+    const isAnimated = await loadEnemySprites(k, enemyDef);
+    const spriteName = getEnemySpriteName(enemyDef.id, 'idle', !isAnimated);
+
+    // FIXED: Calculate scale for dungeon size
+    const scale = calculateScale(enemyDef, DUNGEON_TARGET_SIZE);
 
     const entity = k.add([
       k.sprite(spriteName),
       k.pos(x, y),
       k.anchor('center'),
-      k.scale(1.5), // Smaller than battle scale
-      k.area({ shape: new k.Rect(k.vec2(-16, -16), 32, 32) }),
+      k.scale(scale),
+      k.area({ shape: new k.Rect(k.vec2(-12, -12), 24, 24) }),
       k.z(5),
       'enemy',
-      { enemyId },
+      { enemyId, isAnimated },
     ]);
+
+    if (isAnimated) {
+      try {
+        entity.play('idle');
+      } catch (e) {}
+    }
+
+    addWanderBehavior(k, entity, bounds);
 
     return entity;
   } catch {
-    // Fallback to colored circle with enemy initial
     const color = enemyDef.placeholderColor || [239, 68, 68];
 
     const body = k.add([
-      k.circle(14),
+      k.circle(10),
       k.pos(x, y),
       k.anchor('center'),
       k.color(color[0], color[1], color[2]),
@@ -315,23 +352,90 @@ export async function createDungeonEnemy(config: {
         Math.max(0, color[1] - 40),
         Math.max(0, color[2] - 40)
       )),
-      k.area({ shape: new k.Rect(k.vec2(-14, -14), 28, 28) }),
+      k.area({ shape: new k.Rect(k.vec2(-10, -10), 20, 20) }),
       k.z(5),
       'enemy',
       { enemyId },
     ]);
 
-    // Add enemy initial
-    k.add([
-      k.text(enemyDef.name.charAt(0).toUpperCase(), { size: 12 }),
-      k.pos(x, y),
-      k.anchor('center'),
-      k.color(255, 255, 255),
-      k.z(6),
-    ]);
+    addWanderBehavior(k, body, bounds);
 
     return body;
   }
+}
+
+/**
+ * Add simple wandering behavior to an enemy
+ */
+function addWanderBehavior(
+  k: KAPLAYCtx,
+  entity: GameObj,
+  bounds?: { minX: number; maxX: number; minY: number; maxY: number }
+): void {
+  const moveBounds = bounds || {
+    minX: entity.pos.x - 60,
+    maxX: entity.pos.x + 60,
+    minY: entity.pos.y - 40,
+    maxY: entity.pos.y + 40,
+  };
+
+  let targetX = entity.pos.x;
+  let targetY = entity.pos.y;
+  let moveSpeed = 20 + Math.random() * 20;
+  let waitTime = 0;
+  let isWaiting = true;
+
+  function pickNewTarget() {
+    targetX = moveBounds.minX + Math.random() * (moveBounds.maxX - moveBounds.minX);
+    targetY = moveBounds.minY + Math.random() * (moveBounds.maxY - moveBounds.minY);
+    isWaiting = false;
+  }
+
+  function startWaiting() {
+    waitTime = 1 + Math.random() * 2;
+    isWaiting = true;
+  }
+
+  startWaiting();
+
+  k.onUpdate(() => {
+    if (!entity.exists()) return;
+
+    if (isWaiting) {
+      waitTime -= k.dt();
+      if (waitTime <= 0) {
+        pickNewTarget();
+      }
+      return;
+    }
+
+    const dx = targetX - entity.pos.x;
+    const dy = targetY - entity.pos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 5) {
+      startWaiting();
+      return;
+    }
+
+    const moveX = (dx / dist) * moveSpeed * k.dt();
+    const moveY = (dy / dist) * moveSpeed * k.dt();
+
+    entity.pos.x += moveX;
+    entity.pos.y += moveY;
+
+    if (entity.scale && dx !== 0) {
+      entity.scale.x = dx > 0 ? Math.abs(entity.scale.x) : -Math.abs(entity.scale.x);
+    }
+  });
+}
+
+/**
+ * Get enemies by tier for floor-based encounters
+ */
+export function getEnemiesByTier(tier: 'low' | 'mid' | 'high' | 'boss'): string[] {
+  const { ENEMIES } = require('../data/enemies.js');
+  return Object.keys(ENEMIES).filter(id => ENEMIES[id].tier === tier);
 }
 
 /**
@@ -341,27 +445,23 @@ export function getEnemyPoolForFloor(floor: number): string[] {
   const { ENEMIES } = require('../data/enemies.js');
   const allEnemies = Object.keys(ENEMIES);
 
-  // Floor 1-2: Only low tier enemies
   if (floor <= 2) {
     return allEnemies.filter(id => ENEMIES[id].tier === 'low');
   }
-
-  // Floor 3-5: Low and mid tier enemies
   if (floor <= 5) {
     return allEnemies.filter(id =>
       ENEMIES[id].tier === 'low' || ENEMIES[id].tier === 'mid'
     );
   }
-
-  // Floor 6-8: Mid and high tier enemies
   if (floor <= 8) {
     return allEnemies.filter(id =>
       ENEMIES[id].tier === 'mid' || ENEMIES[id].tier === 'high'
     );
   }
-
-  // Floor 9+: High tier and bosses
   return allEnemies.filter(id =>
     ENEMIES[id].tier === 'high' || ENEMIES[id].tier === 'boss'
   );
 }
+
+// Export target sizes for use elsewhere
+export { BATTLE_TARGET_SIZE, DUNGEON_TARGET_SIZE };
