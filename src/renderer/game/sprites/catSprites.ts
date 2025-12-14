@@ -48,8 +48,100 @@ export type CatColor =
   | 'xmas'
   | 'superhero';
 
+// All available cat colors
+export const ALL_CAT_COLORS: CatColor[] = [
+  'grey', 'white', 'black',
+  'siamese', 'bengal', 'tricolor',
+  'egypt', 'batman', 'demon', 'pumpkin',
+  'vampire', 'wizard', 'xmas', 'superhero'
+];
+
 // Starter cats available immediately
 export const STARTER_CATS: CatColor[] = ['grey', 'white', 'black'];
+
+// Cat unlock requirements
+export interface CatUnlockRequirement {
+  type: 'level' | 'achievement' | 'battles' | 'gold' | 'starter';
+  value?: number;
+  achievementId?: string;
+  description: string;
+}
+
+export const CAT_UNLOCK_REQUIREMENTS: Record<CatColor, CatUnlockRequirement> = {
+  // Starters - always available
+  grey: { type: 'starter', description: 'Available from the start!' },
+  white: { type: 'starter', description: 'Available from the start!' },
+  black: { type: 'starter', description: 'Available from the start!' },
+
+  // Breed unlocks - level based
+  siamese: { type: 'level', value: 3, description: 'Reach Level 3' },
+  bengal: { type: 'level', value: 5, description: 'Reach Level 5' },
+  tricolor: { type: 'level', value: 7, description: 'Reach Level 7' },
+
+  // Themed unlocks - achievement based
+  egypt: { type: 'battles', value: 10, description: 'Win 10 battles' },
+  demon: { type: 'battles', value: 25, description: 'Win 25 battles' },
+  vampire: { type: 'battles', value: 50, description: 'Win 50 battles' },
+
+  // Special unlocks
+  batman: { type: 'level', value: 10, description: 'Reach Level 10' },
+  wizard: { type: 'gold', value: 1000, description: 'Collect 1,000 gold total' },
+  pumpkin: { type: 'achievement', achievementId: 'halloween', description: 'Seasonal: Halloween' },
+  xmas: { type: 'achievement', achievementId: 'christmas', description: 'Seasonal: Christmas' },
+  superhero: { type: 'level', value: 15, description: 'Reach Level 15' },
+};
+
+// Cat display names
+export const CAT_DISPLAY_NAMES: Record<CatColor, string> = {
+  grey: 'Grey Cat',
+  white: 'White Cat',
+  black: 'Black Cat',
+  siamese: 'Siamese Cat',
+  bengal: 'Bengal Cat',
+  tricolor: 'Tricolor Cat',
+  egypt: 'Egyptian Cat',
+  batman: 'Bat Cat',
+  demon: 'Demon Cat',
+  pumpkin: 'Pumpkin Cat',
+  vampire: 'Vampire Cat',
+  wizard: 'Wizard Cat',
+  xmas: 'Festive Cat',
+  superhero: 'Super Cat',
+};
+
+/**
+ * Check if a cat is unlocked based on player stats
+ */
+export function isCatUnlocked(
+  color: CatColor,
+  stats: { level: number; battlesWon: number; goldEarned: number; achievements: string[] }
+): boolean {
+  const req = CAT_UNLOCK_REQUIREMENTS[color];
+
+  switch (req.type) {
+    case 'starter':
+      return true;
+    case 'level':
+      return stats.level >= (req.value || 0);
+    case 'battles':
+      return stats.battlesWon >= (req.value || 0);
+    case 'gold':
+      return stats.goldEarned >= (req.value || 0);
+    case 'achievement':
+      return req.achievementId ? stats.achievements.includes(req.achievementId) : false;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Get all cats that are currently unlocked
+ */
+export function getUnlockedCats(
+  stats: { level: number; battlesWon: number; goldEarned: number; achievements: string[] }
+): CatColor[] {
+  return ALL_CAT_COLORS.filter(color => isCatUnlocked(color, stats));
+}
 
 // Frame counts based on actual sprite dimensions (width / 32)
 // Audited from GREY_CAT sprites:
@@ -228,83 +320,83 @@ const CAT_CONFIGS: Record<CatColor, CatSpriteConfig> = {
     },
   },
   batman: {
-    folder: 'BATMAN_CAT',
+    folder: 'BATMAN_CAT/BlackMask', // Uses subfolder
     files: {
-      idle: 'IdleCattt',
-      idle2: 'Idle2Cattt',
-      walk: 'RunCattt',
-      run: 'RunCattt',
-      sit: 'Sittinggg',
-      sleep: 'SleepCattt',
-      attack: 'AttackCattt',
-      hurt: 'HurtCatttt',
-      die: 'DieCattt',
-      die2: 'Die2Cattt',
-      jump: 'JumpCatttt',
+      idle: 'IdleCatt',
+      idle2: 'IdleCatt', // No idle2 for batman, reuse idle
+      walk: 'RunCatt',
+      run: 'RunCatt',
+      sit: 'Sittingg',
+      sleep: 'SleepCatt',
+      attack: 'AttackCatt',
+      hurt: 'HurtCattt',
+      die: 'DieCatt',
+      die2: 'Die2Catt',
+      jump: 'JumpCattt',
     },
   },
   demon: {
     folder: 'DEMON_CAT',
     files: {
-      idle: 'IdleCattt',
-      idle2: 'Idle2Cattt',
-      walk: 'RunCattt',
-      run: 'RunCattt',
-      sit: 'Sittinggg',
-      sleep: 'SleepCattt',
-      attack: 'AttackCattt',
-      hurt: 'HurtCatttt',
-      die: 'DieCattt',
-      die2: 'Die2Cattt',
-      jump: 'JumpCatttt',
+      idle: 'IdleCatd',
+      idle2: 'Idle2Catd',
+      walk: 'RunCatd',
+      run: 'RunCatd',
+      sit: 'Sittingd',
+      sleep: 'SleepCatd',
+      attack: 'AttackCatd',
+      hurt: 'HurtCatd',
+      die: 'DieCatd',
+      die2: 'Die2Catd',
+      jump: 'JumpCatd',
     },
   },
   pumpkin: {
     folder: 'PUMPKIN_CAT',
     files: {
-      idle: 'IdleCattt',
-      idle2: 'Idle2Cattt',
-      walk: 'RunCattt',
-      run: 'RunCattt',
-      sit: 'Sittinggg',
-      sleep: 'SleepCattt',
-      attack: 'AttackCattt',
-      hurt: 'HurtCatttt',
-      die: 'DieCattt',
-      die2: 'Die2Cattt',
-      jump: 'JumpCatttt',
+      idle: 'IdlePumpkingLighton',
+      idle2: 'Idle2PumpkingLighton',
+      walk: 'IdlePumpkingLighton', // No run, use idle
+      run: 'IdlePumpkingLighton',
+      sit: 'IdlePumpkingLightoff',
+      sleep: 'IdlePumpkingLightoff',
+      attack: 'LightsOpening',
+      hurt: 'LightsClosing',
+      die: 'DiePumpkin',
+      die2: 'DiePumpkin',
+      jump: 'JumpPumpkinLightOn',
     },
   },
   vampire: {
     folder: 'VAMPIRE_CAT',
     files: {
-      idle: 'IdleCattt',
-      idle2: 'Idle2Cattt',
-      walk: 'RunCattt',
-      run: 'RunCattt',
-      sit: 'Sittinggg',
-      sleep: 'SleepCattt',
-      attack: 'AttackCattt',
-      hurt: 'HurtCatttt',
-      die: 'DieCattt',
-      die2: 'Die2Cattt',
-      jump: 'JumpCatttt',
+      idle: 'IdleCatb',
+      idle2: 'Idle2Catb',
+      walk: 'RunCatb',
+      run: 'RunCatb',
+      sit: 'Sittingb',
+      sleep: 'SleepCatb',
+      attack: 'AttackCatb',
+      hurt: 'HurtCatb',
+      die: 'DieCatb',
+      die2: 'Die2Catb',
+      jump: 'JumpCabt',
     },
   },
   wizard: {
     folder: 'WIZARD_CAT',
     files: {
-      idle: 'IdleCattt',
-      idle2: 'Idle2Cattt',
-      walk: 'RunCattt',
-      run: 'RunCattt',
-      sit: 'Sittinggg',
-      sleep: 'SleepCattt',
-      attack: 'AttackCattt',
-      hurt: 'HurtCatttt',
-      die: 'DieCattt',
-      die2: 'Die2Cattt',
-      jump: 'JumpCatttt',
+      idle: 'IdleCatb',
+      idle2: 'Idle2Catb',
+      walk: 'RunCatb',
+      run: 'RunCatb',
+      sit: 'Sittingb',
+      sleep: 'Sleeping',
+      attack: 'WizardAttack', // Special wizard attack
+      hurt: 'HurtCatb',
+      die: 'DieCatb',
+      die2: 'Die2Catb',
+      jump: 'Jump',
     },
   },
   xmas: {
@@ -326,17 +418,18 @@ const CAT_CONFIGS: Record<CatColor, CatSpriteConfig> = {
   superhero: {
     folder: 'SUPERHERO_CAT',
     files: {
-      idle: 'IdleCattt',
-      idle2: 'Idle2Cattt',
-      walk: 'RunCattt',
-      run: 'RunCattt',
-      sit: 'Sittinggg',
-      sleep: 'SleepCattt',
-      attack: 'AttackCattt',
-      hurt: 'HurtCatttt',
-      die: 'DieCattt',
-      die2: 'Die2Cattt',
-      jump: 'JumpCatttt',
+      // Superhero only has a static image, use grey cat animations as fallback
+      idle: 'SUPERHERO_CAT',
+      idle2: 'SUPERHERO_CAT',
+      walk: 'SUPERHERO_CAT',
+      run: 'SUPERHERO_CAT',
+      sit: 'SUPERHERO_CAT',
+      sleep: 'SUPERHERO_CAT',
+      attack: 'SUPERHERO_CAT',
+      hurt: 'SUPERHERO_CAT',
+      die: 'SUPERHERO_CAT',
+      die2: 'SUPERHERO_CAT',
+      jump: 'SUPERHERO_CAT',
     },
   },
 };

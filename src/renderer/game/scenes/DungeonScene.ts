@@ -39,17 +39,17 @@ export interface DungeonSceneData {
 }
 
 export function registerDungeonScene(k: KAPLAYCtx): void {
-  k.scene('dungeon', async (data: DungeonSceneData) => {
+  k.scene('dungeon', async (data: DungeonSceneData = {}) => {
     // --- SETUP ---
-    const catColor = data.catColor || GameState.player.catColor;
+    const catColor = data?.catColor || GameState.player.catColor;
     GameState.setCatColor(catColor);
 
     // Floor
-    if (data.floor) {
+    if (data?.floor) {
       GameState.setFloor(data.floor);
     } else if (!GameState.dungeon.floor) {
-      const generator = new DungeonGenerator(data.dungeonId || 'training');
-      GameState.setFloor(generator.generate(data.floorNumber || 1));
+      const generator = new DungeonGenerator(data?.dungeonId || 'training');
+      GameState.setFloor(generator.generate(data?.floorNumber || 1));
     }
 
     // Renderer
@@ -113,8 +113,15 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
             // Mark as triggered before battle
             content.triggered = true;
 
-            // Get enemy definition
-            const enemyId = content.data as string || 'grey_slime';
+            // Get enemy definition - content.data can be a string or an object
+            let enemyId: string;
+            if (typeof content.data === 'string') {
+              enemyId = content.data;
+            } else if (content.data?.enemyType) {
+              enemyId = content.data.enemyType;
+            } else {
+              enemyId = 'grey_slime';
+            }
             const enemyDef = ENEMIES[enemyId] || getRandomEnemy();
 
             // Transition to battle

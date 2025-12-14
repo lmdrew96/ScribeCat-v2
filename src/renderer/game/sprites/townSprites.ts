@@ -23,11 +23,11 @@ const BUILDING_TMX_FILES: Record<string, string> = {
   dungeon: 'dungeon1.tmx',
 };
 
-// Decoration TMX files
+// Decoration TMX files (optional - map to existing files)
 const DECORATION_TMX_FILES: Record<string, string> = {
-  tree_patch: 'tree_patch.tmx',
-  pond_big: 'big_square_pond.tmx',
-  pond_small: 'tiny_square_pond.tmx',
+  tree_patch: 'tiny_tree_cluster_green.tmx',
+  pond_big: 'its_grass.tmx', // Fallback - no pond TMX exists
+  pond_small: 'its_grass.tmx', // Fallback - no pond TMX exists
 };
 
 // Cache for parsed TMX data

@@ -15,7 +15,8 @@ import { setupInteraction, type Interactable } from '../systems/interaction.js';
 import { createDoor } from '../components/Door.js';
 import { PLAYER_SPEED } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
-import { getItem, SHOP_INVENTORY, type ItemDefinition } from '../data/items.js';
+import { getItem, SHOP_INVENTORY, type ItemDefinition, type EquipmentSlot } from '../data/items.js';
+import { playSound } from '../systems/sound.js';
 
 const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 400;
@@ -176,12 +177,27 @@ export function registerShopScene(k: KAPLAYCtx): void {
     let shopUIElements: GameObj[] = [];
     let goldDisplay: GameObj;
 
-    const tabs = ['Items', 'Weapons', 'Armor'];
+    const tabs = ['Items', 'Weapons', 'Armor', 'Equip'];
     const tabInventories = [
       SHOP_INVENTORY.consumables,
       SHOP_INVENTORY.weapons,
       SHOP_INVENTORY.armor,
+      [], // Equipment tab shows owned equipment
     ];
+
+    // Get equipment from player inventory for Equip tab
+    function getPlayerEquipment(): { id: string; slot: EquipmentSlot }[] {
+      const equipment: { id: string; slot: EquipmentSlot }[] = [];
+      for (const invItem of GameState.player.items) {
+        const item = getItem(invItem.id);
+        if (item?.type === 'equipment' && item.slot) {
+          for (let i = 0; i < invItem.quantity; i++) {
+            equipment.push({ id: invItem.id, slot: item.slot });
+          }
+        }
+      }
+      return equipment;
+    }
 
     // --- GOLD DISPLAY ---
     const goldBg = k.add([
@@ -230,8 +246,8 @@ export function registerShopScene(k: KAPLAYCtx): void {
 
       // Background
       const bg = k.add([
-        k.rect(400, 250),
-        k.pos(CANVAS_WIDTH / 2 - 200, 60),
+        k.rect(400, 280),
+        k.pos(CANVAS_WIDTH / 2 - 200, 50),
         k.color(30, 30, 50),
         k.outline(3, k.rgb(100, 100, 150)),
         k.z(100),
@@ -239,9 +255,10 @@ export function registerShopScene(k: KAPLAYCtx): void {
       shopUIElements.push(bg);
 
       // Title
+      const titleText = selectedTab === 3 ? "Equipment Manager" : "Welcome to the Shop!";
       const title = k.add([
-        k.text("Welcome to the Shop!", { size: 14 }),
-        k.pos(CANVAS_WIDTH / 2, 80),
+        k.text(titleText, { size: 14 }),
+        k.pos(CANVAS_WIDTH / 2, 70),
         k.anchor('center'),
         k.color(255, 255, 255),
         k.z(101),
@@ -251,9 +268,10 @@ export function registerShopScene(k: KAPLAYCtx): void {
       // Tabs
       tabs.forEach((tab, i) => {
         const isSelected = i === selectedTab;
+        const tabWidth = 70;
         const tabBg = k.add([
-          k.rect(80, 25),
-          k.pos(170 + i * 90, 100),
+          k.rect(tabWidth, 25),
+          k.pos(145 + i * (tabWidth + 10), 90),
           k.color(isSelected ? 100 : 50, isSelected ? 100 : 50, isSelected ? 150 : 80),
           k.outline(2, k.rgb(100, 100, 150)),
           k.z(101),
@@ -261,8 +279,8 @@ export function registerShopScene(k: KAPLAYCtx): void {
         shopUIElements.push(tabBg);
 
         const tabText = k.add([
-          k.text(tab, { size: 10 }),
-          k.pos(210 + i * 90, 113),
+          k.text(tab, { size: 9 }),
+          k.pos(145 + i * (tabWidth + 10) + tabWidth / 2, 103),
           k.anchor('center'),
           k.color(isSelected ? 255 : 180, isSelected ? 255 : 180, isSelected ? 100 : 180),
           k.z(102),
@@ -270,6 +288,15 @@ export function registerShopScene(k: KAPLAYCtx): void {
         shopUIElements.push(tabText);
       });
 
+      // Render based on tab
+      if (selectedTab === 3) {
+        renderEquipmentTab();
+      } else {
+        renderShopTab();
+      }
+    }
+
+    function renderShopTab(): void {
       // Item list
       const currentItems = tabInventories[selectedTab];
       currentItems.forEach((itemId, i) => {
@@ -277,7 +304,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
         if (!item) return;
 
         const isSelected = i === selectedItem;
-        const y = 140 + i * 35;
+        const y = 125 + i * 35;
 
         // Item background
         const itemBg = k.add([
@@ -334,7 +361,151 @@ export function registerShopScene(k: KAPLAYCtx): void {
       // Instructions
       const instructions = k.add([
         k.text('Arrows: Navigate | Q/E: Switch Tab | ENTER: Buy | ESC: Close', { size: 8 }),
-        k.pos(CANVAS_WIDTH / 2, 290),
+        k.pos(CANVAS_WIDTH / 2, 310),
+        k.anchor('center'),
+        k.color(150, 150, 150),
+        k.z(101),
+      ]);
+      shopUIElements.push(instructions);
+    }
+
+    function renderEquipmentTab(): void {
+      // Show currently equipped items
+      const equipped = GameState.player.equipped;
+      const slots: { slot: EquipmentSlot; label: string; y: number }[] = [
+        { slot: 'weapon', label: 'Weapon', y: 125 },
+        { slot: 'armor', label: 'Armor', y: 155 },
+        { slot: 'accessory', label: 'Accessory', y: 185 },
+      ];
+
+      // Section header
+      const headerText = k.add([
+        k.text('Currently Equipped:', { size: 10 }),
+        k.pos(CANVAS_WIDTH / 2 - 180, 125),
+        k.color(200, 200, 200),
+        k.z(102),
+      ]);
+      shopUIElements.push(headerText);
+
+      slots.forEach(({ slot, label, y }) => {
+        const equippedId = equipped[slot];
+        const item = equippedId ? getItem(equippedId) : null;
+        const displayY = y + 15;
+
+        // Slot label
+        const slotLabel = k.add([
+          k.text(`${label}:`, { size: 9 }),
+          k.pos(CANVAS_WIDTH / 2 - 170, displayY),
+          k.color(150, 150, 200),
+          k.z(102),
+        ]);
+        shopUIElements.push(slotLabel);
+
+        // Equipped item or "None"
+        const itemText = k.add([
+          k.text(item ? item.name : '(none)', { size: 9 }),
+          k.pos(CANVAS_WIDTH / 2 - 90, displayY),
+          k.color(item ? 255 : 100, item ? 255 : 100, item ? 255 : 100),
+          k.z(102),
+        ]);
+        shopUIElements.push(itemText);
+
+        // Stats if equipped
+        if (item?.stats) {
+          const statsStr = Object.entries(item.stats)
+            .map(([k, v]) => `+${v} ${k.substring(0, 3).toUpperCase()}`)
+            .join(' ');
+          const statsText = k.add([
+            k.text(statsStr, { size: 8 }),
+            k.pos(CANVAS_WIDTH / 2 + 80, displayY),
+            k.color(100, 255, 100),
+            k.z(102),
+          ]);
+          shopUIElements.push(statsText);
+        }
+      });
+
+      // Divider
+      const divider = k.add([
+        k.rect(360, 2),
+        k.pos(CANVAS_WIDTH / 2 - 180, 215),
+        k.color(80, 80, 120),
+        k.z(102),
+      ]);
+      shopUIElements.push(divider);
+
+      // Available equipment header
+      const availableHeader = k.add([
+        k.text('Available to Equip:', { size: 10 }),
+        k.pos(CANVAS_WIDTH / 2 - 180, 225),
+        k.color(200, 200, 200),
+        k.z(102),
+      ]);
+      shopUIElements.push(availableHeader);
+
+      // List available equipment
+      const playerEquipment = getPlayerEquipment();
+
+      if (playerEquipment.length === 0) {
+        const noItems = k.add([
+          k.text('No equipment in inventory. Buy some from the shop!', { size: 9 }),
+          k.pos(CANVAS_WIDTH / 2, 250),
+          k.anchor('center'),
+          k.color(150, 150, 150),
+          k.z(102),
+        ]);
+        shopUIElements.push(noItems);
+      } else {
+        playerEquipment.slice(0, 3).forEach((eq, i) => {
+          const item = getItem(eq.id)!;
+          const isSelected = i === selectedItem;
+          const y = 240 + i * 25;
+
+          // Item background
+          const itemBg = k.add([
+            k.rect(360, 22),
+            k.pos(CANVAS_WIDTH / 2 - 180, y),
+            k.color(isSelected ? 60 : 40, isSelected ? 80 : 40, isSelected ? 100 : 60),
+            k.outline(isSelected ? 2 : 1, k.rgb(isSelected ? 100 : 60, isSelected ? 255 : 60, isSelected ? 100 : 80)),
+            k.z(101),
+          ]);
+          shopUIElements.push(itemBg);
+
+          // Icon
+          const iconColor = item.iconColor || [100, 100, 100];
+          const icon = k.add([
+            k.rect(16, 16),
+            k.pos(CANVAS_WIDTH / 2 - 175, y + 3),
+            k.color(iconColor[0], iconColor[1], iconColor[2]),
+            k.outline(1, k.rgb(0, 0, 0)),
+            k.z(102),
+          ]);
+          shopUIElements.push(icon);
+
+          // Name
+          const nameText = k.add([
+            k.text(item.name, { size: 9 }),
+            k.pos(CANVAS_WIDTH / 2 - 150, y + 6),
+            k.color(255, 255, 255),
+            k.z(102),
+          ]);
+          shopUIElements.push(nameText);
+
+          // Slot type
+          const slotText = k.add([
+            k.text(`[${eq.slot}]`, { size: 8 }),
+            k.pos(CANVAS_WIDTH / 2 + 100, y + 7),
+            k.color(150, 150, 200),
+            k.z(102),
+          ]);
+          shopUIElements.push(slotText);
+        });
+      }
+
+      // Instructions
+      const instructions = k.add([
+        k.text('Arrows: Select | ENTER: Equip | U: Unequip slot | ESC: Close', { size: 8 }),
+        k.pos(CANVAS_WIDTH / 2, 310),
         k.anchor('center'),
         k.color(150, 150, 150),
         k.z(101),
@@ -343,6 +514,12 @@ export function registerShopScene(k: KAPLAYCtx): void {
     }
 
     function purchaseItem(): void {
+      // Equipment tab has different behavior
+      if (selectedTab === 3) {
+        equipSelectedItem();
+        return;
+      }
+
       const currentItems = tabInventories[selectedTab];
       if (selectedItem >= currentItems.length) return;
 
@@ -361,8 +538,50 @@ export function registerShopScene(k: KAPLAYCtx): void {
       GameState.addItem(itemId, 1);
       updateGoldDisplay();
 
+      playSound(k, 'shopBuy');
       showShopMessage(k, `Purchased ${item.name}!`);
       renderShopUI();
+    }
+
+    function equipSelectedItem(): void {
+      const playerEquipment = getPlayerEquipment();
+      if (selectedItem >= playerEquipment.length) {
+        showShopMessage(k, "No item selected!");
+        return;
+      }
+
+      const eq = playerEquipment[selectedItem];
+      const success = GameState.equipItem(eq.id);
+
+      if (success) {
+        const item = getItem(eq.id)!;
+        playSound(k, 'equip');
+        showShopMessage(k, `Equipped ${item.name}!`);
+        selectedItem = 0; // Reset selection
+      } else {
+        showShopMessage(k, "Failed to equip!");
+      }
+
+      renderShopUI();
+    }
+
+    function unequipSlot(): void {
+      if (selectedTab !== 3) return;
+
+      // Cycle through slots and unequip first equipped
+      const slots: EquipmentSlot[] = ['weapon', 'armor', 'accessory'];
+      for (const slot of slots) {
+        if (GameState.player.equipped[slot]) {
+          const itemId = GameState.player.equipped[slot]!;
+          const item = getItem(itemId);
+          GameState.unequipItem(slot);
+          showShopMessage(k, `Unequipped ${item?.name || slot}!`);
+          renderShopUI();
+          return;
+        }
+      }
+
+      showShopMessage(k, "Nothing equipped!");
     }
 
     // --- INTERACTIONS ---
@@ -476,6 +695,12 @@ export function registerShopScene(k: KAPLAYCtx): void {
     k.onKeyPress('enter', () => {
       if (shopOpen) {
         purchaseItem();
+      }
+    });
+
+    k.onKeyPress('u', () => {
+      if (shopOpen) {
+        unequipSlot();
       }
     });
 

@@ -4,10 +4,24 @@
 
 import type { DungeonFloor, DungeonRoom } from '../../canvas/dungeon/DungeonGenerator.js';
 import type { CatColor } from '../sprites/catSprites.js';
+import { getItem, type EquipmentSlot } from '../data/items.js';
+import { getXpForLevel, getLevelUpStats } from '../systems/battle.js';
+import {
+  isIPCAvailable,
+  getCurrentUserId,
+  getOrCreateCharacter,
+  type CharacterData,
+} from '../services/StudyQuestService.js';
 
 export interface InventoryItem {
   id: string;
   quantity: number;
+}
+
+export interface EquippedItems {
+  weapon: string | null;
+  armor: string | null;
+  accessory: string | null;
 }
 
 export interface PlayerData {
@@ -18,13 +32,22 @@ export interface PlayerData {
   level: number;
   gold: number;
 
-  // Combat stats
+  // Base combat stats (before equipment)
   attack: number;
   defense: number;
   luck: number;
 
   // Inventory
   items: InventoryItem[];
+
+  // Equipped items
+  equipped: EquippedItems;
+
+  // Stats for cat unlocks
+  battlesWon: number;
+  battlesLost: number;
+  totalGoldEarned: number;
+  achievements: string[];
 }
 
 export interface DungeonData {
@@ -48,6 +71,15 @@ class GameStateManager {
     items: [
       { id: 'health_potion', quantity: 3 }, // Start with 3 potions
     ],
+    equipped: {
+      weapon: null,
+      armor: null,
+      accessory: null,
+    },
+    battlesWon: 0,
+    battlesLost: 0,
+    totalGoldEarned: 0,
+    achievements: [],
   };
 
   dungeon: DungeonData = {
@@ -56,6 +88,108 @@ class GameStateManager {
     floor: null,
     currentRoomId: '',
   };
+
+  // Cloud sync properties
+  private userId: string | null = null;
+  private characterId: string | null = null;
+  private cloudCharacter: CharacterData | null = null;
+  private isCloudEnabled = false;
+
+  /**
+   * Check if cloud sync is available
+   */
+  isCloudAvailable(): boolean {
+    return isIPCAvailable();
+  }
+
+  /**
+   * Check if user has a saved cloud game
+   */
+  async hasSavedGame(): Promise<boolean> {
+    if (!this.isCloudAvailable()) return false;
+
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) return false;
+
+      const character = await getOrCreateCharacter(userId);
+      return character !== null && character.level > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Load game state from cloud
+   */
+  async loadFromCloud(): Promise<boolean> {
+    if (!this.isCloudAvailable()) {
+      console.log('Cloud sync not available');
+      return false;
+    }
+
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        console.log('No user logged in');
+        return false;
+      }
+
+      this.userId = userId;
+      const character = await getOrCreateCharacter(userId);
+
+      if (!character) {
+        console.log('Failed to get/create character');
+        return false;
+      }
+
+      this.characterId = character.id;
+      this.cloudCharacter = character;
+      this.isCloudEnabled = true;
+
+      // Map cloud character to local state
+      this.player = {
+        ...this.player,
+        health: character.hp,
+        maxHealth: character.maxHp,
+        xp: character.currentXp,
+        level: character.level,
+        gold: character.gold,
+        attack: character.attack,
+        defense: character.defense,
+        luck: 0, // Not in cloud schema
+        equipped: {
+          weapon: character.equippedWeaponId || null,
+          armor: character.equippedArmorId || null,
+          accessory: character.equippedAccessoryId || null,
+        },
+        // Note: inventory is loaded separately via IPC
+      };
+
+      this.emit('cloudLoaded');
+      this.emit('playerChanged');
+
+      console.log(`Loaded cloud save: Level ${character.level}, ${character.gold} gold`);
+      return true;
+    } catch (err) {
+      console.error('Failed to load from cloud:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Get the cloud character ID (for IPC calls)
+   */
+  getCharacterId(): string | null {
+    return this.characterId;
+  }
+
+  /**
+   * Check if cloud sync is enabled for this session
+   */
+  isCloudSyncEnabled(): boolean {
+    return this.isCloudEnabled;
+  }
 
   // Simple event emitter
   private listeners: Map<string, Set<(data?: unknown) => void>> = new Map();
@@ -140,7 +274,43 @@ class GameStateManager {
 
   addGold(amount: number): void {
     this.player.gold += amount;
+    this.player.totalGoldEarned += amount;
     this.emit('goldChanged');
+  }
+
+  /**
+   * Record a battle win
+   */
+  recordBattleWin(): void {
+    this.player.battlesWon++;
+    this.emit('statsChanged');
+  }
+
+  /**
+   * Record a battle loss
+   */
+  recordBattleLoss(): void {
+    this.player.battlesLost++;
+    this.emit('statsChanged');
+  }
+
+  /**
+   * Award an achievement
+   */
+  awardAchievement(achievementId: string): boolean {
+    if (this.player.achievements.includes(achievementId)) {
+      return false; // Already have it
+    }
+    this.player.achievements.push(achievementId);
+    this.emit('achievementUnlocked', achievementId);
+    return true;
+  }
+
+  /**
+   * Check if player has an achievement
+   */
+  hasAchievement(achievementId: string): boolean {
+    return this.player.achievements.includes(achievementId);
   }
 
   spendGold(amount: number): boolean {
@@ -150,12 +320,167 @@ class GameStateManager {
     return true;
   }
 
+  // --- Equipment Management ---
+
+  /**
+   * Get stat bonus from a specific equipment slot
+   */
+  getEquipmentBonus(stat: 'attack' | 'defense' | 'luck' | 'maxHealth'): number {
+    let bonus = 0;
+    const slots: EquipmentSlot[] = ['weapon', 'armor', 'accessory'];
+
+    for (const slot of slots) {
+      const itemId = this.player.equipped[slot];
+      if (itemId) {
+        const item = getItem(itemId);
+        if (item?.stats?.[stat]) {
+          bonus += item.stats[stat]!;
+        }
+      }
+    }
+
+    return bonus;
+  }
+
+  /**
+   * Get effective attack (base + equipment)
+   */
+  getEffectiveAttack(): number {
+    return this.player.attack + this.getEquipmentBonus('attack');
+  }
+
+  /**
+   * Get effective defense (base + equipment)
+   */
+  getEffectiveDefense(): number {
+    return this.player.defense + this.getEquipmentBonus('defense');
+  }
+
+  /**
+   * Get effective luck (base + equipment)
+   */
+  getEffectiveLuck(): number {
+    return this.player.luck + this.getEquipmentBonus('luck');
+  }
+
+  /**
+   * Get effective max health (base + equipment)
+   */
+  getEffectiveMaxHealth(): number {
+    return this.player.maxHealth + this.getEquipmentBonus('maxHealth');
+  }
+
+  /**
+   * Equip an item (must be in inventory)
+   */
+  equipItem(itemId: string): boolean {
+    const item = getItem(itemId);
+    if (!item || item.type !== 'equipment' || !item.slot) {
+      return false;
+    }
+
+    // Check if we have it in inventory
+    if (!this.hasItem(itemId)) {
+      return false;
+    }
+
+    // Unequip current item in that slot first
+    const currentEquipped = this.player.equipped[item.slot];
+    if (currentEquipped) {
+      this.unequipItem(item.slot);
+    }
+
+    // Equip the new item (remove from inventory)
+    this.removeItem(itemId, 1);
+    this.player.equipped[item.slot] = itemId;
+
+    // If armor gives max health, update current health proportionally
+    if (item.slot === 'armor' && item.stats?.maxHealth) {
+      const oldMax = this.player.maxHealth;
+      const newMax = this.getEffectiveMaxHealth();
+      // Keep same health percentage
+      this.player.health = Math.min(this.player.health, newMax);
+    }
+
+    this.emit('equipmentChanged');
+    this.emit('playerChanged');
+    return true;
+  }
+
+  /**
+   * Unequip an item from a slot (returns to inventory)
+   */
+  unequipItem(slot: EquipmentSlot): boolean {
+    const itemId = this.player.equipped[slot];
+    if (!itemId) {
+      return false;
+    }
+
+    // Add back to inventory
+    this.addItem(itemId, 1);
+    this.player.equipped[slot] = null;
+
+    this.emit('equipmentChanged');
+    this.emit('playerChanged');
+    return true;
+  }
+
+  /**
+   * Get equipped item in a slot
+   */
+  getEquippedItem(slot: EquipmentSlot): string | null {
+    return this.player.equipped[slot];
+  }
+
   // --- XP and Level ---
 
-  addXp(amount: number): void {
+  /**
+   * Get XP required for the next level
+   */
+  getXpForNextLevel(): number {
+    return getXpForLevel(this.player.level);
+  }
+
+  /**
+   * Check if player can level up and apply it
+   */
+  checkLevelUp(): boolean {
+    const requiredXp = this.getXpForNextLevel();
+    if (this.player.xp < requiredXp) {
+      return false;
+    }
+
+    // Level up!
+    this.player.level++;
+    const statBoosts = getLevelUpStats(this.player.level);
+
+    // Apply stat increases
+    this.player.maxHealth += statBoosts.maxHp;
+    this.player.health = Math.min(this.player.health + statBoosts.maxHp, this.getEffectiveMaxHealth());
+    this.player.attack += statBoosts.attack;
+    this.player.defense += statBoosts.defense;
+
+    this.emit('levelUp', {
+      newLevel: this.player.level,
+      statBoosts,
+    });
+    this.emit('playerChanged');
+
+    return true;
+  }
+
+  addXp(amount: number): { levelsGained: number; oldLevel: number } {
+    const oldLevel = this.player.level;
     this.player.xp += amount;
     this.emit('xpChanged');
-    // TODO: Check for level up
+
+    // Check for multiple level ups
+    let levelsGained = 0;
+    while (this.checkLevelUp()) {
+      levelsGained++;
+    }
+
+    return { levelsGained, oldLevel };
   }
 
   reset(): void {
@@ -172,6 +497,15 @@ class GameStateManager {
       items: [
         { id: 'health_potion', quantity: 3 },
       ],
+      equipped: {
+        weapon: null,
+        armor: null,
+        accessory: null,
+      },
+      battlesWon: 0,
+      battlesLost: 0,
+      totalGoldEarned: 0,
+      achievements: [],
     };
     this.dungeon = {
       dungeonId: 'training',

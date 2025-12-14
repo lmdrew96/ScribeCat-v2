@@ -21,6 +21,7 @@ import {
   isDefeated,
   decideEnemyAction,
   attemptFlee,
+  getLevelUpStats,
   type BattlePhase,
   type PlayerAction,
   type CombatStats,
@@ -34,6 +35,7 @@ import {
   playVictoryEffect,
   EFFECT_COLORS,
 } from '../systems/effects.js';
+import { playSound, playCatMeow } from '../systems/sound.js';
 import {
   type EnemyDefinition,
   scaleEnemyStats,
@@ -67,10 +69,10 @@ export function registerBattleScene(k: KAPLAYCtx): void {
 
     const playerStats: CombatStats = {
       hp: GameState.player.health,
-      maxHp: GameState.player.maxHealth,
-      attack: GameState.player.attack || 15,
-      defense: GameState.player.defense || 5,
-      luck: GameState.player.luck || 0,
+      maxHp: GameState.getEffectiveMaxHealth(),
+      attack: GameState.getEffectiveAttack(),
+      defense: GameState.getEffectiveDefense(),
+      luck: GameState.getEffectiveLuck(),
     };
 
     // Battle state
@@ -428,6 +430,7 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       hideMenu();
 
       await showMessage('You attack!', 0.5);
+      playSound(k, 'attack');
 
       // Lunge animation
       await playAttackLunge(k, playerEntity, enemyEntity.pos.x);
@@ -436,12 +439,16 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       const result = calculateDamage(playerStats, enemyStats, false);
 
       if (result.isMiss) {
+        playSound(k, 'miss');
         showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, 'MISS', 'miss');
         await showMessage('Miss!', 0.8);
       } else {
         // Apply damage
         applyDamage(enemyStats, result.damage);
         updateEnemyHp();
+
+        // Sound based on crit
+        playSound(k, result.isCrit ? 'criticalHit' : 'hit');
 
         // Effects
         await playHurtEffect(k, enemyEntity);
@@ -474,6 +481,7 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       hideMenu();
 
       playerDefending = true;
+      playSound(k, 'defend');
       flashEntity(k, playerEntity, [100, 100, 255], 0.3);
       await showMessage('You brace for impact!', 0.8);
 
@@ -509,6 +517,7 @@ export function registerBattleScene(k: KAPLAYCtx): void {
         GameState.player.health = playerStats.hp;
         updatePlayerHp();
 
+        playSound(k, 'heal');
         flashEntity(k, playerEntity, EFFECT_COLORS.heal, 0.3);
         showFloatingNumber(k, playerEntity.pos.x, playerEntity.pos.y - 30, healAmount, 'heal');
         await showMessage(`Used ${itemDef.name}! Healed ${healAmount} HP!`, 1.0);
@@ -599,7 +608,11 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       phase = 'victory';
       hideMenu();
 
-      // Victory effects
+      // Record the win for unlocks
+      GameState.recordBattleWin();
+
+      // Victory sound and effects
+      playSound(k, 'victory');
       playVictoryEffect(k, enemyEntity.pos.x, enemyEntity.pos.y);
 
       // Fade out enemy
@@ -613,17 +626,41 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       const xpGained = calculateXpReward(enemyDef, floorLevel);
       const goldGained = calculateGoldReward(enemyDef, floorLevel);
 
-      // Apply rewards
-      GameState.player.xp += xpGained;
-      GameState.player.gold += goldGained;
+      // Apply gold (tracks totalGoldEarned for unlocks)
+      GameState.addGold(goldGained);
 
-      // Show rewards
+      // Apply XP and check for level ups
+      const { levelsGained, oldLevel } = GameState.addXp(xpGained);
+
+      // Show rewards with sound
+      playSound(k, 'goldCollect');
       showFloatingNumber(k, CANVAS_WIDTH / 2 - 40, 150, xpGained, 'xp');
       showFloatingNumber(k, CANVAS_WIDTH / 2 + 40, 150, goldGained, 'gold');
       await showMessage(`Gained ${xpGained} XP and ${goldGained} Gold!`, 2.0);
 
-      // Check level up
-      // TODO: Implement level up check
+      // Show level up celebration!
+      if (levelsGained > 0) {
+        const newLevel = oldLevel + levelsGained;
+
+        // Level up sound and effects
+        playSound(k, 'levelUp');
+        flashEntity(k, playerEntity, [255, 215, 0], 0.5);
+        shakeCamera(k, 6, 0.3);
+
+        await showMessage(`LEVEL UP! You are now Level ${newLevel}!`, 2.0);
+
+        // Show stat increases
+        const stats = getLevelUpStats(newLevel);
+        await showMessage(
+          `+${stats.maxHp} HP  +${stats.attack} ATK  +${stats.defense} DEF`,
+          2.0
+        );
+
+        // Update player HP bar with new max
+        playerStats.maxHp = GameState.getEffectiveMaxHealth();
+        playerStats.hp = GameState.player.health;
+        updatePlayerHp();
+      }
 
       await k.wait(0.5);
       returnToOrigin();
@@ -633,6 +670,9 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     async function handleDefeat(): Promise<void> {
       phase = 'defeat';
       hideMenu();
+
+      // Defeat sound
+      playSound(k, 'defeat');
 
       // Fade out player
       k.tween(1, 0.3, 0.5, (v) => {
@@ -730,6 +770,8 @@ export function registerBattleScene(k: KAPLAYCtx): void {
 
     // --- INTRO SEQUENCE ---
     async function startBattle(): Promise<void> {
+      // Cat meow on battle start!
+      playCatMeow(k);
       await showMessage(`A wild ${enemyDef.name} appeared!`, 1.5);
       phase = 'player_turn';
       showMenu();

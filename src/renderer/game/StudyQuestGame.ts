@@ -15,6 +15,7 @@ import { registerInnScene } from './scenes/InnScene.js';
 import { registerDungeonScene } from './scenes/DungeonScene.js';
 import { registerBattleScene } from './scenes/BattleScene.js';
 import { GameState } from './state/GameState.js';
+import { loadGameSounds } from './systems/sound.js';
 import type { CatColor } from './sprites/catSprites.js';
 
 export class StudyQuestGame {
@@ -54,7 +55,12 @@ export class StudyQuestGame {
   /**
    * Start the game (shows title screen)
    */
-  start(): void {
+  async start(): Promise<void> {
+    // Load sounds asynchronously (don't block game start)
+    loadGameSounds(this.k).catch((err) => {
+      console.warn('Failed to load some sounds:', err);
+    });
+
     this.k.go('title');
   }
 

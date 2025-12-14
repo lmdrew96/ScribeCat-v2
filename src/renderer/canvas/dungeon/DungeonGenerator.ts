@@ -105,7 +105,8 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 3,
     theme: 'grass',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, enemy: 40, trap: 5 },
-    enemyPool: ['target_dummy', 'training_slime'],
+    // Low tier enemies only - easy dungeon
+    enemyPool: ['grey_slime', 'rat', 'roomba'],
     treasurePool: ['gold_small', 'potion_minor'],
   },
   forest: {
@@ -116,7 +117,8 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 5,
     theme: 'forest',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS },
-    enemyPool: ['wolf', 'slime', 'bat'],
+    // Mix of low and mid tier enemies
+    enemyPool: ['grey_slime', 'rat', 'rat_fighter', 'squirrel_warrior', 'rubber_ducky'],
     treasurePool: ['gold_medium', 'potion_minor', 'herb'],
   },
   crystal: {
@@ -127,7 +129,8 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 5,
     theme: 'ice',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, treasure: 20, trap: 15 },
-    enemyPool: ['ice_slime', 'crystal_golem', 'bat'],
+    // Mid tier enemies with slimes
+    enemyPool: ['demon_slime', 'rat_warrior', 'rat_ranger', 'tuna_can_battler'],
     treasurePool: ['gold_large', 'crystal', 'potion_medium'],
   },
   library: {
@@ -138,7 +141,8 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 5,
     theme: 'gothic',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, puzzle: 15, secret: 10 },
-    enemyPool: ['ghost', 'skeleton', 'cursed_book'],
+    // Mid tier enemies with magic users
+    enemyPool: ['rat_mage', 'rat_warrior', 'yarn_elemental', 'ruff_dog'],
     treasurePool: ['gold_medium', 'scroll', 'potion_medium'],
   },
   volcano: {
@@ -149,7 +153,8 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 7,
     theme: 'fire',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, enemy: 40, trap: 15 },
-    enemyPool: ['fire_slime', 'salamander', 'fire_elemental'],
+    // High tier enemies
+    enemyPool: ['demon_slime', 'dog_with_axe', 'yarn_elemental', 'rat_necromancer'],
     treasurePool: ['gold_large', 'fire_crystal', 'potion_large'],
   },
   void: {
@@ -160,7 +165,8 @@ export const DUNGEON_CONFIGS: Record<string, DungeonConfig> = {
     totalFloors: 10,
     theme: 'void',
     roomWeights: { ...DEFAULT_ROOM_WEIGHTS, enemy: 45, secret: 10 },
-    enemyPool: ['void_walker', 'shadow', 'void_elemental'],
+    // High tier and boss enemies - endgame
+    enemyPool: ['rat_necromancer', 'dog_with_axe', 'yarn_elemental', 'demon_slime'],
     treasurePool: ['gold_huge', 'void_crystal', 'potion_large', 'legendary_item'],
   },
 };
