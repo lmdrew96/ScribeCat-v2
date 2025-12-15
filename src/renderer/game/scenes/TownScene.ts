@@ -30,6 +30,7 @@ import {
 } from '../maps/index.js';
 import { loadTownTiles, type BuildingType } from '../sprites/townSprites.js';
 import { saveDungeonProgress } from '../services/StudyQuestService.js';
+import { createDungeonSelectionUI } from '../ui/index.js';
 
 // Map dimensions (40x30 tiles at 16px)
 const MAP_WIDTH = 640;
@@ -136,6 +137,9 @@ export function registerTownScene(k: KAPLAYCtx): void {
     // --- CREATE DOOR ZONES ---
     const interactables: Interactable[] = [];
 
+    // Track if dungeon selection UI is active (created later after player)
+    let dungeonSelectionUI: ReturnType<typeof createDungeonSelectionUI> | null = null;
+
     for (const [doorName, doorPos] of doorPositions) {
       const doorConfig = DOOR_SCENE_MAP[doorName];
       if (!doorConfig) continue; // Skip unknown doors (like barn_door)
@@ -151,15 +155,30 @@ export function registerTownScene(k: KAPLAYCtx): void {
         `door_${doorName}`,
       ]);
 
-      interactables.push({
-        entity: doorEntity,
-        type: 'door',
-        promptText: `Enter ${doorConfig.label}`,
-        onInteract: () => {
-          k.go(doorConfig.scene);
-        },
-        range: 30,
-      });
+      // Special handling for dungeon door - show selection UI
+      if (doorName === 'dungeon_door') {
+        interactables.push({
+          entity: doorEntity,
+          type: 'door',
+          promptText: 'Enter Dungeon',
+          onInteract: () => {
+            if (dungeonSelectionUI) {
+              dungeonSelectionUI.show(GameState.player.level);
+            }
+          },
+          range: 30,
+        });
+      } else {
+        interactables.push({
+          entity: doorEntity,
+          type: 'door',
+          promptText: `Enter ${doorConfig.label}`,
+          onInteract: () => {
+            k.go(doorConfig.scene);
+          },
+          range: 30,
+        });
+      }
     }
 
     // --- PLAYER ---
@@ -168,6 +187,39 @@ export function registerTownScene(k: KAPLAYCtx): void {
       x: spawnPos.x,
       y: spawnPos.y,
       color: catColor,
+    });
+
+    // --- DUNGEON SELECTION UI ---
+    dungeonSelectionUI = createDungeonSelectionUI(
+      k,
+      { canvasWidth: CANVAS_WIDTH, canvasHeight: CANVAS_HEIGHT },
+      {
+        freezePlayer: () => { player.freeze(); },
+        unfreezePlayer: () => { player.unfreeze(); },
+        onSelect: (dungeonId: string) => {
+          k.go('dungeon', {
+            catColor: GameState.player.catColor,
+            dungeonId,
+          });
+        },
+      }
+    );
+
+    // Handle keyboard input for dungeon selection modal
+    k.onKeyPress('up', () => {
+      if (dungeonSelectionUI?.isActive) {
+        dungeonSelectionUI.handleInput('up');
+      }
+    });
+    k.onKeyPress('down', () => {
+      if (dungeonSelectionUI?.isActive) {
+        dungeonSelectionUI.handleInput('down');
+      }
+    });
+    k.onKeyPress('enter', () => {
+      if (dungeonSelectionUI?.isActive) {
+        dungeonSelectionUI.handleInput('enter');
+      }
     });
 
     // --- MOVEMENT WITH COLLIDERS ---
@@ -273,6 +325,11 @@ export function registerTownScene(k: KAPLAYCtx): void {
 
     // --- MENU (ESC) ---
     k.onKeyPress('escape', () => {
+      // Close dungeon selection if active
+      if (dungeonSelectionUI?.isActive) {
+        dungeonSelectionUI.handleInput('escape');
+        return;
+      }
       k.go('title');
     });
 
