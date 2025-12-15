@@ -828,6 +828,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
           const exitTimer = k.wait(2.5, () => {
             activeTweenCancels.delete(exitTween.cancel);
             activeTweenCancels.delete(exitTimer.cancel);
+            GameState.dungeon.dungeonId = null;
             GameState.dungeon.floor = null;
             GameState.dungeon.floorNumber = 1;
             GameState.dungeon.currentRoomId = '';

@@ -67,7 +67,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
     // Clear any active dungeon run when entering town (player abandoned dungeon)
     if (GameState.hasActiveDungeonRun()) {
       console.log('Clearing abandoned dungeon run');
-      GameState.dungeon.dungeonId = 'training';
+      GameState.dungeon.dungeonId = null;
       GameState.dungeon.floorNumber = 1;
       GameState.dungeon.floor = null;
       GameState.dungeon.currentRoomId = '';

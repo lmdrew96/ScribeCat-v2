@@ -52,7 +52,7 @@ export interface PlayerData {
 }
 
 export interface DungeonData {
-  dungeonId: string;
+  dungeonId: string | null; // null when no active dungeon run
   floorNumber: number;
   floor: DungeonFloor | null;
   currentRoomId: string;
@@ -84,7 +84,7 @@ class GameStateManager {
   };
 
   dungeon: DungeonData = {
-    dungeonId: 'training',
+    dungeonId: null, // null = no active dungeon run
     floorNumber: 1,
     floor: null,
     currentRoomId: '',
@@ -167,8 +167,9 @@ class GameStateManager {
       };
 
       // Load dungeon progress from cloud
-      this.dungeon.dungeonId = character.currentDungeonId || 'training';
-      this.dungeon.floorNumber = character.currentFloor || 1;
+      // Use null if no active dungeon (not 'training' which would trigger hasActiveDungeonRun)
+      this.dungeon.dungeonId = character.currentDungeonId || null;
+      this.dungeon.floorNumber = character.currentDungeonId ? (character.currentFloor || 1) : 1;
       // Clear floor data - will be regenerated when entering dungeon
       this.dungeon.floor = null;
       this.dungeon.currentRoomId = '';
@@ -218,11 +219,12 @@ class GameStateManager {
    * Check if player has an active dungeon run to resume
    */
   hasActiveDungeonRun(): boolean {
-    // A valid dungeon run means we have a dungeon ID that isn't the default/training
+    // A valid dungeon run means we have a real dungeon ID (not null/empty/training default)
     // and we have a floor number > 0
     return !!(
       this.dungeon.dungeonId &&
       this.dungeon.dungeonId !== '' &&
+      this.dungeon.dungeonId !== 'training' && // 'training' is default, not an active run
       this.dungeon.floorNumber > 0
     );
   }
@@ -593,7 +595,7 @@ class GameStateManager {
       achievements: [],
     };
     this.dungeon = {
-      dungeonId: 'training',
+      dungeonId: null, // null = no active dungeon run
       floorNumber: 1,
       floor: null,
       currentRoomId: '',
