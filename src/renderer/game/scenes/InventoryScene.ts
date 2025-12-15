@@ -31,6 +31,11 @@ export interface InventorySceneData {
   };
 }
 
+// Helper to escape KAPLAY styled text brackets
+function escapeStyledText(text: string): string {
+  return text.replace(/\[/g, '(').replace(/\]/g, ')');
+}
+
 export function registerInventoryScene(k: KAPLAYCtx): void {
   k.scene('inventory', (data: InventorySceneData = {}) => {
     const fromScene = data.fromScene || 'town';
@@ -330,9 +335,9 @@ export function registerInventoryScene(k: KAPLAYCtx): void {
       ]);
       uiElements.push(nameText);
 
-      // Type badge
+      // Type badge (use parentheses to avoid KAPLAY styled text parsing)
       const typeBadge = k.add([
-        k.text(`[${item.type.toUpperCase()}]`, { size: 12 }),
+        k.text(`(${item.type.toUpperCase()})`, { size: 12 }),
         k.pos(panelX + panelWidth / 2, panelY + 40),
         k.anchor('center'),
         k.color(150, 150, 200),
@@ -340,9 +345,9 @@ export function registerInventoryScene(k: KAPLAYCtx): void {
       ]);
       uiElements.push(typeBadge);
 
-      // Description
+      // Description (escape brackets to avoid KAPLAY styled text parsing)
       const descText = k.add([
-        k.text(item.description, { size: 12, width: panelWidth - 20 }),
+        k.text(escapeStyledText(item.description), { size: 12, width: panelWidth - 20 }),
         k.pos(panelX + 10, panelY + 60),
         k.color(200, 200, 200),
         k.z(11),
