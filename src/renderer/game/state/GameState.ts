@@ -10,6 +10,7 @@ import {
   isIPCAvailable,
   getCurrentUserId,
   getOrCreateCharacter,
+  getInventory,
   type CharacterData,
 } from '../services/StudyQuestService.js';
 
@@ -163,13 +164,35 @@ class GameStateManager {
           armor: character.equippedArmorId || null,
           accessory: character.equippedAccessoryId || null,
         },
-        // Note: inventory is loaded separately via IPC
       };
+
+      // Load dungeon progress from cloud
+      this.dungeon.dungeonId = character.currentDungeonId || 'training';
+      this.dungeon.floorNumber = character.currentFloor || 1;
+      // Clear floor data - will be regenerated when entering dungeon
+      this.dungeon.floor = null;
+      this.dungeon.currentRoomId = '';
+
+      // Load inventory from cloud
+      try {
+        const inventory = await getInventory(character.id);
+        if (inventory.length > 0) {
+          this.player.items = inventory.map(slot => ({
+            id: slot.itemId,
+            quantity: slot.quantity,
+          }));
+        }
+      } catch (invErr) {
+        console.warn('Failed to load inventory from cloud:', invErr);
+      }
 
       this.emit('cloudLoaded');
       this.emit('playerChanged');
 
-      console.log(`Loaded cloud save: Level ${character.level}, ${character.gold} gold`);
+      const dungeonInfo = character.currentDungeonId
+        ? `, in dungeon: ${character.currentDungeonId} floor ${character.currentFloor}`
+        : '';
+      console.log(`Loaded cloud save: Level ${character.level}, ${character.gold} gold${dungeonInfo}`);
       return true;
     } catch (err) {
       console.error('Failed to load from cloud:', err);
@@ -189,6 +212,56 @@ class GameStateManager {
    */
   isCloudSyncEnabled(): boolean {
     return this.isCloudEnabled;
+  }
+
+  /**
+   * Check if player has an active dungeon run to resume
+   */
+  hasActiveDungeonRun(): boolean {
+    // A valid dungeon run means we have a dungeon ID that isn't the default/training
+    // and we have a floor number > 0
+    return !!(
+      this.dungeon.dungeonId &&
+      this.dungeon.dungeonId !== '' &&
+      this.dungeon.floorNumber > 0
+    );
+  }
+
+  /**
+   * Initialize cloud sync for a new game (doesn't load saved progress)
+   * This sets up the cloud connection so progress can be saved
+   */
+  async initializeCloudForNewGame(): Promise<boolean> {
+    if (!this.isCloudAvailable()) {
+      console.log('Cloud sync not available for new game');
+      return false;
+    }
+
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        console.log('No user logged in - playing offline');
+        return false;
+      }
+
+      this.userId = userId;
+      const character = await getOrCreateCharacter(userId);
+
+      if (!character) {
+        console.log('Failed to get/create character for new game');
+        return false;
+      }
+
+      this.characterId = character.id;
+      this.cloudCharacter = character;
+      this.isCloudEnabled = true;
+
+      console.log(`Cloud sync initialized for new game (character: ${character.id})`);
+      return true;
+    } catch (err) {
+      console.error('Failed to initialize cloud for new game:', err);
+      return false;
+    }
   }
 
   // Simple event emitter

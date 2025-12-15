@@ -414,6 +414,25 @@ export function registerStudyQuestHandlers(): void {
     }
   });
 
+  // Save dungeon progress for cloud save/continue feature
+  ipcMain.handle(
+    'studyquest:save-dungeon-progress',
+    async (_event, params: { characterId: string; dungeonId: string | null; floor: number }) => {
+      try {
+        const character = await studyQuestRepo.updateCharacter({
+          characterId: params.characterId,
+          currentDungeonId: params.dungeonId,
+          currentFloor: params.floor,
+        });
+        return { success: true, character: character.toJSON() };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('Failed to save dungeon progress:', error);
+        return { success: false, error: message };
+      }
+    }
+  );
+
   // ============================================================================
   // Battle Handlers
   // ============================================================================

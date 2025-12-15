@@ -29,6 +29,7 @@ import { getRandomEnemy, ENEMIES } from '../data/enemies.js';
 import { playSound } from '../systems/sound.js';
 import type { BattleSceneData } from './BattleScene.js';
 import { createMerchantUI, createPuzzleUI, createSecretUI } from '../ui/index.js';
+import { saveDungeonProgress } from '../services/StudyQuestService.js';
 
 // Use config constants for canvas dimensions
 const CANVAS_WIDTH = DUNGEON_CANVAS_WIDTH;
@@ -36,6 +37,23 @@ const CANVAS_HEIGHT = DUNGEON_CANVAS_HEIGHT;
 const DOOR_SIZE = 48;
 const TRIGGER_DISTANCE = 40;
 const SEARCH_DISTANCE = 50;
+
+// Riddles for puzzle rooms
+const RIDDLES = [
+  { question: "I have keys but no locks. What am I?", answer: 0, options: ["Keyboard", "Piano", "Map"] },
+  { question: "What has hands but can't clap?", answer: 1, options: ["Gloves", "Clock", "Statue"] },
+  { question: "I get wetter as I dry. What am I?", answer: 2, options: ["Sponge", "Rain", "Towel"] },
+  { question: "What has a head and tail but no body?", answer: 0, options: ["Coin", "Snake", "Comet"] },
+  { question: "What can you catch but not throw?", answer: 1, options: ["Ball", "Cold", "Fish"] },
+];
+
+// Sequences for puzzle rooms
+const SEQUENCES = [
+  { pattern: [0, 1, 2], display: "↑ → ↓" },
+  { pattern: [1, 0, 1, 2], display: "→ ↑ → ↓" },
+  { pattern: [2, 2, 0, 1], display: "↓ ↓ ↑ →" },
+  { pattern: [0, 2, 1, 0], display: "↑ ↓ → ↑" },
+];
 
 export interface DungeonSceneData {
   catColor?: CatColor;
@@ -84,6 +102,18 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     if (currentRoom) {
       currentRoom.visited = true;
       currentRoom.discovered = true;
+    }
+
+    // Auto-save dungeon progress to cloud for Continue feature
+    const characterId = GameState.getCharacterId();
+    if (characterId && GameState.isCloudSyncEnabled()) {
+      saveDungeonProgress(characterId, dungeonId, GameState.dungeon.floorNumber)
+        .then(success => {
+          if (success) {
+            console.log(`Saved dungeon progress: ${dungeonId} floor ${GameState.dungeon.floorNumber}`);
+          }
+        })
+        .catch(err => console.warn('Failed to save dungeon progress:', err));
     }
 
     const renderer = new RoomRenderer(k);
@@ -221,12 +251,6 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     // Track active tweens to cancel on scene exit (prevents operating on destroyed objects)
     const activeTweenCancels: Set<() => void> = new Set();
 
-    // Merchant state
-    let merchantActive = false;
-    let merchantUIElements: GameObj[] = [];
-    let merchantSelectedItem = 0;
-    let nearbyMerchant: RoomContent | null = null;
-
     // --- HELPER: Show floating message ---
     function showFloatingMessage(
       text: string,
@@ -262,6 +286,18 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       });
       activeTweenCancels.add(timer.cancel);
     }
+
+    // --- MERCHANT UI (extracted module) ---
+    const merchantUI = createMerchantUI(k, {
+      canvasWidth: CANVAS_WIDTH,
+      canvasHeight: CANVAS_HEIGHT,
+      searchDistance: SEARCH_DISTANCE,
+    }, {
+      showFloatingMessage,
+      getMovementBounds: () => renderer.getMovementBounds(),
+      freezePlayer: () => player.freeze(),
+      unfreezePlayer: () => player.unfreeze(),
+    });
 
     // --- PUZZLE UI ---
     function clearPuzzleUI(): void {
@@ -614,208 +650,9 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       renderer.render(GameState.getCurrentRoom()!);
     }
 
-    // --- MERCHANT UI ---
-    function clearMerchantUI(): void {
-      for (const e of merchantUIElements) {
-        try { k.destroy(e); } catch {}
-      }
-      merchantUIElements = [];
-      merchantActive = false;
-      merchantSelectedItem = 0;
-      player.unfreeze();
-    }
-
-    function showMerchantUI(content: RoomContent): void {
-      merchantActive = true;
-      player.freeze();
-
-      // Background
-      merchantUIElements.push(k.add([
-        k.rect(300, 200),
-        k.pos(CANVAS_WIDTH / 2 - 150, 60),
-        k.color(20, 30, 50),
-        k.outline(3, k.rgb(255, 200, 100)),
-        k.z(500),
-      ]));
-
-      // Title
-      merchantUIElements.push(k.add([
-        k.text('Traveling Merchant', { size: 14 }),
-        k.pos(CANVAS_WIDTH / 2, 78),
-        k.anchor('center'),
-        k.color(255, 200, 100),
-        k.z(501),
-      ]));
-
-      // Gold display
-      merchantUIElements.push(k.add([
-        k.text(`Your Gold: ${GameState.player.gold}`, { size: 10 }),
-        k.pos(CANVAS_WIDTH / 2, 98),
-        k.anchor('center'),
-        k.color(251, 191, 36),
-        k.z(501),
-      ]));
-
-      renderMerchantItems();
-
-      // Instructions
-      merchantUIElements.push(k.add([
-        k.text('Up/Down: Select | ENTER: Buy | ESC: Leave', { size: 9 }),
-        k.pos(CANVAS_WIDTH / 2, 248),
-        k.anchor('center'),
-        k.color(150, 150, 150),
-        k.z(501),
-      ]));
-    }
-
-    function renderMerchantItems(): void {
-      // Remove old item elements
-      merchantUIElements = merchantUIElements.filter(e => {
-        if ((e as any)._isItem) {
-          try { k.destroy(e); } catch {}
-          return false;
-        }
-        return true;
-      });
-
-      // Gold display (update)
-      merchantUIElements = merchantUIElements.filter(e => {
-        if ((e as any)._isGold) {
-          try { k.destroy(e); } catch {}
-          return false;
-        }
-        return true;
-      });
-
-      const goldDisplay = k.add([
-        k.text(`Your Gold: ${GameState.player.gold}`, { size: 10 }),
-        k.pos(CANVAS_WIDTH / 2, 98),
-        k.anchor('center'),
-        k.color(251, 191, 36),
-        k.z(501),
-      ]) as any;
-      goldDisplay._isGold = true;
-      merchantUIElements.push(goldDisplay);
-
-      MERCHANT_ITEMS.forEach((itemId, i) => {
-        const item = ITEMS[itemId];
-        if (!item) return;
-
-        const isSelected = i === merchantSelectedItem;
-        const canAfford = GameState.player.gold >= item.buyPrice;
-
-        const itemBg = k.add([
-          k.rect(260, 36),
-          k.pos(CANVAS_WIDTH / 2 - 130, 115 + i * 42),
-          k.color(isSelected ? 40 : 25, isSelected ? 50 : 30, isSelected ? 70 : 45),
-          k.outline(2, k.rgb(isSelected ? 255 : 100, isSelected ? 200 : 150, isSelected ? 100 : 100)),
-          k.z(501),
-        ]) as any;
-        itemBg._isItem = true;
-        merchantUIElements.push(itemBg);
-
-        const nameText = k.add([
-          k.text(item.name, { size: 11 }),
-          k.pos(CANVAS_WIDTH / 2 - 120, 123 + i * 42),
-          k.color(255, 255, 255),
-          k.z(502),
-        ]) as any;
-        nameText._isItem = true;
-        merchantUIElements.push(nameText);
-
-        const priceColor = canAfford ? [100, 255, 100] : [255, 100, 100];
-        const priceText = k.add([
-          k.text(`${item.buyPrice}g`, { size: 10 }),
-          k.pos(CANVAS_WIDTH / 2 + 100, 124 + i * 42),
-          k.anchor('right'),
-          k.color(...priceColor as [number, number, number]),
-          k.z(502),
-        ]) as any;
-        priceText._isItem = true;
-        merchantUIElements.push(priceText);
-
-        const descText = k.add([
-          k.text(item.description, { size: 9 }),
-          k.pos(CANVAS_WIDTH / 2 - 120, 137 + i * 42),
-          k.color(180, 180, 180),
-          k.z(502),
-        ]) as any;
-        descText._isItem = true;
-        merchantUIElements.push(descText);
-      });
-    }
-
-    function handleMerchantInput(key: string): void {
-      if (!merchantActive) return;
-
-      if (key === 'escape') {
-        clearMerchantUI();
-        showFloatingMessage('Come again!', CANVAS_WIDTH / 2, 140, [255, 200, 100]);
-        return;
-      }
-
-      if (key === 'up' && merchantSelectedItem > 0) {
-        merchantSelectedItem--;
-        renderMerchantItems();
-      } else if (key === 'down' && merchantSelectedItem < MERCHANT_ITEMS.length - 1) {
-        merchantSelectedItem++;
-        renderMerchantItems();
-      } else if (key === 'enter') {
-        const itemId = MERCHANT_ITEMS[merchantSelectedItem];
-        const item = ITEMS[itemId];
-        if (!item) return;
-
-        if (GameState.player.gold >= item.buyPrice) {
-          GameState.player.gold -= item.buyPrice;
-
-          // Apply item effect immediately (for potions)
-          if (item.effect?.type === 'heal') {
-            const healAmount = Math.min(
-              item.effect.value,
-              GameState.player.maxHealth - GameState.player.health
-            );
-            GameState.player.health = Math.min(
-              GameState.player.maxHealth,
-              GameState.player.health + item.effect.value
-            );
-            playSound(k, 'heal');
-            showFloatingMessage(`+${healAmount} HP!`, CANVAS_WIDTH / 2, 60, [100, 255, 100]);
-          }
-
-          playSound(k, 'goldCollect');
-          renderMerchantItems();
-        } else {
-          showFloatingMessage('Not enough gold!', CANVAS_WIDTH / 2, 60, [255, 100, 100]);
-        }
-      }
-    }
-
-    function checkForNearbyMerchants(): void {
-      const room = GameState.getCurrentRoom();
-      if (!room) return;
-
-      nearbyMerchant = null;
-
-      for (const content of room.contents) {
-        if (content.type !== 'npc') continue;
-        if (content.data?.npcType !== 'merchant') continue;
-
-        const bounds = renderer.getMovementBounds();
-        const roomWidth = bounds.maxX - bounds.minX + 32;
-        const roomHeight = bounds.maxY - bounds.minY + 32;
-        const x = bounds.minX - 16 + content.x * roomWidth;
-        const y = bounds.minY - 16 + content.y * roomHeight;
-
-        if (player.entity.pos.dist(k.vec2(x, y)) < SEARCH_DISTANCE) {
-          nearbyMerchant = content;
-          break;
-        }
-      }
-    }
-
     // --- INTERACTION DETECTION ---
     k.onUpdate(() => {
-      if (isTransitioning || puzzleActive || merchantActive) return;
+      if (isTransitioning || puzzleActive || merchantUI.isActive) return;
 
       const room = GameState.getCurrentRoom();
       if (!room) return;
@@ -835,7 +672,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       checkForNearbySecrets();
 
       // Check for nearby merchants
-      checkForNearbyMerchants();
+      merchantUI.checkNearby({ x: player.entity.pos.x, y: player.entity.pos.y });
 
       // Check content triggers
       for (const content of room.contents) {
@@ -994,6 +831,13 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
             GameState.dungeon.floor = null;
             GameState.dungeon.floorNumber = 1;
             GameState.dungeon.currentRoomId = '';
+
+            // Clear dungeon progress in cloud (dungeon completed)
+            if (characterId && GameState.isCloudSyncEnabled()) {
+              saveDungeonProgress(characterId, null, 0)
+                .catch(err => console.warn('Failed to clear dungeon progress:', err));
+            }
+
             cleanup();
             k.go('town');
           });
@@ -1106,7 +950,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
 
     // --- INPUT ---
     const handleInteraction = () => {
-      if (puzzleActive || merchantActive) return;
+      if (puzzleActive || merchantUI.isActive) return;
       if (isTransitioning || !highlightedDoor) return;
 
       const room = GameState.getCurrentRoom()!;
@@ -1119,42 +963,42 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     // Store key handler cancel functions to clean up on scene exit
     cleanupFunctions.push(
       k.onKeyPress('enter', () => {
-        if (merchantActive) {
-          handleMerchantInput('enter');
+        if (merchantUI.isActive) {
+          merchantUI.handleInput('enter');
         } else if (puzzleActive) {
           handlePuzzleInput('enter');
-        } else if (nearbyMerchant) {
+        } else if (merchantUI.nearbyMerchant) {
           // Open merchant UI when near merchant and pressing enter
-          showMerchantUI(nearbyMerchant);
+          merchantUI.show(merchantUI.nearbyMerchant);
         } else {
           handleInteraction();
         }
       }).cancel,
       k.onKeyPress('space', () => {
-        if (puzzleActive || merchantActive) return;
+        if (puzzleActive || merchantUI.isActive) return;
 
         // Search for secrets or interact with merchant
         if (nearbySecret) {
           discoverSecret();
-        } else if (nearbyMerchant) {
-          showMerchantUI(nearbyMerchant);
+        } else if (merchantUI.nearbyMerchant) {
+          merchantUI.show(merchantUI.nearbyMerchant);
         } else {
           handleInteraction();
         }
       }).cancel,
       k.onKeyPress('escape', () => {
-        if (merchantActive) {
-          handleMerchantInput('escape');
+        if (merchantUI.isActive) {
+          merchantUI.handleInput('escape');
         } else if (puzzleActive) {
           handlePuzzleInput('escape');
         }
       }).cancel,
       k.onKeyPress('up', () => {
-        if (merchantActive) handleMerchantInput('up');
+        if (merchantUI.isActive) merchantUI.handleInput('up');
         else if (puzzleActive) handlePuzzleInput('up');
       }).cancel,
       k.onKeyPress('down', () => {
-        if (merchantActive) handleMerchantInput('down');
+        if (merchantUI.isActive) merchantUI.handleInput('down');
         else if (puzzleActive) handlePuzzleInput('down');
       }).cancel,
       k.onKeyPress('right', () => {
@@ -1177,7 +1021,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       activeTweenCancels.clear();
 
       clearPuzzleUI();
-      clearMerchantUI();
+      merchantUI.clear();
     }
 
     // --- ROOM TRANSITION ---
@@ -1219,7 +1063,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
 
     // --- UI ---
     k.onDraw(() => {
-      if (puzzleActive || merchantActive) return;
+      if (puzzleActive || merchantUI.isActive) return;
 
       const room = GameState.getCurrentRoom();
       if (!room) return;
@@ -1264,7 +1108,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       }
 
       // Secret search prompt
-      if (nearbySecret && !highlightedDoor && !nearbyMerchant) {
+      if (nearbySecret && !highlightedDoor && !merchantUI.nearbyMerchant) {
         k.drawRect({
           pos: k.vec2(CANVAS_WIDTH / 2 - 80, CANVAS_HEIGHT - 28),
           width: 160,
@@ -1282,7 +1126,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       }
 
       // Merchant interaction prompt
-      if (nearbyMerchant && !highlightedDoor) {
+      if (merchantUI.nearbyMerchant && !highlightedDoor) {
         k.drawRect({
           pos: k.vec2(CANVAS_WIDTH / 2 - 80, CANVAS_HEIGHT - 28),
           width: 160,

@@ -214,7 +214,7 @@ export function registerTitleScene(k: KAPLAYCtx): void {
       return { entity, label, action };
     }
 
-    buttons.push(createButton('New Game', buttonY, () => {
+    buttons.push(createButton('New Game', buttonY, async () => {
       const selectedCat = allCats[selectedCatIndex];
       const isUnlocked = isCatUnlocked(selectedCat, playerStats);
 
@@ -234,6 +234,10 @@ export function registerTitleScene(k: KAPLAYCtx): void {
 
       playSound(k, 'menuConfirm');
       playCatMeow(k);
+
+      // Initialize cloud sync for new game (so progress can be saved)
+      await GameState.initializeCloudForNewGame();
+
       GameState.reset();
       GameState.setCatColor(selectedCat);
       k.go('town', { catColor: selectedCat });
@@ -258,7 +262,18 @@ export function registerTitleScene(k: KAPLAYCtx): void {
 
       if (success) {
         playCatMeow(k);
-        k.go('town', { catColor: GameState.player.catColor });
+
+        // Check if player was in a dungeon - resume there if so
+        if (GameState.hasActiveDungeonRun()) {
+          console.log(`Resuming dungeon: ${GameState.dungeon.dungeonId} floor ${GameState.dungeon.floorNumber}`);
+          k.go('dungeon', {
+            catColor: GameState.player.catColor,
+            dungeonId: GameState.dungeon.dungeonId,
+            floorNumber: GameState.dungeon.floorNumber,
+          });
+        } else {
+          k.go('town', { catColor: GameState.player.catColor });
+        }
       } else {
         // Show error message
         const errorMsg = k.add([

@@ -29,12 +29,19 @@ import {
   getColliders,
 } from '../maps/index.js';
 import { loadTownTiles, type BuildingType } from '../sprites/townSprites.js';
+import { saveDungeonProgress } from '../services/StudyQuestService.js';
 
-// Map scaling - the tilemap is 640x480 (40x30 tiles at 16px), we scale to fit 640x400
-// Using 0.833 scale: 480*0.833=400 (fits height exactly)
-const MAP_SCALE = CANVAS_HEIGHT / 480; // ~0.833
+// Map dimensions (40x30 tiles at 16px)
+const MAP_WIDTH = 640;
+const MAP_HEIGHT = 480;
+
+// Render map at full size (no scaling down)
+const MAP_SCALE = 1.0;
 const MAP_OFFSET_X = 0;
 const MAP_OFFSET_Y = 0;
+
+// Camera zoom - higher = more zoomed in (shows less map at once)
+const CAMERA_ZOOM = 1.5;
 
 // Door name to scene mapping
 const DOOR_SCENE_MAP: Record<string, { label: string; scene: string; buildingType: BuildingType }> = {
@@ -56,6 +63,22 @@ const CAT_VILLAGE_TMX_PATH = '../../assets/MAPS/Tile Maps/cat_village.tmx';
 export function registerTownScene(k: KAPLAYCtx): void {
   k.scene('town', async (data: TownSceneData = {}) => {
     const catColor = data.catColor || GameState.player.catColor;
+
+    // Clear any active dungeon run when entering town (player abandoned dungeon)
+    if (GameState.hasActiveDungeonRun()) {
+      console.log('Clearing abandoned dungeon run');
+      GameState.dungeon.dungeonId = 'training';
+      GameState.dungeon.floorNumber = 1;
+      GameState.dungeon.floor = null;
+      GameState.dungeon.currentRoomId = '';
+
+      // Also clear in cloud
+      const characterId = GameState.getCharacterId();
+      if (characterId && GameState.isCloudSyncEnabled()) {
+        saveDungeonProgress(characterId, null, 0)
+          .catch(err => console.warn('Failed to clear dungeon progress:', err));
+      }
+    }
 
     // --- BACKGROUND (fallback color) ---
     k.add([
@@ -161,22 +184,22 @@ export function registerTownScene(k: KAPLAYCtx): void {
           return true;
         }
       }
-      // Also check canvas bounds
-      if (x < halfWidth || x > CANVAS_WIDTH - halfWidth) return true;
-      if (y < halfHeight || y > CANVAS_HEIGHT - halfHeight) return true;
+      // Also check map bounds
+      if (x < halfWidth || x > MAP_WIDTH - halfWidth) return true;
+      if (y < halfHeight || y > MAP_HEIGHT - halfHeight) return true;
       return false;
     };
 
-    // Setup movement with collision callback
+    // Setup movement with collision callback (bounds = full map size)
     setupMovement({
       k,
       player,
       speed: PLAYER_SPEED,
       bounds: {
-        minX: 0,
-        maxX: CANVAS_WIDTH,
-        minY: 0,
-        maxY: CANVAS_HEIGHT,
+        minX: 16,
+        maxX: MAP_WIDTH - 16,
+        minY: 16,
+        maxY: MAP_HEIGHT - 16,
       },
       collisionCheck: isColliding,
     });
@@ -188,13 +211,36 @@ export function registerTownScene(k: KAPLAYCtx): void {
       interactables,
     });
 
-    // --- UI OVERLAY ---
+    // --- CAMERA ZOOM & FOLLOW ---
+    k.camScale(CAMERA_ZOOM);
+
+    // Calculate visible area dimensions
+    const visibleWidth = CANVAS_WIDTH / CAMERA_ZOOM;
+    const visibleHeight = CANVAS_HEIGHT / CAMERA_ZOOM;
+    const halfVisibleW = visibleWidth / 2;
+    const halfVisibleH = visibleHeight / 2;
+
+    // Camera follow with bounds clamping
+    k.onUpdate(() => {
+      // Center camera on player
+      let camX = player.entity.pos.x;
+      let camY = player.entity.pos.y;
+
+      // Clamp camera to map bounds (prevent showing outside map)
+      camX = Math.max(halfVisibleW, Math.min(camX, MAP_WIDTH - halfVisibleW));
+      camY = Math.max(halfVisibleH, Math.min(camY, MAP_HEIGHT - halfVisibleH));
+
+      k.setCamPos(camX, camY);
+    });
+
+    // --- UI OVERLAY (fixed to screen, not affected by camera) ---
     // HUD background
     k.add([
       k.rect(120, 50),
       k.pos(10, 10),
       k.color(0, 0, 0),
       k.opacity(0.6),
+      k.fixed(),
       k.z(50),
     ]);
 
@@ -203,6 +249,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
       k.text(`Lv.${GameState.player.level}`, { size: 12 }),
       k.pos(20, 20),
       k.color(255, 255, 255),
+      k.fixed(),
       k.z(51),
     ]);
 
@@ -210,6 +257,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
       k.text(`Gold: ${GameState.player.gold}`, { size: 10 }),
       k.pos(20, 38),
       k.color(251, 191, 36),
+      k.fixed(),
       k.z(51),
     ]);
 
@@ -219,6 +267,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
       k.pos(CANVAS_WIDTH / 2, 10),
       k.anchor('top'),
       k.color(100, 100, 120),
+      k.fixed(),
       k.z(50),
     ]);
 

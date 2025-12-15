@@ -25,6 +25,9 @@ export interface CharacterData {
   battlesWon: number;
   battlesLost: number;
   dungeonsCompleted: number;
+  // Dungeon progress fields for cloud save/continue
+  currentDungeonId?: string | null;
+  currentFloor?: number;
 }
 
 export interface InventorySlot {
@@ -32,8 +35,8 @@ export interface InventorySlot {
   quantity: number;
 }
 
-// Use the Electron IPC API exposed via preload
-const ipc = (window as Window & { electronAPI?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }).electronAPI;
+// Use the Electron IPC API exposed via preload (exposed as 'scribeCat' in preload.ts)
+const ipc = (window as Window & { scribeCat?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }).scribeCat;
 
 // IPC timeout and retry configuration
 const IPC_TIMEOUT_MS = 5000; // 5 second timeout
@@ -81,14 +84,17 @@ export function isIPCAvailable(): boolean {
 
 /**
  * Get the current user ID from the auth system
+ * Uses RendererSupabaseClient directly since auth state lives in renderer (localStorage)
  */
 export async function getCurrentUserId(): Promise<string | null> {
-  if (!ipc?.invoke) return null;
-
   try {
-    const result = await ipc.invoke('auth:getCurrentUser') as { success: boolean; user?: { id: string } };
-    return result.success && result.user ? result.user.id : null;
-  } catch {
+    // Dynamic import to avoid circular dependencies
+    const { RendererSupabaseClient } = await import('../../services/RendererSupabaseClient.js');
+    const client = RendererSupabaseClient.getInstance().getClient();
+    const { data: { session } } = await client.auth.getSession();
+    return session?.user?.id || null;
+  } catch (err) {
+    console.error('Error getting current user ID:', err);
     return null;
   }
 }
@@ -304,5 +310,30 @@ export async function getLeaderboard(limit = 10): Promise<Array<{
   } catch (err) {
     console.error('Error getting leaderboard:', err);
     return [];
+  }
+}
+
+/**
+ * Save dungeon progress (for cloud save/continue)
+ * Set dungeonId to null when exiting dungeon
+ */
+export async function saveDungeonProgress(
+  characterId: string,
+  dungeonId: string | null,
+  floor: number
+): Promise<boolean> {
+  if (!ipc?.invoke) return false;
+
+  try {
+    const result = await ipc.invoke('studyquest:save-dungeon-progress', {
+      characterId,
+      dungeonId,
+      floor,
+    }) as { success: boolean };
+
+    return result.success;
+  } catch (err) {
+    console.error('Error saving dungeon progress:', err);
+    return false;
   }
 }
