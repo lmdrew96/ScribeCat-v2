@@ -306,7 +306,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
     ]);
 
     k.add([
-      k.text(`Gold: ${GameState.player.gold}`, { size: 10 }),
+      k.text(`Gold: ${GameState.player.gold}`, { size: 13 }),
       k.pos(20, 38),
       k.color(251, 191, 36),
       k.fixed(),
@@ -315,7 +315,7 @@ export function registerTownScene(k: KAPLAYCtx): void {
 
     // Controls hint
     k.add([
-      k.text('Arrow/WASD: Move | ENTER: Interact | ESC: Menu', { size: 8 }),
+      k.text('Arrow/WASD: Move | ENTER: Interact | I: Inventory | ESC: Menu', { size: 12 }),
       k.pos(CANVAS_WIDTH / 2, 10),
       k.anchor('top'),
       k.color(100, 100, 120),
@@ -331,6 +331,13 @@ export function registerTownScene(k: KAPLAYCtx): void {
         return;
       }
       k.go('title');
+    });
+
+    // --- INVENTORY (I) ---
+    k.onKeyPress('i', () => {
+      // Don't open if dungeon selection is active
+      if (dungeonSelectionUI?.isActive) return;
+      k.go('inventory', { fromScene: 'town' });
     });
 
     // Debug

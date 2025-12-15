@@ -229,6 +229,12 @@ export class RoomRenderer {
         // Secret is discovered but not claimed - render it
       }
 
+      // TRAPS: Completely invisible until triggered (makes them dangerous!)
+      if (content.type === 'trap' && !content.triggered) {
+        // Trap is hidden - player won't see it coming
+        continue;
+      }
+
       // For exit that requires boss defeat, check status
       if (content.type === 'exit' && content.data?.requiresBossDefeated && !content.data?.bossDefeated) {
         const bossEnemies = room.contents.filter(c => c.type === 'enemy' && c.data?.isBoss);
@@ -348,7 +354,7 @@ export class RoomRenderer {
     if (type === 'puzzle' && data?.puzzleName) {
       this.objects.push(
         k.add([
-          k.text(data.puzzleName, { size: 8 }),
+          k.text(data.puzzleName, { size: 12 }),
           k.pos(x, y + 22),
           k.anchor('center'),
           k.color(180, 200, 255),
@@ -360,7 +366,7 @@ export class RoomRenderer {
     if (type === 'secret' && data?.secretName) {
       this.objects.push(
         k.add([
-          k.text(data.secretName, { size: 8 }),
+          k.text(data.secretName, { size: 12 }),
           k.pos(x, y + 22),
           k.anchor('center'),
           k.color(255, 220, 100),

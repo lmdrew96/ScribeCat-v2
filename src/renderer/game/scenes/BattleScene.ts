@@ -13,15 +13,22 @@ import { loadCatSprites, getCatSpriteName } from '../sprites/catSprites.js';
 import { createEnemy, createPlaceholderEnemy, BATTLE_TARGET_SIZE } from '../components/Enemy.js';
 import {
   calculateDamage,
+  calculateDamageWithBuffs,
   applyDamage,
   applyHealing,
   isDefeated,
   decideEnemyAction,
   attemptFlee,
   getLevelUpStats,
+  applyBuff,
+  tickBuffs,
+  getBuffBonus,
+  regenerateMana,
   type BattlePhase,
   type PlayerAction,
   type CombatStats,
+  type ActiveBuff,
+  type BuffType,
 } from '../systems/battle.js';
 import {
   flashEntity,
@@ -70,7 +77,13 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       attack: GameState.getEffectiveAttack(),
       defense: GameState.getEffectiveDefense(),
       luck: GameState.getEffectiveLuck(),
+      mana: GameState.player.mana,
+      maxMana: GameState.getEffectiveMaxMana(),
+      manaRegen: GameState.getEffectiveManaRegen(),
     };
+
+    // Buff tracking
+    let playerBuffs: ActiveBuff[] = [];
 
     // Battle state with scene lifecycle tracking
     let phase: BattlePhase = 'intro';
@@ -79,6 +92,11 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     let menuVisible = false;
     let sceneActive = true;  // Track if scene is still active for promise handling
     let actionInProgress = false;  // Prevent multiple simultaneous actions
+
+    // Item menu state
+    let itemMenuVisible = false;
+    let selectedItemIndex = 0;
+    let itemMenuElements: GameObj[] = [];
 
     // Track cleanup functions for handlers to prevent accumulation on scene re-entry
     const cleanupFunctions: (() => void)[] = [];
@@ -137,7 +155,7 @@ export function registerBattleScene(k: KAPLAYCtx): void {
 
     // --- HEADER ---
     k.add([k.text(enemyDef.name, { size: 14 }), k.pos(20, 15), k.color(255, 255, 255), k.z(100)]);
-    k.add([k.text(`Floor ${floorLevel}`, { size: 10 }), k.pos(CANVAS_WIDTH - 80, 15), k.color(200, 200, 200), k.z(100)]);
+    k.add([k.text(`Floor ${floorLevel}`, { size: 13 }), k.pos(CANVAS_WIDTH - 80, 15), k.color(200, 200, 200), k.z(100)]);
 
     // --- ENEMY SPRITE (uses target size for dynamic scaling) ---
     let enemyEntity: GameObj;
@@ -174,30 +192,50 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     const enemyHpBar = k.add([k.rect(146, 5), k.pos(CANVAS_WIDTH - 178, 42), k.color(240, 60, 60), k.z(101)]);
     const enemyHpBarBottom = k.add([k.rect(146, 5), k.pos(CANVAS_WIDTH - 178, 47), k.color(180, 40, 40), k.z(101)]);
     k.add([k.rect(140, 2), k.pos(CANVAS_WIDTH - 175, 43), k.color(255, 150, 150), k.opacity(0.4), k.z(102)]);
-    const enemyHpLabel = k.add([k.text(`${enemyStats.hp}/${enemyStats.maxHp}`, { size: 8 }), k.pos(CANVAS_WIDTH - 105, 46), k.anchor('center'), k.color(255, 255, 255), k.z(103)]);
+    const enemyHpLabel = k.add([k.text(`${enemyStats.hp}/${enemyStats.maxHp}`, { size: 12 }), k.pos(CANVAS_WIDTH - 105, 46), k.anchor('center'), k.color(255, 255, 255), k.z(103)]);
 
     // Player HP bar
-    k.add([k.rect(186, 22), k.pos(17, CANVAS_HEIGHT - 113), k.color(0, 0, 0), k.z(99)]);
-    k.add([k.rect(182, 18), k.pos(19, CANVAS_HEIGHT - 111), k.color(40, 40, 40), k.z(100)]);
-    k.add([k.rect(178, 14), k.pos(21, CANVAS_HEIGHT - 109), k.color(20, 50, 30), k.z(100)]);
-    const playerHpBar = k.add([k.rect(176, 6), k.pos(22, CANVAS_HEIGHT - 108), k.color(60, 220, 100), k.z(101)]);
-    const playerHpBarBottom = k.add([k.rect(176, 6), k.pos(22, CANVAS_HEIGHT - 102), k.color(40, 160, 70), k.z(101)]);
-    k.add([k.rect(168, 2), k.pos(26, CANVAS_HEIGHT - 106), k.color(180, 255, 200), k.opacity(0.4), k.z(102)]);
-    const playerHpLabel = k.add([k.text(`HP: ${playerStats.hp}/${playerStats.maxHp}`, { size: 10 }), k.pos(110, CANVAS_HEIGHT - 102), k.anchor('center'), k.color(255, 255, 255), k.z(103)]);
+    k.add([k.rect(186, 22), k.pos(17, CANVAS_HEIGHT - 133), k.color(0, 0, 0), k.z(99)]);
+    k.add([k.rect(182, 18), k.pos(19, CANVAS_HEIGHT - 131), k.color(40, 40, 40), k.z(100)]);
+    k.add([k.rect(178, 14), k.pos(21, CANVAS_HEIGHT - 129), k.color(20, 50, 30), k.z(100)]);
+    const playerHpBar = k.add([k.rect(176, 6), k.pos(22, CANVAS_HEIGHT - 128), k.color(60, 220, 100), k.z(101)]);
+    const playerHpBarBottom = k.add([k.rect(176, 6), k.pos(22, CANVAS_HEIGHT - 122), k.color(40, 160, 70), k.z(101)]);
+    k.add([k.rect(168, 2), k.pos(26, CANVAS_HEIGHT - 126), k.color(180, 255, 200), k.opacity(0.4), k.z(102)]);
+    const playerHpLabel = k.add([k.text(`HP: ${playerStats.hp}/${playerStats.maxHp}`, { size: 13 }), k.pos(110, CANVAS_HEIGHT - 122), k.anchor('center'), k.color(255, 255, 255), k.z(103)]);
+
+    // Player MP bar (below HP bar)
+    k.add([k.rect(186, 18), k.pos(17, CANVAS_HEIGHT - 113), k.color(0, 0, 0), k.z(99)]);
+    k.add([k.rect(182, 14), k.pos(19, CANVAS_HEIGHT - 111), k.color(40, 40, 40), k.z(100)]);
+    k.add([k.rect(178, 10), k.pos(21, CANVAS_HEIGHT - 109), k.color(20, 30, 50), k.z(100)]);
+    const playerMpBar = k.add([k.rect(176, 4), k.pos(22, CANVAS_HEIGHT - 108), k.color(100, 150, 255), k.z(101)]);
+    const playerMpBarBottom = k.add([k.rect(176, 4), k.pos(22, CANVAS_HEIGHT - 104), k.color(70, 110, 200), k.z(101)]);
+    k.add([k.rect(168, 2), k.pos(26, CANVAS_HEIGHT - 107), k.color(180, 200, 255), k.opacity(0.4), k.z(102)]);
+    const playerMpLabel = k.add([k.text(`MP: ${playerStats.mana}/${playerStats.maxMana}`, { size: 12 }), k.pos(110, CANVAS_HEIGHT - 105), k.anchor('center'), k.color(255, 255, 255), k.z(103)]);
+
+    // Buff indicator area (shows active buffs)
+    const buffLabel = k.add([k.text('', { size: 12 }), k.pos(17, CANVAS_HEIGHT - 93), k.color(255, 220, 100), k.z(103)]);
 
     // --- ACTION MENU ---
-    const menuBg = k.add([k.rect(280, 80), k.pos(CANVAS_WIDTH / 2 - 140, CANVAS_HEIGHT - 95), k.color(30, 30, 50), k.outline(3, k.rgb(100, 100, 150)), k.opacity(0), k.z(150)]);
+    const menuBg = k.add([k.rect(340, 80), k.pos(CANVAS_WIDTH / 2 - 170, CANVAS_HEIGHT - 95), k.color(30, 30, 50), k.outline(3, k.rgb(100, 100, 150)), k.opacity(0), k.z(150)]);
 
-    const actions: PlayerAction[] = ['attack', 'defend', 'item', 'flee'];
-    const actionLabels = ['Attack', 'Defend', 'Item', 'Run'];
+    type ExtendedPlayerAction = PlayerAction | 'magic';
+    const actions: ExtendedPlayerAction[] = ['attack', 'magic', 'defend', 'item', 'flee'];
+    const actionLabels = ['Attack', 'Magic', 'Defend', 'Item', 'Run'];
     const actionEntities: GameObj[] = [];
-    const menuStartX = CANVAS_WIDTH / 2 - 120;
+    const menuStartX = CANVAS_WIDTH / 2 - 150;
     const menuStartY = CANVAS_HEIGHT - 75;
 
+    // Layout: Row 1: Attack, Magic, Defend | Row 2: Item, Run
+    const menuPositions = [
+      { col: 0, row: 0 }, // Attack
+      { col: 1, row: 0 }, // Magic
+      { col: 2, row: 0 }, // Defend
+      { col: 0, row: 1 }, // Item
+      { col: 1, row: 1 }, // Run
+    ];
     actions.forEach((action, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const label = k.add([k.text(actionLabels[i], { size: 12 }), k.pos(menuStartX + col * 130, menuStartY + row * 30), k.color(200, 200, 200), k.opacity(0), k.z(151), { action, index: i }]);
+      const { col, row } = menuPositions[i];
+      const label = k.add([k.text(actionLabels[i], { size: 12 }), k.pos(menuStartX + col * 110, menuStartY + row * 30), k.color(200, 200, 200), k.opacity(0), k.z(151), { action, index: i }]);
       actionEntities.push(label);
     });
 
@@ -295,13 +333,195 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     }
 
     function updateCursor(): void {
-      const col = selectedAction % 2;
-      const row = Math.floor(selectedAction / 2);
-      cursor.pos.x = menuStartX - 15 + col * 130;
+      const { col, row } = menuPositions[selectedAction];
+      cursor.pos.x = menuStartX - 15 + col * 110;
       cursor.pos.y = menuStartY + row * 30;
       actionEntities.forEach((e, i) => {
         e.color = i === selectedAction ? k.rgb(255, 255, 100) : k.rgb(200, 200, 200);
       });
+    }
+
+    function updatePlayerMp(): void {
+      const ratio = (playerStats.mana || 0) / (playerStats.maxMana || 1);
+      playerMpBar.width = 176 * ratio;
+      playerMpBarBottom.width = 176 * ratio;
+      playerMpLabel.text = `MP: ${playerStats.mana}/${playerStats.maxMana}`;
+    }
+
+    function updateBuffDisplay(): void {
+      if (playerBuffs.length === 0) {
+        buffLabel.text = '';
+        return;
+      }
+      const buffTexts = playerBuffs.map((buff) => {
+        const sign = buff.value > 0 ? '+' : '';
+        const statName = buff.type.toUpperCase().slice(0, 3);
+        return `${statName}${sign}${buff.value}(${buff.remainingTurns})`;
+      });
+      buffLabel.text = buffTexts.join(' ');
+    }
+
+    // --- ITEM MENU ---
+    function getConsumableItems(): { id: string; quantity: number; name: string; description: string }[] {
+      const items = GameState.player.items || [];
+      return items
+        .filter((item) => {
+          const def = getItem(item.id);
+          return def && def.type === 'consumable' && item.quantity > 0;
+        })
+        .map((item) => {
+          const def = getItem(item.id)!;
+          return {
+            id: item.id,
+            quantity: item.quantity,
+            name: def.name,
+            description: def.description,
+          };
+        });
+    }
+
+    function clearItemMenu(): void {
+      for (const e of itemMenuElements) {
+        try { if (e.exists()) k.destroy(e); } catch {}
+      }
+      itemMenuElements = [];
+    }
+
+    function showItemMenu(): void {
+      itemMenuVisible = true;
+      selectedItemIndex = 0;
+      hideMenu();
+      renderItemMenu();
+    }
+
+    function hideItemMenu(): void {
+      itemMenuVisible = false;
+      clearItemMenu();
+    }
+
+    function renderItemMenu(): void {
+      clearItemMenu();
+
+      const consumables = getConsumableItems();
+      const menuX = CANVAS_WIDTH / 2 - 150;
+      const menuY = 130;
+      const menuWidth = 300;
+      const itemHeight = 28;
+      const maxVisible = 5;
+      const menuHeight = Math.min(consumables.length, maxVisible) * itemHeight + 60;
+
+      // Background
+      const bg = k.add([
+        k.rect(menuWidth, menuHeight),
+        k.pos(menuX, menuY),
+        k.color(20, 20, 40),
+        k.outline(3, k.rgb(100, 100, 150)),
+        k.z(200),
+      ]);
+      itemMenuElements.push(bg);
+
+      // Title
+      const title = k.add([
+        k.text('Select Item', { size: 14 }),
+        k.pos(CANVAS_WIDTH / 2, menuY + 15),
+        k.anchor('center'),
+        k.color(255, 255, 255),
+        k.z(201),
+      ]);
+      itemMenuElements.push(title);
+
+      if (consumables.length === 0) {
+        const noItems = k.add([
+          k.text('No items available!', { size: 13 }),
+          k.pos(CANVAS_WIDTH / 2, menuY + 50),
+          k.anchor('center'),
+          k.color(150, 150, 150),
+          k.z(201),
+        ]);
+        itemMenuElements.push(noItems);
+      } else {
+        // Calculate scroll offset
+        const scrollOffset = Math.max(0, selectedItemIndex - maxVisible + 1);
+        const visibleItems = consumables.slice(scrollOffset, scrollOffset + maxVisible);
+
+        visibleItems.forEach((item, i) => {
+          const actualIndex = scrollOffset + i;
+          const isSelected = actualIndex === selectedItemIndex;
+          const y = menuY + 35 + i * itemHeight;
+
+          // Item row background
+          const rowBg = k.add([
+            k.rect(menuWidth - 20, itemHeight - 4),
+            k.pos(menuX + 10, y),
+            k.color(isSelected ? 60 : 30, isSelected ? 60 : 30, isSelected ? 100 : 50),
+            k.outline(isSelected ? 2 : 1, k.rgb(isSelected ? 251 : 60, isSelected ? 191 : 60, isSelected ? 36 : 80)),
+            k.z(201),
+          ]);
+          itemMenuElements.push(rowBg);
+
+          // Cursor
+          if (isSelected) {
+            const cursor = k.add([
+              k.text('>', { size: 14 }),
+              k.pos(menuX + 15, y + 6),
+              k.color(255, 255, 100),
+              k.z(202),
+            ]);
+            itemMenuElements.push(cursor);
+          }
+
+          // Item name
+          const nameText = k.add([
+            k.text(item.name, { size: 13 }),
+            k.pos(menuX + 30, y + 6),
+            k.color(isSelected ? 255 : 200, isSelected ? 255 : 200, isSelected ? 255 : 200),
+            k.z(202),
+          ]);
+          itemMenuElements.push(nameText);
+
+          // Quantity
+          const qtyText = k.add([
+            k.text(`x${item.quantity}`, { size: 12 }),
+            k.pos(menuX + menuWidth - 35, y + 7),
+            k.color(150, 200, 150),
+            k.z(202),
+          ]);
+          itemMenuElements.push(qtyText);
+        });
+
+        // Scroll indicator
+        if (consumables.length > maxVisible) {
+          const scrollText = k.add([
+            k.text(`${selectedItemIndex + 1}/${consumables.length}`, { size: 11 }),
+            k.pos(CANVAS_WIDTH / 2, menuY + menuHeight - 18),
+            k.anchor('center'),
+            k.color(150, 150, 150),
+            k.z(201),
+          ]);
+          itemMenuElements.push(scrollText);
+        }
+      }
+
+      // Instructions
+      const instructions = k.add([
+        k.text('Up/Down: Select | ENTER: Use | ESC: Back', { size: 11 }),
+        k.pos(CANVAS_WIDTH / 2, menuY + menuHeight - 5),
+        k.anchor('center'),
+        k.color(120, 120, 120),
+        k.z(201),
+      ]);
+      itemMenuElements.push(instructions);
+    }
+
+    function endTurnEffects(): void {
+      // Tick buffs
+      playerBuffs = tickBuffs(playerBuffs);
+      updateBuffDisplay();
+
+      // Regenerate mana
+      regenerateMana(playerStats);
+      GameState.player.mana = playerStats.mana || 0;
+      updatePlayerMp();
     }
 
     // --- BATTLE ACTIONS ---
@@ -315,7 +535,8 @@ export function registerBattleScene(k: KAPLAYCtx): void {
         playSound(k, 'attack');
         await playAttackLunge(k, playerEntity, enemyEntity.pos.x);
         if (!sceneActive) return;
-        const result = calculateDamage(playerStats, enemyStats, false);
+        // Use calculateDamageWithBuffs to include buff effects
+        const result = calculateDamageWithBuffs(playerStats, enemyStats, playerBuffs, [], false);
         if (result.isMiss) {
           playSound(k, 'miss');
           showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, 'MISS', 'miss');
@@ -338,6 +559,86 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       }
     }
 
+    async function playerMagic(): Promise<void> {
+      // Check if player has a magic weapon equipped
+      const weaponId = GameState.player.equipped.weapon;
+      if (!weaponId) {
+        await showMessage('No weapon equipped!', 1.0);
+        return;
+      }
+      const weaponDef = getItem(weaponId);
+      if (!weaponDef?.specialAbility) {
+        await showMessage('No magic ability available!', 1.0);
+        return;
+      }
+
+      const ability = weaponDef.specialAbility;
+      const manaCost = ability.manaCost;
+
+      if ((playerStats.mana || 0) < manaCost) {
+        await showMessage(`Not enough MP! Need ${manaCost} MP.`, 1.0);
+        return;
+      }
+
+      if (actionInProgress || !setPhase('player_action')) return;
+      actionInProgress = true;
+      hideMenu();
+
+      try {
+        // Use mana
+        playerStats.mana = (playerStats.mana || 0) - manaCost;
+        GameState.player.mana = playerStats.mana;
+        updatePlayerMp();
+
+        await showMessage(`${ability.name}!`, 0.5);
+        if (!sceneActive) return;
+
+        playSound(k, 'magic');
+        flashEntity(k, playerEntity, [150, 100, 255], 0.3);
+        await k.wait(0.3);
+        if (!sceneActive) return;
+
+        // Magic attacks deal direct damage based on ability effect
+        const baseDamage = ability.effect.value;
+        const buffBonus = getBuffBonus(playerBuffs, 'attack');
+        const luckBonus = getBuffBonus(playerBuffs, 'luck');
+
+        // Magic has lower miss chance (2.5%)
+        if (Math.random() < 0.025) {
+          playSound(k, 'miss');
+          showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, 'MISS', 'miss');
+          await showMessage('Miss!', 0.8);
+        } else {
+          // Magic crits based on luck
+          const critChance = 0.10 + ((playerStats.luck || 0) + luckBonus) * 0.01;
+          const isCrit = Math.random() < critChance;
+          const critMultiplier = isCrit ? 1.5 : 1.0;
+
+          // Magic ignores some defense
+          const effectiveDefense = Math.floor(enemyStats.defense * 0.3);
+          const variance = 0.9 + Math.random() * 0.2;
+          let damage = Math.floor((baseDamage + buffBonus - effectiveDefense) * variance * critMultiplier);
+          damage = Math.max(1, damage);
+
+          applyDamage(enemyStats, damage);
+          updateEnemyHp();
+          playSound(k, isCrit ? 'criticalHit' : 'hit');
+          await playHurtEffect(k, enemyEntity);
+          shakeCamera(k, isCrit ? 10 : 6, 0.25);
+          flashEntity(k, enemyEntity, [200, 100, 255], 0.4);
+          showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, damage, isCrit ? 'crit' : 'damage');
+          if (isCrit) await showMessage(`Critical! ${damage} magic damage!`, 0.8);
+        }
+
+        if (!sceneActive) return;
+        if (isDefeated(enemyStats)) { await handleVictory(); return; }
+        playerDefending = false;
+        await enemyTurn();
+      } finally {
+        actionInProgress = false;
+      }
+    }
+
     async function playerDefend(): Promise<void> {
       if (actionInProgress || !setPhase('player_action')) return;
       actionInProgress = true;
@@ -348,6 +649,7 @@ export function registerBattleScene(k: KAPLAYCtx): void {
         flashEntity(k, playerEntity, [100, 100, 255], 0.3);
         await showMessage('You brace for impact!', 0.8);
         if (!sceneActive) return;
+        // Note: Don't call endTurnEffects here - wait until after enemy turn
         await enemyTurn();
       } finally {
         actionInProgress = false;
@@ -355,20 +657,38 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     }
 
     async function playerUseItem(): Promise<void> {
-      const items = GameState.player.items || [];
-      const consumables = items.filter((item) => {
-        const def = getItem(item.id);
-        return def && def.type === 'consumable' && item.quantity > 0;
-      });
-      if (consumables.length === 0) { await showMessage('No items to use!', 1.0); return; }
-      const itemToUse = consumables[0];
+      const consumables = getConsumableItems();
+      if (consumables.length === 0) {
+        await showMessage('No items to use!', 1.0);
+        return;
+      }
+      // Show item selection menu instead of auto-selecting
+      showItemMenu();
+    }
+
+    async function useSelectedItem(): Promise<void> {
+      const consumables = getConsumableItems();
+      if (consumables.length === 0 || selectedItemIndex >= consumables.length) {
+        hideItemMenu();
+        showMenu();
+        return;
+      }
+
+      const itemToUse = consumables[selectedItemIndex];
       const itemDef = getItem(itemToUse.id);
-      if (!itemDef || !itemDef.effect) return;
+      if (!itemDef || !itemDef.effect) {
+        hideItemMenu();
+        showMenu();
+        return;
+      }
+
       if (actionInProgress || !setPhase('player_action')) return;
       actionInProgress = true;
-      hideMenu();
+      hideItemMenu();
+
       try {
         GameState.removeItem(itemToUse.id, 1);
+
         if (itemDef.effect.type === 'heal') {
           const healAmount = applyHealing(playerStats, itemDef.effect.value);
           GameState.player.health = playerStats.hp;
@@ -377,7 +697,65 @@ export function registerBattleScene(k: KAPLAYCtx): void {
           flashEntity(k, playerEntity, EFFECT_COLORS.heal, 0.3);
           showFloatingNumber(k, playerEntity.pos.x, playerEntity.pos.y - 30, healAmount, 'heal');
           await showMessage(`Used ${itemDef.name}! Healed ${healAmount} HP!`, 1.0);
+        } else if (itemDef.effect.type === 'mana_restore') {
+          const oldMana = playerStats.mana || 0;
+          playerStats.mana = Math.min((playerStats.mana || 0) + itemDef.effect.value, playerStats.maxMana || 30);
+          GameState.player.mana = playerStats.mana;
+          const manaRestored = playerStats.mana - oldMana;
+          updatePlayerMp();
+          playSound(k, 'heal');
+          flashEntity(k, playerEntity, [100, 150, 255], 0.3);
+          showFloatingNumber(k, playerEntity.pos.x, playerEntity.pos.y - 30, manaRestored, 'heal');
+          await showMessage(`Used ${itemDef.name}! Restored ${manaRestored} MP!`, 1.0);
+        } else if (itemDef.effect.type === 'buff_attack') {
+          const buff: ActiveBuff = {
+            type: 'attack',
+            value: itemDef.effect.value,
+            remainingTurns: itemDef.effect.duration || 3,
+            source: itemDef.id,
+          };
+          applyBuff(playerBuffs, buff);
+          updateBuffDisplay();
+          playSound(k, 'powerUp');
+          flashEntity(k, playerEntity, [255, 150, 100], 0.3);
+          await showMessage(`Used ${itemDef.name}! ATK +${buff.value} for ${buff.remainingTurns} turns!`, 1.0);
+        } else if (itemDef.effect.type === 'buff_defense') {
+          const buff: ActiveBuff = {
+            type: 'defense',
+            value: itemDef.effect.value,
+            remainingTurns: itemDef.effect.duration || 3,
+            source: itemDef.id,
+          };
+          applyBuff(playerBuffs, buff);
+          updateBuffDisplay();
+          playSound(k, 'powerUp');
+          flashEntity(k, playerEntity, [100, 150, 255], 0.3);
+          await showMessage(`Used ${itemDef.name}! DEF +${buff.value} for ${buff.remainingTurns} turns!`, 1.0);
+        } else if (itemDef.effect.type === 'buff_luck') {
+          const buff: ActiveBuff = {
+            type: 'luck',
+            value: itemDef.effect.value,
+            remainingTurns: itemDef.effect.duration || 3,
+            source: itemDef.id,
+          };
+          applyBuff(playerBuffs, buff);
+          updateBuffDisplay();
+          playSound(k, 'powerUp');
+          flashEntity(k, playerEntity, [255, 220, 100], 0.3);
+          await showMessage(`Used ${itemDef.name}! LUCK +${buff.value} for ${buff.remainingTurns} turns!`, 1.0);
+        } else if (itemDef.effect.type === 'damage') {
+          // Damage items like Yarn Ball Bomb
+          const damage = itemDef.effect.value;
+          applyDamage(enemyStats, damage);
+          updateEnemyHp();
+          playSound(k, 'hit');
+          await playHurtEffect(k, enemyEntity);
+          shakeCamera(k, 5, 0.2);
+          showFloatingNumber(k, enemyEntity.pos.x, enemyEntity.pos.y - 30, damage, 'damage');
+          await showMessage(`Used ${itemDef.name}! Dealt ${damage} damage!`, 1.0);
+          if (isDefeated(enemyStats)) { await handleVictory(); return; }
         }
+
         if (!sceneActive) return;
         playerDefending = false;
         await enemyTurn();
@@ -417,6 +795,8 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       if (action === 'defend') {
         await showMessage(`${enemyDef.name} is defending!`, 0.8);
         if (!sceneActive) return;
+        // End of round effects (buff tick, mana regen)
+        endTurnEffects();
         phase = 'player_turn';
         showMenu();
         return;
@@ -426,7 +806,8 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       if (!sceneActive) return;
       await playAttackLunge(k, enemyEntity, playerEntity.pos.x, 20);
       if (!sceneActive) return;
-      const result = calculateDamage(enemyStats, playerStats, playerDefending);
+      // Use calculateDamageWithBuffs to apply player's defense buffs
+      const result = calculateDamageWithBuffs(enemyStats, playerStats, [], playerBuffs, playerDefending);
       if (result.isMiss) {
         showFloatingNumber(k, playerEntity.pos.x, playerEntity.pos.y - 30, 'MISS', 'miss');
         await showMessage('Dodged!', 0.8);
@@ -442,6 +823,8 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       if (!sceneActive) return;
       if (isDefeated(playerStats)) { await handleDefeat(); return; }
       playerDefending = false;
+      // End of round effects (buff tick, mana regen)
+      endTurnEffects();
       phase = 'player_turn';
       showMenu();
     }
@@ -513,6 +896,9 @@ export function registerBattleScene(k: KAPLAYCtx): void {
       // Cancel message timer
       clearMessage();
 
+      // Clear item menu if open
+      clearItemMenu();
+
       // Cancel all registered event handlers to prevent accumulation on scene re-entry
       cleanupFunctions.forEach((cancel) => {
         try { cancel(); } catch { /* handler may already be cancelled */ }
@@ -526,28 +912,118 @@ export function registerBattleScene(k: KAPLAYCtx): void {
     }
 
     // --- INPUT ---
+    // Menu navigation for 5 items:
+    // Row 0: Attack(0), Magic(1), Defend(2)
+    // Row 1: Item(3), Run(4)
+    function navigateUp(): void {
+      // Item menu navigation
+      if (itemMenuVisible) {
+        const consumables = getConsumableItems();
+        if (selectedItemIndex > 0) {
+          selectedItemIndex--;
+          renderItemMenu();
+        }
+        return;
+      }
+
+      if (!menuVisible) return;
+      const { row } = menuPositions[selectedAction];
+      if (row === 1) {
+        // Move from row 1 to row 0
+        selectedAction = selectedAction === 3 ? 0 : 1;
+        updateCursor();
+      }
+    }
+
+    function navigateDown(): void {
+      // Item menu navigation
+      if (itemMenuVisible) {
+        const consumables = getConsumableItems();
+        if (selectedItemIndex < consumables.length - 1) {
+          selectedItemIndex++;
+          renderItemMenu();
+        }
+        return;
+      }
+
+      if (!menuVisible) return;
+      const { row } = menuPositions[selectedAction];
+      if (row === 0) {
+        // Move from row 0 to row 1
+        selectedAction = selectedAction <= 1 ? 3 : 4;
+        updateCursor();
+      }
+    }
+
+    function navigateLeft(): void {
+      if (itemMenuVisible) return; // No left/right in item menu
+
+      if (!menuVisible) return;
+      const { col, row } = menuPositions[selectedAction];
+      if (col > 0) {
+        // Find previous item in same row
+        const prevIndex = menuPositions.findIndex(
+          (p, i) => p.row === row && p.col === col - 1 && i !== selectedAction
+        );
+        if (prevIndex !== -1) {
+          selectedAction = prevIndex;
+          updateCursor();
+        }
+      }
+    }
+
+    function navigateRight(): void {
+      if (itemMenuVisible) return; // No left/right in item menu
+
+      if (!menuVisible) return;
+      const { col, row } = menuPositions[selectedAction];
+      // Find next item in same row
+      const nextIndex = menuPositions.findIndex(
+        (p, i) => p.row === row && p.col === col + 1 && i !== selectedAction
+      );
+      if (nextIndex !== -1) {
+        selectedAction = nextIndex;
+        updateCursor();
+      }
+    }
+
+    function executeAction(): void {
+      // Item menu selection
+      if (itemMenuVisible) {
+        useSelectedItem();
+        return;
+      }
+
+      if (!menuVisible || phase !== 'player_turn') return;
+      const action = actions[selectedAction];
+      if (action === 'attack') playerAttack();
+      else if (action === 'magic') playerMagic();
+      else if (action === 'defend') playerDefend();
+      else if (action === 'item') playerUseItem();
+      else if (action === 'flee') playerFlee();
+    }
+
+    function handleEscape(): void {
+      // Close item menu and return to main battle menu
+      if (itemMenuVisible) {
+        hideItemMenu();
+        showMenu();
+      }
+    }
+
     // Store cancel functions to clean up when leaving scene
     cleanupFunctions.push(
-      k.onKeyPress('up', () => { if (menuVisible && selectedAction >= 2) { selectedAction -= 2; updateCursor(); } }).cancel,
-      k.onKeyPress('down', () => { if (menuVisible && selectedAction < 2) { selectedAction += 2; updateCursor(); } }).cancel,
-      k.onKeyPress('left', () => { if (menuVisible && selectedAction % 2 === 1) { selectedAction--; updateCursor(); } }).cancel,
-      k.onKeyPress('right', () => { if (menuVisible && selectedAction % 2 === 0 && selectedAction < 3) { selectedAction++; updateCursor(); } }).cancel,
-      k.onKeyPress('enter', () => {
-        if (!menuVisible || phase !== 'player_turn') return;
-        const action = actions[selectedAction];
-        if (action === 'attack') playerAttack();
-        else if (action === 'defend') playerDefend();
-        else if (action === 'item') playerUseItem();
-        else if (action === 'flee') playerFlee();
-      }).cancel,
-      k.onKeyPress('space', () => {
-        if (!menuVisible || phase !== 'player_turn') return;
-        const action = actions[selectedAction];
-        if (action === 'attack') playerAttack();
-        else if (action === 'defend') playerDefend();
-        else if (action === 'item') playerUseItem();
-        else if (action === 'flee') playerFlee();
-      }).cancel
+      k.onKeyPress('up', navigateUp).cancel,
+      k.onKeyPress('down', navigateDown).cancel,
+      k.onKeyPress('left', navigateLeft).cancel,
+      k.onKeyPress('right', navigateRight).cancel,
+      k.onKeyPress('w', navigateUp).cancel,
+      k.onKeyPress('s', navigateDown).cancel,
+      k.onKeyPress('a', navigateLeft).cancel,
+      k.onKeyPress('d', navigateRight).cancel,
+      k.onKeyPress('enter', executeAction).cancel,
+      k.onKeyPress('space', executeAction).cancel,
+      k.onKeyPress('escape', handleEscape).cancel
     );
 
     // --- START ---

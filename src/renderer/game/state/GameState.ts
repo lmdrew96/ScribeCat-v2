@@ -25,6 +25,12 @@ export interface EquippedItems {
   accessory: string | null;
 }
 
+export interface PlacedDecoration {
+  itemId: string;
+  x: number; // Grid cell X
+  y: number; // Grid cell Y
+}
+
 export interface PlayerData {
   catColor: CatColor;
   health: number;
@@ -38,11 +44,19 @@ export interface PlayerData {
   defense: number;
   luck: number;
 
+  // Mana system
+  mana: number;
+  maxMana: number;
+  baseMana: number; // Base mana before equipment bonuses
+
   // Inventory
   items: InventoryItem[];
 
   // Equipped items
   equipped: EquippedItems;
+
+  // Home decorations
+  placedDecorations: PlacedDecoration[];
 
   // Stats for cat unlocks
   battlesWon: number;
@@ -69,6 +83,9 @@ class GameStateManager {
     attack: 15,
     defense: 5,
     luck: 0,
+    mana: 30,
+    maxMana: 30,
+    baseMana: 30, // Base mana before equipment
     items: [
       { id: 'health_potion', quantity: 3 }, // Start with 3 potions
     ],
@@ -77,6 +94,7 @@ class GameStateManager {
       armor: null,
       accessory: null,
     },
+    placedDecorations: [],
     battlesWon: 0,
     battlesLost: 0,
     totalGoldEarned: 0,
@@ -412,7 +430,7 @@ class GameStateManager {
   /**
    * Get stat bonus from a specific equipment slot
    */
-  getEquipmentBonus(stat: 'attack' | 'defense' | 'luck' | 'maxHealth'): number {
+  getEquipmentBonus(stat: 'attack' | 'defense' | 'luck' | 'maxHealth' | 'maxMana' | 'manaRegen'): number {
     let bonus = 0;
     const slots: EquipmentSlot[] = ['weapon', 'armor', 'accessory'];
 
@@ -455,6 +473,113 @@ class GameStateManager {
    */
   getEffectiveMaxHealth(): number {
     return this.player.maxHealth + this.getEquipmentBonus('maxHealth');
+  }
+
+  /**
+   * Get effective max mana (base + equipment)
+   */
+  getEffectiveMaxMana(): number {
+    return this.player.baseMana + this.getEquipmentBonus('maxMana');
+  }
+
+  /**
+   * Get mana regeneration per turn (base 2 + equipment)
+   */
+  getEffectiveManaRegen(): number {
+    return 2 + this.getEquipmentBonus('manaRegen');
+  }
+
+  // --- Mana Management ---
+
+  /**
+   * Use mana for magic abilities
+   * @returns true if mana was successfully used
+   */
+  useMana(amount: number): boolean {
+    if (this.player.mana < amount) return false;
+    this.player.mana -= amount;
+    this.emit('manaChanged');
+    return true;
+  }
+
+  /**
+   * Restore mana (clamped to max)
+   */
+  restoreMana(amount: number): void {
+    const maxMana = this.getEffectiveMaxMana();
+    this.player.mana = Math.min(this.player.mana + amount, maxMana);
+    this.emit('manaChanged');
+  }
+
+  /**
+   * Fully restore mana to max
+   */
+  fullRestoreMana(): void {
+    this.player.mana = this.getEffectiveMaxMana();
+    this.emit('manaChanged');
+  }
+
+  /**
+   * Regenerate mana (called at end of battle turn)
+   */
+  regenerateMana(): void {
+    const regen = this.getEffectiveManaRegen();
+    this.restoreMana(regen);
+  }
+
+  // --- Decoration Management ---
+
+  /**
+   * Place a decoration at a grid position
+   * @returns true if placement was successful
+   */
+  placeDecoration(itemId: string, x: number, y: number): boolean {
+    // Check if we have the item in inventory
+    if (!this.hasItem(itemId)) {
+      return false;
+    }
+
+    // Check if position is already occupied
+    const existing = this.player.placedDecorations.find(
+      (d) => d.x === x && d.y === y
+    );
+    if (existing) {
+      return false;
+    }
+
+    // Remove from inventory and place
+    this.removeItem(itemId, 1);
+    this.player.placedDecorations.push({ itemId, x, y });
+    this.emit('decorationsChanged');
+    return true;
+  }
+
+  /**
+   * Remove a decoration from a grid position
+   * @returns the itemId that was removed, or null if none
+   */
+  removeDecoration(x: number, y: number): string | null {
+    const index = this.player.placedDecorations.findIndex(
+      (d) => d.x === x && d.y === y
+    );
+    if (index === -1) {
+      return null;
+    }
+
+    const decoration = this.player.placedDecorations[index];
+    this.player.placedDecorations.splice(index, 1);
+
+    // Return to inventory
+    this.addItem(decoration.itemId, 1);
+    this.emit('decorationsChanged');
+    return decoration.itemId;
+  }
+
+  /**
+   * Get all placed decorations
+   */
+  getPlacedDecorations(): PlacedDecoration[] {
+    return [...this.player.placedDecorations];
   }
 
   /**
@@ -581,6 +706,9 @@ class GameStateManager {
       attack: 15,
       defense: 5,
       luck: 0,
+      mana: 30,
+      maxMana: 30,
+      baseMana: 30,
       items: [
         { id: 'health_potion', quantity: 3 },
       ],
@@ -589,6 +717,7 @@ class GameStateManager {
         armor: null,
         accessory: null,
       },
+      placedDecorations: [],
       battlesWon: 0,
       battlesLost: 0,
       totalGoldEarned: 0,

@@ -199,7 +199,7 @@ export function createBuilding(config: BuildingConfig): Building {
 
   // Label above building
   const labelEntity = k.add([
-    k.text(label, { size: 10 }),
+    k.text(label, { size: 13 }),
     k.pos(x, y - buildingHeight - 20),
     k.anchor('center'),
     k.color(255, 255, 255),
@@ -253,7 +253,7 @@ function createTiledBuildingWrapper(config: BuildingConfig, buildingType: Buildi
 
   // Label above building
   const labelEntity = k.add([
-    k.text(label, { size: 10 }),
+    k.text(label, { size: 13 }),
     k.pos(x, y - tiledBuilding.height - 8),
     k.anchor('center'),
     k.color(255, 255, 255),

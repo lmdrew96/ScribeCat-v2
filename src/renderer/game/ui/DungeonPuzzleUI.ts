@@ -135,7 +135,7 @@ export function createPuzzleUI(
 
     // Question
     puzzleUIElements.push(k.add([
-      k.text(riddle.question, { size: 11, width: 350 }),
+      k.text(riddle.question, { size: 14, width: 350 }),
       k.pos(canvasWidth / 2, 115),
       k.anchor('center'),
       k.color(255, 255, 255),
@@ -146,7 +146,7 @@ export function createPuzzleUI(
 
     // Instructions
     puzzleUIElements.push(k.add([
-      k.text('Up/Down: Select | ENTER: Answer | ESC: Leave', { size: 9 }),
+      k.text('Up/Down: Select | ENTER: Answer | ESC: Leave', { size: 12 }),
       k.pos(canvasWidth / 2, 240),
       k.anchor('center'),
       k.color(150, 150, 150),
@@ -185,7 +185,7 @@ export function createPuzzleUI(
       puzzleUIElements.push(optBg);
 
       const optText = k.add([
-        k.text(`${i + 1}. ${opt}`, { size: 10 }),
+        k.text(`${i + 1}. ${opt}`, { size: 13 }),
         k.pos(canvasWidth / 2, 159 + i * 32),
         k.anchor('center'),
         k.color(255, 255, 255),
@@ -233,7 +233,7 @@ export function createPuzzleUI(
     ]));
 
     puzzleUIElements.push(k.add([
-      k.text('Pattern will hide in 3 seconds...', { size: 10 }),
+      k.text('Pattern will hide in 3 seconds...', { size: 13 }),
       k.pos(canvasWidth / 2, 160),
       k.anchor('center'),
       k.color(200, 200, 200),
@@ -316,7 +316,7 @@ export function createPuzzleUI(
     ]));
 
     puzzleUIElements.push(k.add([
-      k.text('Arrow Keys: Input | ESC: Give up', { size: 9 }),
+      k.text('Arrow Keys: Input | ESC: Give up', { size: 12 }),
       k.pos(canvasWidth / 2, 220),
       k.anchor('center'),
       k.color(150, 150, 150),

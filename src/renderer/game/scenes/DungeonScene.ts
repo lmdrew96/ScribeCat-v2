@@ -26,7 +26,18 @@ import {
 import type { CatColor } from '../sprites/catSprites.js';
 import { PLAYER_SPEED, DUNGEON_CANVAS_WIDTH, DUNGEON_CANVAS_HEIGHT } from '../config.js';
 import { getRandomEnemy, ENEMIES } from '../data/enemies.js';
+import { getChestLootItem, getItem, type DungeonTier } from '../data/items.js';
 import { playSound } from '../systems/sound.js';
+
+// Map dungeon IDs to their tier for loot drops
+const DUNGEON_TIER_MAP: Record<string, DungeonTier> = {
+  training: 1,
+  forest: 2,
+  crystal: 3,
+  library: 4,
+  volcano: 5,
+  void: 6,
+};
 import type { BattleSceneData } from './BattleScene.js';
 import { createMerchantUI, createPuzzleUI, createSecretUI } from '../ui/index.js';
 import { saveDungeonProgress } from '../services/StudyQuestService.js';
@@ -152,7 +163,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     ]);
 
     k.add([
-      k.text('HP', { size: 10 }),
+      k.text('HP', { size: 13 }),
       k.pos(CANVAS_WIDTH - 130, 18),
       k.color(255, 255, 255),
       k.z(51),
@@ -173,14 +184,14 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
     ]);
 
     const goldText = k.add([
-      k.text(`Gold: ${GameState.player.gold}`, { size: 10 }),
+      k.text(`Gold: ${GameState.player.gold}`, { size: 13 }),
       k.pos(CANVAS_WIDTH - 130, 38),
       k.color(251, 191, 36),
       k.z(51),
     ]);
 
     k.add([
-      k.text(`Floor ${GameState.dungeon.floorNumber}/${dungeonConfig.totalFloors}`, { size: 10 }),
+      k.text(`Floor ${GameState.dungeon.floorNumber}/${dungeonConfig.totalFloors}`, { size: 13 }),
       k.pos(CANVAS_WIDTH - 130, 55),
       k.color(200, 200, 200),
       k.z(51),
@@ -341,7 +352,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
 
       // Question
       puzzleUIElements.push(k.add([
-        k.text(riddle.question, { size: 11, width: 350 }),
+        k.text(riddle.question, { size: 14, width: 350 }),
         k.pos(CANVAS_WIDTH / 2, 115),
         k.anchor('center'),
         k.color(255, 255, 255),
@@ -353,7 +364,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
 
       // Instructions
       puzzleUIElements.push(k.add([
-        k.text('Up/Down: Select | ENTER: Answer | ESC: Leave', { size: 9 }),
+        k.text('Up/Down: Select | ENTER: Answer | ESC: Leave', { size: 12 }),
         k.pos(CANVAS_WIDTH / 2, 240),
         k.anchor('center'),
         k.color(150, 150, 150),
@@ -385,7 +396,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         puzzleUIElements.push(optBg);
 
         const optText = k.add([
-          k.text(`${i + 1}. ${opt}`, { size: 10 }),
+          k.text(`${i + 1}. ${opt}`, { size: 13 }),
           k.pos(CANVAS_WIDTH / 2, 159 + i * 32),
           k.anchor('center'),
           k.color(255, 255, 255),
@@ -429,7 +440,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       ]));
 
       puzzleUIElements.push(k.add([
-        k.text('Pattern will hide in 3 seconds...', { size: 10 }),
+        k.text('Pattern will hide in 3 seconds...', { size: 13 }),
         k.pos(CANVAS_WIDTH / 2, 160),
         k.anchor('center'),
         k.color(200, 200, 200),
@@ -506,7 +517,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       ]));
 
       puzzleUIElements.push(k.add([
-        k.text('Arrow Keys: Input | ESC: Give up', { size: 9 }),
+        k.text('Arrow Keys: Input | ESC: Give up', { size: 12 }),
         k.pos(CANVAS_WIDTH / 2, 220),
         k.anchor('center'),
         k.color(150, 150, 150),
@@ -747,6 +758,23 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         GameState.addGold(goldAmount);
         playSound(k, 'goldCollect');
         showFloatingMessage(`+${goldAmount} Gold!`, x, y - 20, [251, 191, 36]);
+
+        // Check for item drop based on dungeon tier
+        const dungeonId = GameState.dungeon.dungeonId || 'training';
+        const tier = DUNGEON_TIER_MAP[dungeonId] || 1;
+        const lootItemId = getChestLootItem(tier);
+
+        if (lootItemId) {
+          const lootItem = getItem(lootItemId);
+          if (lootItem) {
+            GameState.addItem(lootItemId, 1);
+            // Show item drop message slightly below gold message
+            setTimeout(() => {
+              showFloatingMessage(`Found ${lootItem.name}!`, x, y + 10, [100, 255, 150]);
+            }, 300);
+          }
+        }
+
         renderer.render(room);
         return;
       }
@@ -1080,7 +1108,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       k.drawText({
         text: room.type.charAt(0).toUpperCase() + room.type.slice(1),
         pos: k.vec2(14, 24),
-        size: 11,
+        size: 14,
         color: k.rgb(255, 255, 255),
       });
 
@@ -1096,7 +1124,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         k.drawText({
           text: 'ENTER to go through',
           pos: k.vec2(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 14),
-          size: 10,
+          size: 13,
           anchor: 'center',
           color: k.rgb(251, 191, 36),
         });
@@ -1120,7 +1148,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         k.drawText({
           text: 'SPACE to search area',
           pos: k.vec2(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 14),
-          size: 10,
+          size: 13,
           anchor: 'center',
           color: k.rgb(255, 220, 100),
         });
@@ -1138,7 +1166,7 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
         k.drawText({
           text: 'ENTER to browse wares',
           pos: k.vec2(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 14),
-          size: 10,
+          size: 13,
           anchor: 'center',
           color: k.rgb(255, 200, 100),
         });

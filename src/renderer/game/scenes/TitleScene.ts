@@ -157,7 +157,7 @@ export function registerTitleScene(k: KAPLAYCtx): void {
 
     // Unlock requirement display
     const unlockDisplay = k.add([
-      k.text('', { size: 10 }),
+      k.text('', { size: 13 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 170),
       k.anchor('center'),
       k.color(150, 150, 180),
@@ -181,7 +181,7 @@ export function registerTitleScene(k: KAPLAYCtx): void {
 
     // Cat selection hint (below cat)
     k.add([
-      k.text(`< > to browse (${allCats.length} cats)`, { size: 11 }),
+      k.text(`< > to browse (${allCats.length} cats)`, { size: 14 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 60),
       k.anchor('center'),
       k.color(150, 150, 180),
@@ -222,7 +222,7 @@ export function registerTitleScene(k: KAPLAYCtx): void {
         // Show error for locked cat
         playSound(k, 'menuSelect');
         const errorMsg = k.add([
-          k.text('Cat is locked! Choose an unlocked cat.', { size: 11 }),
+          k.text('Cat is locked! Choose an unlocked cat.', { size: 14 }),
           k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
           k.anchor('center'),
           k.color(255, 100, 100),
@@ -277,7 +277,7 @@ export function registerTitleScene(k: KAPLAYCtx): void {
       } else {
         // Show error message
         const errorMsg = k.add([
-          k.text('No saved game found. Sign in or start a new game!', { size: 11 }),
+          k.text('No saved game found. Sign in or start a new game!', { size: 14 }),
           k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
           k.anchor('center'),
           k.color(255, 100, 100),
@@ -347,7 +347,7 @@ export function registerTitleScene(k: KAPLAYCtx): void {
 
     // --- FOOTER ---
     k.add([
-      k.text('W/S Menu | A/D Cat | ENTER Select', { size: 10 }),
+      k.text('W/S Menu | A/D Cat | ENTER Select', { size: 13 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 15),
       k.anchor('center'),
       k.color(100, 100, 120),

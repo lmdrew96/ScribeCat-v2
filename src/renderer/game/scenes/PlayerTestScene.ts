@@ -103,7 +103,7 @@ export function registerPlayerTestScene(k: KAPLAYCtx): void {
 
     // Controls hint
     k.add([
-      k.text('Arrow Keys / WASD to move', { size: 10 }),
+      k.text('Arrow Keys / WASD to move', { size: 13 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 16),
       k.anchor('center'),
       k.color(150, 150, 180),
@@ -112,7 +112,7 @@ export function registerPlayerTestScene(k: KAPLAYCtx): void {
 
     // Cat color indicator
     const colorText = k.add([
-      k.text(`Cat: ${catColor}`, { size: 10 }),
+      k.text(`Cat: ${catColor}`, { size: 13 }),
       k.pos(10, CANVAS_HEIGHT - 16),
       k.anchor('left'),
       k.color(150, 150, 180),
@@ -121,7 +121,7 @@ export function registerPlayerTestScene(k: KAPLAYCtx): void {
 
     // Position indicator
     const posText = k.add([
-      k.text('', { size: 10 }),
+      k.text('', { size: 13 }),
       k.pos(CANVAS_WIDTH - 10, CANVAS_HEIGHT - 16),
       k.anchor('right'),
       k.color(150, 150, 180),
@@ -145,7 +145,7 @@ export function registerPlayerTestScene(k: KAPLAYCtx): void {
 
     // Add color cycle hint
     k.add([
-      k.text('C = cycle cat color', { size: 10 }),
+      k.text('C = cycle cat color', { size: 13 }),
       k.pos(10, 10),
       k.color(150, 150, 180),
       k.z(100),

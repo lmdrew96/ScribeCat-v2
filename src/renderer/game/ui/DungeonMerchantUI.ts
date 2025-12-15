@@ -91,7 +91,7 @@ export function createMerchantUI(
 
     // Gold display
     state.elements.push(k.add([
-      k.text(`Your Gold: ${GameState.player.gold}`, { size: 10 }),
+      k.text(`Your Gold: ${GameState.player.gold}`, { size: 13 }),
       k.pos(canvasWidth / 2, 98),
       k.anchor('center'),
       k.color(251, 191, 36),
@@ -102,7 +102,7 @@ export function createMerchantUI(
 
     // Instructions
     state.elements.push(k.add([
-      k.text('Up/Down: Select | ENTER: Buy | ESC: Leave', { size: 9 }),
+      k.text('Up/Down: Select | ENTER: Buy | ESC: Leave', { size: 12 }),
       k.pos(canvasWidth / 2, 248),
       k.anchor('center'),
       k.color(150, 150, 150),
@@ -136,7 +136,7 @@ export function createMerchantUI(
 
     // Updated gold display
     const goldDisplay = k.add([
-      k.text(`Your Gold: ${GameState.player.gold}`, { size: 10 }),
+      k.text(`Your Gold: ${GameState.player.gold}`, { size: 13 }),
       k.pos(canvasWidth / 2, 98),
       k.anchor('center'),
       k.color(251, 191, 36),
@@ -163,7 +163,7 @@ export function createMerchantUI(
       state.elements.push(itemBg);
 
       const nameText = k.add([
-        k.text(item.name, { size: 11 }),
+        k.text(item.name, { size: 14 }),
         k.pos(canvasWidth / 2 - 120, 123 + i * 42),
         k.color(255, 255, 255),
         k.z(502),
@@ -173,7 +173,7 @@ export function createMerchantUI(
 
       const priceColor = canAfford ? [100, 255, 100] : [255, 100, 100];
       const priceText = k.add([
-        k.text(`${item.buyPrice}g`, { size: 10 }),
+        k.text(`${item.buyPrice}g`, { size: 13 }),
         k.pos(canvasWidth / 2 + 100, 124 + i * 42),
         k.anchor('right'),
         k.color(...priceColor as [number, number, number]),
@@ -183,7 +183,7 @@ export function createMerchantUI(
       state.elements.push(priceText);
 
       const descText = k.add([
-        k.text(item.description, { size: 9 }),
+        k.text(item.description, { size: 12 }),
         k.pos(canvasWidth / 2 - 120, 137 + i * 42),
         k.color(180, 180, 180),
         k.z(502),
@@ -221,21 +221,11 @@ export function createMerchantUI(
       if (GameState.player.gold >= item.buyPrice) {
         GameState.player.gold -= item.buyPrice;
 
-        // Apply item effect immediately (for potions)
-        if (item.effect?.type === 'heal') {
-          const healAmount = Math.min(
-            item.effect.value,
-            GameState.player.maxHealth - GameState.player.health
-          );
-          GameState.player.health = Math.min(
-            GameState.player.maxHealth,
-            GameState.player.health + item.effect.value
-          );
-          playSound(k, 'heal');
-          callbacks.showFloatingMessage(`+${healAmount} HP!`, canvasWidth / 2, 60, [100, 255, 100]);
-        }
+        // Add item to inventory instead of using immediately
+        GameState.addItem(itemId, 1);
 
         playSound(k, 'goldCollect');
+        callbacks.showFloatingMessage(`Bought ${item.name}!`, canvasWidth / 2, 60, [100, 255, 100]);
         renderItems();
       } else {
         callbacks.showFloatingMessage('Not enough gold!', canvasWidth / 2, 60, [255, 100, 100]);

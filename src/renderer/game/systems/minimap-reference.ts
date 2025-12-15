@@ -161,7 +161,7 @@ function drawRoom(
       k.drawText({
         text: icons[room.type]!,
         pos: k.vec2(rx + CELL_SIZE / 2, ry + CELL_SIZE / 2),
-        size: 8,
+        size: 12,
         anchor: 'center',
         color: k.rgb(255, 255, 255),
         fixed: true,
@@ -258,7 +258,7 @@ function drawLegend(k: KAPLAYCtx, x: number, y: number, width: number): void {
     k.drawText({
       text: item.label,
       pos: k.vec2(lx + 8, y + 8),
-      size: 8,
+      size: 12,
       color: k.rgb(255, 255, 255),
       fixed: true,
     });

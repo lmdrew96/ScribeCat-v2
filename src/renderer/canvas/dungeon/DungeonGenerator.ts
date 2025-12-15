@@ -318,11 +318,12 @@ export class DungeonGenerator {
 
   /**
    * Populate room with content based on type
-   * FIXED: Now handles puzzle and secret room types
+   * Rooms now have mixed content - primary type plus bonus spawns!
    */
   private populateRoom(room: DungeonRoom, floor: number): void {
     room.contents = [];
 
+    // Add primary content based on room type
     switch (room.type) {
       case 'enemy':
         this.addEnemyContent(room, floor);
@@ -340,10 +341,10 @@ export class DungeonGenerator {
         this.addMerchantContent(room);
         break;
       case 'puzzle':
-        this.addPuzzleContent(room, floor); // FIXED: Now handled!
+        this.addPuzzleContent(room, floor);
         break;
       case 'secret':
-        this.addSecretContent(room, floor); // FIXED: Now handled!
+        this.addSecretContent(room, floor);
         break;
       case 'boss':
         this.addBossContent(room, floor);
@@ -351,6 +352,68 @@ export class DungeonGenerator {
       case 'exit':
         this.addExitContent(room);
         break;
+    }
+
+    // Add bonus content to make exploration worthwhile!
+    // Skip safe rooms (start, rest, merchant, exit) and boss rooms
+    if (!['start', 'rest', 'merchant', 'exit', 'boss'].includes(room.type)) {
+      this.addBonusContent(room, floor);
+    }
+  }
+
+  /**
+   * Add bonus content to rooms - treasure, traps, and enemies can appear anywhere!
+   * This makes exploration rewarding even in "trap" rooms.
+   */
+  private addBonusContent(room: DungeonRoom, floor: number): void {
+    // 40% chance for bonus treasure (if not already a treasure room)
+    if (room.type !== 'treasure' && Math.random() < 0.4) {
+      const pool = this.config.treasurePool;
+      room.contents.push({
+        id: this.generateId(),
+        type: 'chest',
+        x: 0.15 + Math.random() * 0.2, // Left side of room
+        y: 0.2 + Math.random() * 0.6,
+        data: {
+          lootType: pool[Math.floor(Math.random() * pool.length)],
+          goldAmount: Math.floor((5 + Math.random() * 10) * floor), // Smaller bonus chest
+        },
+        triggered: false,
+      });
+    }
+
+    // 30% chance for bonus traps (if not already a trap room)
+    if (room.type !== 'trap' && Math.random() < 0.3) {
+      const numTraps = 1 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < numTraps; i++) {
+        room.contents.push({
+          id: this.generateId(),
+          type: 'trap',
+          x: 0.1 + Math.random() * 0.8,
+          y: 0.1 + Math.random() * 0.8,
+          data: {
+            trapType: 'spike',
+            damage: 3 + floor, // Slightly weaker bonus traps
+          },
+          triggered: false,
+        });
+      }
+    }
+
+    // 25% chance for bonus enemy (if not already an enemy room)
+    if (room.type !== 'enemy' && Math.random() < 0.25) {
+      const pool = this.config.enemyPool;
+      room.contents.push({
+        id: this.generateId(),
+        type: 'enemy',
+        x: 0.7 + Math.random() * 0.15, // Right side of room
+        y: 0.3 + Math.random() * 0.4,
+        data: {
+          enemyType: pool[Math.floor(Math.random() * pool.length)],
+          level: floor,
+        },
+        triggered: false,
+      });
     }
   }
 
@@ -389,17 +452,37 @@ export class DungeonGenerator {
   }
 
   private addTrapContent(room: DungeonRoom, floor: number): void {
-    room.contents.push({
-      id: this.generateId(),
-      type: 'trap',
-      x: 0.5,
-      y: 0.5,
-      data: {
-        trapType: 'spike',
-        damage: 5 + floor * 2,
-      },
-      triggered: false,
-    });
+    // Add 1-3 traps at random positions throughout the room
+    const numTraps = 1 + Math.floor(Math.random() * 3);
+    const usedPositions: { x: number; y: number }[] = [];
+
+    for (let i = 0; i < numTraps; i++) {
+      // Generate random position, avoiding center (too predictable) and edges
+      let x: number, y: number;
+      let attempts = 0;
+      do {
+        x = 0.15 + Math.random() * 0.7; // 0.15 to 0.85
+        y = 0.15 + Math.random() * 0.7;
+        attempts++;
+      } while (
+        attempts < 10 &&
+        usedPositions.some(p => Math.abs(p.x - x) < 0.15 && Math.abs(p.y - y) < 0.15)
+      );
+
+      usedPositions.push({ x, y });
+
+      room.contents.push({
+        id: this.generateId(),
+        type: 'trap',
+        x,
+        y,
+        data: {
+          trapType: 'spike',
+          damage: 5 + floor * 2,
+        },
+        triggered: false,
+      });
+    }
   }
 
   private addRestContent(room: DungeonRoom): void {

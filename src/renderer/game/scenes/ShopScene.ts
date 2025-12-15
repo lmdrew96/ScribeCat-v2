@@ -18,7 +18,7 @@ import { setupInteraction, type Interactable } from '../systems/interaction.js';
 import { createDoor } from '../components/Door.js';
 import { PLAYER_SPEED, CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
-import { getItem, SHOP_INVENTORY, type ItemDefinition, type EquipmentSlot } from '../data/items.js';
+import { getItem, getShopItemsForTier, getUnlockedTier, type ItemDefinition, type EquipmentSlot, type DungeonTier } from '../data/items.js';
 import { playSound } from '../systems/sound.js';
 
 export interface ShopSceneData {
@@ -101,7 +101,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     ]);
 
     k.add([
-      k.text('Shopkeeper', { size: 10 }),
+      k.text('Shopkeeper', { size: 13 }),
       k.pos(CANVAS_WIDTH / 2, 130),
       k.anchor('center'),
       k.color(255, 255, 255),
@@ -124,7 +124,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
         k.z(4),
       ]);
       k.add([
-        k.text(item.label, { size: 8 }),
+        k.text(item.label, { size: 12 }),
         k.pos(item.x, 90),
         k.anchor('center'),
         k.color(255, 255, 255),
@@ -146,7 +146,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     });
 
     k.add([
-      k.text('Exit', { size: 10 }),
+      k.text('Exit', { size: 13 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 10),
       k.anchor('center'),
       k.color(255, 255, 255),
@@ -183,13 +183,23 @@ export function registerShopScene(k: KAPLAYCtx): void {
     let goldDisplay: GameObj;
     let isProcessing = false; // FIXED: Prevent double-clicks
 
-    const tabs = ['Items', 'Weapons', 'Armor', 'Equip'];
-    const tabInventories = [
-      SHOP_INVENTORY.consumables || [],
-      SHOP_INVENTORY.weapons || [],
-      SHOP_INVENTORY.armor || [],
-      [],
-    ];
+    const tabs = ['Items', 'Weapons', 'Armor', 'Special', 'Decor', 'Equip', 'Sell'];
+
+    // Get items dynamically based on player's unlocked tier
+    function getTabInventory(tabIndex: number): string[] {
+      const playerTier = getUnlockedTier(GameState.player.level);
+      const shopItems = getShopItemsForTier(playerTier);
+
+      switch (tabIndex) {
+        case 0: return shopItems.consumables;
+        case 1: return shopItems.weapons;
+        case 2: return shopItems.armor;
+        case 3: return shopItems.special;
+        case 4: return shopItems.decorations;
+        case 5: return []; // Equipment tab - handled separately
+        default: return [];
+      }
+    }
 
     function getPlayerEquipment(): { id: string; slot: EquipmentSlot }[] {
       const equipment: { id: string; slot: EquipmentSlot }[] = [];
@@ -288,7 +298,8 @@ export function registerShopScene(k: KAPLAYCtx): void {
       shopUIElements.push(bg);
 
       // Title
-      const titleText = selectedTab === 3 ? "Equipment Manager" : "Welcome to the Shop!";
+      const playerTier = getUnlockedTier(GameState.player.level);
+      const titleText = selectedTab === 5 ? "Equipment Manager" : `Shop (Tier ${playerTier} Unlocked)`;
       const title = k.add([
         k.text(titleText, { size: 14 }),
         k.pos(CANVAS_WIDTH / 2, 70),
@@ -298,13 +309,15 @@ export function registerShopScene(k: KAPLAYCtx): void {
       ]);
       shopUIElements.push(title);
 
-      // Tabs
+      // Tabs (7 tabs: Items, Weapons, Armor, Special, Decor, Equip, Sell)
       tabs.forEach((tab, i) => {
         const isSelected = i === selectedTab;
-        const tabWidth = 70;
+        const tabWidth = 48;
+        const tabSpacing = 5;
+        const startX = CANVAS_WIDTH / 2 - 185;
         const tabBg = k.add([
-          k.rect(tabWidth, 25),
-          k.pos(145 + i * (tabWidth + 10), 90),
+          k.rect(tabWidth, 22),
+          k.pos(startX + i * (tabWidth + tabSpacing), 90),
           k.color(isSelected ? 100 : 50, isSelected ? 100 : 50, isSelected ? 150 : 80),
           k.outline(2, k.rgb(100, 100, 150)),
           k.z(101),
@@ -312,8 +325,8 @@ export function registerShopScene(k: KAPLAYCtx): void {
         shopUIElements.push(tabBg);
 
         const tabText = k.add([
-          k.text(tab, { size: 9 }),
-          k.pos(145 + i * (tabWidth + 10) + tabWidth / 2, 103),
+          k.text(tab, { size: 11 }),
+          k.pos(startX + i * (tabWidth + tabSpacing) + tabWidth / 2, 101),
           k.anchor('center'),
           k.color(isSelected ? 255 : 180, isSelected ? 255 : 180, isSelected ? 100 : 180),
           k.z(102),
@@ -321,15 +334,31 @@ export function registerShopScene(k: KAPLAYCtx): void {
         shopUIElements.push(tabText);
       });
 
-      if (selectedTab === 3) {
+      if (selectedTab === 5) {
         renderEquipmentTab();
+      } else if (selectedTab === 6) {
+        renderSellTab();
       } else {
         renderShopTab();
       }
     }
 
+    /**
+     * Get player's sellable items (all items in inventory)
+     */
+    function getSellableItems(): { id: string; quantity: number; item: ItemDefinition }[] {
+      const sellable: { id: string; quantity: number; item: ItemDefinition }[] = [];
+      for (const invItem of GameState.player.items) {
+        const item = getItem(invItem.id);
+        if (item && item.sellPrice > 0) {
+          sellable.push({ id: invItem.id, quantity: invItem.quantity, item });
+        }
+      }
+      return sellable;
+    }
+
     function renderShopTab(): void {
-      const currentItems = tabInventories[selectedTab] || [];
+      const currentItems = getTabInventory(selectedTab);
 
       // FIXED: Ensure selectedItem is in bounds
       if (selectedItem >= currentItems.length) {
@@ -338,7 +367,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
 
       if (currentItems.length === 0) {
         const emptyText = k.add([
-          k.text('No items available in this category', { size: 10 }),
+          k.text('No items available in this category', { size: 13 }),
           k.pos(CANVAS_WIDTH / 2, 180),
           k.anchor('center'),
           k.color(150, 150, 150),
@@ -346,15 +375,17 @@ export function registerShopScene(k: KAPLAYCtx): void {
         ]);
         shopUIElements.push(emptyText);
       } else {
-        currentItems.forEach((itemId, i) => {
+        // Show up to 4 items (to leave room for description)
+        const visibleItems = currentItems.slice(0, 4);
+        visibleItems.forEach((itemId, i) => {
           const item = getItem(itemId);
           if (!item) return;
 
           const isSelected = i === selectedItem;
-          const y = 125 + i * 35;
+          const y = 120 + i * 30;
 
           const itemBg = k.add([
-            k.rect(380, 30),
+            k.rect(380, 26),
             k.pos(CANVAS_WIDTH / 2 - 190, y),
             k.color(isSelected ? 60 : 40, isSelected ? 60 : 40, isSelected ? 100 : 60),
             k.outline(isSelected ? 2 : 1, k.rgb(isSelected ? 251 : 80, isSelected ? 191 : 80, isSelected ? 36 : 100)),
@@ -362,10 +393,39 @@ export function registerShopScene(k: KAPLAYCtx): void {
           ]);
           shopUIElements.push(itemBg);
 
+          // Tier badge
+          const tierColors: Record<number, [number, number, number]> = {
+            1: [100, 100, 100], // Gray
+            2: [50, 150, 50],   // Green
+            3: [50, 100, 200],  // Blue
+            4: [150, 50, 200],  // Purple
+            5: [200, 150, 50],  // Gold
+            6: [200, 50, 50],   // Red
+          };
+          const tierColor = tierColors[item.tier || 1] || tierColors[1];
+          const tierBadge = k.add([
+            k.rect(16, 16),
+            k.pos(CANVAS_WIDTH / 2 - 185, y + 5),
+            k.color(tierColor[0], tierColor[1], tierColor[2]),
+            k.outline(1, k.rgb(0, 0, 0)),
+            k.z(102),
+          ]);
+          shopUIElements.push(tierBadge);
+
+          const tierNum = k.add([
+            k.text(`${item.tier || 1}`, { size: 12 }),
+            k.pos(CANVAS_WIDTH / 2 - 177, y + 8),
+            k.anchor('center'),
+            k.color(255, 255, 255),
+            k.z(103),
+          ]);
+          shopUIElements.push(tierNum);
+
+          // Icon
           const iconColor = item.iconColor || [100, 100, 100];
           const icon = k.add([
-            k.rect(20, 20),
-            k.pos(CANVAS_WIDTH / 2 - 180, y + 5),
+            k.rect(16, 16),
+            k.pos(CANVAS_WIDTH / 2 - 165, y + 5),
             k.color(iconColor[0], iconColor[1], iconColor[2]),
             k.outline(1, k.rgb(0, 0, 0)),
             k.z(102),
@@ -373,36 +433,88 @@ export function registerShopScene(k: KAPLAYCtx): void {
           shopUIElements.push(icon);
 
           const nameText = k.add([
-            k.text(item.name, { size: 10 }),
-            k.pos(CANVAS_WIDTH / 2 - 150, y + 10),
+            k.text(item.name, { size: 12 }),
+            k.pos(CANVAS_WIDTH / 2 - 145, y + 9),
             k.color(255, 255, 255),
             k.z(102),
           ]);
           shopUIElements.push(nameText);
 
           const priceText = k.add([
-            k.text(`${item.buyPrice}G`, { size: 10 }),
-            k.pos(CANVAS_WIDTH / 2 + 150, y + 10),
+            k.text(`${item.buyPrice}G`, { size: 12 }),
+            k.pos(CANVAS_WIDTH / 2 + 155, y + 9),
             k.color(251, 191, 36),
             k.z(102),
           ]);
           shopUIElements.push(priceText);
 
-          if (item.type === 'consumable') {
-            const owned = GameState.getItemCount(itemId);
+          // Owned count
+          const owned = GameState.getItemCount(itemId);
+          if (owned > 0) {
             const ownedText = k.add([
-              k.text(`Owned: ${owned}`, { size: 8 }),
-              k.pos(CANVAS_WIDTH / 2 + 80, y + 12),
-              k.color(150, 150, 150),
+              k.text(`x${owned}`, { size: 12 }),
+              k.pos(CANVAS_WIDTH / 2 + 115, y + 10),
+              k.color(150, 200, 150),
               k.z(102),
             ]);
             shopUIElements.push(ownedText);
           }
         });
+
+        // Selected item description panel
+        if (currentItems.length > 0 && selectedItem < currentItems.length) {
+          const selectedItemDef = getItem(currentItems[selectedItem]);
+          if (selectedItemDef) {
+            const descY = 245;
+
+            const descBg = k.add([
+              k.rect(380, 50),
+              k.pos(CANVAS_WIDTH / 2 - 190, descY),
+              k.color(20, 20, 40),
+              k.outline(1, k.rgb(80, 80, 120)),
+              k.z(101),
+            ]);
+            shopUIElements.push(descBg);
+
+            const descText = k.add([
+              k.text(selectedItemDef.description, { size: 12, width: 370 }),
+              k.pos(CANVAS_WIDTH / 2 - 185, descY + 5),
+              k.color(200, 200, 200),
+              k.z(102),
+            ]);
+            shopUIElements.push(descText);
+
+            // Show special info based on item type
+            let extraInfo = '';
+            if (selectedItemDef.stats) {
+              const statStrings: string[] = [];
+              if (selectedItemDef.stats.attack) statStrings.push(`+${selectedItemDef.stats.attack} ATK`);
+              if (selectedItemDef.stats.defense) statStrings.push(`+${selectedItemDef.stats.defense} DEF`);
+              if (selectedItemDef.stats.luck) statStrings.push(`+${selectedItemDef.stats.luck} LCK`);
+              if (selectedItemDef.stats.maxMana) statStrings.push(`+${selectedItemDef.stats.maxMana} MP`);
+              extraInfo = statStrings.join(' | ');
+            }
+            if (selectedItemDef.specialAbility) {
+              extraInfo = `Magic: ${selectedItemDef.specialAbility.name} (${selectedItemDef.specialAbility.manaCost} MP)`;
+            }
+            if (selectedItemDef.decoration) {
+              extraInfo = `Decoration: ${selectedItemDef.decoration.width}x${selectedItemDef.decoration.height} tiles`;
+            }
+            if (extraInfo) {
+              const extraText = k.add([
+                k.text(extraInfo, { size: 12 }),
+                k.pos(CANVAS_WIDTH / 2 - 185, descY + 35),
+                k.color(100, 200, 255),
+                k.z(102),
+              ]);
+              shopUIElements.push(extraText);
+            }
+          }
+        }
       }
 
       const instructions = k.add([
-        k.text('Arrows: Navigate | Q/E: Switch Tab | ENTER: Buy | ESC: Close', { size: 8 }),
+        k.text('Arrows: Navigate | Q/E: Switch Tab | ENTER: Buy | ESC: Close', { size: 12 }),
         k.pos(CANVAS_WIDTH / 2, 310),
         k.anchor('center'),
         k.color(150, 150, 150),
@@ -420,7 +532,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
       ];
 
       const headerText = k.add([
-        k.text('Currently Equipped:', { size: 10 }),
+        k.text('Currently Equipped:', { size: 13 }),
         k.pos(CANVAS_WIDTH / 2 - 180, 125),
         k.color(200, 200, 200),
         k.z(102),
@@ -433,7 +545,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
         const displayY = y + 15;
 
         const slotLabel = k.add([
-          k.text(`${label}:`, { size: 9 }),
+          k.text(`${label}:`, { size: 12 }),
           k.pos(CANVAS_WIDTH / 2 - 170, displayY),
           k.color(150, 150, 200),
           k.z(102),
@@ -441,7 +553,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
         shopUIElements.push(slotLabel);
 
         const itemText = k.add([
-          k.text(item ? item.name : '(none)', { size: 9 }),
+          k.text(item ? item.name : '(none)', { size: 12 }),
           k.pos(CANVAS_WIDTH / 2 - 90, displayY),
           k.color(item ? 255 : 100, item ? 255 : 100, item ? 255 : 100),
           k.z(102),
@@ -453,7 +565,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
             .map(([stat, v]) => `+${v} ${stat.substring(0, 3).toUpperCase()}`)
             .join(' ');
           const statsText = k.add([
-            k.text(statsStr, { size: 8 }),
+            k.text(statsStr, { size: 12 }),
             k.pos(CANVAS_WIDTH / 2 + 80, displayY),
             k.color(100, 255, 100),
             k.z(102),
@@ -471,7 +583,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
       shopUIElements.push(divider);
 
       const availableHeader = k.add([
-        k.text('Available to Equip:', { size: 10 }),
+        k.text('Available to Equip:', { size: 13 }),
         k.pos(CANVAS_WIDTH / 2 - 180, 225),
         k.color(200, 200, 200),
         k.z(102),
@@ -487,7 +599,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
 
       if (playerEquipment.length === 0) {
         const noItems = k.add([
-          k.text('No equipment in inventory. Buy some from the shop!', { size: 9 }),
+          k.text('No equipment in inventory. Buy some from the shop!', { size: 12 }),
           k.pos(CANVAS_WIDTH / 2, 250),
           k.anchor('center'),
           k.color(150, 150, 150),
@@ -522,7 +634,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
           shopUIElements.push(icon);
 
           const nameText = k.add([
-            k.text(item.name, { size: 9 }),
+            k.text(item.name, { size: 12 }),
             k.pos(CANVAS_WIDTH / 2 - 150, y + 6),
             k.color(255, 255, 255),
             k.z(102),
@@ -530,7 +642,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
           shopUIElements.push(nameText);
 
           const slotText = k.add([
-            k.text(`(${eq.slot})`, { size: 8 }),
+            k.text(`(${eq.slot})`, { size: 12 }),
             k.pos(CANVAS_WIDTH / 2 + 100, y + 7),
             k.color(150, 150, 200),
             k.z(102),
@@ -540,8 +652,121 @@ export function registerShopScene(k: KAPLAYCtx): void {
       }
 
       const instructions = k.add([
-        k.text('Arrows: Select | ENTER: Equip | U: Unequip slot | ESC: Close', { size: 8 }),
+        k.text('Arrows: Select | ENTER: Equip | U: Unequip slot | ESC: Close', { size: 12 }),
         k.pos(CANVAS_WIDTH / 2, 310),
+        k.anchor('center'),
+        k.color(150, 150, 150),
+        k.z(101),
+      ]);
+      shopUIElements.push(instructions);
+    }
+
+    function renderSellTab(): void {
+      const sellableItems = getSellableItems();
+
+      // FIXED: Ensure selectedItem is in bounds for sell tab
+      if (selectedItem >= sellableItems.length) {
+        selectedItem = Math.max(0, sellableItems.length - 1);
+      }
+
+      const headerText = k.add([
+        k.text('Sell Your Items:', { size: 13 }),
+        k.pos(CANVAS_WIDTH / 2 - 180, 120),
+        k.color(200, 200, 200),
+        k.z(102),
+      ]);
+      shopUIElements.push(headerText);
+
+      if (sellableItems.length === 0) {
+        const noItems = k.add([
+          k.text('No items to sell. Go find some loot!', { size: 12 }),
+          k.pos(CANVAS_WIDTH / 2, 180),
+          k.anchor('center'),
+          k.color(150, 150, 150),
+          k.z(102),
+        ]);
+        shopUIElements.push(noItems);
+      } else {
+        // Show up to 5 items
+        sellableItems.slice(0, 5).forEach((sellItem, i) => {
+          const isSelected = i === selectedItem;
+          const y = 140 + i * 28;
+
+          const itemBg = k.add([
+            k.rect(360, 24),
+            k.pos(CANVAS_WIDTH / 2 - 180, y),
+            k.color(isSelected ? 60 : 40, isSelected ? 50 : 40, isSelected ? 80 : 60),
+            k.outline(isSelected ? 2 : 1, k.rgb(isSelected ? 251 : 80, isSelected ? 191 : 80, isSelected ? 36 : 100)),
+            k.z(101),
+          ]);
+          shopUIElements.push(itemBg);
+
+          // Icon
+          const iconColor = sellItem.item.iconColor || [100, 100, 100];
+          const icon = k.add([
+            k.rect(16, 16),
+            k.pos(CANVAS_WIDTH / 2 - 175, y + 4),
+            k.color(iconColor[0], iconColor[1], iconColor[2]),
+            k.outline(1, k.rgb(0, 0, 0)),
+            k.z(102),
+          ]);
+          shopUIElements.push(icon);
+
+          // Item name
+          const nameText = k.add([
+            k.text(sellItem.item.name, { size: 12 }),
+            k.pos(CANVAS_WIDTH / 2 - 155, y + 7),
+            k.color(255, 255, 255),
+            k.z(102),
+          ]);
+          shopUIElements.push(nameText);
+
+          // Quantity owned
+          const qtyText = k.add([
+            k.text(`x${sellItem.quantity}`, { size: 12 }),
+            k.pos(CANVAS_WIDTH / 2 + 60, y + 7),
+            k.color(150, 200, 150),
+            k.z(102),
+          ]);
+          shopUIElements.push(qtyText);
+
+          // Sell price
+          const priceText = k.add([
+            k.text(`${sellItem.item.sellPrice}G`, { size: 12 }),
+            k.pos(CANVAS_WIDTH / 2 + 140, y + 7),
+            k.color(251, 191, 36),
+            k.z(102),
+          ]);
+          shopUIElements.push(priceText);
+        });
+
+        // Selected item description
+        if (sellableItems.length > 0 && selectedItem < sellableItems.length) {
+          const selectedSellItem = sellableItems[selectedItem];
+          const descY = 285;
+
+          const descBg = k.add([
+            k.rect(360, 30),
+            k.pos(CANVAS_WIDTH / 2 - 180, descY),
+            k.color(20, 20, 40),
+            k.outline(1, k.rgb(80, 80, 120)),
+            k.z(101),
+          ]);
+          shopUIElements.push(descBg);
+
+          const descText = k.add([
+            k.text(selectedSellItem.item.description, { size: 12, width: 350 }),
+            k.pos(CANVAS_WIDTH / 2 - 175, descY + 8),
+            k.color(200, 200, 200),
+            k.z(102),
+          ]);
+          shopUIElements.push(descText);
+        }
+      }
+
+      const instructions = k.add([
+        k.text('Arrows: Select | ENTER: Sell 1 | ESC: Close', { size: 12 }),
+        k.pos(CANVAS_WIDTH / 2, 320),
         k.anchor('center'),
         k.color(150, 150, 150),
         k.z(101),
@@ -552,12 +777,17 @@ export function registerShopScene(k: KAPLAYCtx): void {
     function purchaseItem(): void {
       if (isProcessing) return;
 
-      if (selectedTab === 3) {
+      if (selectedTab === 5) {
         equipSelectedItem();
         return;
       }
 
-      const currentItems = tabInventories[selectedTab] || [];
+      if (selectedTab === 6) {
+        sellItem();
+        return;
+      }
+
+      const currentItems = getTabInventory(selectedTab);
       if (currentItems.length === 0 || selectedItem >= currentItems.length) {
         showShopMessage("No item selected!");
         return;
@@ -635,8 +865,57 @@ export function registerShopScene(k: KAPLAYCtx): void {
       });
     }
 
+    function sellItem(): void {
+      if (isProcessing) return;
+
+      const sellableItems = getSellableItems();
+      if (sellableItems.length === 0 || selectedItem >= sellableItems.length) {
+        showShopMessage("No item selected!");
+        return;
+      }
+
+      const sellItemData = sellableItems[selectedItem];
+
+      // Check if item is currently equipped
+      const equipped = GameState.player.equipped;
+      if (equipped.weapon === sellItemData.id ||
+          equipped.armor === sellItemData.id ||
+          equipped.accessory === sellItemData.id) {
+        showShopMessage("Unequip item first!");
+        return;
+      }
+
+      isProcessing = true;
+
+      // Remove one item and add gold
+      GameState.removeItem(sellItemData.id, 1);
+      GameState.addGold(sellItemData.item.sellPrice);
+      updateGoldDisplay();
+
+      try {
+        playSound(k, 'goldCollect');
+      } catch (err) {
+        console.warn('Could not play sell sound');
+      }
+
+      showShopMessage(`Sold ${sellItemData.item.name} for ${sellItemData.item.sellPrice}G!`);
+
+      // Reset selection if we sold the last of this item
+      const updatedItems = getSellableItems();
+      if (selectedItem >= updatedItems.length) {
+        selectedItem = Math.max(0, updatedItems.length - 1);
+      }
+
+      k.wait(0.1, () => {
+        isProcessing = false;
+        if (shopOpen) {
+          renderShopUI();
+        }
+      });
+    }
+
     function unequipSlot(): void {
-      if (selectedTab !== 3 || isProcessing) return;
+      if (selectedTab !== 5 || isProcessing) return;
 
       const slots: EquipmentSlot[] = ['weapon', 'armor', 'accessory'];
       for (const slot of slots) {
@@ -722,7 +1001,7 @@ export function registerShopScene(k: KAPLAYCtx): void {
     ]);
 
     k.add([
-      k.text('Arrow/WASD: Move | ENTER: Interact | ESC: Back', { size: 8 }),
+      k.text('Arrow/WASD: Move | ENTER: Interact | ESC: Back', { size: 12 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 15),
       k.anchor('center'),
       k.color(200, 200, 200),
@@ -754,10 +1033,12 @@ export function registerShopScene(k: KAPLAYCtx): void {
 
       // FIXED: Get correct max items based on tab
       let maxItems: number;
-      if (selectedTab === 3) {
+      if (selectedTab === 5) {
         maxItems = getPlayerEquipment().length;
+      } else if (selectedTab === 6) {
+        maxItems = getSellableItems().length;
       } else {
-        maxItems = (tabInventories[selectedTab] || []).length;
+        maxItems = getTabInventory(selectedTab).length;
       }
 
       if (selectedItem < maxItems - 1) {

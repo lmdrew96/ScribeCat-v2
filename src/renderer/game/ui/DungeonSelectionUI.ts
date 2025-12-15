@@ -115,7 +115,7 @@ export function createDungeonSelectionUI(
 
     // Player level display
     state.elements.push(k.add([
-      k.text(`Your Level: ${playerLevel}`, { size: 10 }),
+      k.text(`Your Level: ${playerLevel}`, { size: 13 }),
       k.pos(canvasWidth / 2, modalY + 36),
       k.anchor('center'),
       k.color(200, 200, 200),
@@ -127,7 +127,7 @@ export function createDungeonSelectionUI(
 
     // Instructions
     state.elements.push(k.add([
-      k.text('Up/Down: Select | ENTER: Enter | ESC: Cancel', { size: 8 }),
+      k.text('Up/Down: Select | ENTER: Enter | ESC: Cancel', { size: 12 }),
       k.pos(canvasWidth / 2, modalY + modalHeight - 12),
       k.anchor('center'),
       k.color(120, 120, 140),
@@ -196,7 +196,7 @@ export function createDungeonSelectionUI(
         ? (isSelected ? [255, 255, 255] : [200, 200, 200])
         : [100, 100, 100];
       const nameText = k.add([
-        k.text(dungeon.name, { size: 11 }),
+        k.text(dungeon.name, { size: 14 }),
         k.pos(modalX + 30, itemY + itemHeight / 2 - 2),
         k.anchor('left'),
         k.color(...nameColor as [number, number, number]),
@@ -219,7 +219,7 @@ export function createDungeonSelectionUI(
       }
 
       const rightLabel = k.add([
-        k.text(rightText, { size: 9 }),
+        k.text(rightText, { size: 12 }),
         k.pos(modalX + modalWidth - 20, itemY + itemHeight / 2 - 2),
         k.anchor('right'),
         k.color(...rightColor),
@@ -232,7 +232,7 @@ export function createDungeonSelectionUI(
       // Lock icon for locked dungeons
       if (!isUnlocked) {
         const lockIcon = k.add([
-          k.text('LOCKED', { size: 8 }),
+          k.text('LOCKED', { size: 12 }),
           k.pos(modalX + modalWidth - 55, itemY + itemHeight / 2 - 2),
           k.anchor('right'),
           k.color(150, 80, 80),

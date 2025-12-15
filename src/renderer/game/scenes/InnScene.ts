@@ -1,10 +1,8 @@
 /**
  * InnScene
  *
- * Where players can rest to heal their HP for gold.
+ * Where players can rest to heal HP and restore mana for gold.
  * A cozy resting spot.
- *
- * Placeholder implementation - will be expanded later.
  */
 
 import type { KAPLAYCtx, GameObj } from 'kaplay';
@@ -15,8 +13,9 @@ import { setupInteraction, type Interactable } from '../systems/interaction.js';
 import { createDoor } from '../components/Door.js';
 import { PLAYER_SPEED, CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 import type { CatColor } from '../sprites/catSprites.js';
+import { playSound } from '../systems/sound.js';
 
-const HEAL_COST = 10; // Gold cost to heal
+const REST_COST = 10; // Gold cost to rest (full HP and MP restore)
 
 export interface InnSceneData {
   catColor?: CatColor;
@@ -135,7 +134,7 @@ export function registerInnScene(k: KAPLAYCtx): void {
 
     // Innkeeper label
     k.add([
-      k.text('Innkeeper', { size: 10 }),
+      k.text('Innkeeper', { size: 13 }),
       k.pos(CANVAS_WIDTH - 130, 120),
       k.anchor('center'),
       k.color(255, 255, 255),
@@ -157,7 +156,7 @@ export function registerInnScene(k: KAPLAYCtx): void {
 
     // Door label
     k.add([
-      k.text('Exit', { size: 10 }),
+      k.text('Exit', { size: 13 }),
       k.pos(50, CANVAS_HEIGHT - 10),
       k.anchor('center'),
       k.color(255, 255, 255),
@@ -185,20 +184,33 @@ export function registerInnScene(k: KAPLAYCtx): void {
       },
     });
 
-    // --- HP DISPLAY (will update after healing) ---
+    // --- HP/MP DISPLAY (will update after resting) ---
     let hpDisplay: GameObj | null = null;
+    let mpDisplay: GameObj | null = null;
 
-    function updateHPDisplay(): void {
+    function updateStatsDisplay(): void {
       if (hpDisplay) k.destroy(hpDisplay);
+      if (mpDisplay) k.destroy(mpDisplay);
 
       const hp = GameState.player.health;
-      const maxHp = GameState.player.maxHealth;
-      const color = hp < maxHp ? k.rgb(255, 100, 100) : k.rgb(100, 255, 100);
+      const maxHp = GameState.getEffectiveMaxHealth();
+      const mp = GameState.player.mana;
+      const maxMp = GameState.getEffectiveMaxMana();
+
+      const hpColor = hp < maxHp ? k.rgb(255, 100, 100) : k.rgb(100, 255, 100);
+      const mpColor = mp < maxMp ? k.rgb(100, 150, 255) : k.rgb(100, 200, 255);
 
       hpDisplay = k.add([
-        k.text(`HP: ${hp}/${maxHp}`, { size: 12 }),
-        k.pos(CANVAS_WIDTH - 100, 48),
-        k.color(color),
+        k.text(`HP: ${hp}/${maxHp}`, { size: 14 }),
+        k.pos(CANVAS_WIDTH - 100, 45),
+        k.color(hpColor),
+        k.z(51),
+      ]);
+
+      mpDisplay = k.add([
+        k.text(`MP: ${mp}/${maxMp}`, { size: 14 }),
+        k.pos(CANVAS_WIDTH - 100, 60),
+        k.color(mpColor),
         k.z(51),
       ]);
     }
@@ -214,9 +226,9 @@ export function registerInnScene(k: KAPLAYCtx): void {
       {
         entity: innkeeper,
         type: 'npc',
-        promptText: `ENTER to rest (${HEAL_COST} gold)`,
+        promptText: `ENTER to rest (${REST_COST} gold)`,
         range: 80,
-        onInteract: () => handleRest(k, updateHPDisplay),
+        onInteract: () => handleRest(k, updateStatsDisplay),
       },
     ];
 
@@ -227,9 +239,9 @@ export function registerInnScene(k: KAPLAYCtx): void {
     });
 
     // --- UI ---
-    // Gold display
+    // Stats display background
     k.add([
-      k.rect(100, 50),
+      k.rect(100, 65),
       k.pos(CANVAS_WIDTH - 110, 10),
       k.color(0, 0, 0),
       k.opacity(0.6),
@@ -237,13 +249,13 @@ export function registerInnScene(k: KAPLAYCtx): void {
     ]);
 
     const goldDisplay = k.add([
-      k.text(`Gold: ${GameState.player.gold}`, { size: 12 }),
+      k.text(`Gold: ${GameState.player.gold}`, { size: 14 }),
       k.pos(CANVAS_WIDTH - 100, 18),
       k.color(251, 191, 36),
       k.z(51),
     ]);
 
-    updateHPDisplay();
+    updateStatsDisplay();
 
     // Scene label
     k.add([
@@ -255,7 +267,7 @@ export function registerInnScene(k: KAPLAYCtx): void {
 
     // Status
     k.add([
-      k.text('Rest here to recover HP', { size: 10 }),
+      k.text('Rest here to recover HP and MP', { size: 13 }),
       k.pos(20, 45),
       k.color(200, 200, 200),
       k.z(50),
@@ -263,7 +275,7 @@ export function registerInnScene(k: KAPLAYCtx): void {
 
     // Controls hint
     k.add([
-      k.text('Arrow/WASD: Move | ENTER: Interact | ESC: Back', { size: 8 }),
+      k.text('Arrow/WASD: Move | ENTER: Interact | ESC: Back', { size: 12 }),
       k.pos(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 15),
       k.anchor('center'),
       k.color(200, 200, 200),
@@ -282,30 +294,42 @@ export function registerInnScene(k: KAPLAYCtx): void {
 /**
  * Handle the rest/heal interaction
  */
-function handleRest(k: KAPLAYCtx, updateHPDisplay: () => void): void {
-  const { health: hp, maxHealth: maxHp, gold } = GameState.player;
+function handleRest(k: KAPLAYCtx, updateStatsDisplay: () => void): void {
+  const hp = GameState.player.health;
+  const maxHp = GameState.getEffectiveMaxHealth();
+  const mp = GameState.player.mana;
+  const maxMp = GameState.getEffectiveMaxMana();
+  const gold = GameState.player.gold;
 
-  // Already at full HP
-  if (hp >= maxHp) {
+  // Already at full HP and MP
+  if (hp >= maxHp && mp >= maxMp) {
     showInnMessage(k, "You're already feeling great!");
     return;
   }
 
   // Not enough gold
-  if (gold < HEAL_COST) {
-    showInnMessage(k, `Not enough gold! (Need ${HEAL_COST})`);
+  if (gold < REST_COST) {
+    showInnMessage(k, `Not enough gold! (Need ${REST_COST})`);
     return;
   }
 
-  // Heal the player
-  GameState.player.gold -= HEAL_COST;
+  // Rest - restore HP and MP
+  GameState.player.gold -= REST_COST;
   GameState.player.health = maxHp;
+  GameState.fullRestoreMana();
+
+  // Play sound
+  try {
+    playSound(k, 'heal');
+  } catch {
+    // Sound not available
+  }
 
   // Update displays
-  updateHPDisplay();
+  updateStatsDisplay();
 
   // Show success message
-  showInnMessage(k, 'You feel refreshed! HP restored.');
+  showInnMessage(k, 'You feel refreshed! HP and MP restored.');
 
   // Visual effect
   const overlay = k.add([
@@ -322,7 +346,7 @@ function handleRest(k: KAPLAYCtx, updateHPDisplay: () => void): void {
     k.wait(0.3, () => k.destroy(overlay));
   });
 
-  console.log(`Healed! HP: ${maxHp}, Gold remaining: ${GameState.player.gold}`);
+  console.log(`Rested! HP: ${maxHp}, MP: ${maxMp}, Gold remaining: ${GameState.player.gold}`);
 }
 
 /**
