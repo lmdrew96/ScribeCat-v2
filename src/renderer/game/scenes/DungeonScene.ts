@@ -1032,6 +1032,26 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
       }).cancel,
       k.onKeyPress('right', () => {
         if (puzzleActive) handlePuzzleInput('right');
+      }).cancel,
+      k.onKeyPress('i', () => {
+        // Open inventory (not during puzzles or merchant)
+        if (puzzleActive || merchantUI.isActive || isTransitioning) return;
+
+        // Save current player position before going to inventory
+        const playerPos = player.entity.pos;
+        cleanup();
+        k.go('inventory', {
+          fromScene: 'dungeon',
+          dungeonReturnData: {
+            catColor,
+            dungeonId,
+            floorNumber: GameState.dungeon.floorNumber,
+            floor: GameState.dungeon.floor,
+            currentRoomId: GameState.dungeon.currentRoomId,
+            playerX: playerPos.x,
+            playerY: playerPos.y,
+          }
+        });
       }).cancel
     );
 
@@ -1171,6 +1191,21 @@ export function registerDungeonScene(k: KAPLAYCtx): void {
           color: k.rgb(255, 200, 100),
         });
       }
+
+      // Inventory hint (top left, always visible when not in other menus)
+      k.drawRect({
+        pos: k.vec2(10, 10),
+        width: 70,
+        height: 20,
+        color: k.rgb(0, 0, 0),
+        opacity: 0.5,
+      });
+      k.drawText({
+        text: 'I: Inventory',
+        pos: k.vec2(15, 13),
+        size: 12,
+        color: k.rgb(150, 150, 200),
+      });
     });
   });
 }

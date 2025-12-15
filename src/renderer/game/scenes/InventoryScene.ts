@@ -20,6 +20,15 @@ import { playSound } from '../systems/sound.js';
 
 export interface InventorySceneData {
   fromScene?: string;
+  dungeonReturnData?: {
+    catColor?: string;
+    dungeonId?: string;
+    floorNumber?: number;
+    floor?: any;
+    currentRoomId?: string;
+    playerX?: number;
+    playerY?: number;
+  };
 }
 
 export function registerInventoryScene(k: KAPLAYCtx): void {
@@ -631,7 +640,15 @@ export function registerInventoryScene(k: KAPLAYCtx): void {
     // --- INPUT ---
     k.onKeyPress('escape', () => {
       if (!isProcessing) {
-        k.go(fromScene);
+        // Return to dungeon with proper state if we came from there
+        if (fromScene === 'dungeon' && data.dungeonReturnData) {
+          k.go('dungeon', {
+            ...data.dungeonReturnData,
+            returnFromBattle: false, // Not from battle, from inventory
+          });
+        } else {
+          k.go(fromScene);
+        }
       }
     });
 
