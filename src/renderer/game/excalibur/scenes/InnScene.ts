@@ -297,7 +297,8 @@ export class InnScene extends ex.Scene {
         height: 8,
         color: ex.Color.fromHex('#800000'),
       }));
-    this.add(wallBorder);
+      this.add(wallBorder);
+    }
 
     // Fireplace
     const fireplace = new ex.Actor({
