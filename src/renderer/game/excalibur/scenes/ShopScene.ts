@@ -3,6 +3,7 @@
  *
  * Shop scene with 7 tabs: Items, Weapons, Armor, Special, Decor, Equip, Sell
  * Players can buy items, equipment, manage gear.
+ * Uses background images and NPC sprites.
  */
 
 import * as ex from 'excalibur';
@@ -11,6 +12,9 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_SPEED } from '../../config.js';
 import { loadCatAnimation, type CatColor, type CatAnimationType } from '../adapters/SpriteAdapter.js';
 import { InputManager } from '../adapters/InputAdapter.js';
 import { getItem, getShopItemsForTier, getUnlockedTier, type ItemDefinition, type EquipmentSlot } from '../../data/items.js';
+import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
+import { createNPCActor } from '../../loaders/NPCSpriteLoader.js';
+import { AudioManager } from '../../audio/AudioManager.js';
 
 export interface ShopSceneData {
   catColor?: CatColor;
@@ -78,6 +82,12 @@ class PlayerActor extends ex.Actor {
   getInputManager(): InputManager | null { return this.inputManager; }
   freeze(): void { this.frozen = true; this.vel = ex.Vector.Zero; }
   unfreeze(): void { this.frozen = false; }
+
+  onPreKill(): void {
+    // Clean up input manager to remove engine-level event listeners
+    this.inputManager?.destroy();
+    this.inputManager = null;
+  }
 }
 
 /**
@@ -130,27 +140,38 @@ export class ShopScene extends ex.Scene {
   }
 
   onDeactivate(): void {
+    // Reset input state to prevent stale handlers from firing
+    this.inputEnabled = false;
+
     this.player = null;
     this.shopUIElements = [];
     this.messageElements = [];
     this.goldLabel = null;
   }
 
-  private setupBackground(): void {
-    // Background
-    const bg = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      width: CANVAS_WIDTH, height: CANVAS_HEIGHT, z: 0,
-    });
-    bg.graphics.use(new ex.Rectangle({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, color: ex.Color.fromHex('#654321') }));
-    this.add(bg);
+  private async setupBackground(): Promise<void> {
+    // Try to load the general store background
+    const bgImage = await loadBackground('generalStore');
 
-    // Wall
-    const wall = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, 90), width: CANVAS_WIDTH, height: 180, z: 1,
-    });
-    wall.graphics.use(new ex.Rectangle({ width: CANVAS_WIDTH, height: 180, color: ex.Color.fromHex('#4682B4') }));
-    this.add(wall);
+    if (bgImage) {
+      const bgActor = createBackgroundActor(bgImage, CANVAS_WIDTH, CANVAS_HEIGHT, 0);
+      this.add(bgActor);
+    } else {
+      // Fallback to solid colors
+      const bg = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
+        width: CANVAS_WIDTH, height: CANVAS_HEIGHT, z: 0,
+      });
+      bg.graphics.use(new ex.Rectangle({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, color: ex.Color.fromHex('#654321') }));
+      this.add(bg);
+
+      // Wall
+      const wall = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, 90), width: CANVAS_WIDTH, height: 180, z: 1,
+      });
+      wall.graphics.use(new ex.Rectangle({ width: CANVAS_WIDTH, height: 180, color: ex.Color.fromHex('#4682B4') }));
+      this.add(wall);
+    }
 
     // Counter
     const counter = new ex.Actor({
@@ -158,13 +179,13 @@ export class ShopScene extends ex.Scene {
     });
     counter.graphics.use(new ex.Rectangle({ width: 400, height: 60, color: ex.Color.fromHex('#8B4513'), strokeColor: ex.Color.Black, lineWidth: 3 }));
     this.add(counter);
+
+    // Play shop music
+    AudioManager.playSceneMusic('shop');
   }
 
-  private setupShopkeeper(): void {
-    const shopkeeper = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, 170), width: 40, height: 60, z: 6,
-    });
-    shopkeeper.graphics.use(new ex.Rectangle({ width: 40, height: 60, color: ex.Color.fromHex('#FFC896'), strokeColor: ex.Color.fromHex('#8B4513'), lineWidth: 3 }));
+  private async setupShopkeeper(): Promise<void> {
+    const shopkeeper = await createNPCActor('shopkeeper', CANVAS_WIDTH / 2, 170, 60, 6);
     this.add(shopkeeper);
 
     const label = new ex.Label({

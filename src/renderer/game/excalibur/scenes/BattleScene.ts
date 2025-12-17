@@ -3,6 +3,7 @@
  *
  * Turn-based combat scene against enemies.
  * Supports Attack, Magic, Defend, Item, Flee actions.
+ * Uses actual enemy sprites from assets/ENEMIES.
  */
 
 import * as ex from 'excalibur';
@@ -20,8 +21,17 @@ import {
   type BattlePhase,
   type CombatStats,
 } from '../../data/battle.js';
-import { type EnemyDefinition, scaleEnemyStats, calculateGoldReward, calculateXpReward } from '../../data/enemies.js';
+import { type EnemyDefinition, scaleEnemyStats, calculateGoldReward, calculateXpReward, calculateEnemyScale } from '../../data/enemies.js';
 import { getItem } from '../../data/items.js';
+import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
+import {
+  loadStaticEnemySprite,
+  loadSlimeAnimation,
+  getSlimeColorFromFolder,
+  getStaticEnemyIdFromFile,
+  type SlimeColor,
+} from '../../loaders/EnemySpriteLoader.js';
+import { AudioManager } from '../../audio/AudioManager.js';
 
 export interface BattleSceneData {
   enemyDef: EnemyDefinition;
@@ -121,6 +131,8 @@ export class BattleScene extends ex.Scene {
   }
 
   onDeactivate(): void {
+    // Clean up input manager to remove engine-level event listeners
+    this.inputManager?.destroy();
     this.inputManager = null;
     this.uiElements = [];
     this.menuElements = [];
@@ -130,16 +142,24 @@ export class BattleScene extends ex.Scene {
     this.playerEntity = null;
   }
 
-  private setupBackground(): void {
-    // Background
-    const bg = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      width: CANVAS_WIDTH, height: CANVAS_HEIGHT, z: 0,
-    });
-    bg.graphics.use(new ex.Rectangle({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, color: ex.Color.fromHex('#1E1E32') }));
-    this.add(bg);
+  private async setupBackground(): Promise<void> {
+    // Try to load a themed background based on dungeon
+    const bgImage = await loadBackground('moonlake');
 
-    // Floor
+    if (bgImage) {
+      const bgActor = createBackgroundActor(bgImage, CANVAS_WIDTH, CANVAS_HEIGHT, 0);
+      this.add(bgActor);
+    } else {
+      // Fallback to solid color
+      const bg = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
+        width: CANVAS_WIDTH, height: CANVAS_HEIGHT, z: 0,
+      });
+      bg.graphics.use(new ex.Rectangle({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, color: ex.Color.fromHex('#1E1E32') }));
+      this.add(bg);
+    }
+
+    // Floor/ground area
     const floor = new ex.Actor({
       pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 75),
       width: CANVAS_WIDTH, height: 150, z: 1,
@@ -155,20 +175,61 @@ export class BattleScene extends ex.Scene {
     });
     this.add(floorLabel);
     this.uiElements.push(floorLabel);
+
+    // Start battle music
+    AudioManager.playSceneMusic('battle');
   }
 
   private async setupCombatants(enemyDef: EnemyDefinition): Promise<void> {
-    // Enemy
+    // Target display size for enemies (normalized)
+    const targetEnemySize = 80;
+
+    // Enemy actor
     this.enemyEntity = new ex.Actor({
       pos: new ex.Vector(CANVAS_WIDTH / 2, 120),
-      width: 80, height: 80, z: 20,
+      width: targetEnemySize, height: targetEnemySize, z: 20,
     });
-    const enemyColor = enemyDef.color || [150, 50, 50];
-    this.enemyEntity.graphics.use(new ex.Rectangle({
-      width: 80, height: 80,
-      color: ex.Color.fromRGB(enemyColor[0], enemyColor[1], enemyColor[2]),
-      strokeColor: ex.Color.Black, lineWidth: 3,
-    }));
+
+    // Try to load actual enemy sprite
+    let spriteLoaded = false;
+
+    if (enemyDef.spriteFolder) {
+      // Animated slime enemy
+      const slimeColor = getSlimeColorFromFolder(enemyDef.spriteFolder);
+      if (slimeColor) {
+        const idleAnim = await loadSlimeAnimation(slimeColor, 'idle');
+        if (idleAnim) {
+          // Scale up slime sprites (32x32) to target size
+          const scale = calculateEnemyScale(enemyDef, targetEnemySize);
+          idleAnim.scale = new ex.Vector(scale, scale);
+          this.enemyEntity.graphics.use(idleAnim);
+          spriteLoaded = true;
+        }
+      }
+    } else if (enemyDef.spriteFile) {
+      // Static enemy (single PNG)
+      const enemyId = getStaticEnemyIdFromFile(enemyDef.spriteFile);
+      if (enemyId) {
+        const sprite = await loadStaticEnemySprite(enemyId);
+        if (sprite) {
+          // Scale to normalize display size
+          const scale = calculateEnemyScale(enemyDef, targetEnemySize);
+          sprite.scale = new ex.Vector(scale, scale);
+          this.enemyEntity.graphics.use(sprite);
+          spriteLoaded = true;
+        }
+      }
+    }
+
+    // Fallback to placeholder if sprite loading failed
+    if (!spriteLoaded) {
+      const enemyColor = enemyDef.placeholderColor || [150, 50, 50];
+      this.enemyEntity.graphics.use(new ex.Rectangle({
+        width: targetEnemySize, height: targetEnemySize,
+        color: ex.Color.fromRGB(enemyColor[0], enemyColor[1], enemyColor[2]),
+        strokeColor: ex.Color.Black, lineWidth: 3,
+      }));
+    }
     this.add(this.enemyEntity);
 
     // Enemy name

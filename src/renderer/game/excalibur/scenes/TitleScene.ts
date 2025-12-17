@@ -17,6 +17,8 @@ import {
   CAT_UNLOCK_REQUIREMENTS,
   isCatUnlocked,
 } from '../../data/catSprites.js';
+import { AudioManager } from '../../audio/AudioManager.js';
+import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
 
 export interface TitleSceneData {
   // No data needed for title scene
@@ -36,6 +38,7 @@ export class TitleScene extends ex.Scene {
   // Cat selection
   private selectedCatIndex = 0;
   private catPreview: ex.Actor | null = null;
+  private catPreviewGeneration = 0; // Used to cancel stale async operations
   private catNameLabel: ex.Label | null = null;
   private unlockLabel: ex.Label | null = null;
   private lockIcon: ex.Label | null = null;
@@ -44,6 +47,11 @@ export class TitleScene extends ex.Scene {
   private buttons: MenuButton[] = [];
   private buttonLabels: ex.Label[] = [];
   private selectedButton = 0;
+
+  // Settings menu
+  private settingsMenuActive = false;
+  private settingsMenuActors: ex.Actor[] = [];
+  private settingsSelection = 0;
 
   // Message display
   private messageLabel: ex.Label | null = null;
@@ -57,6 +65,7 @@ export class TitleScene extends ex.Scene {
     // Reset state
     this.selectedCatIndex = 0;
     this.selectedButton = 0;
+    this.settingsMenuActive = false;
 
     // Clear any existing actors
     this.clear();
@@ -69,11 +78,17 @@ export class TitleScene extends ex.Scene {
     this.setupFooter();
     this.setupInputHandlers();
 
+    // Play title music
+    AudioManager.getInstance().playSceneMusic('title');
+
     console.log('=== StudyQuest Title Scene (Excalibur) ===');
   }
 
   onDeactivate(): void {
+    // Clean up input manager to remove engine-level event listeners
+    this.inputManager?.destroy();
     this.inputManager = null;
+
     this.catPreview = null;
     this.catNameLabel = null;
     this.unlockLabel = null;
@@ -171,15 +186,19 @@ export class TitleScene extends ex.Scene {
   }
 
   private async updateCatPreview(): Promise<void> {
-    // Remove existing preview
-    if (this.catPreview) {
+    // Increment generation to cancel any pending async operations
+    const generation = ++this.catPreviewGeneration;
+
+    // Kill only if actor was actually added to scene (has a scene reference)
+    if (this.catPreview?.scene) {
       this.catPreview.kill();
-      this.catPreview = null;
     }
-    if (this.lockIcon) {
+    this.catPreview = null;
+
+    if (this.lockIcon?.scene) {
       this.lockIcon.kill();
-      this.lockIcon = null;
     }
+    this.lockIcon = null;
 
     const color = ALL_CAT_COLORS[this.selectedCatIndex];
     const isUnlocked = this.isCatUnlockedForPlayer(color);
@@ -192,21 +211,39 @@ export class TitleScene extends ex.Scene {
       z: 20,
     });
 
+    // Add to scene BEFORE async operation so kill() works properly
+    this.add(this.catPreview);
+
     if (isUnlocked) {
+      // Use placeholder initially
+      this.catPreview.graphics.use(new ex.Rectangle({
+        width: 96,
+        height: 96,
+        color: ex.Color.fromRGB(50, 50, 80, 0.5),
+      }));
+
       // Load and display cat animation
       try {
         const animation = await loadCatAnimation(color, 'idle');
+
+        // Check if this request is still current (user didn't switch cats)
+        if (generation !== this.catPreviewGeneration) return;
+
         // Scale up the animation
         const scaledAnim = animation.clone();
         scaledAnim.scale = new ex.Vector(3, 3);
-        this.catPreview.graphics.use(scaledAnim);
+        if (this.catPreview) {
+          this.catPreview.graphics.use(scaledAnim);
+        }
       } catch (err) {
         console.warn('Failed to load cat animation:', err);
-        this.catPreview.graphics.use(new ex.Rectangle({
-          width: 96,
-          height: 96,
-          color: ex.Color.Gray,
-        }));
+        if (generation === this.catPreviewGeneration && this.catPreview) {
+          this.catPreview.graphics.use(new ex.Rectangle({
+            width: 96,
+            height: 96,
+            color: ex.Color.Gray,
+          }));
+        }
       }
     } else {
       // Show silhouette for locked cats
@@ -226,8 +263,6 @@ export class TitleScene extends ex.Scene {
       this.lockIcon.graphics.anchor = ex.Vector.Half;
       this.add(this.lockIcon);
     }
-
-    this.add(this.catPreview);
 
     // Update displays
     this.updateCatDisplays();
@@ -267,6 +302,10 @@ export class TitleScene extends ex.Scene {
       {
         label: 'Continue',
         action: () => this.handleContinue(),
+      },
+      {
+        label: 'Settings',
+        action: () => this.openSettingsMenu(),
       },
     ];
 
@@ -453,5 +492,340 @@ export class TitleScene extends ex.Scene {
       this.messageLabel.kill();
       this.messageLabel = null;
     }
+  }
+
+  // ====== SETTINGS MENU ======
+
+  private openSettingsMenu(): void {
+    this.settingsMenuActive = true;
+    this.settingsSelection = 0;
+    this.clearSettingsMenu();
+
+    const audio = AudioManager.getInstance();
+    const menuX = CANVAS_WIDTH / 2;
+    const menuStartY = 120;
+    const rowHeight = 50;
+
+    // Background panel
+    const panelBg = new ex.Actor({
+      pos: new ex.Vector(menuX, CANVAS_HEIGHT / 2),
+      width: 320,
+      height: 280,
+      z: 200,
+    });
+    panelBg.graphics.use(new ex.Rectangle({
+      width: 320,
+      height: 280,
+      color: ex.Color.fromRGB(20, 20, 40, 0.95),
+    }));
+    this.add(panelBg);
+    this.settingsMenuActors.push(panelBg);
+
+    // Title
+    const title = new ex.Label({
+      text: 'Settings',
+      pos: new ex.Vector(menuX, menuStartY - 30),
+      font: new ex.Font({ size: 24, color: ex.Color.fromHex('#FBBF24') }),
+      z: 201,
+    });
+    title.graphics.anchor = ex.Vector.Half;
+    this.add(title);
+    this.settingsMenuActors.push(title);
+
+    // Music Volume Row
+    this.createSettingsRow(
+      'Music Volume',
+      Math.round(audio.musicVolume * 100) + '%',
+      menuX,
+      menuStartY + rowHeight * 0,
+      0
+    );
+
+    // SFX Volume Row
+    this.createSettingsRow(
+      'SFX Volume',
+      Math.round(audio.sfxVolume * 100) + '%',
+      menuX,
+      menuStartY + rowHeight * 1,
+      1
+    );
+
+    // Music Enabled Row
+    this.createSettingsRow(
+      'Music',
+      audio.musicEnabled ? 'ON' : 'OFF',
+      menuX,
+      menuStartY + rowHeight * 2,
+      2
+    );
+
+    // SFX Enabled Row
+    this.createSettingsRow(
+      'Sound Effects',
+      audio.sfxEnabled ? 'ON' : 'OFF',
+      menuX,
+      menuStartY + rowHeight * 3,
+      3
+    );
+
+    // Back button
+    this.createSettingsRow(
+      'Back',
+      '',
+      menuX,
+      menuStartY + rowHeight * 4 + 10,
+      4
+    );
+
+    // Instructions
+    const instructions = new ex.Label({
+      text: 'W/S: Navigate | A/D: Adjust | ESC: Back',
+      pos: new ex.Vector(menuX, menuStartY + rowHeight * 5 + 20),
+      font: new ex.Font({ size: 12, color: ex.Color.fromRGB(120, 120, 150) }),
+      z: 201,
+    });
+    instructions.graphics.anchor = ex.Vector.Half;
+    this.add(instructions);
+    this.settingsMenuActors.push(instructions);
+
+    // Setup settings input handlers
+    this.setupSettingsInputHandlers();
+  }
+
+  private createSettingsRow(label: string, value: string, x: number, y: number, index: number): void {
+    const isSelected = this.settingsSelection === index;
+    const labelColor = isSelected ? ex.Color.fromHex('#FBBF24') : ex.Color.fromRGB(200, 200, 200);
+
+    // Label
+    const labelActor = new ex.Label({
+      text: isSelected ? `> ${label}` : label,
+      pos: new ex.Vector(x - 80, y),
+      font: new ex.Font({ size: 16, color: labelColor }),
+      z: 201,
+    });
+    labelActor.graphics.anchor = new ex.Vector(0, 0.5);
+    this.add(labelActor);
+    this.settingsMenuActors.push(labelActor);
+
+    // Value (if any)
+    if (value) {
+      const valueActor = new ex.Label({
+        text: value,
+        pos: new ex.Vector(x + 80, y),
+        font: new ex.Font({ size: 16, color: isSelected ? ex.Color.fromHex('#60A5FA') : ex.Color.fromRGB(150, 150, 180) }),
+        z: 201,
+      });
+      valueActor.graphics.anchor = new ex.Vector(1, 0.5);
+      this.add(valueActor);
+      this.settingsMenuActors.push(valueActor);
+    }
+  }
+
+  private clearSettingsMenu(): void {
+    for (const actor of this.settingsMenuActors) {
+      actor.kill();
+    }
+    this.settingsMenuActors = [];
+  }
+
+  private closeSettingsMenu(): void {
+    this.settingsMenuActive = false;
+    this.clearSettingsMenu();
+    this.setupInputHandlers(); // Restore main menu input handlers
+  }
+
+  private setupSettingsInputHandlers(): void {
+    // Temporarily remove main input handlers
+    this.inputManager?.destroy();
+    this.inputManager = null;
+
+    const engine = this.engine;
+    if (!engine) return;
+
+    this.inputManager = new InputManager(engine);
+    const audio = AudioManager.getInstance();
+
+    // Navigate settings
+    this.inputManager.onKeyPress('up', () => {
+      if (this.settingsMenuActive) {
+        this.settingsSelection = (this.settingsSelection - 1 + 5) % 5;
+        this.refreshSettingsMenu();
+      }
+    });
+
+    this.inputManager.onKeyPress('w', () => {
+      if (this.settingsMenuActive) {
+        this.settingsSelection = (this.settingsSelection - 1 + 5) % 5;
+        this.refreshSettingsMenu();
+      }
+    });
+
+    this.inputManager.onKeyPress('down', () => {
+      if (this.settingsMenuActive) {
+        this.settingsSelection = (this.settingsSelection + 1) % 5;
+        this.refreshSettingsMenu();
+      }
+    });
+
+    this.inputManager.onKeyPress('s', () => {
+      if (this.settingsMenuActive) {
+        this.settingsSelection = (this.settingsSelection + 1) % 5;
+        this.refreshSettingsMenu();
+      }
+    });
+
+    // Adjust values (left/right)
+    this.inputManager.onKeyPress('left', () => this.adjustSetting(-1));
+    this.inputManager.onKeyPress('a', () => this.adjustSetting(-1));
+    this.inputManager.onKeyPress('right', () => this.adjustSetting(1));
+    this.inputManager.onKeyPress('d', () => this.adjustSetting(1));
+
+    // Select/Enter (for Back or toggle)
+    this.inputManager.onKeyPress('enter', () => this.activateSetting());
+    this.inputManager.onKeyPress('space', () => this.activateSetting());
+
+    // Escape to close
+    this.inputManager.onKeyPress('escape', () => this.closeSettingsMenu());
+  }
+
+  private adjustSetting(delta: number): void {
+    if (!this.settingsMenuActive) return;
+
+    const audio = AudioManager.getInstance();
+    const step = 0.1; // 10% increments
+
+    switch (this.settingsSelection) {
+      case 0: // Music Volume
+        audio.musicVolume = Math.max(0, Math.min(1, audio.musicVolume + delta * step));
+        break;
+      case 1: // SFX Volume
+        audio.sfxVolume = Math.max(0, Math.min(1, audio.sfxVolume + delta * step));
+        // Play a test sound when adjusting
+        if (delta !== 0) {
+          audio.playSfx('button_click');
+        }
+        break;
+      case 2: // Music Enabled
+        audio.musicEnabled = delta > 0 ? true : false;
+        break;
+      case 3: // SFX Enabled
+        audio.sfxEnabled = delta > 0 ? true : false;
+        break;
+      case 4: // Back button - no adjustment
+        break;
+    }
+
+    this.refreshSettingsMenu();
+  }
+
+  private activateSetting(): void {
+    if (!this.settingsMenuActive) return;
+
+    const audio = AudioManager.getInstance();
+
+    switch (this.settingsSelection) {
+      case 2: // Toggle Music
+        audio.musicEnabled = !audio.musicEnabled;
+        this.refreshSettingsMenu();
+        break;
+      case 3: // Toggle SFX
+        audio.sfxEnabled = !audio.sfxEnabled;
+        this.refreshSettingsMenu();
+        break;
+      case 4: // Back
+        this.closeSettingsMenu();
+        break;
+    }
+  }
+
+  private refreshSettingsMenu(): void {
+    this.clearSettingsMenu();
+    
+    const audio = AudioManager.getInstance();
+    const menuX = CANVAS_WIDTH / 2;
+    const menuStartY = 120;
+    const rowHeight = 50;
+
+    // Background panel
+    const panelBg = new ex.Actor({
+      pos: new ex.Vector(menuX, CANVAS_HEIGHT / 2),
+      width: 320,
+      height: 280,
+      z: 200,
+    });
+    panelBg.graphics.use(new ex.Rectangle({
+      width: 320,
+      height: 280,
+      color: ex.Color.fromRGB(20, 20, 40, 0.95),
+    }));
+    this.add(panelBg);
+    this.settingsMenuActors.push(panelBg);
+
+    // Title
+    const title = new ex.Label({
+      text: 'Settings',
+      pos: new ex.Vector(menuX, menuStartY - 30),
+      font: new ex.Font({ size: 24, color: ex.Color.fromHex('#FBBF24') }),
+      z: 201,
+    });
+    title.graphics.anchor = ex.Vector.Half;
+    this.add(title);
+    this.settingsMenuActors.push(title);
+
+    // Music Volume Row
+    this.createSettingsRow(
+      'Music Volume',
+      Math.round(audio.musicVolume * 100) + '%',
+      menuX,
+      menuStartY + rowHeight * 0,
+      0
+    );
+
+    // SFX Volume Row
+    this.createSettingsRow(
+      'SFX Volume',
+      Math.round(audio.sfxVolume * 100) + '%',
+      menuX,
+      menuStartY + rowHeight * 1,
+      1
+    );
+
+    // Music Enabled Row
+    this.createSettingsRow(
+      'Music',
+      audio.musicEnabled ? 'ON' : 'OFF',
+      menuX,
+      menuStartY + rowHeight * 2,
+      2
+    );
+
+    // SFX Enabled Row
+    this.createSettingsRow(
+      'Sound Effects',
+      audio.sfxEnabled ? 'ON' : 'OFF',
+      menuX,
+      menuStartY + rowHeight * 3,
+      3
+    );
+
+    // Back button
+    this.createSettingsRow(
+      'Back',
+      '',
+      menuX,
+      menuStartY + rowHeight * 4 + 10,
+      4
+    );
+
+    // Instructions
+    const instructions = new ex.Label({
+      text: 'W/S: Navigate | A/D: Adjust | ESC: Back',
+      pos: new ex.Vector(menuX, menuStartY + rowHeight * 5 + 20),
+      font: new ex.Font({ size: 12, color: ex.Color.fromRGB(120, 120, 150) }),
+      z: 201,
+    });
+    instructions.graphics.anchor = ex.Vector.Half;
+    this.add(instructions);
+    this.settingsMenuActors.push(instructions);
   }
 }

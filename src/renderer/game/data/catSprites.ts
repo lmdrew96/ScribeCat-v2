@@ -22,7 +22,8 @@ export type CatColor =
   | 'vampire'
   | 'wizard'
   | 'xmas'
-  | 'superhero';
+  | 'superhero'
+  | 'zombie';
 
 export type CatAnimationType =
   | 'idle'
@@ -87,6 +88,7 @@ export const ALL_CAT_COLORS: CatColor[] = [
   'wizard',
   'xmas',
   'superhero',
+  'zombie',
 ];
 
 // Starter cats available at game start
@@ -108,6 +110,7 @@ export const CAT_DISPLAY_NAMES: Record<CatColor, string> = {
   wizard: 'Wizard Cat',
   xmas: 'Xmas Cat',
   superhero: 'Superhero Cat',
+  zombie: 'Zombie Cat',
 };
 
 // Unlock requirements for special cats
@@ -126,6 +129,7 @@ export const CAT_UNLOCK_REQUIREMENTS: Record<CatColor, { type: string; value: nu
   wizard: { type: 'level', value: 15, description: 'Reach level 15' },
   xmas: { type: 'special', value: 0, description: 'Christmas special' },
   superhero: { type: 'dungeons', value: 10, description: 'Complete 10 dungeons' },
+  zombie: { type: 'special', value: 0, description: 'Halloween special' },
 };
 
 /**

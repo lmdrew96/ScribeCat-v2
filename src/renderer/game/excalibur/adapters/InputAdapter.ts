@@ -42,6 +42,11 @@ export class InputManager {
   private keyDownHandlers: Map<GameKey, (() => void)[]> = new Map();
   private keyUpHandlers: Map<GameKey, (() => void)[]> = new Map();
 
+  // Store references to event handlers so we can remove them later
+  private pressHandler: ((evt: ex.KeyEvent) => void) | null = null;
+  private downHandler: ((evt: ex.KeyEvent) => void) | null = null;
+  private releaseHandler: ((evt: ex.KeyEvent) => void) | null = null;
+
   constructor(engine: ex.Engine) {
     this.engine = engine;
     this.setupKeyboardEvents();
@@ -52,31 +57,54 @@ export class InputManager {
    */
   private setupKeyboardEvents(): void {
     // Listen for key press events
-    this.engine.input.keyboard.on('press', (evt: ex.KeyEvent) => {
+    this.pressHandler = (evt: ex.KeyEvent) => {
       const gameKey = this.excaliburKeyToGameKey(evt.key);
       if (gameKey) {
         const handlers = this.keyPressHandlers.get(gameKey);
         handlers?.forEach(handler => handler());
       }
-    });
+    };
+    this.engine.input.keyboard.on('press', this.pressHandler);
 
     // Listen for key down events (held)
-    this.engine.input.keyboard.on('down', (evt: ex.KeyEvent) => {
+    this.downHandler = (evt: ex.KeyEvent) => {
       const gameKey = this.excaliburKeyToGameKey(evt.key);
       if (gameKey) {
         const handlers = this.keyDownHandlers.get(gameKey);
         handlers?.forEach(handler => handler());
       }
-    });
+    };
+    this.engine.input.keyboard.on('down', this.downHandler);
 
     // Listen for key up events
-    this.engine.input.keyboard.on('release', (evt: ex.KeyEvent) => {
+    this.releaseHandler = (evt: ex.KeyEvent) => {
       const gameKey = this.excaliburKeyToGameKey(evt.key);
       if (gameKey) {
         const handlers = this.keyUpHandlers.get(gameKey);
         handlers?.forEach(handler => handler());
       }
-    });
+    };
+    this.engine.input.keyboard.on('release', this.releaseHandler);
+  }
+
+  /**
+   * Destroy this InputManager and remove all event listeners from the engine.
+   * Call this when the scene/actor using this InputManager is being destroyed.
+   */
+  destroy(): void {
+    if (this.pressHandler) {
+      this.engine.input.keyboard.off('press', this.pressHandler);
+      this.pressHandler = null;
+    }
+    if (this.downHandler) {
+      this.engine.input.keyboard.off('down', this.downHandler);
+      this.downHandler = null;
+    }
+    if (this.releaseHandler) {
+      this.engine.input.keyboard.off('release', this.releaseHandler);
+      this.releaseHandler = null;
+    }
+    this.clearAll();
   }
 
   /**

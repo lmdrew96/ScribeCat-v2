@@ -7,7 +7,7 @@
  * - Inn (heal HP)
  * - Dungeon Gate (enter dungeons)
  *
- * Uses placeholder graphics for now - Tiled integration comes in later phase.
+ * Uses background images from assets/BACKGROUNDS.
  */
 
 import * as ex from 'excalibur';
@@ -17,6 +17,8 @@ import { loadCatAnimation, type CatColor, type CatAnimationType } from '../adapt
 import { InputManager } from '../adapters/InputAdapter.js';
 import { saveDungeonProgress } from '../../services/StudyQuestService.js';
 import { type DungeonInfo, getAllDungeonInfo, isDungeonUnlocked } from '../../data/dungeons.js';
+import { loadBackground, createBackgroundActor, createFallbackBackground } from '../../loaders/BackgroundLoader.js';
+import { AudioManager } from '../../audio/AudioManager.js';
 
 // Map dimensions
 const MAP_WIDTH = 640;
@@ -131,6 +133,12 @@ class PlayerActor extends ex.Actor {
 
   unfreeze(): void {
     this.frozen = false;
+  }
+
+  onPreKill(): void {
+    // Clean up input manager to remove engine-level event listeners
+    this.inputManager?.destroy();
+    this.inputManager = null;
   }
 }
 
@@ -261,6 +269,9 @@ export class TownScene extends ex.Scene {
   }
 
   onDeactivate(): void {
+    // Reset input state to prevent stale handlers from firing
+    this.inputEnabled = false;
+
     this.player = null;
     this.buildings = [];
     this.doors = [];
@@ -270,34 +281,46 @@ export class TownScene extends ex.Scene {
     this.saveStatusLabel = null;
   }
 
-  private setupBackground(): void {
-    // Grass background (full map size)
-    const grass = new ex.Actor({
-      pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT / 2),
-      width: MAP_WIDTH,
-      height: MAP_HEIGHT,
-      z: 0,
-    });
-    grass.graphics.use(new ex.Rectangle({
-      width: MAP_WIDTH,
-      height: MAP_HEIGHT,
-      color: ex.Color.fromHex('#228B22'),
-    }));
-    this.add(grass);
+  private async setupBackground(): Promise<void> {
+    // Try to load the town background image
+    const bgImage = await loadBackground('town');
 
-    // Path/walkable area
-    const path = new ex.Actor({
-      pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT - 100),
-      width: MAP_WIDTH - 40,
-      height: 200,
-      z: 1,
-    });
-    path.graphics.use(new ex.Rectangle({
-      width: MAP_WIDTH - 40,
-      height: 200,
-      color: ex.Color.fromHex('#D2B48C'),
-    }));
-    this.add(path);
+    if (bgImage) {
+      // Use the actual background image with scale-and-crop
+      const bgActor = createBackgroundActor(bgImage, MAP_WIDTH, MAP_HEIGHT, 0);
+      this.add(bgActor);
+    } else {
+      // Fallback to solid color if image fails to load
+      const grass = new ex.Actor({
+        pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT / 2),
+        width: MAP_WIDTH,
+        height: MAP_HEIGHT,
+        z: 0,
+      });
+      grass.graphics.use(new ex.Rectangle({
+        width: MAP_WIDTH,
+        height: MAP_HEIGHT,
+        color: ex.Color.fromHex('#228B22'),
+      }));
+      this.add(grass);
+
+      // Path/walkable area
+      const path = new ex.Actor({
+        pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT - 100),
+        width: MAP_WIDTH - 40,
+        height: 200,
+        z: 1,
+      });
+      path.graphics.use(new ex.Rectangle({
+        width: MAP_WIDTH - 40,
+        height: 200,
+        color: ex.Color.fromHex('#D2B48C'),
+      }));
+      this.add(path);
+    }
+
+    // Start town music
+    AudioManager.playSceneMusic('town');
   }
 
   private setupBuildings(): void {

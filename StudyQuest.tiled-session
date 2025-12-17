@@ -207,6 +207,26 @@
                 "y": 88.83916820215846
             }
         },
+        "assets/MAPS/Tile Maps/dungeon_room12.tmx": {
+            "scale": 1.7040624999999998,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 160.20539152759952,
+                "y": 79.8092792958005
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room15.tmx": {
+            "expandedObjectLayers": [
+                4,
+                3
+            ],
+            "scale": 1.51,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 162.91390728476824,
+                "y": 92.05298013245034
+            }
+        },
         "assets/MAPS/Tile Maps/dungeon_room2.tmx": {
             "expandedObjectLayers": [
                 4
@@ -231,10 +251,57 @@
         },
         "assets/MAPS/Tile Maps/dungeon_room4.tmx": {
             "scale": 1.51,
-            "selectedLayer": 1,
+            "selectedLayer": 3,
             "viewCenter": {
                 "x": 158.9403973509934,
                 "y": 88.74172185430464
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room5.tmx": {
+            "expandedObjectLayers": [
+                4,
+                3
+            ],
+            "scale": 1.5196,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 159.25243485127663,
+                "y": 88.83916820215846
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room6.tmx": {
+            "expandedObjectLayers": [
+                4
+            ],
+            "scale": 1.7040624999999998,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 160.20539152759952,
+                "y": 79.8092792958005
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room7.tmx": {
+            "expandedObjectLayers": [
+                4,
+                3
+            ],
+            "scale": 1.5196,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 159.25243485127663,
+                "y": 88.83916820215846
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room8.tmx": {
+            "expandedObjectLayers": [
+                4,
+                3
+            ],
+            "scale": 1.5196,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 159.25243485127663,
+                "y": 88.83916820215846
             }
         },
         "assets/MAPS/Tile Maps/house1.tmx": {
@@ -342,6 +409,10 @@
                 "y": 241.17396852403235
             }
         },
+        "assets/Tiles/Dungeon/Dungeon_Tileset.tsx": {
+            "scaleInDock": 1.7947,
+            "scaleInEditor": 2.72
+        },
         "assets/Tiles/GrassWaterTiles/GrassWaterTiles.tsx": {
             "dynamicWrapping": true,
             "scaleInDock": 2.48,
@@ -394,18 +465,18 @@
     "project": "StudyQuest.tiled-project",
     "property.type": "float",
     "recentFiles": [
+        "assets/Tiles/Dungeon/Dungeon_Tileset.tsx",
+        "assets/MAPS/Tile Maps/dungeon_room15.tmx",
+        "assets/MAPS/Tile Maps/dungeon_room12.tmx",
+        "assets/MAPS/Tile Maps/dungeon_room6.tmx",
+        "assets/MAPS/Tile Maps/dungeon_room5.tmx",
         "assets/MAPS/Tile Maps/dungeon_room4.tmx",
         "assets/MAPS/Tile Maps/dungeon_room3.tmx",
         "assets/MAPS/Tile Maps/dungeon_room2.tmx",
         "assets/MAPS/Tile Maps/dungeon1.tmx",
         "assets/MAPS/Tile Maps/cat_village.tmx",
         "assets/MAPS/Tile Maps/tree_line_yellow.tmx",
-        "assets/MAPS/Tile Maps/tree_line_green.tmx",
-        "assets/MAPS/Tile Maps/tiny_tree_group_yellow.tmx",
-        "assets/MAPS/Tile Maps/tiny_tree_group_green.tmx",
-        "assets/MAPS/Tile Maps/tiny_tree_cluster_yellow.tmx",
-        "assets/MAPS/Tile Maps/barn1.tmx",
-        "assets/MAPS/Tile Maps/its_grass.tmx"
+        "assets/MAPS/Tile Maps/tree_line_green.tmx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
     "tileset.lastUsedFormat": "tsx",

@@ -42,6 +42,7 @@ const CAT_FOLDER_NAMES: Record<CatColor, string> = {
   wizard: 'WIZARD_CAT',
   xmas: 'XMAS_CAT',
   superhero: 'SUPERHERO_CAT',
+  zombie: 'ZOMBIE_CAT',
 };
 
 // Animation file names per cat color
@@ -116,6 +117,12 @@ const CAT_ANIMATION_FILES: Record<CatColor, Record<CatAnimationType, string>> = 
     idle: 'IdleCat', idle2: 'Idle2Cat', walk: 'RunCat', run: 'RunCat',
     sit: 'Sitting', sleep: 'SleepCat', attack: 'AttackCat', hurt: 'HurtCat',
     die: 'DieCat', die2: 'Die2Cat', jump: 'JumpCat',
+  },
+  // Zombie cat uses a single combined sprite sheet - handled specially
+  zombie: {
+    idle: 'ZombieCatsSprites', idle2: 'ZombieCatsSprites', walk: 'ZombieCatsSprites', run: 'ZombieCatsSprites',
+    sit: 'ZombieCatsSprites', sleep: 'ZombieCatsSprites', attack: 'ZombieCatsSprites', hurt: 'ZombieCatsSprites',
+    die: 'ZombieCatsSprites', die2: 'ZombieCatsSprites', jump: 'ZombieCatsSprites',
   },
 };
 

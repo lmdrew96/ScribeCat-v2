@@ -168,6 +168,11 @@ export class DungeonScene extends ex.Scene {
   }
 
   onDeactivate(): void {
+    // Reset input state to prevent stale handlers from firing
+    this.inputEnabled = false;
+
+    // Clean up input manager to remove engine-level event listeners
+    this.inputManager?.destroy();
     this.inputManager = null;
     this.clearAllActors();
   }

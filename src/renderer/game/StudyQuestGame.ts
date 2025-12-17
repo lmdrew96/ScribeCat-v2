@@ -7,6 +7,7 @@
 
 import { GameState } from './state/GameState.js';
 import type { CatColor } from './excalibur/adapters/SpriteAdapter.js';
+import { getEnemy } from './data/enemies.js';
 
 // Excalibur imports
 import { ExcaliburGame } from './excalibur/index.js';
@@ -123,8 +124,14 @@ export class StudyQuestGame {
     // DungeonScene
     const dungeonScene = new DungeonScene({
       onGoToBattle: (enemyId: string, returnData: DungeonSceneData) => {
+        const enemyDef = getEnemy(enemyId);
+        if (!enemyDef) {
+          console.error(`Unknown enemy ID: ${enemyId}`);
+          return;
+        }
         this.goTo('battle', {
-          enemyId,
+          enemyDef,
+          floorLevel: returnData.floorNumber,
           returnScene: 'dungeon',
           returnData,
         });

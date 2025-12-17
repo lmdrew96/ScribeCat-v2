@@ -4,8 +4,7 @@
  * The Inn scene implemented in Excalibur.js.
  * Players can rest here to restore HP and MP for gold.
  *
- * This is the first scene migrated from KAPLAY to Excalibur,
- * serving as a template for other scene migrations.
+ * Uses background images from assets/BACKGROUNDS.
  */
 
 import * as ex from 'excalibur';
@@ -13,6 +12,9 @@ import { GameState } from '../../state/GameState.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_SPEED } from '../../config.js';
 import { loadCatAnimation, type CatColor, type CatAnimationType } from '../adapters/SpriteAdapter.js';
 import { InputManager } from '../adapters/InputAdapter.js';
+import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
+import { loadNPCSprite } from '../../loaders/NPCSpriteLoader.js';
+import { AudioManager } from '../../audio/AudioManager.js';
 
 const REST_COST = 10; // Gold cost to rest
 
@@ -109,6 +111,12 @@ class PlayerActor extends ex.Actor {
 
   getInputManager(): InputManager | null {
     return this.inputManager;
+  }
+
+  onPreKill(): void {
+    // Clean up input manager to remove engine-level event listeners
+    this.inputManager?.destroy();
+    this.inputManager = null;
   }
 }
 
@@ -226,6 +234,9 @@ export class InnScene extends ex.Scene {
   }
 
   onDeactivate(): void {
+    // Reset input state to prevent stale handlers from firing
+    this.inputEnabled = false;
+
     // Excalibur handles cleanup automatically!
     // This is a major improvement over KAPLAY's manual cleanup
     this.player = null;
@@ -238,47 +249,54 @@ export class InnScene extends ex.Scene {
     this.messageBg = null;
   }
 
-  private setupBackground(): void {
-    // Floor
-    const floor = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-      z: 0,
-    });
-    floor.graphics.use(new ex.Rectangle({
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-      color: ex.Color.fromHex('#8B5A2B'),
-    }));
-    this.add(floor);
+  private async setupBackground(): Promise<void> {
+    // Try to load the living room background
+    const bgImage = await loadBackground('livingRoom');
 
-    // Wall
-    const wall = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, 90),
-      width: CANVAS_WIDTH,
-      height: 180,
-      z: 1,
-    });
-    wall.graphics.use(new ex.Rectangle({
-      width: CANVAS_WIDTH,
-      height: 180,
-      color: ex.Color.fromHex('#B22222'),
-    }));
-    this.add(wall);
+    if (bgImage) {
+      const bgActor = createBackgroundActor(bgImage, CANVAS_WIDTH, CANVAS_HEIGHT, 0);
+      this.add(bgActor);
+    } else {
+      // Fallback to solid colors
+      const floor = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        z: 0,
+      });
+      floor.graphics.use(new ex.Rectangle({
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        color: ex.Color.fromHex('#8B5A2B'),
+      }));
+      this.add(floor);
 
-    // Wall border
-    const wallBorder = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, 184),
-      width: CANVAS_WIDTH,
-      height: 8,
-      z: 2,
-    });
-    wallBorder.graphics.use(new ex.Rectangle({
-      width: CANVAS_WIDTH,
-      height: 8,
-      color: ex.Color.fromHex('#800000'),
-    }));
+      // Wall
+      const wall = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, 90),
+        width: CANVAS_WIDTH,
+        height: 180,
+        z: 1,
+      });
+      wall.graphics.use(new ex.Rectangle({
+        width: CANVAS_WIDTH,
+        height: 180,
+        color: ex.Color.fromHex('#B22222'),
+      }));
+      this.add(wall);
+
+      // Wall border
+      const wallBorder = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, 184),
+        width: CANVAS_WIDTH,
+        height: 8,
+        z: 2,
+      });
+      wallBorder.graphics.use(new ex.Rectangle({
+        width: CANVAS_WIDTH,
+        height: 8,
+        color: ex.Color.fromHex('#800000'),
+      }));
     this.add(wallBorder);
 
     // Fireplace

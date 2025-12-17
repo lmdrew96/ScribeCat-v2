@@ -8,6 +8,7 @@
  *
  * Features a grid-based decoration system where players can place items
  * they've purchased from the shop.
+ * Uses background images from assets/BACKGROUNDS.
  */
 
 import * as ex from 'excalibur';
@@ -16,6 +17,8 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_SPEED } from '../../config.js';
 import { loadCatAnimation, type CatColor, type CatAnimationType } from '../adapters/SpriteAdapter.js';
 import { InputManager } from '../adapters/InputAdapter.js';
 import { getItem } from '../../data/items.js';
+import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
+import { AudioManager } from '../../audio/AudioManager.js';
 
 // Grid configuration for decoration placement
 const HOME_GRID = {
@@ -137,6 +140,12 @@ class PlayerActor extends ex.Actor {
   isFrozen(): boolean {
     return this.frozen;
   }
+
+  onPreKill(): void {
+    // Clean up input manager to remove engine-level event listeners
+    this.inputManager?.destroy();
+    this.inputManager = null;
+  }
 }
 
 /**
@@ -230,6 +239,9 @@ export class HomeScene extends ex.Scene {
   }
 
   onDeactivate(): void {
+    // Reset input state to prevent stale handlers from firing
+    this.inputEnabled = false;
+
     this.player = null;
     this.door = null;
     this.decorCountLabel = null;
@@ -238,48 +250,59 @@ export class HomeScene extends ex.Scene {
     this.gridOverlayElements = [];
   }
 
-  private setupBackground(): void {
-    // Wall (solid color background)
-    const wall = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-      z: 0,
-    });
-    wall.graphics.use(new ex.Rectangle({
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-      color: ex.Color.fromHex('#FFE4C4'), // Bisque/cream
-    }));
-    this.add(wall);
+  private async setupBackground(): Promise<void> {
+    // Try to load the cat indoors background
+    const bgImage = await loadBackground('catIndoors');
 
-    // Floor area (wood-like color)
-    const floor = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, 150 + (CANVAS_HEIGHT - 150) / 2),
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT - 150,
-      z: 1,
-    });
-    floor.graphics.use(new ex.Rectangle({
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT - 150,
-      color: ex.Color.fromHex('#8B7765'), // Tan wood color
-    }));
-    this.add(floor);
+    if (bgImage) {
+      const bgActor = createBackgroundActor(bgImage, CANVAS_WIDTH, CANVAS_HEIGHT, 0);
+      this.add(bgActor);
+    } else {
+      // Fallback to solid colors
+      const wall = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        z: 0,
+      });
+      wall.graphics.use(new ex.Rectangle({
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        color: ex.Color.fromHex('#FFE4C4'), // Bisque/cream
+      }));
+      this.add(wall);
 
-    // Wall border
-    const wallBorder = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, 150),
-      width: CANVAS_WIDTH,
-      height: 8,
-      z: 2,
-    });
-    wallBorder.graphics.use(new ex.Rectangle({
-      width: CANVAS_WIDTH,
-      height: 8,
-      color: ex.Color.fromHex('#8B5A2B'),
-    }));
-    this.add(wallBorder);
+      // Floor area (wood-like color)
+      const floor = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, 150 + (CANVAS_HEIGHT - 150) / 2),
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT - 150,
+        z: 1,
+      });
+      floor.graphics.use(new ex.Rectangle({
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT - 150,
+        color: ex.Color.fromHex('#8B7765'), // Tan wood color
+      }));
+      this.add(floor);
+
+      // Wall border
+      const wallBorder = new ex.Actor({
+        pos: new ex.Vector(CANVAS_WIDTH / 2, 150),
+        width: CANVAS_WIDTH,
+        height: 8,
+        z: 2,
+      });
+      wallBorder.graphics.use(new ex.Rectangle({
+        width: CANVAS_WIDTH,
+        height: 8,
+        color: ex.Color.fromHex('#8B5A2B'),
+      }));
+      this.add(wallBorder);
+    }
+
+    // Play home music
+    AudioManager.playSceneMusic('home');
   }
 
   private setupDoor(): void {
