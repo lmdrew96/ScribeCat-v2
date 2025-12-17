@@ -231,6 +231,23 @@ export function registerStudyQuestHandlers(): void {
     }
   });
 
+  ipcMain.handle(
+    'studyquest:sync-inventory',
+    async (
+      _event,
+      params: { characterId: string; inventory: Array<{ id: string; quantity: number }> }
+    ) => {
+      try {
+        const success = await studyQuestRepo.syncInventory(params.characterId, params.inventory);
+        return { success };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('Failed to sync inventory:', error);
+        return { success: false, error: message };
+      }
+    }
+  );
+
   ipcMain.handle('studyquest:get-shop-items', async () => {
     try {
       const items = await studyQuestRepo.getShopItems();

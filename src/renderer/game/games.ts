@@ -7,9 +7,3 @@
 
 // Main game
 export { StudyQuestGame } from './StudyQuestGame.js';
-
-// Specialized game modes
-export { DungeonGame } from './DungeonGame.js';
-
-// Development/testing (can be removed in production)
-export { UITestGame, runUITest, runPlayerTest, type TestScene } from './UITestGame.js';

@@ -1,7 +1,7 @@
 # Claude Code Instructions for ScribeCat v2
 
 ## About This Project
-ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **1.90.0**
+ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **2.9.0**
 
 **Tech Stack:** Electron 38 + Vite, TypeScript (strict mode), TipTap rich-text editor, Yjs for CRDT collaboration, Supabase backend, AssemblyAI transcription, Claude AI integration
 
@@ -294,6 +294,62 @@ npm run test:ui           # Visual UI
 4. Clean build (`npm run clean`) before final testing
 5. Update version in package.json
 6. **Complete ALL aspects of the plan before moving on**
+
+## KAPLAY Text Sanitization
+
+**CRITICAL:** KAPLAY uses square brackets `[` `]` for styled text tags (like `[red]text[/red]`). Any literal brackets in text will cause "styled text error: unclosed tags" crashes.
+
+### Always Use sanitizeText()
+
+```typescript
+import { sanitizeText } from '../../../shared/utils/textUtils.js';
+
+// ✅ CORRECT - Always sanitize dynamic text
+k.text(sanitizeText(item.name))
+k.text(sanitizeText(enemy.name))
+k.text(sanitizeText(achievement.title))
+
+// ❌ WRONG - Direct use of untrusted text
+k.text(item.name)  // Will crash if name contains brackets!
+```
+
+### When to Use sanitizeText()
+
+**ALWAYS use for:**
+- Item names and descriptions
+- Enemy names
+- Achievement/badge names
+- User input or user-generated content
+- Any text loaded from data files
+- Status effect names
+- NPC dialogue with dynamic content
+
+**Not needed for:**
+- Hardcoded string literals you control: `k.text('Press ENTER')`
+- Pure numbers: `k.text(\`${value}\`)`
+- Safe templates: `k.text(\`HP: ${hp}/${maxHp}\`)`
+
+### Examples of Bugs This Prevents
+
+```typescript
+// These would crash without sanitization:
+const itemName = "[RARE] Magic Sword";  // Brackets = crash!
+const enemyName = "Goblin [Elite]";      // Brackets = crash!
+const status = "[EQUIPPED]";              // Brackets = crash!
+
+// After sanitization:
+sanitizeText("[RARE] Magic Sword")  // Returns: "(RARE) Magic Sword" ✅
+sanitizeText("Goblin [Elite]")       // Returns: "Goblin (Elite)" ✅
+sanitizeText("[EQUIPPED]")           // Returns: "(EQUIPPED)" ✅
+```
+
+### Implementation Details
+
+- **Location:** `src/shared/utils/textUtils.ts`
+- **Used in:** InventoryScene (items), BattleScene (enemies)
+- **Pattern:** Replaces `[` with `(` and `]` with `)`
+
+**This bug has occurred multiple times.** Always sanitize dynamic text!
 
 ## Security
 

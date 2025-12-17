@@ -480,6 +480,82 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
     };
   }
 
+  /**
+   * Sync entire inventory state from client
+   * Replaces all inventory items for the character
+   * Note: inventory items use item_key strings (e.g., "health_potion") which must be
+   * converted to UUIDs for database storage
+   */
+  async syncInventory(
+    characterId: string,
+    inventory: Array<{ id: string; quantity: number }>
+  ): Promise<boolean> {
+    try {
+      // Delete all existing inventory for this character
+      const { error: deleteError } = await this.getClient()
+        .from('study_quest_inventory')
+        .delete()
+        .eq('character_id', characterId);
+
+      if (deleteError) {
+        console.error('Failed to clear inventory:', deleteError);
+        throw new Error(`Failed to clear inventory: ${deleteError.message}`);
+      }
+
+      // Insert new inventory (if there are items)
+      if (inventory.length > 0) {
+        // Look up item UUIDs from item_key strings
+        const itemKeys = inventory.map((item) => item.id);
+        const { data: itemsData, error: lookupError } = await this.getClient()
+          .from('study_quest_items')
+          .select('id, item_key')
+          .in('item_key', itemKeys);
+
+        if (lookupError) {
+          console.error('Failed to lookup item UUIDs:', lookupError);
+          throw new Error(`Failed to lookup item UUIDs: ${lookupError.message}`);
+        }
+
+        // Create a map of item_key -> UUID
+        const keyToUuid = new Map<string, string>();
+        for (const item of itemsData || []) {
+          keyToUuid.set(item.item_key, item.id);
+        }
+
+        // Filter and map inventory items to use UUIDs
+        const insertData: Array<{ character_id: string; item_id: string; quantity: number }> = [];
+        for (const item of inventory) {
+          const uuid = keyToUuid.get(item.id);
+          if (uuid) {
+            insertData.push({
+              character_id: characterId,
+              item_id: uuid,
+              quantity: item.quantity,
+            });
+          } else {
+            console.warn(`Item key "${item.id}" not found in database, skipping`);
+          }
+        }
+
+        if (insertData.length > 0) {
+          const { error: insertError } = await this.getClient()
+            .from('study_quest_inventory')
+            .insert(insertData);
+
+          if (insertError) {
+            console.error('Failed to insert inventory:', insertError);
+            throw new Error(`Failed to insert inventory: ${insertError.message}`);
+          }
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to sync inventory:', error);
+      return false;
+    }
+  }
+
   async equipItem(characterId: string, itemId: string): Promise<StudyQuestCharacter> {
     const item = await this.getItem(itemId);
     if (!item || !item.isEquippable) {

@@ -3,9 +3,9 @@
  */
 
 import type { DungeonFloor, DungeonRoom } from '../../canvas/dungeon/DungeonGenerator.js';
-import type { CatColor } from '../sprites/catSprites.js';
+import type { CatColor } from '../data/catSprites.js';
 import { getItem, type EquipmentSlot } from '../data/items.js';
-import { getXpForLevel, getLevelUpStats } from '../systems/battle.js';
+import { getXpForLevel, getLevelUpStats } from '../data/battle.js';
 import {
   isIPCAvailable,
   getCurrentUserId,
@@ -231,6 +231,62 @@ class GameStateManager {
    */
   isCloudSyncEnabled(): boolean {
     return this.isCloudEnabled;
+  }
+
+  /**
+   * Save all current game state to cloud
+   * This is the comprehensive save that syncs everything
+   */
+  async saveToCloud(): Promise<boolean> {
+    if (!this.isCloudEnabled || !this.characterId) {
+      console.warn('Cannot save to cloud: cloud sync not enabled or no character ID');
+      return false;
+    }
+
+    try {
+      // Import save functions dynamically to avoid circular dependencies
+      const { saveCharacter, saveInventory } = await import('../services/StudyQuestService.js');
+
+      // Calculate XP gained since last save (if we track it)
+      const xpToAdd = this.player.xp - (this.cloudCharacter?.currentXp || 0);
+      const goldToAdd = this.player.gold - (this.cloudCharacter?.gold || 0);
+
+      // Save character stats
+      const statsSuccess = await saveCharacter(this.characterId, {
+        hp: this.player.health,
+        gold: goldToAdd > 0 ? goldToAdd : undefined,
+        xp: xpToAdd > 0 ? xpToAdd : undefined,
+        level: this.player.level,
+      });
+
+      // Save inventory (convert from InventoryItem[] to the format the backend expects)
+      const inventoryData = this.player.items.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+      }));
+      const inventorySuccess = await saveInventory(this.characterId, inventoryData);
+
+      const success = statsSuccess && inventorySuccess;
+
+      if (success) {
+        // Update our cached cloud character to match current state
+        if (this.cloudCharacter) {
+          this.cloudCharacter.hp = this.player.health;
+          this.cloudCharacter.gold = this.player.gold;
+          this.cloudCharacter.currentXp = this.player.xp;
+          this.cloudCharacter.level = this.player.level;
+        }
+        console.log('Game saved to cloud successfully');
+        this.emit('cloudSaved');
+        return true;
+      }
+
+      console.warn('Failed to save to cloud', { statsSuccess, inventorySuccess });
+      return false;
+    } catch (err) {
+      console.error('Error saving to cloud:', err);
+      return false;
+    }
   }
 
   /**

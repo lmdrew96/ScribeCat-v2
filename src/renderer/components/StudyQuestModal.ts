@@ -3,6 +3,9 @@
  *
  * A modal overlay that displays the StudyQuest game canvas.
  * This is the main entry point for playing StudyQuest.
+ *
+ * IMPORTANT: KAPLAY has global singleton behavior and k.quit() doesn't fully reset it.
+ * We keep a single KAPLAY instance alive and reuse it across modal open/close cycles.
  */
 
 import { StudyQuestGame } from '../game/StudyQuestGame.js';
@@ -12,6 +15,7 @@ export class StudyQuestModal {
   private canvas: HTMLCanvasElement | null = null;
   private game: StudyQuestGame | null = null;
   private isOpen = false;
+  private gameInitialized = false; // Track if KAPLAY has been initialized
 
   constructor() {
     this.createModal();
@@ -185,15 +189,20 @@ export class StudyQuestModal {
     this.isOpen = true;
     this.modal?.classList.add('open');
 
-    // Start the game if not already running
-    if (this.canvas && !this.game) {
+    if (!this.gameInitialized && this.canvas) {
+      // First time opening - create the game (and KAPLAY instance)
       this.game = new StudyQuestGame(this.canvas);
       this.game.start();
+      this.gameInitialized = true;
+    } else if (this.game) {
+      // Reopen - just go back to title screen (KAPLAY already running)
+      this.game.goTo('title');
     }
   }
 
   /**
-   * Close the modal and destroy the game
+   * Close the modal
+   * NOTE: We do NOT destroy the game/KAPLAY - it stays alive to avoid reinitialization issues
    */
   close(): void {
     if (!this.isOpen) return;
@@ -201,11 +210,9 @@ export class StudyQuestModal {
     this.isOpen = false;
     this.modal?.classList.remove('open');
 
-    // Destroy the game to free resources
-    if (this.game) {
-      this.game.destroy();
-      this.game = null;
-    }
+    // Don't destroy the game - just hide the modal
+    // KAPLAY has global singleton behavior and k.quit() doesn't properly reset it
+    // Keeping it alive avoids the "KAPLAY already initialized" warning and text corruption
   }
 
   /**

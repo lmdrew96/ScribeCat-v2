@@ -2,7 +2,7 @@
  * Game Configuration
  *
  * Constants and configuration for StudyQuest game features.
- * KAPLAY is now the only game engine.
+ * Uses Excalibur.js as the game engine.
  */
 
 // Canvas dimensions - Standard sizes for different scene types

@@ -184,19 +184,57 @@
             }
         },
         "assets/MAPS/Tile Maps/cat_village.tmx": {
-            "scale": 0.9358,
+            "scale": 0.93,
             "selectedLayer": 6,
             "viewCenter": {
-                "x": 329.6644582175678,
-                "y": 321.6499251976918
+                "x": 329.5698924731183,
+                "y": 321.505376344086
             }
         },
         "assets/MAPS/Tile Maps/dungeon1.tmx": {
             "scale": 0.5686,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": -163.55962011959195,
+                "x": -164.43897291593396,
                 "y": 59.7959901512487
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room1.tmx": {
+            "scale": 1.5196,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 159.25243485127663,
+                "y": 88.83916820215846
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room2.tmx": {
+            "expandedObjectLayers": [
+                4
+            ],
+            "scale": 1.5196,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 159.25243485127663,
+                "y": 88.83916820215846
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room3.tmx": {
+            "expandedObjectLayers": [
+                3
+            ],
+            "scale": 1.5196,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 137.53619373519348,
+                "y": 58.568044222163735
+            }
+        },
+        "assets/MAPS/Tile Maps/dungeon_room4.tmx": {
+            "scale": 1.51,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 158.9403973509934,
+                "y": 88.74172185430464
             }
         },
         "assets/MAPS/Tile Maps/house1.tmx": {
@@ -283,7 +321,7 @@
             "scale": 1,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 0,
+                "x": -0.5,
                 "y": 0
             }
         },
@@ -339,16 +377,16 @@
     },
     "last.exportedFilePath": "/Users/nae/Desktop/ScribeCat-v2/assets",
     "last.externalTilesetPath": "/Users/nae/Desktop/ScribeCat-v2/assets/Tiles/Tiny Town",
-    "last.imagePath": "/Users/nae/Desktop/ScribeCat-v2/assets/Tiles/Tiny Town",
+    "last.imagePath": "/Users/nae/Downloads/2D Pixel Dungeon Asset Pack/character and tileset",
     "last.worldFilePath": "/Users/nae/Desktop/ScribeCat-v2/assets/WORLDS",
     "loadedWorlds": [
     ],
-    "map.height": 30,
+    "map.height": 10,
     "map.lastUsedExportFilter": "Tiled map files (*.tmx *.xml)",
     "map.lastUsedFormat": "tmx",
     "map.tileHeight": 16,
     "map.tileWidth": 16,
-    "map.width": 40,
+    "map.width": 20,
     "openFiles": [
         "assets/MAPS/Tile Maps/cat_village.tmx",
         "assets/MAPS/Tile Maps/tree_line_yellow.tmx"
@@ -356,20 +394,24 @@
     "project": "StudyQuest.tiled-project",
     "property.type": "float",
     "recentFiles": [
-        "assets/MAPS/Tile Maps/tree_line_yellow.tmx",
+        "assets/MAPS/Tile Maps/dungeon_room4.tmx",
+        "assets/MAPS/Tile Maps/dungeon_room3.tmx",
+        "assets/MAPS/Tile Maps/dungeon_room2.tmx",
+        "assets/MAPS/Tile Maps/dungeon1.tmx",
         "assets/MAPS/Tile Maps/cat_village.tmx",
+        "assets/MAPS/Tile Maps/tree_line_yellow.tmx",
         "assets/MAPS/Tile Maps/tree_line_green.tmx",
         "assets/MAPS/Tile Maps/tiny_tree_group_yellow.tmx",
         "assets/MAPS/Tile Maps/tiny_tree_group_green.tmx",
         "assets/MAPS/Tile Maps/tiny_tree_cluster_yellow.tmx",
         "assets/MAPS/Tile Maps/barn1.tmx",
-        "assets/MAPS/Tile Maps/dungeon1.tmx",
-        "assets/MAPS/Tile Maps/its_grass.tmx",
-        "assets/MAPS/Tile Maps/house1.tmx",
-        "assets/MAPS/Tile Maps/house2.tmx",
-        "assets/MAPS/Tile Maps/house3.tmx"
+        "assets/MAPS/Tile Maps/its_grass.tmx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
     "tileset.lastUsedFormat": "tsx",
-    "tileset.type": 1
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    },
+    "tileset.type": 0
 }

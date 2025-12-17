@@ -209,6 +209,29 @@ export async function getInventory(characterId: string): Promise<InventorySlot[]
 }
 
 /**
+ * Save character's inventory to backend
+ * Syncs the entire inventory state from client to server
+ */
+export async function saveInventory(
+  characterId: string,
+  inventory: Array<{ id: string; quantity: number }>
+): Promise<boolean> {
+  if (!ipc?.invoke) return false;
+
+  try {
+    const result = await ipc.invoke('studyquest:sync-inventory', {
+      characterId,
+      inventory,
+    }) as { success: boolean };
+
+    return result.success;
+  } catch (err) {
+    console.error('Error saving inventory:', err);
+    return false;
+  }
+}
+
+/**
  * Buy an item from the shop
  */
 export async function buyItem(characterId: string, itemId: string): Promise<boolean> {
