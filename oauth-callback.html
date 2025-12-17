@@ -50,6 +50,31 @@
       margin-bottom: 32px;
     }
 
+    .success-message {
+      background: #f0fff4;
+      border: 2px solid #48bb78;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .success-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #276749;
+    }
+
+    .success-subtext {
+      font-size: 14px;
+      color: #48bb78;
+      margin-top: 8px;
+    }
+
     .code-container {
       background: #f7fafc;
       border: 2px solid #667eea;
@@ -144,17 +169,16 @@
 </head>
 <body>
   <div class="container">
-    <div class="logo">🔐</div>
-    <h1>Authorization Successful!</h1>
-    <p class="subtitle">Your code has been automatically copied to your clipboard!</p>
+    <div class="logo">✅</div>
+    <h1 id="page-title">Authorization Successful!</h1>
+    <p class="subtitle" id="page-subtitle">Your sign-in has been sent to ScribeCat automatically!</p>
 
     <div id="content"></div>
 
-    <div class="instructions">
-      <strong>Next steps:</strong><br>
-      1. Return to ScribeCat<br>
-      2. Paste the code (Cmd+V) into the authorization field<br>
-      3. Click "Complete Sign In"
+    <div class="instructions" id="instructions-section">
+      <strong>What's happening:</strong><br>
+      ScribeCat is completing your sign-in automatically.<br>
+      You can close this tab and return to the app.
     </div>
   </div>
 
@@ -173,6 +197,9 @@
     const refreshToken = hashParams.get('refresh_token');
 
     const contentDiv = document.getElementById('content');
+    const pageTitle = document.getElementById('page-title');
+    const pageSubtitle = document.getElementById('page-subtitle');
+    const instructionsSection = document.getElementById('instructions-section');
 
     // Debug: Show full URL (for troubleshooting)
     console.log('Full URL:', window.location.href);
@@ -182,6 +209,9 @@
     console.log('Access token:', accessToken);
 
     if (error) {
+      pageTitle.textContent = 'Authorization Failed';
+      pageSubtitle.textContent = 'An error occurred during sign-in.';
+      instructionsSection.innerHTML = '<strong>Please try again</strong><br>Close this tab and try signing in again from ScribeCat.';
       contentDiv.innerHTML = `
         <div class="error">
           <strong>Error:</strong> ${error}<br>
@@ -190,30 +220,34 @@
       `;
     } else if (accessToken) {
       // Supabase sent tokens directly (implicit flow)
+      pageTitle.textContent = 'Configuration Issue';
+      pageSubtitle.textContent = 'Unexpected authentication flow detected.';
       contentDiv.innerHTML = `
         <div class="error">
           <strong>Implicit flow detected</strong><br>
           Supabase sent tokens directly instead of an authorization code.<br>
-          This flow is not yet supported. Please check your OAuth configuration.
+          This flow is not supported. Please check your OAuth configuration.
         </div>
       `;
     } else if (code) {
+      // Success! The server has already sent the code to ScribeCat
       contentDiv.innerHTML = `
-        <div class="code-container">
-          <div class="code-label">Your Authorization Code</div>
-          <div class="code" id="auth-code">${code}</div>
+        <div class="success-message">
+          <div class="success-icon">🎉</div>
+          <div class="success-text">Code sent to ScribeCat!</div>
+          <div class="success-subtext">Your sign-in is being completed automatically.</div>
         </div>
-        <button class="copy-btn" id="copy-btn" onclick="copyCode()">
-          📋 Copy Code
-        </button>
       `;
-
-      // Auto-copy code to clipboard on load
+      
+      // Also copy to clipboard as backup
       setTimeout(() => {
         copyCode();
       }, 500);
     } else {
-      // Show debugging info
+      // No code found - show error
+      pageTitle.textContent = 'No Authorization Code';
+      pageSubtitle.textContent = 'Something went wrong during sign-in.';
+      
       const allParams = {};
       for (const [key, value] of urlParams) {
         allParams[key] = value;
@@ -242,32 +276,18 @@ All params: ${JSON.stringify(allParams, null, 2) || '(none)'}
       `;
     }
 
+    // Copy code to clipboard (as a backup, since the server has already sent it to the app)
     function copyCode() {
-      const code = document.getElementById('auth-code').textContent;
-      const btn = document.getElementById('copy-btn');
-
-      // Try modern clipboard API first
+      // Copy the authorization code to clipboard as backup
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(code).then(() => {
-          btn.textContent = '✓ Copied!';
-          btn.classList.add('copied');
-
-          setTimeout(() => {
-            btn.textContent = '📋 Copy Code';
-            btn.classList.remove('copied');
-          }, 2000);
+          console.log('Code copied to clipboard as backup');
         }).catch(err => {
-          console.error('Failed to copy:', err);
-          fallbackCopy();
+          console.error('Failed to copy to clipboard:', err);
         });
       } else {
-        // Use fallback method for file:// protocol and non-secure contexts
-        fallbackCopy();
-      }
-
-      function fallbackCopy() {
+        // Fallback for non-secure context
         try {
-          // Create a temporary textarea
           const textarea = document.createElement('textarea');
           textarea.value = code;
           textarea.style.position = 'fixed';
@@ -277,42 +297,11 @@ All params: ${JSON.stringify(allParams, null, 2) || '(none)'}
           document.body.appendChild(textarea);
           textarea.focus();
           textarea.select();
-
-          // Try to copy using execCommand
-          const successful = document.execCommand('copy');
+          document.execCommand('copy');
           document.body.removeChild(textarea);
-
-          if (successful) {
-            btn.textContent = '✓ Copied!';
-            btn.classList.add('copied');
-
-            setTimeout(() => {
-              btn.textContent = '📋 Copy Code';
-              btn.classList.remove('copied');
-            }, 2000);
-          } else {
-            // If that also fails, just select the code text
-            const codeElement = document.getElementById('auth-code');
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(codeElement);
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            btn.textContent = 'Code Selected - Press Ctrl+C';
-            setTimeout(() => {
-              btn.textContent = '📋 Copy Code';
-            }, 3000);
-          }
+          console.log('Code copied to clipboard (fallback) as backup');
         } catch (err) {
           console.error('Fallback copy failed:', err);
-          // Last resort: just select the text
-          const codeElement = document.getElementById('auth-code');
-          const selection = window.getSelection();
-          const range = document.createRange();
-          range.selectNodeContents(codeElement);
-          selection.removeAllRanges();
-          selection.addRange(range);
         }
       }
     }

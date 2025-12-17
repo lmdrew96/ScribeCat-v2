@@ -43,6 +43,7 @@ export class OAuthWindowManager {
   /**
    * Start OAuth callback server for Google OAuth flow
    * Listens on http://localhost:3000/auth/callback
+   * Automatically extracts the authorization code and sends it to the main window
    */
   private startOAuthCallbackServer(): void {
     try {
@@ -51,7 +52,29 @@ export class OAuthWindowManager {
       this.oauthCallbackServer = http.createServer((req, res) => {
         // Only handle /auth/callback requests
         if (req.url && req.url.startsWith('/auth/callback')) {
-          // Read and serve the callback HTML file
+          // Parse the URL to extract the authorization code
+          const fullUrl = `http://localhost:3000${req.url}`;
+          const parsedUrl = new URL(fullUrl);
+          const code = parsedUrl.searchParams.get('code');
+          const error = parsedUrl.searchParams.get('error');
+          const errorDescription = parsedUrl.searchParams.get('error_description');
+
+          if (error) {
+            console.error('[OAuth] Error:', error, errorDescription);
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+              this.mainWindow.webContents.send('oauth:error', { error, errorDescription });
+            }
+          } else if (code) {
+            console.log('[OAuth] ✓ Authorization code received, sending to app');
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+              this.mainWindow.webContents.send('oauth:code-received', code);
+            } else {
+              console.warn('[OAuth] Main window not available');
+            }
+            this.closeOAuthWaitingWindow();
+          }
+
+          // Serve the callback HTML file
           fs.readFile(callbackHtmlPath, 'utf8', (err, data) => {
             if (err) {
               console.error('Error reading OAuth callback file:', err);
@@ -70,16 +93,14 @@ export class OAuthWindowManager {
       });
 
       this.oauthCallbackServer.listen(3000, () => {
-        console.log('OAuth callback server listening on http://localhost:3000');
+        console.log('[OAuth] Callback server listening on http://localhost:3000');
       });
 
-      // Handle server errors
       this.oauthCallbackServer.on('error', (err: any) => {
         if (err.code === 'EADDRINUSE') {
-          console.warn('Port 3000 is already in use. OAuth callback server not started.');
-          console.warn('Make sure no other application is using port 3000.');
+          console.warn('[OAuth] Port 3000 already in use');
         } else {
-          console.error('OAuth callback server error:', err);
+          console.error('[OAuth] Server error:', err);
         }
       });
     } catch (error) {

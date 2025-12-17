@@ -238,8 +238,18 @@ export class AuthScreen {
 
     this.attachFormEventListeners();
   }
+  
+  private oauthInProgress = false;
+  
   /** Handle Google sign in */
   private async handleGoogleSignIn(): Promise<void> {
+    // Prevent duplicate OAuth attempts
+    if (this.oauthInProgress) {
+      console.log('OAuth already in progress, ignoring duplicate request');
+      return;
+    }
+    this.oauthInProgress = true;
+    
     this.showLoading('Opening Google Sign In...');
 
     // when flowType is 'pkce' in the RendererSupabaseClient configuration
@@ -254,23 +264,17 @@ export class AuthScreen {
         console.log('🔍 Verifier length:', codeVerifier.length);
       }
 
-      await window.scribeCat.auth.showOAuthWaitingWindow();
-
-      await window.scribeCat.shell.openExternal(result.authUrl);
-
-      this.hideLoading();
-
-      this.hide();
-
+      // Set up listeners BEFORE opening the browser to avoid race conditions
+      // Listen for the OAuth code to be received automatically from the callback server
       window.scribeCat.auth.onOAuthCodeReceived(async (code: string) => {
-        console.log('✓ OAuth code received from floating window');
+        console.log('✓ OAuth code received automatically from callback server');
 
-        this.show();
         this.showLoading('Completing sign in...');
 
         const sessionResult = await this.authManager.handleOAuthCallback(code);
 
         this.hideLoading();
+        this.oauthInProgress = false;
 
         if (sessionResult.success) {
           this.showSuccess('Signed in successfully!');
@@ -285,14 +289,24 @@ export class AuthScreen {
         window.scribeCat.auth.removeOAuthListeners();
       });
 
+      // Listen for OAuth errors
       window.scribeCat.auth.onOAuthCancelled(() => {
         console.log('OAuth flow cancelled');
-        this.show();
+        this.hideLoading();
+        this.oauthInProgress = false;
         this.showError('Sign in was cancelled');
         window.scribeCat.auth.removeOAuthListeners();
       });
+
+      // Open browser for Google OAuth - the callback server will automatically
+      // extract the code and send it back via IPC
+      await window.scribeCat.shell.openExternal(result.authUrl);
+
+      // Show waiting message while user completes OAuth in browser
+      this.showLoading('Waiting for Google sign in...');
     } else {
       this.hideLoading();
+      this.oauthInProgress = false;;
       this.showError(result.error || 'Failed to initiate Google sign in');
     }
   }
