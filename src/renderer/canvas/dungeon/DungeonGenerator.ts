@@ -562,6 +562,9 @@ export class DungeonGenerator {
   }
 
   private addMerchantContent(room: DungeonRoom): void {
+    // Get tier-appropriate items for the merchant
+    const merchantItems = this.getMerchantInventory();
+    
     room.contents.push({
       id: this.generateId(),
       type: 'npc',
@@ -569,10 +572,40 @@ export class DungeonGenerator {
       y: 0.3,
       data: {
         npcType: 'merchant',
-        inventory: ['potion_minor', 'potion_medium'],
+        inventory: merchantItems,
       },
       triggered: false,
     });
+  }
+
+  /**
+   * Get merchant inventory based on dungeon tier
+   */
+  private getMerchantInventory(): string[] {
+    const dungeonId = this.config.id;
+    
+    // Dungeon tier mapping
+    const tierMap: Record<string, number> = {
+      training: 1,
+      forest: 2,
+      crystal: 3,
+      library: 4,
+      volcano: 5,
+      void: 6,
+    };
+    const tier = tierMap[dungeonId] || 1;
+    
+    // Tier-appropriate items
+    const tierItems: Record<number, string[]> = {
+      1: ['health_potion', 'mana_vial', 'strength_tonic'],
+      2: ['health_potion', 'greater_potion', 'mana_flask', 'forest_brew'],
+      3: ['greater_potion', 'mana_flask', 'super_potion', 'catnip_potion'],
+      4: ['super_potion', 'mana_elixir', 'catnip_potion', 'page_of_wisdom'],
+      5: ['super_potion', 'max_potion', 'mana_elixir', 'phoenix_feather'],
+      6: ['max_potion', 'void_shield_potion', 'mana_elixir', 'phoenix_feather'],
+    };
+    
+    return tierItems[tier] || tierItems[1];
   }
 
   /**

@@ -27,6 +27,10 @@ export interface InventorySceneData {
 
 const TABS = ['All', 'Items', 'Equip', 'Special', 'Decor'];
 
+export interface InventorySceneConfig {
+  onExit?: (scene: string, data?: unknown) => void;
+}
+
 /**
  * Main Inventory Scene
  */
@@ -51,6 +55,13 @@ export class InventoryScene extends ex.Scene {
 
   // Callbacks
   public onExit: ((scene: string, data?: unknown) => void) | null = null;
+
+  constructor(config?: InventorySceneConfig) {
+    super();
+    if (config?.onExit) {
+      this.onExit = config.onExit;
+    }
+  }
 
   onActivate(ctx: ex.SceneActivationContext<InventorySceneData>): void {
     this.sceneData = ctx.data || {};

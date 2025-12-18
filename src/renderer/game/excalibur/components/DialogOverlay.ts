@@ -511,7 +511,14 @@ export class DialogOverlay {
     this.renderList();
     this.container.style.display = 'block';
     this._isOpen = true;
-    this.setupKeyboardHandlers();
+    
+    // Delay keyboard handler setup to prevent the Enter key that opened the dialog
+    // from immediately triggering a selection
+    setTimeout(() => {
+      if (this._isOpen) {
+        this.setupKeyboardHandlers();
+      }
+    }, 150);
   }
 
   /**

@@ -440,15 +440,18 @@ export function getRandomEnemy(
 
 /**
  * Scale enemy stats based on floor level
+ * Attack scales more aggressively to make battles challenging
  */
 export function scaleEnemyStats(
   enemy: EnemyDefinition,
   floorLevel: number
 ): { hp: number; attack: number; defense: number } {
   const scaleFactor = 1 + (floorLevel - 1) * 0.15; // 15% increase per floor
+  const attackScaleFactor = 1 + (floorLevel - 1) * 0.25; // 25% increase per floor for attack (more challenging)
+  
   return {
     hp: Math.floor(enemy.baseHp * scaleFactor),
-    attack: Math.floor(enemy.baseAttack * scaleFactor),
+    attack: Math.floor(enemy.baseAttack * attackScaleFactor) + 3, // +3 base damage boost
     defense: Math.floor(enemy.baseDefense * scaleFactor),
   };
 }

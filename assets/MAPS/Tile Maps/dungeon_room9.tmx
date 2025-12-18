@@ -35,7 +35,7 @@
   <object id="10" x="304" y="0" width="16" height="144"/>
  </objectgroup>
  <objectgroup id="4" name="doors">
-  <object id="19" name="door" x="24" y="80">
+  <object id="19" name="left_door" x="24" y="80">
    <point/>
   </object>
  </objectgroup>

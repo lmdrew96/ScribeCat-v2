@@ -28,6 +28,10 @@ import {
   type StaticEnemyId,
 } from '../../loaders/EnemySpriteLoader.js';
 import { loadNPCSprite, type NPCId } from '../../loaders/NPCSpriteLoader.js';
+import { DungeonPauseOverlay } from '../components/DungeonPauseOverlay.js';
+import { DungeonMerchantOverlay } from '../components/DungeonMerchantOverlay.js';
+import { DungeonPuzzleOverlay } from '../components/DungeonPuzzleOverlay.js';
+import { getDungeonRoomLoader, type DungeonRoomData } from '../../loaders/DungeonRoomLoader.js';
 import { SceneFontCache } from '../ui/FontCache.js';
 
 // Scene data passed when entering dungeon
@@ -49,18 +53,18 @@ export interface DungeonSceneCallbacks {
   onOpenInventory: (returnData: DungeonSceneData) => void;
 }
 
-// Room rendering config
+// Room rendering config - larger for better visibility
 const ROOM_CONFIG = {
-  width: 400,
-  height: 240,
-  offsetX: 40,
-  offsetY: 40,
-  doorSize: 48,
+  width: 520,
+  height: 340,
+  offsetX: 60,
+  offsetY: 30,
+  doorSize: 56,
 };
 
-// Canvas dimensions
-const CANVAS_WIDTH = 480;
-const CANVAS_HEIGHT = 320;
+// Canvas dimensions - larger dungeon canvas
+const CANVAS_WIDTH = 640;
+const CANVAS_HEIGHT = 400;
 
 // Dungeon tier mapping for loot
 const DUNGEON_TIER_MAP: Record<string, DungeonTier> = {
@@ -147,26 +151,25 @@ export class DungeonScene extends ex.Scene {
   private isTransitioning = false;
   private highlightedDoor: Direction | null = null;
   private pauseMenuActive = false;
-  private pauseMenuSelection = 0;
 
   // Puzzle state
   private puzzleActive = false;
   private currentPuzzle: RoomContent | null = null;
-  private puzzleState: PuzzleState = null;
 
   // Merchant state
   private merchantActive = false;
   private nearbyMerchant: RoomContent | null = null;
-  private merchantSelection = 0;
 
   // Secret state
   private nearbySecret: RoomContent | null = null;
 
-  // UI actors
+  // UI actors (canvas-based HUD)
   private uiActors: ex.Actor[] = [];
-  private pauseMenuActors: ex.Actor[] = [];
-  private puzzleUIActors: ex.Actor[] = [];
-  private merchantUIActors: ex.Actor[] = [];
+
+  // HTML Overlays (replaces canvas-based pause/merchant/puzzle UI)
+  private pauseOverlay: DungeonPauseOverlay | null = null;
+  private merchantOverlay: DungeonMerchantOverlay | null = null;
+  private puzzleOverlay: DungeonPuzzleOverlay | null = null;
 
   // HUD actors
   private hpBar!: ex.Actor;
@@ -175,6 +178,16 @@ export class DungeonScene extends ex.Scene {
 
   // Font cache for performance optimization
   private fontCache = new SceneFontCache();
+
+  // Tilemap room rendering
+  private roomTilemapActors: ex.Actor[] = [];
+  private roomTemplateMap: Map<string, number> = new Map(); // roomId -> templateId
+  
+  // Current tilemap state (updated each room render)
+  private currentTilemapScale: number = 1;
+  private currentTilemapOffsetX: number = 0;
+  private currentTilemapOffsetY: number = 0;
+  private currentRoomData: DungeonRoomData | null = null;
 
   // Scene data for return from battle
   private sceneData: DungeonSceneData = {};
@@ -202,10 +215,26 @@ export class DungeonScene extends ex.Scene {
     // Setup scene
     this.setupPlayer();
     this.setupHUD();
+    this.setupHTMLOverlays();
     this.renderCurrentRoom();
+
+    // Load dungeon room tilemaps in background (will re-render when ready)
+    this.loadDungeonTilemaps();
 
     // Create input manager
     this.inputManager = new InputManager(this.engine!);
+  }
+
+  /**
+   * Load dungeon room tilemaps asynchronously
+   */
+  private async loadDungeonTilemaps(): Promise<void> {
+    const loader = getDungeonRoomLoader();
+    if (!loader.isLoaded) {
+      await loader.loadAll();
+      // Re-render current room with tilemap background
+      this.renderCurrentRoom();
+    }
   }
 
   onDeactivate(): void {
@@ -215,7 +244,73 @@ export class DungeonScene extends ex.Scene {
     // Clean up input manager to remove engine-level event listeners
     this.inputManager?.destroy();
     this.inputManager = null;
+    
+    // Destroy HTML overlays
+    this.pauseOverlay?.destroy();
+    this.pauseOverlay = null;
+    this.merchantOverlay?.destroy();
+    this.merchantOverlay = null;
+    this.puzzleOverlay?.destroy();
+    this.puzzleOverlay = null;
+    
     this.clearAllActors();
+  }
+
+  /**
+   * Setup HTML-based overlays for pause menu, merchant, and puzzles
+   */
+  private setupHTMLOverlays(): void {
+    const canvas = this.engine?.canvas;
+    if (!canvas?.parentElement) return;
+
+    // Pause menu overlay
+    this.pauseOverlay = new DungeonPauseOverlay(canvas.parentElement, {
+      onResume: () => {
+        this.pauseMenuActive = false;
+        this.playerFrozen = false;
+      },
+      onLeaveDungeon: () => {
+        this.pauseMenuActive = false;
+        this.playerFrozen = false;
+        this.leaveDungeon();
+      },
+    });
+
+    // Merchant overlay
+    this.merchantOverlay = new DungeonMerchantOverlay(canvas.parentElement, {
+      onBuy: (itemId: string) => {
+        const item = getItem(itemId);
+        if (item && GameState.player.gold >= item.buyPrice) {
+          GameState.addGold(-item.buyPrice);
+          GameState.addItem(itemId, 1);
+          this.showFloatingMessage(`Bought ${item.name}!`, CANVAS_WIDTH / 2, 100, '#64ff64');
+          return true;
+        } else {
+          this.showFloatingMessage('Not enough gold!', CANVAS_WIDTH / 2, 100, '#ff6464');
+          return false;
+        }
+      },
+      onClose: () => {
+        this.merchantActive = false;
+        this.playerFrozen = false;
+      },
+      getGold: () => GameState.player.gold,
+    });
+
+    // Puzzle overlay
+    this.puzzleOverlay = new DungeonPuzzleOverlay(canvas.parentElement, {
+      onSolve: () => {
+        this.solvePuzzle();
+      },
+      onFail: () => {
+        this.failPuzzle();
+      },
+      onClose: () => {
+        this.puzzleActive = false;
+        this.currentPuzzle = null;
+        this.playerFrozen = false;
+      },
+    });
   }
 
   private initializeFloor(): void {
@@ -287,54 +382,101 @@ export class DungeonScene extends ex.Scene {
   private setupHUD(): void {
     const config = DUNGEON_CONFIGS[this.dungeonId] || DUNGEON_CONFIGS.training;
 
-    // HUD background
+    // HUD background (top-left for consistency with town)
     const hudBg = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH - 75, 45),
-      width: 130,
-      height: 70,
+      pos: ex.vec(70, 50),
+      width: 140,
+      height: 100,
       z: 50,
     });
     hudBg.graphics.use(
-      new ex.Rectangle({ width: 130, height: 70, color: ex.Color.fromRGB(0, 0, 0, 0.7) })
+      new ex.Rectangle({ width: 140, height: 100, color: ex.Color.fromRGB(0, 0, 0, 0.7) })
     );
     this.add(hudBg);
     this.uiActors.push(hudBg);
 
-    // HP Bar background
+    // HP Bar background (left-aligned)
     const hpBg = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH - 60, 20),
-      width: 80,
-      height: 12,
+      pos: ex.vec(10, 12),
+      width: 120,
+      height: 14,
+      anchor: ex.vec(0, 0.5),
       z: 51,
     });
     hpBg.graphics.use(
-      new ex.Rectangle({ width: 80, height: 12, color: ex.Color.fromRGB(60, 20, 20) })
+      new ex.Rectangle({ width: 120, height: 14, color: ex.Color.fromRGB(60, 20, 20) })
     );
     this.add(hpBg);
     this.uiActors.push(hpBg);
 
-    // HP Bar
+    // HP Bar (left-aligned anchor so it grows from left)
     this.hpBar = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH - 60, 20),
-      width: 80,
-      height: 12,
+      pos: ex.vec(10, 12),
+      width: 120,
+      height: 14,
+      anchor: ex.vec(0, 0.5),
       z: 52,
     });
     this.hpBar.graphics.use(
-      new ex.Rectangle({ width: 80, height: 12, color: ex.Color.fromRGB(60, 220, 100) })
+      new ex.Rectangle({ width: 120, height: 14, color: ex.Color.fromRGB(60, 220, 100) })
     );
     this.add(this.hpBar);
     this.uiActors.push(this.hpBar);
 
+    // HP Text overlay
+    const hpText = new ex.Actor({
+      pos: ex.vec(70, 12),
+      z: 53,
+    });
+    hpText.graphics.use(
+      new ex.Text({
+        text: `${GameState.player.health}/${GameState.getEffectiveMaxHealth()}`,
+        font: this.fontCache.getFont(11, ex.Color.White),
+      })
+    );
+    this.add(hpText);
+    this.uiActors.push(hpText);
+
+    // Level label
+    const levelLabel = new ex.Actor({
+      pos: ex.vec(10, 32),
+      anchor: ex.vec(0, 0.5),
+      z: 51,
+    });
+    levelLabel.graphics.use(
+      new ex.Text({
+        text: `Lv.${GameState.player.level}`,
+        font: this.fontCache.getFont(12, ex.Color.White),
+      })
+    );
+    this.add(levelLabel);
+    this.uiActors.push(levelLabel);
+
+    // XP label
+    const xpLabel = new ex.Actor({
+      pos: ex.vec(60, 32),
+      anchor: ex.vec(0, 0.5),
+      z: 51,
+    });
+    xpLabel.graphics.use(
+      new ex.Text({
+        text: `XP: ${GameState.player.xp}`,
+        font: this.fontCache.getFontHex(11, '#a78bfa'),
+      })
+    );
+    this.add(xpLabel);
+    this.uiActors.push(xpLabel);
+
     // Gold label
     this.goldLabel = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH - 130, 38),
+      pos: ex.vec(10, 52),
+      anchor: ex.vec(0, 0.5),
       z: 51,
     });
     this.goldLabel.graphics.use(
       new ex.Text({
         text: `Gold: ${GameState.player.gold}`,
-        font: this.fontCache.getFontHex(13, '#fbbf24'),
+        font: this.fontCache.getFontHex(12, '#fbbf24'),
       })
     );
     this.add(this.goldLabel);
@@ -342,17 +484,33 @@ export class DungeonScene extends ex.Scene {
 
     // Floor label
     this.floorLabel = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH - 130, 55),
+      pos: ex.vec(10, 72),
+      anchor: ex.vec(0, 0.5),
       z: 51,
     });
     this.floorLabel.graphics.use(
       new ex.Text({
         text: `Floor ${this.floorNumber}/${config.totalFloors}`,
-        font: this.fontCache.getFontRGB(13, 200, 200, 200),
+        font: this.fontCache.getFontRGB(12, 200, 200, 200),
       })
     );
     this.add(this.floorLabel);
     this.uiActors.push(this.floorLabel);
+
+    // Controls hint (bottom of HUD)
+    const controlsHint = new ex.Actor({
+      pos: ex.vec(10, 92),
+      anchor: ex.vec(0, 0.5),
+      z: 51,
+    });
+    controlsHint.graphics.use(
+      new ex.Text({
+        text: 'I:Inv ESC:Menu',
+        font: this.fontCache.getFontRGB(10, 150, 150, 150),
+      })
+    );
+    this.add(controlsHint);
+    this.uiActors.push(controlsHint);
   }
 
   private renderCurrentRoom(): void {
@@ -361,28 +519,107 @@ export class DungeonScene extends ex.Scene {
     const room = GameState.getCurrentRoom();
     if (!room) return;
 
-    // Draw room background
-    const roomBg = new ex.Actor({
-      pos: ex.vec(ROOM_CONFIG.offsetX + ROOM_CONFIG.width / 2, ROOM_CONFIG.offsetY + ROOM_CONFIG.height / 2),
-      width: ROOM_CONFIG.width,
-      height: ROOM_CONFIG.height,
-      z: -10,
-    });
-    roomBg.graphics.use(
-      new ex.Rectangle({
+    // Try to render tilemap background, fallback to solid color
+    const tilemapRendered = this.renderTilemapBackground(room.id);
+
+    if (!tilemapRendered) {
+      // Fallback: Draw solid color room background
+      const roomBg = new ex.Actor({
+        pos: ex.vec(ROOM_CONFIG.offsetX + ROOM_CONFIG.width / 2, ROOM_CONFIG.offsetY + ROOM_CONFIG.height / 2),
         width: ROOM_CONFIG.width,
         height: ROOM_CONFIG.height,
-        color: ex.Color.fromRGB(42, 42, 78),
-      })
-    );
-    this.add(roomBg);
-    this.roomActors.push(roomBg);
+        z: -10,
+      });
+      roomBg.graphics.use(
+        new ex.Rectangle({
+          width: ROOM_CONFIG.width,
+          height: ROOM_CONFIG.height,
+          color: ex.Color.fromRGB(42, 42, 78),
+        })
+      );
+      this.add(roomBg);
+      this.roomActors.push(roomBg);
+    }
 
     // Draw doors
     this.drawDoors(room);
 
     // Draw content
     this.drawContents(room);
+  }
+
+  /**
+   * Render tilemap background for a room
+   * Returns true if tilemap was rendered, false if fallback needed
+   */
+  private renderTilemapBackground(roomId: string): boolean {
+    const loader = getDungeonRoomLoader();
+    if (!loader.isLoaded) {
+      this.currentRoomData = null;
+      return false;
+    }
+
+    // Get the current room's connections to determine which doors are needed
+    const room = GameState.getCurrentRoom();
+    if (!room) {
+      this.currentRoomData = null;
+      return false;
+    }
+
+    // Get or assign a template ID for this room
+    let templateId = this.roomTemplateMap.get(roomId);
+    if (templateId === undefined) {
+      // Find a template that matches the room's door connections
+      const hasNorth = !!room.connections.north;
+      const hasSouth = !!room.connections.south;
+      const hasEast = !!room.connections.east;
+      const hasWest = !!room.connections.west;
+      
+      const matchingRoom = loader.getRoomForConnections(hasNorth, hasSouth, hasEast, hasWest);
+      if (!matchingRoom) {
+        this.currentRoomData = null;
+        return false;
+      }
+      templateId = matchingRoom.id;
+      this.roomTemplateMap.set(roomId, templateId);
+      console.log(`[DungeonScene] Assigned room template ${templateId} for room ${roomId} (N:${hasNorth} S:${hasSouth} E:${hasEast} W:${hasWest})`);
+    }
+
+    const roomData = loader.getRoom(templateId);
+    if (!roomData) {
+      this.currentRoomData = null;
+      return false;
+    }
+
+    // Calculate scale to fit the tilemap into ROOM_CONFIG dimensions
+    // TMX rooms are 320x160, ROOM_CONFIG is 520x340
+    const tilemapDims = loader.getRoomDimensions(1);
+    const scaleX = ROOM_CONFIG.width / tilemapDims.width;
+    const scaleY = ROOM_CONFIG.height / tilemapDims.height;
+    const scale = Math.min(scaleX, scaleY); // Use uniform scale to maintain aspect ratio
+
+    // Center the tilemap within the room area
+    const scaledWidth = tilemapDims.width * scale;
+    const scaledHeight = tilemapDims.height * scale;
+    const offsetX = ROOM_CONFIG.offsetX + (ROOM_CONFIG.width - scaledWidth) / 2;
+    const offsetY = ROOM_CONFIG.offsetY + (ROOM_CONFIG.height - scaledHeight) / 2;
+
+    // Store current tilemap state for door/collider positioning
+    this.currentTilemapScale = scale;
+    this.currentTilemapOffsetX = offsetX;
+    this.currentTilemapOffsetY = offsetY;
+    this.currentRoomData = roomData;
+
+    // Create tilemap actors
+    const tilemapActors = loader.createRoomActors(roomData, offsetX, offsetY, scale, -10);
+
+    // Add all tilemap actors to the scene
+    for (const actor of tilemapActors) {
+      this.add(actor);
+      this.roomActors.push(actor);
+    }
+
+    return tilemapActors.length > 0;
   }
 
   private drawDoors(room: DungeonRoom): void {
@@ -393,39 +630,45 @@ export class DungeonScene extends ex.Scene {
       const targetRoomId = room.connections[direction];
       if (!targetRoomId) continue;
 
+      // Create invisible door trigger zone (the tilemap provides visual door art)
       const door = new ex.Actor({
         pos: ex.vec(pos.x, pos.y),
         width: ROOM_CONFIG.doorSize,
         height: ROOM_CONFIG.doorSize,
         z: 0,
       });
-      door.graphics.use(
-        new ex.Rectangle({
-          width: ROOM_CONFIG.doorSize,
-          height: ROOM_CONFIG.doorSize,
-          color: ex.Color.fromHex('#4ade80'),
-        })
-      );
+      
+      // Only show green door indicators if tilemap is not loaded (fallback mode)
+      if (!this.currentRoomData) {
+        door.graphics.use(
+          new ex.Rectangle({
+            width: ROOM_CONFIG.doorSize,
+            height: ROOM_CONFIG.doorSize,
+            color: ex.Color.fromHex('#4ade80'),
+          })
+        );
+        
+        // Arrow indicator only in fallback mode
+        const arrows: Record<Direction, string> = { north: '^', south: 'v', east: '>', west: '<' };
+        const arrow = new ex.Actor({
+          pos: ex.vec(pos.x, pos.y),
+          z: 1,
+        });
+        arrow.graphics.use(
+          new ex.Text({
+            text: arrows[direction],
+            font: this.fontCache.getFont(20, ex.Color.White),
+          })
+        );
+        this.add(arrow);
+        this.roomActors.push(arrow);
+      }
+      
       (door as any).doorDirection = direction;
       (door as any).targetRoomId = targetRoomId;
 
       this.add(door);
       this.roomActors.push(door);
-
-      // Arrow indicator
-      const arrows: Record<Direction, string> = { north: '^', south: 'v', east: '>', west: '<' };
-      const arrow = new ex.Actor({
-        pos: ex.vec(pos.x, pos.y),
-        z: 1,
-      });
-      arrow.graphics.use(
-        new ex.Text({
-          text: arrows[direction],
-          font: this.fontCache.getFont(20, ex.Color.White),
-        })
-      );
-      this.add(arrow);
-      this.roomActors.push(arrow);
     }
   }
 
@@ -636,16 +879,98 @@ export class DungeonScene extends ex.Scene {
   }
 
   private getDoorPositions(): Record<Direction, { x: number; y: number }> {
-    const { width, height, offsetX, offsetY, doorSize } = ROOM_CONFIG;
+    // Use tilemap door positions if available
+    if (this.currentRoomData) {
+      const loader = getDungeonRoomLoader();
+      const tilemapDoors = loader.getScaledDoorPositions(
+        this.currentRoomData,
+        this.currentTilemapOffsetX,
+        this.currentTilemapOffsetY,
+        this.currentTilemapScale
+      );
+
+      return {
+        north: tilemapDoors.north ? { x: tilemapDoors.north.x, y: tilemapDoors.north.y } : this.getDefaultDoorPosition('north'),
+        south: tilemapDoors.south ? { x: tilemapDoors.south.x, y: tilemapDoors.south.y } : this.getDefaultDoorPosition('south'),
+        east: tilemapDoors.east ? { x: tilemapDoors.east.x, y: tilemapDoors.east.y } : this.getDefaultDoorPosition('east'),
+        west: tilemapDoors.west ? { x: tilemapDoors.west.x, y: tilemapDoors.west.y } : this.getDefaultDoorPosition('west'),
+      };
+    }
+
+    // Fallback to default positions
     return {
-      north: { x: offsetX + width / 2, y: offsetY + doorSize / 2 },
-      south: { x: offsetX + width / 2, y: offsetY + height - doorSize / 2 },
-      east: { x: offsetX + width - doorSize / 2, y: offsetY + height / 2 },
-      west: { x: offsetX + doorSize / 2, y: offsetY + height / 2 },
+      north: this.getDefaultDoorPosition('north'),
+      south: this.getDefaultDoorPosition('south'),
+      east: this.getDefaultDoorPosition('east'),
+      west: this.getDefaultDoorPosition('west'),
     };
   }
 
+  private getDefaultDoorPosition(direction: Direction): { x: number; y: number } {
+    const { width, height, offsetX, offsetY, doorSize } = ROOM_CONFIG;
+    switch (direction) {
+      case 'north': return { x: offsetX + width / 2, y: offsetY + doorSize / 2 };
+      case 'south': return { x: offsetX + width / 2, y: offsetY + height - doorSize / 2 };
+      case 'east': return { x: offsetX + width - doorSize / 2, y: offsetY + height / 2 };
+      case 'west': return { x: offsetX + doorSize / 2, y: offsetY + height / 2 };
+    }
+  }
+
   private getMovementBounds() {
+    // Use tilemap colliders to determine movement bounds if available
+    if (this.currentRoomData) {
+      const loader = getDungeonRoomLoader();
+      const colliders = loader.getScaledColliders(
+        this.currentRoomData,
+        this.currentTilemapOffsetX,
+        this.currentTilemapOffsetY,
+        this.currentTilemapScale
+      );
+
+      // Find the playable area by looking for the inner bounds
+      // The colliders define walls, so we need the area inside them
+      if (colliders.length > 0) {
+        // Get the tilemap dimensions at current scale
+        const tilemapDims = loader.getRoomDimensions(this.currentTilemapScale);
+        const roomRight = this.currentTilemapOffsetX + tilemapDims.width;
+        const roomBottom = this.currentTilemapOffsetY + tilemapDims.height;
+
+        // Find wall thicknesses from colliders
+        let leftWall = this.currentTilemapOffsetX;
+        let rightWall = roomRight;
+        let topWall = this.currentTilemapOffsetY;
+        let bottomWall = roomBottom;
+
+        for (const collider of colliders) {
+          // Left wall collider (x near left edge, full height)
+          if (collider.x <= this.currentTilemapOffsetX + 2 && collider.height > tilemapDims.height * 0.5) {
+            leftWall = Math.max(leftWall, collider.x + collider.width);
+          }
+          // Right wall collider (x near right edge, full height)
+          if (collider.x + collider.width >= roomRight - 2 && collider.height > tilemapDims.height * 0.5) {
+            rightWall = Math.min(rightWall, collider.x);
+          }
+          // Top wall collider (y near top, full width)
+          if (collider.y <= this.currentTilemapOffsetY + 2 && collider.width > tilemapDims.width * 0.5) {
+            topWall = Math.max(topWall, collider.y + collider.height);
+          }
+          // Bottom wall collider (y near bottom, full width)
+          if (collider.y + collider.height >= roomBottom - 2 && collider.width > tilemapDims.width * 0.5) {
+            bottomWall = Math.min(bottomWall, collider.y);
+          }
+        }
+
+        const margin = 8 * this.currentTilemapScale;
+        return {
+          minX: leftWall + margin,
+          maxX: rightWall - margin,
+          minY: topWall + margin,
+          maxY: bottomWall - margin,
+        };
+      }
+    }
+
+    // Fallback to default bounds
     const { width, height, offsetX, offsetY } = ROOM_CONFIG;
     const margin = 16;
     return {
@@ -689,10 +1014,17 @@ export class DungeonScene extends ex.Scene {
     let dx = 0;
     let dy = 0;
 
+    // Arrow keys
     if (this.inputManager?.isKeyHeld('left')) dx -= 1;
     if (this.inputManager?.isKeyHeld('right')) dx += 1;
     if (this.inputManager?.isKeyHeld('up')) dy -= 1;
     if (this.inputManager?.isKeyHeld('down')) dy += 1;
+    
+    // WASD keys (like town)
+    if (this.inputManager?.isKeyHeld('a')) dx -= 1;
+    if (this.inputManager?.isKeyHeld('d')) dx += 1;
+    if (this.inputManager?.isKeyHeld('w')) dy -= 1;
+    if (this.inputManager?.isKeyHeld('s')) dy += 1;
 
     if (dx !== 0 || dy !== 0) {
       const len = Math.sqrt(dx * dx + dy * dy);
@@ -712,7 +1044,7 @@ export class DungeonScene extends ex.Scene {
     // Update HP bar (use effective max health to include equipment bonuses)
     const effectiveMaxHp = GameState.getEffectiveMaxHealth();
     const ratio = GameState.player.health / effectiveMaxHp;
-    const hpWidth = Math.max(0, 80 * ratio);
+    const hpWidth = Math.max(0, 120 * ratio);
 
     let hpColor = ex.Color.fromRGB(60, 220, 100);
     if (ratio <= 0.25) {
@@ -721,13 +1053,13 @@ export class DungeonScene extends ex.Scene {
       hpColor = ex.Color.fromRGB(240, 200, 60);
     }
 
-    this.hpBar.graphics.use(new ex.Rectangle({ width: hpWidth, height: 12, color: hpColor }));
+    this.hpBar.graphics.use(new ex.Rectangle({ width: hpWidth, height: 14, color: hpColor }));
 
     // Update gold
     this.goldLabel.graphics.use(
       new ex.Text({
         text: `Gold: ${GameState.player.gold}`,
-        font: this.fontCache.getFontHex(13, '#fbbf24'),
+        font: this.fontCache.getFontHex(12, '#fbbf24'),
       })
     );
   }
@@ -890,8 +1222,14 @@ export class DungeonScene extends ex.Scene {
     content.triggered = true;
 
     const damage = content.data?.damage || 5;
-    GameState.player.health = Math.max(1, GameState.player.health - damage);
+    GameState.player.health = Math.max(0, GameState.player.health - damage);
     this.showFloatingMessage(`-${damage} HP!`, x, y - 20, '#f43f3f');
+
+    // Check for player death
+    if (GameState.player.health <= 0) {
+      this.handlePlayerDeath();
+      return;
+    }
 
     this.renderCurrentRoom();
   }
@@ -1140,117 +1478,24 @@ export class DungeonScene extends ex.Scene {
   }
 
   // ============================================================================
-  // Pause Menu
+  // Pause Menu (HTML Overlay)
   // ============================================================================
 
   private showPauseMenu(): void {
     this.pauseMenuActive = true;
-    this.pauseMenuSelection = 0;
     this.playerFrozen = true;
-    this.renderPauseMenu();
-  }
-
-  private renderPauseMenu(): void {
-    this.clearPauseMenu();
-
-    // Backdrop
-    const backdrop = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-      z: 800,
-    });
-    backdrop.graphics.use(
-      new ex.Rectangle({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, color: ex.Color.fromRGB(0, 0, 0, 0.7) })
-    );
-    this.add(backdrop);
-    this.pauseMenuActors.push(backdrop);
-
-    // Menu box
-    const menuWidth = 200;
-    const menuHeight = 120;
-    const menuBox = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      width: menuWidth,
-      height: menuHeight,
-      z: 801,
-    });
-    menuBox.graphics.use(
-      new ex.Rectangle({ width: menuWidth, height: menuHeight, color: ex.Color.fromRGB(30, 30, 50) })
-    );
-    this.add(menuBox);
-    this.pauseMenuActors.push(menuBox);
-
-    // Title
-    const title = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40),
-      z: 802,
-    });
-    title.graphics.use(
-      new ex.Text({
-        text: 'PAUSED',
-        font: this.fontCache.getFont(16, ex.Color.White),
-      })
-    );
-    this.add(title);
-    this.pauseMenuActors.push(title);
-
-    // Options
-    const options = ['Resume', 'Leave Dungeon'];
-    options.forEach((opt, i) => {
-      const isSelected = i === this.pauseMenuSelection;
-      const optActor = new ex.Actor({
-        pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 10 + i * 28),
-        z: 802,
-      });
-      optActor.graphics.use(
-        new ex.Text({
-          text: `${isSelected ? '> ' : '  '}${opt}`,
-          font: this.fontCache.getFontHex(
-            14,
-            isSelected ? '#ffff64' : '#b4b4b4'
-          ),
-        })
-      );
-      this.add(optActor);
-      this.pauseMenuActors.push(optActor);
-    });
-  }
-
-  private handlePauseMenuInput(): void {
-    if (!this.inputEnabled) return;
-
-    if (this.inputManager?.wasKeyPressed('up') || this.inputManager?.wasKeyPressed('w')) {
-      this.pauseMenuSelection = Math.max(0, this.pauseMenuSelection - 1);
-      this.renderPauseMenu();
-    } else if (this.inputManager?.wasKeyPressed('down') || this.inputManager?.wasKeyPressed('s')) {
-      this.pauseMenuSelection = Math.min(1, this.pauseMenuSelection + 1);
-      this.renderPauseMenu();
-    } else if (this.inputManager?.wasKeyPressed('enter') || this.inputManager?.wasKeyPressed('space')) {
-      if (this.pauseMenuSelection === 0) {
-        // Resume
-        this.hidePauseMenu();
-      } else {
-        // Leave dungeon
-        this.hidePauseMenu();
-        this.leaveDungeon();
-      }
-    } else if (this.inputManager?.wasKeyPressed('escape')) {
-      this.hidePauseMenu();
-    }
+    this.pauseOverlay?.open();
   }
 
   private hidePauseMenu(): void {
-    this.clearPauseMenu();
     this.pauseMenuActive = false;
     this.playerFrozen = false;
+    this.pauseOverlay?.close();
   }
 
-  private clearPauseMenu(): void {
-    for (const actor of this.pauseMenuActors) {
-      actor.kill();
-    }
-    this.pauseMenuActors = [];
+  private handlePauseMenuInput(): void {
+    // Input is handled by the HTML overlay
+    // This method is now a no-op, kept for compatibility
   }
 
   private leaveDungeon(): void {
@@ -1262,8 +1507,33 @@ export class DungeonScene extends ex.Scene {
     this.callbacks.onExitToTown();
   }
 
+  /**
+   * Handle player death - show message and exit to town
+   */
+  private handlePlayerDeath(): void {
+    this.isTransitioning = true;
+    this.playerFrozen = true;
+
+    // Show death message
+    this.showFloatingMessage('You were defeated!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20, '#ff6464');
+    this.showFloatingMessage('Returning to town...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10, '#ffff64');
+
+    // Clear dungeon state and return to town after delay
+    setTimeout(() => {
+      GameState.dungeon.floor = null;
+      GameState.dungeon.currentRoomId = '';
+      GameState.dungeon.floorNumber = 1;
+      GameState.dungeon.dungeonId = null;
+
+      // Restore some HP so player isn't stuck at 0
+      GameState.player.health = Math.floor(GameState.getEffectiveMaxHealth() * 0.25);
+
+      this.callbacks.onExitToTown();
+    }, 2500);
+  }
+
   // ============================================================================
-  // Puzzle System
+  // Puzzle System (HTML Overlay)
   // ============================================================================
 
   private showPuzzle(content: RoomContent): void {
@@ -1273,265 +1543,17 @@ export class DungeonScene extends ex.Scene {
 
     const puzzleType = content.data?.puzzleType || 'riddle';
     if (puzzleType === 'riddle' || puzzleType === 'memory') {
-      this.showRiddlePuzzle();
+      const riddle = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
+      this.puzzleOverlay?.openRiddle(riddle);
     } else {
-      this.showSequencePuzzle();
+      const sequence = SEQUENCES[Math.floor(Math.random() * SEQUENCES.length)];
+      this.puzzleOverlay?.openSequence(sequence);
     }
-  }
-
-  private showRiddlePuzzle(): void {
-    this.clearPuzzleUI();
-
-    const riddle = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
-    this.puzzleState = { type: 'riddle', riddle, selectedOption: 0 } as RiddlePuzzleState;
-
-    // Background
-    const bg = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH / 2, 160),
-      width: 380,
-      height: 180,
-      z: 500,
-    });
-    bg.graphics.use(
-      new ex.Rectangle({ width: 380, height: 180, color: ex.Color.fromRGB(20, 20, 40) })
-    );
-    this.add(bg);
-    this.puzzleUIActors.push(bg);
-
-    // Title
-    const title = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 85), z: 501 });
-    title.graphics.use(
-      new ex.Text({
-        text: 'Riddle Stone',
-        font: this.fontCache.getFontHex(14, '#64b4ff'),
-      })
-    );
-    this.add(title);
-    this.puzzleUIActors.push(title);
-
-    // Question
-    const question = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 115), z: 501 });
-    question.graphics.use(
-      new ex.Text({
-        text: riddle.question,
-        font: this.fontCache.getFont(14, ex.Color.White),
-      })
-    );
-    this.add(question);
-    this.puzzleUIActors.push(question);
-
-    this.renderRiddleOptions();
-
-    // Instructions
-    const instr = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 240), z: 501 });
-    instr.graphics.use(
-      new ex.Text({
-        text: 'W/S or Up/Down: Select | ENTER/SPACE: Answer | ESC: Leave',
-        font: this.fontCache.getFontRGB(12, 150, 150, 150),
-      })
-    );
-    this.add(instr);
-    this.puzzleUIActors.push(instr);
-  }
-
-  private renderRiddleOptions(): void {
-    // Remove old options (keep first 3 elements: bg, title, question)
-    while (this.puzzleUIActors.length > 3) {
-      const actor = this.puzzleUIActors.pop();
-      actor?.kill();
-    }
-
-    if (!this.puzzleState || this.puzzleState.type !== 'riddle') return;
-
-    const riddle = this.puzzleState.riddle;
-    riddle.options.forEach((opt: string, i: number) => {
-      const isSelected = i === this.puzzleState!.selectedOption;
-      const optActor = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 155 + i * 28), z: 502 });
-      optActor.graphics.use(
-        new ex.Text({
-          text: `${i + 1}. ${opt}`,
-          font: this.fontCache.getFontHex(
-            13,
-            isSelected ? '#64ff64' : '#FFFFFF'
-          ),
-        })
-      );
-      this.add(optActor);
-      this.puzzleUIActors.push(optActor);
-    });
-  }
-
-  private showSequencePuzzle(): void {
-    this.clearPuzzleUI();
-
-    const sequence = SEQUENCES[Math.floor(Math.random() * SEQUENCES.length)];
-    this.puzzleState = { type: 'sequence', sequence, inputIndex: 0, inputs: [], showPattern: true } as SequencePuzzleState;
-
-    // Background
-    const bg = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH / 2, 160),
-      width: 380,
-      height: 160,
-      z: 500,
-    });
-    bg.graphics.use(
-      new ex.Rectangle({ width: 380, height: 160, color: ex.Color.fromRGB(20, 20, 40) })
-    );
-    this.add(bg);
-    this.puzzleUIActors.push(bg);
-
-    // Title
-    const title = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 95), z: 501 });
-    title.graphics.use(
-      new ex.Text({
-        text: 'Sequence Lock',
-        font: this.fontCache.getFontHex(14, '#ffb464'),
-      })
-    );
-    this.add(title);
-    this.puzzleUIActors.push(title);
-
-    // Pattern
-    const pattern = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 130), z: 501 });
-    pattern.graphics.use(
-      new ex.Text({
-        text: `Memorize: ${sequence.display}`,
-        font: this.fontCache.getFontHex(16, '#ffff64'),
-      })
-    );
-    this.add(pattern);
-    this.puzzleUIActors.push(pattern);
-
-    // Hide pattern after 3 seconds
-    setTimeout(() => {
-      if (this.puzzleActive && this.puzzleState?.type === 'sequence') {
-        this.puzzleState.showPattern = false;
-        this.renderSequenceInput();
-      }
-    }, 3000);
-  }
-
-  private renderSequenceInput(): void {
-    this.clearPuzzleUI();
-
-    if (!this.puzzleState || this.puzzleState.type !== 'sequence') return;
-    const seqState = this.puzzleState;
-
-    // Background
-    const bg = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH / 2, 160),
-      width: 380,
-      height: 160,
-      z: 500,
-    });
-    bg.graphics.use(
-      new ex.Rectangle({ width: 380, height: 160, color: ex.Color.fromRGB(20, 20, 40) })
-    );
-    this.add(bg);
-    this.puzzleUIActors.push(bg);
-
-    // Title
-    const title = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 95), z: 501 });
-    title.graphics.use(
-      new ex.Text({
-        text: 'Enter the Sequence!',
-        font: this.fontCache.getFontHex(14, '#ffb464'),
-      })
-    );
-    this.add(title);
-    this.puzzleUIActors.push(title);
-
-    // Show inputs
-    const arrows = ['Up', 'Right', 'Down'];
-    const inputStr = seqState.inputs.map((i: number) => arrows[i]).join(' ') || '...';
-    const inputs = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 130), z: 501 });
-    inputs.graphics.use(
-      new ex.Text({
-        text: `Your input: ${inputStr}`,
-        font: this.fontCache.getFontHex(14, '#64ff64'),
-      })
-    );
-    this.add(inputs);
-    this.puzzleUIActors.push(inputs);
-
-    // Progress
-    const progress = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 155), z: 501 });
-    progress.graphics.use(
-      new ex.Text({
-        text: `${seqState.inputs.length}/${seqState.sequence.pattern.length}`,
-        font: this.fontCache.getFontRGB(12, 200, 200, 200),
-      })
-    );
-    this.add(progress);
-    this.puzzleUIActors.push(progress);
-
-    // Instructions
-    const instr = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 220), z: 501 });
-    instr.graphics.use(
-      new ex.Text({
-        text: 'Arrow Keys: Input | ESC: Give up',
-        font: this.fontCache.getFontRGB(12, 150, 150, 150),
-      })
-    );
-    this.add(instr);
-    this.puzzleUIActors.push(instr);
   }
 
   private handlePuzzleInput(): void {
-    if (!this.inputEnabled) return;
-    if (!this.puzzleActive || !this.puzzleState) return;
-
-    if (this.inputManager?.wasKeyPressed('escape')) {
-      this.clearPuzzleUI();
-      this.puzzleActive = false;
-      this.currentPuzzle = null;
-      this.puzzleState = null;
-      this.playerFrozen = false;
-      return;
-    }
-
-    if (this.puzzleState.type === 'riddle') {
-      const riddleState = this.puzzleState;
-      if ((this.inputManager?.wasKeyPressed('up') || this.inputManager?.wasKeyPressed('w')) && riddleState.selectedOption > 0) {
-        riddleState.selectedOption--;
-        this.renderRiddleOptions();
-      } else if (
-        (this.inputManager?.wasKeyPressed('down') || this.inputManager?.wasKeyPressed('s')) &&
-        riddleState.selectedOption < riddleState.riddle.options.length - 1
-      ) {
-        riddleState.selectedOption++;
-        this.renderRiddleOptions();
-      } else if (this.inputManager?.wasKeyPressed('enter') || this.inputManager?.wasKeyPressed('space')) {
-        const correct = riddleState.selectedOption === riddleState.riddle.answer;
-        if (correct) {
-          this.solvePuzzle();
-        } else {
-          this.failPuzzle();
-        }
-      }
-    } else if (this.puzzleState.type === 'sequence' && !this.puzzleState.showPattern) {
-      const seqState = this.puzzleState;
-      let input = -1;
-      if (this.inputManager?.wasKeyPressed('up')) input = 0;
-      else if (this.inputManager?.wasKeyPressed('right')) input = 1;
-      else if (this.inputManager?.wasKeyPressed('down')) input = 2;
-
-      if (input >= 0) {
-        seqState.inputs.push(input);
-        this.renderSequenceInput();
-
-        if (seqState.inputs.length === seqState.sequence.pattern.length) {
-          const correct = seqState.inputs.every(
-            (v: number, i: number) => v === seqState.sequence.pattern[i]
-          );
-          if (correct) {
-            this.solvePuzzle();
-          } else {
-            this.failPuzzle();
-          }
-        }
-      }
-    }
+    // Input is handled by the HTML overlay
+    // This method is now a no-op, kept for compatibility
   }
 
   private solvePuzzle(): void {
@@ -1544,10 +1566,8 @@ export class DungeonScene extends ex.Scene {
     GameState.addGold(goldReward);
     GameState.addXp(xpReward);
 
-    this.clearPuzzleUI();
     this.puzzleActive = false;
     this.currentPuzzle = null;
-    this.puzzleState = null;
     this.playerFrozen = false;
 
     this.showFloatingMessage('Puzzle Solved!', CANVAS_WIDTH / 2, 120, '#64ff64');
@@ -1557,148 +1577,36 @@ export class DungeonScene extends ex.Scene {
   }
 
   private failPuzzle(): void {
-    this.clearPuzzleUI();
     this.puzzleActive = false;
     this.currentPuzzle = null;
-    this.puzzleState = null;
     this.playerFrozen = false;
 
     this.showFloatingMessage('Wrong answer!', CANVAS_WIDTH / 2, 140, '#ff6464');
   }
 
-  private clearPuzzleUI(): void {
-    for (const actor of this.puzzleUIActors) {
-      actor.kill();
-    }
-    this.puzzleUIActors = [];
-  }
-
   // ============================================================================
-  // Merchant System
+  // Merchant System (HTML Overlay)
   // ============================================================================
 
   private showMerchant(): void {
     if (!this.nearbyMerchant) return;
 
     this.merchantActive = true;
-    this.merchantSelection = 0;
     this.playerFrozen = true;
-    this.renderMerchantUI();
-  }
-
-  private renderMerchantUI(): void {
-    this.clearMerchantUI();
-
-    const items = this.nearbyMerchant?.data?.inventory || ['potion_minor', 'potion_medium'];
-
-    // Background
-    const bg = new ex.Actor({
-      pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      width: 280,
-      height: 200,
-      z: 500,
-    });
-    bg.graphics.use(
-      new ex.Rectangle({ width: 280, height: 200, color: ex.Color.fromRGB(30, 25, 40) })
-    );
-    this.add(bg);
-    this.merchantUIActors.push(bg);
-
-    // Title
-    const title = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 80), z: 501 });
-    title.graphics.use(
-      new ex.Text({
-        text: 'Merchant',
-        font: this.fontCache.getFontHex(16, '#ffc864'),
-      })
-    );
-    this.add(title);
-    this.merchantUIActors.push(title);
-
-    // Gold display
-    const gold = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 60), z: 501 });
-    gold.graphics.use(
-      new ex.Text({
-        text: `Your Gold: ${GameState.player.gold}`,
-        font: this.fontCache.getFontHex(13, '#fbbf24'),
-      })
-    );
-    this.add(gold);
-    this.merchantUIActors.push(gold);
-
-    // Items
-    items.forEach((itemId: string, i: number) => {
-      const item = getItem(itemId);
-      if (!item) return;
-
-      const isSelected = i === this.merchantSelection;
-      const itemActor = new ex.Actor({
-        pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30 + i * 25),
-        z: 501,
-      });
-      itemActor.graphics.use(
-        new ex.Text({
-          text: `${isSelected ? '> ' : '  '}${item.name} - ${item.buyPrice}g`,
-          font: this.fontCache.getFontHex(
-            13,
-            isSelected ? '#FFFFFF' : '#b4b4b4'
-          ),
-        })
-      );
-      this.add(itemActor);
-      this.merchantUIActors.push(itemActor);
-    });
-
-    // Instructions
-    const instr = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80), z: 501 });
-    instr.graphics.use(
-      new ex.Text({
-        text: 'W/S or Up/Down: Select | ENTER: Buy | ESC: Leave',
-        font: this.fontCache.getFontRGB(12, 150, 150, 150),
-      })
-    );
-    this.add(instr);
-    this.merchantUIActors.push(instr);
+    
+    const inventory = this.nearbyMerchant.data?.inventory || ['potion_minor', 'potion_medium'];
+    this.merchantOverlay?.open(inventory);
   }
 
   private handleMerchantInput(): void {
-    if (!this.inputEnabled) return;
-
-    const items = this.nearbyMerchant?.data?.inventory || ['potion_minor', 'potion_medium'];
-
-    if (this.inputManager?.wasKeyPressed('escape')) {
-      this.hideMerchant();
-    } else if (this.inputManager?.wasKeyPressed('up') || this.inputManager?.wasKeyPressed('w')) {
-      this.merchantSelection = Math.max(0, this.merchantSelection - 1);
-      this.renderMerchantUI();
-    } else if (this.inputManager?.wasKeyPressed('down') || this.inputManager?.wasKeyPressed('s')) {
-      this.merchantSelection = Math.min(items.length - 1, this.merchantSelection + 1);
-      this.renderMerchantUI();
-    } else if (this.inputManager?.wasKeyPressed('enter') || this.inputManager?.wasKeyPressed('space')) {
-      const itemId = items[this.merchantSelection];
-      const item = getItem(itemId);
-      if (item && GameState.player.gold >= item.buyPrice) {
-        GameState.addGold(-item.buyPrice);
-        GameState.addItem(itemId, 1);
-        this.showFloatingMessage(`Bought ${item.name}!`, CANVAS_WIDTH / 2, 100, '#64ff64');
-        this.renderMerchantUI();
-      } else {
-        this.showFloatingMessage('Not enough gold!', CANVAS_WIDTH / 2, 100, '#ff6464');
-      }
-    }
+    // Input is handled by the HTML overlay
+    // This method is now a no-op, kept for compatibility
   }
 
   private hideMerchant(): void {
-    this.clearMerchantUI();
     this.merchantActive = false;
     this.playerFrozen = false;
-  }
-
-  private clearMerchantUI(): void {
-    for (const actor of this.merchantUIActors) {
-      actor.kill();
-    }
-    this.merchantUIActors = [];
+    this.merchantOverlay?.close();
   }
 
   // ============================================================================
@@ -1736,9 +1644,6 @@ export class DungeonScene extends ex.Scene {
 
   private clearAllActors(): void {
     this.clearRoomActors();
-    this.clearPauseMenu();
-    this.clearPuzzleUI();
-    this.clearMerchantUI();
 
     for (const actor of this.uiActors) {
       actor.kill();

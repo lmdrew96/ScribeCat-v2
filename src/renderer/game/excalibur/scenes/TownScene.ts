@@ -432,24 +432,49 @@ export class TownScene extends ex.Scene {
   }
 
   private setupHUD(): void {
-    // Use ScreenElement for HUD - stays fixed in screen space regardless of camera
-    this.hudContainer = new ex.ScreenElement({
+    // HUD background (top-left corner)
+    const hudBg = new ex.ScreenElement({
       pos: ex.vec(0, 0),
       z: 1000,
     });
-
-    // HUD background graphic
-    const hudBgGraphic = new ex.Rectangle({
-      width: 120,
-      height: 50,
+    hudBg.graphics.use(new ex.Rectangle({
+      width: 140,
+      height: 80,
       color: ex.Color.fromRGB(0, 0, 0, 0.6),
-    });
-    this.hudContainer.graphics.use(hudBgGraphic);
-    this.add(this.hudContainer);
+    }));
+    this.add(hudBg);
+    this.hudContainer = hudBg;
 
-    // Level label (as child screen element)
+    // HP Bar background
+    const hpBg = new ex.ScreenElement({
+      pos: ex.vec(10, 10),
+      z: 1001,
+    });
+    hpBg.graphics.use(new ex.Rectangle({
+      width: 120,
+      height: 12,
+      color: ex.Color.fromRGB(60, 20, 20),
+    }));
+    this.add(hpBg);
+
+    // HP Bar (calculate current ratio)
+    const effectiveMaxHp = GameState.getEffectiveMaxHealth();
+    const hpRatio = GameState.player.health / effectiveMaxHp;
+    const hpBar = new ex.ScreenElement({
+      pos: ex.vec(10, 10),
+      z: 1002,
+    });
+    hpBar.graphics.use(new ex.Rectangle({
+      width: 120 * hpRatio,
+      height: 12,
+      color: hpRatio > 0.5 ? ex.Color.fromRGB(60, 220, 100) : 
+             hpRatio > 0.25 ? ex.Color.fromRGB(240, 200, 60) : ex.Color.fromRGB(240, 60, 60),
+    }));
+    this.add(hpBar);
+
+    // Level label
     const levelElement = new ex.ScreenElement({
-      pos: ex.vec(10, 12),
+      pos: ex.vec(10, 28),
       z: 1001,
     });
     levelElement.graphics.use(new ex.Text({
@@ -459,29 +484,50 @@ export class TownScene extends ex.Scene {
     this.add(levelElement);
     this.levelLabel = levelElement as unknown as ex.Label;
 
+    // XP label  
+    const xpElement = new ex.ScreenElement({
+      pos: ex.vec(60, 28),
+      z: 1001,
+    });
+    xpElement.graphics.use(new ex.Text({
+      text: `XP: ${GameState.player.xp}`,
+      font: new ex.Font({ size: 11, color: ex.Color.fromHex('#a78bfa') }),
+    }));
+    this.add(xpElement);
+
     // Gold label
     const goldElement = new ex.ScreenElement({
-      pos: ex.vec(10, 32),
+      pos: ex.vec(10, 46),
       z: 1001,
     });
     goldElement.graphics.use(new ex.Text({
       text: `Gold: ${GameState.player.gold}`,
-      font: new ex.Font({ size: 13, color: ex.Color.fromHex('#FBBF24') }),
+      font: new ex.Font({ size: 12, color: ex.Color.fromHex('#FBBF24') }),
     }));
     this.add(goldElement);
     this.goldLabel = goldElement as unknown as ex.Label;
 
-    // Controls hint (centered at top of screen)
-    const controlsElement = new ex.ScreenElement({
-      pos: ex.vec(CANVAS_WIDTH / 2, 5),
-      z: 1000,
-      anchor: ex.vec(0.5, 0),
+    // HP text overlay
+    const hpText = new ex.ScreenElement({
+      pos: ex.vec(70, 8),
+      z: 1003,
     });
-    controlsElement.graphics.use(new ex.Text({
-      text: 'Arrow/WASD: Move | ENTER: Interact | I: Inventory',
-      font: new ex.Font({ size: 11, color: ex.Color.fromRGB(150, 150, 170) }),
+    hpText.graphics.use(new ex.Text({
+      text: `${GameState.player.health}/${effectiveMaxHp}`,
+      font: new ex.Font({ size: 10, color: ex.Color.White }),
     }));
-    this.add(controlsElement);
+    this.add(hpText);
+
+    // Controls hint (bottom of HUD)
+    const controlsHint = new ex.ScreenElement({
+      pos: ex.vec(10, 64),
+      z: 1001,
+    });
+    controlsHint.graphics.use(new ex.Text({
+      text: 'WASD:Move ENTER:Interact',
+      font: new ex.Font({ size: 9, color: ex.Color.fromRGB(150, 150, 150) }),
+    }));
+    this.add(controlsHint);
   }
 
   private setupCamera(): void {
