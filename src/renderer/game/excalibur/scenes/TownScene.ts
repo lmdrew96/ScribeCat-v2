@@ -632,8 +632,8 @@ export class TownScene extends ex.Scene {
   private checkDoorInteraction(): void {
     if (!this.player) return;
 
-    // Increased interaction distance for scaled tilemap (scale=2, doors are larger)
-    const interactionDistance = 80;
+    // Interaction distance for building doors
+    const interactionDistance = 16;
 
     for (const door of this.doors) {
       const dist = this.player.pos.distance(door.pos);

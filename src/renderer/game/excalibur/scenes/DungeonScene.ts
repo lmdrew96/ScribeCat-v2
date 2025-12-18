@@ -1203,7 +1203,7 @@ export class DungeonScene extends ex.Scene {
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
 
-      if (this.player.pos.distance(ex.vec(x, y)) < 28) { // Reduced from 40
+      if (this.player.pos.distance(ex.vec(x, y)) < 16) { // Must be very close to trigger
         this.handleContentTrigger(content, room, x, y);
         break;
       }

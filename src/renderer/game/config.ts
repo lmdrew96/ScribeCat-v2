@@ -42,7 +42,6 @@ export const COLORS = {
 // Player settings
 export const PLAYER_SPEED = 120; // Pixels per second
 export const PLAYER_SIZE = 32;
-export const TRIGGER_DISTANCE = 40;
 
 // Tile settings
 export const TILE_SIZE = 16;
