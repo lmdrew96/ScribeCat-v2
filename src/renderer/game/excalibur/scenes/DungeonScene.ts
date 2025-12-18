@@ -1145,13 +1145,13 @@ export class DungeonScene extends ex.Scene {
   private handlePauseMenuInput(): void {
     if (!this.inputEnabled) return;
 
-    if (this.inputManager?.wasKeyPressed('up')) {
+    if (this.inputManager?.wasKeyPressed('up') || this.inputManager?.wasKeyPressed('w')) {
       this.pauseMenuSelection = Math.max(0, this.pauseMenuSelection - 1);
       this.renderPauseMenu();
-    } else if (this.inputManager?.wasKeyPressed('down')) {
+    } else if (this.inputManager?.wasKeyPressed('down') || this.inputManager?.wasKeyPressed('s')) {
       this.pauseMenuSelection = Math.min(1, this.pauseMenuSelection + 1);
       this.renderPauseMenu();
-    } else if (this.inputManager?.wasKeyPressed('enter')) {
+    } else if (this.inputManager?.wasKeyPressed('enter') || this.inputManager?.wasKeyPressed('space')) {
       if (this.pauseMenuSelection === 0) {
         // Resume
         this.hidePauseMenu();
@@ -1251,7 +1251,7 @@ export class DungeonScene extends ex.Scene {
     const instr = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 240), z: 501 });
     instr.graphics.use(
       new ex.Text({
-        text: 'Up/Down: Select | ENTER: Answer | ESC: Leave',
+        text: 'W/S or Up/Down: Select | ENTER/SPACE: Answer | ESC: Leave',
         font: this.fontCache.getFontRGB(12, 150, 150, 150),
       })
     );
@@ -1417,16 +1417,16 @@ export class DungeonScene extends ex.Scene {
 
     if (this.puzzleState.type === 'riddle') {
       const riddleState = this.puzzleState;
-      if (this.inputManager?.wasKeyPressed('up') && riddleState.selectedOption > 0) {
+      if ((this.inputManager?.wasKeyPressed('up') || this.inputManager?.wasKeyPressed('w')) && riddleState.selectedOption > 0) {
         riddleState.selectedOption--;
         this.renderRiddleOptions();
       } else if (
-        this.inputManager?.wasKeyPressed('down') &&
+        (this.inputManager?.wasKeyPressed('down') || this.inputManager?.wasKeyPressed('s')) &&
         riddleState.selectedOption < riddleState.riddle.options.length - 1
       ) {
         riddleState.selectedOption++;
         this.renderRiddleOptions();
-      } else if (this.inputManager?.wasKeyPressed('enter')) {
+      } else if (this.inputManager?.wasKeyPressed('enter') || this.inputManager?.wasKeyPressed('space')) {
         const correct = riddleState.selectedOption === riddleState.riddle.answer;
         if (correct) {
           this.solvePuzzle();
@@ -1578,7 +1578,7 @@ export class DungeonScene extends ex.Scene {
     const instr = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80), z: 501 });
     instr.graphics.use(
       new ex.Text({
-        text: 'Up/Down: Select | ENTER: Buy | ESC: Leave',
+        text: 'W/S or Up/Down: Select | ENTER: Buy | ESC: Leave',
         font: this.fontCache.getFontRGB(12, 150, 150, 150),
       })
     );
@@ -1593,13 +1593,13 @@ export class DungeonScene extends ex.Scene {
 
     if (this.inputManager?.wasKeyPressed('escape')) {
       this.hideMerchant();
-    } else if (this.inputManager?.wasKeyPressed('up')) {
+    } else if (this.inputManager?.wasKeyPressed('up') || this.inputManager?.wasKeyPressed('w')) {
       this.merchantSelection = Math.max(0, this.merchantSelection - 1);
       this.renderMerchantUI();
-    } else if (this.inputManager?.wasKeyPressed('down')) {
+    } else if (this.inputManager?.wasKeyPressed('down') || this.inputManager?.wasKeyPressed('s')) {
       this.merchantSelection = Math.min(items.length - 1, this.merchantSelection + 1);
       this.renderMerchantUI();
-    } else if (this.inputManager?.wasKeyPressed('enter')) {
+    } else if (this.inputManager?.wasKeyPressed('enter') || this.inputManager?.wasKeyPressed('space')) {
       const itemId = items[this.merchantSelection];
       const item = getItem(itemId);
       if (item && GameState.player.gold >= item.buyPrice) {

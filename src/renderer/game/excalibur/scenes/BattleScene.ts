@@ -393,7 +393,25 @@ export class BattleScene extends ex.Scene {
       }
     });
 
+    this.inputManager.onKeyPress('a', () => {
+      if (this.phase !== 'player_turn' || this.actionInProgress) return;
+      if (this.itemMenuVisible) return;
+      if (this.selectedAction > 0) {
+        this.selectedAction--;
+        this.showMenu();
+      }
+    });
+
     this.inputManager.onKeyPress('right', () => {
+      if (this.phase !== 'player_turn' || this.actionInProgress) return;
+      if (this.itemMenuVisible) return;
+      if (this.selectedAction < ACTIONS.length - 1) {
+        this.selectedAction++;
+        this.showMenu();
+      }
+    });
+
+    this.inputManager.onKeyPress('d', () => {
       if (this.phase !== 'player_turn' || this.actionInProgress) return;
       if (this.itemMenuVisible) return;
       if (this.selectedAction < ACTIONS.length - 1) {
@@ -415,7 +433,34 @@ export class BattleScene extends ex.Scene {
       }
     });
 
+    this.inputManager.onKeyPress('w', () => {
+      if (this.phase !== 'player_turn' || this.actionInProgress) return;
+      if (this.itemMenuVisible) {
+        if (this.selectedItemIndex > 0) {
+          this.selectedItemIndex--;
+          this.showItemMenu();
+        }
+      } else if (this.selectedAction >= 3) {
+        this.selectedAction -= 3;
+        this.showMenu();
+      }
+    });
+
     this.inputManager.onKeyPress('down', () => {
+      if (this.phase !== 'player_turn' || this.actionInProgress) return;
+      if (this.itemMenuVisible) {
+        const items = this.getConsumableItems();
+        if (this.selectedItemIndex < items.length - 1) {
+          this.selectedItemIndex++;
+          this.showItemMenu();
+        }
+      } else if (this.selectedAction < 3 && this.selectedAction + 3 < ACTIONS.length) {
+        this.selectedAction += 3;
+        this.showMenu();
+      }
+    });
+
+    this.inputManager.onKeyPress('s', () => {
       if (this.phase !== 'player_turn' || this.actionInProgress) return;
       if (this.itemMenuVisible) {
         const items = this.getConsumableItems();

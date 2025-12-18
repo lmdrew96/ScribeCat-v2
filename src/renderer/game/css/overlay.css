@@ -1,0 +1,567 @@
+/**
+ * StudyQuest Game Overlay Styles
+ *
+ * CSS for HTML overlays used in the hybrid Canvas/HTML UI system.
+ * These styles provide a pixel-art aesthetic matching the game's
+ * UI sprite assets.
+ *
+ * Import this file in the game initialization to inject styles.
+ */
+
+/* ============================================================================
+ * CSS Variables - Theme colors matching game palette
+ * ============================================================================ */
+:root {
+  /* Panel colors */
+  --sq-panel-bg: #1e1e32;
+  --sq-panel-bg-light: #2a2a4e;
+  --sq-panel-border: #6496ff;
+  --sq-panel-border-dark: #4a6aaa;
+
+  /* Text colors */
+  --sq-text-primary: #ffffff;
+  --sq-text-secondary: #b4b4b4;
+  --sq-text-muted: #888888;
+  --sq-text-highlight: #fbbf24;
+  --sq-text-success: #64ff64;
+  --sq-text-error: #ff6464;
+  --sq-text-info: #64b4ff;
+
+  /* Interactive element colors */
+  --sq-button-bg: #3a3a5e;
+  --sq-button-hover: #4a4a7e;
+  --sq-button-active: #5a5a9e;
+  --sq-button-disabled: #2a2a3e;
+
+  /* Scrollbar colors */
+  --sq-scrollbar-bg: #1e1e32;
+  --sq-scrollbar-thumb: #6496ff;
+  --sq-scrollbar-thumb-hover: #7ab4ff;
+
+  /* Shadow */
+  --sq-shadow: rgba(0, 0, 0, 0.5);
+  --sq-shadow-light: rgba(0, 0, 0, 0.3);
+
+  /* Spacing */
+  --sq-padding-xs: 4px;
+  --sq-padding-sm: 8px;
+  --sq-padding-md: 12px;
+  --sq-padding-lg: 16px;
+  --sq-padding-xl: 24px;
+
+  /* Border radius */
+  --sq-radius-sm: 4px;
+  --sq-radius-md: 8px;
+  --sq-radius-lg: 12px;
+
+  /* Font sizes */
+  --sq-font-xs: 10px;
+  --sq-font-sm: 11px;
+  --sq-font-base: 13px;
+  --sq-font-md: 14px;
+  --sq-font-lg: 16px;
+  --sq-font-xl: 18px;
+}
+
+/* ============================================================================
+ * Base Overlay Container
+ * ============================================================================ */
+.sq-overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+  font-family: 'Press Start 2P', monospace, sans-serif;
+  font-size: var(--sq-font-base);
+  color: var(--sq-text-primary);
+  -webkit-font-smoothing: none;
+  image-rendering: pixelated;
+}
+
+.sq-overlay-container * {
+  box-sizing: border-box;
+}
+
+/* ============================================================================
+ * Panel Styles
+ * ============================================================================ */
+.sq-panel {
+  position: absolute;
+  background-color: var(--sq-panel-bg);
+  border: 3px solid var(--sq-panel-border);
+  border-radius: var(--sq-radius-md);
+  padding: var(--sq-padding-lg);
+  box-shadow: 4px 4px 0 var(--sq-shadow);
+  pointer-events: auto;
+}
+
+.sq-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sq-padding-md);
+  padding-bottom: var(--sq-padding-sm);
+  border-bottom: 2px solid var(--sq-panel-border-dark);
+}
+
+.sq-panel-title {
+  font-size: var(--sq-font-lg);
+  color: var(--sq-text-highlight);
+  margin: 0;
+}
+
+.sq-panel-close {
+  background: none;
+  border: none;
+  color: var(--sq-text-secondary);
+  font-size: var(--sq-font-lg);
+  cursor: pointer;
+  padding: var(--sq-padding-xs);
+  line-height: 1;
+  transition: color 0.1s;
+}
+
+.sq-panel-close:hover {
+  color: var(--sq-text-error);
+}
+
+.sq-panel-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sq-panel-footer {
+  margin-top: var(--sq-padding-md);
+  padding-top: var(--sq-padding-sm);
+  border-top: 2px solid var(--sq-panel-border-dark);
+  text-align: center;
+}
+
+/* ============================================================================
+ * Tab Bar
+ * ============================================================================ */
+.sq-tabs {
+  display: flex;
+  gap: var(--sq-padding-xs);
+  margin-bottom: var(--sq-padding-md);
+  border-bottom: 2px solid var(--sq-panel-border-dark);
+  padding-bottom: var(--sq-padding-sm);
+  overflow-x: auto;
+}
+
+.sq-tab {
+  padding: var(--sq-padding-sm) var(--sq-padding-md);
+  background: none;
+  border: none;
+  border-radius: var(--sq-radius-sm) var(--sq-radius-sm) 0 0;
+  color: var(--sq-text-secondary);
+  font-family: inherit;
+  font-size: var(--sq-font-sm);
+  cursor: pointer;
+  transition: color 0.1s, background-color 0.1s;
+  white-space: nowrap;
+}
+
+.sq-tab:hover {
+  color: var(--sq-text-primary);
+  background-color: var(--sq-button-hover);
+}
+
+.sq-tab.active {
+  color: var(--sq-text-highlight);
+  border-bottom: 2px solid var(--sq-text-highlight);
+  margin-bottom: -2px;
+}
+
+/* ============================================================================
+ * Scrollable List
+ * ============================================================================ */
+.sq-list {
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sq-scrollbar-thumb) var(--sq-scrollbar-bg);
+}
+
+.sq-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sq-list::-webkit-scrollbar-track {
+  background: var(--sq-scrollbar-bg);
+  border-radius: var(--sq-radius-sm);
+}
+
+.sq-list::-webkit-scrollbar-thumb {
+  background-color: var(--sq-scrollbar-thumb);
+  border-radius: var(--sq-radius-sm);
+}
+
+.sq-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--sq-scrollbar-thumb-hover);
+}
+
+/* ============================================================================
+ * List Item
+ * ============================================================================ */
+.sq-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sq-padding-sm) var(--sq-padding-md);
+  border-radius: var(--sq-radius-sm);
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.sq-item:hover {
+  background-color: var(--sq-button-hover);
+}
+
+.sq-item.selected {
+  background-color: rgba(100, 150, 255, 0.3);
+  color: var(--sq-text-highlight);
+}
+
+.sq-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.sq-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sq-item-price {
+  color: var(--sq-text-highlight);
+  margin-left: var(--sq-padding-md);
+  font-size: var(--sq-font-sm);
+}
+
+.sq-item-quantity {
+  color: var(--sq-text-secondary);
+  margin-left: var(--sq-padding-sm);
+  font-size: var(--sq-font-sm);
+}
+
+/* ============================================================================
+ * Buttons
+ * ============================================================================ */
+.sq-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sq-padding-sm) var(--sq-padding-lg);
+  background-color: var(--sq-button-bg);
+  border: 2px solid var(--sq-panel-border);
+  border-radius: var(--sq-radius-sm);
+  color: var(--sq-text-primary);
+  font-family: inherit;
+  font-size: var(--sq-font-sm);
+  cursor: pointer;
+  transition: background-color 0.1s, transform 0.05s;
+}
+
+.sq-button:hover {
+  background-color: var(--sq-button-hover);
+}
+
+.sq-button:active {
+  background-color: var(--sq-button-active);
+  transform: translateY(1px);
+}
+
+.sq-button:disabled {
+  background-color: var(--sq-button-disabled);
+  color: var(--sq-text-muted);
+  cursor: not-allowed;
+}
+
+.sq-button-primary {
+  background-color: var(--sq-panel-border);
+  color: var(--sq-panel-bg);
+}
+
+.sq-button-primary:hover {
+  background-color: var(--sq-scrollbar-thumb-hover);
+}
+
+.sq-button-success {
+  background-color: #2d5a2d;
+  border-color: var(--sq-text-success);
+}
+
+.sq-button-success:hover {
+  background-color: #3d7a3d;
+}
+
+.sq-button-danger {
+  background-color: #5a2d2d;
+  border-color: var(--sq-text-error);
+}
+
+.sq-button-danger:hover {
+  background-color: #7a3d3d;
+}
+
+/* ============================================================================
+ * Tooltip
+ * ============================================================================ */
+.sq-tooltip {
+  position: absolute;
+  background-color: var(--sq-panel-bg);
+  border: 2px solid var(--sq-panel-border);
+  border-radius: var(--sq-radius-sm);
+  padding: var(--sq-padding-sm) var(--sq-padding-md);
+  font-size: var(--sq-font-sm);
+  max-width: 200px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 2px 2px 0 var(--sq-shadow);
+}
+
+.sq-tooltip-title {
+  color: var(--sq-text-highlight);
+  margin-bottom: var(--sq-padding-xs);
+}
+
+.sq-tooltip-desc {
+  color: var(--sq-text-secondary);
+  font-size: var(--sq-font-xs);
+  line-height: 1.4;
+}
+
+.sq-tooltip-stats {
+  margin-top: var(--sq-padding-xs);
+  padding-top: var(--sq-padding-xs);
+  border-top: 1px solid var(--sq-panel-border-dark);
+  font-size: var(--sq-font-xs);
+}
+
+.sq-tooltip-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sq-padding-md);
+}
+
+.sq-tooltip-stat-value {
+  color: var(--sq-text-success);
+}
+
+/* ============================================================================
+ * Toast/Notification
+ * ============================================================================ */
+.sq-toast {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  border: 2px solid var(--sq-panel-border);
+  border-radius: var(--sq-radius-sm);
+  padding: var(--sq-padding-sm) var(--sq-padding-lg);
+  color: var(--sq-text-primary);
+  font-size: var(--sq-font-sm);
+  pointer-events: none;
+  animation: sq-toast-in 0.2s ease-out;
+  z-index: 2000;
+}
+
+.sq-toast.success {
+  border-color: var(--sq-text-success);
+}
+
+.sq-toast.error {
+  border-color: var(--sq-text-error);
+}
+
+.sq-toast.fading {
+  animation: sq-toast-out 0.3s ease-in forwards;
+}
+
+@keyframes sq-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes sq-toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+}
+
+/* ============================================================================
+ * Modal Backdrop
+ * ============================================================================ */
+.sq-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+}
+
+/* ============================================================================
+ * Item Details Panel (for Shop/Inventory)
+ * ============================================================================ */
+.sq-item-details {
+  padding: var(--sq-padding-md);
+  background-color: var(--sq-panel-bg-light);
+  border-radius: var(--sq-radius-sm);
+  margin-top: var(--sq-padding-md);
+}
+
+.sq-item-details-name {
+  font-size: var(--sq-font-md);
+  color: var(--sq-text-highlight);
+  margin-bottom: var(--sq-padding-sm);
+}
+
+.sq-item-details-desc {
+  font-size: var(--sq-font-sm);
+  color: var(--sq-text-secondary);
+  line-height: 1.4;
+  margin-bottom: var(--sq-padding-sm);
+}
+
+.sq-item-details-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sq-padding-xs);
+  font-size: var(--sq-font-xs);
+}
+
+.sq-item-details-stat {
+  display: flex;
+  justify-content: space-between;
+}
+
+.sq-item-details-actions {
+  display: flex;
+  gap: var(--sq-padding-sm);
+  margin-top: var(--sq-padding-md);
+}
+
+/* ============================================================================
+ * Gold Display
+ * ============================================================================ */
+.sq-gold-display {
+  display: flex;
+  align-items: center;
+  gap: var(--sq-padding-sm);
+  padding: var(--sq-padding-xs) var(--sq-padding-sm);
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: var(--sq-radius-sm);
+  color: var(--sq-text-highlight);
+  font-size: var(--sq-font-sm);
+}
+
+.sq-gold-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============================================================================
+ * Controls Hint
+ * ============================================================================ */
+.sq-controls-hint {
+  font-size: var(--sq-font-xs);
+  color: var(--sq-text-muted);
+  text-align: center;
+}
+
+.sq-controls-hint kbd {
+  display: inline-block;
+  padding: 2px 4px;
+  background-color: var(--sq-button-bg);
+  border: 1px solid var(--sq-panel-border-dark);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ============================================================================
+ * Utility Classes
+ * ============================================================================ */
+.sq-hidden {
+  display: none !important;
+}
+
+.sq-text-center {
+  text-align: center;
+}
+
+.sq-text-right {
+  text-align: right;
+}
+
+.sq-text-success {
+  color: var(--sq-text-success);
+}
+
+.sq-text-error {
+  color: var(--sq-text-error);
+}
+
+.sq-text-warning {
+  color: var(--sq-text-highlight);
+}
+
+.sq-text-muted {
+  color: var(--sq-text-muted);
+}
+
+.sq-mt-sm {
+  margin-top: var(--sq-padding-sm);
+}
+
+.sq-mt-md {
+  margin-top: var(--sq-padding-md);
+}
+
+.sq-mb-sm {
+  margin-bottom: var(--sq-padding-sm);
+}
+
+.sq-mb-md {
+  margin-bottom: var(--sq-padding-md);
+}
+
+.sq-flex {
+  display: flex;
+}
+
+.sq-flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sq-gap-sm {
+  gap: var(--sq-padding-sm);
+}
+
+.sq-gap-md {
+  gap: var(--sq-padding-md);
+}

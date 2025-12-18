@@ -25,5 +25,64 @@ export {
   type CatAnimationType,
 } from './adapters/SpriteAdapter.js';
 
+// UI Components
+export {
+  UIBuilder,
+  createUIBuilder,
+  clearActors,
+  type PanelOptions,
+  type ButtonOptions,
+  type LabelOptions,
+  type ListItem,
+  type ScrollableListOptions,
+  type TabBarOptions,
+  type ToastOptions,
+  type ScrollableListResult,
+} from './ui/UIBuilder.js';
+
+export {
+  MenuController,
+  createListMenuController,
+  createTabController,
+  createGridMenuController,
+  type MenuDirection,
+  type MenuControllerEvents,
+  type MenuControllerConfig,
+} from './ui/MenuController.js';
+
+export {
+  UIOverlayManager,
+  injectOverlayStyles,
+  type UIOverlayEvents,
+  type OverlayComponent,
+  type UIOverlayManagerConfig,
+} from './ui/UIOverlayManager.js';
+
+export {
+  SceneFontCache,
+  CommonFonts,
+} from './ui/FontCache.js';
+
+export {
+  MAX_VISIBLE_ITEMS,
+  MENU_ITEM_HEIGHT,
+  UI_PADDING,
+  UI_LAYERS,
+  ANIMATION_DURATION,
+  INPUT_COOLDOWN_MS,
+} from './ui/UIConstants.js';
+
+// Reusable Scene Components
+export {
+  DungeonHUD,
+  PauseMenuController,
+  ShopOverlay,
+  type DungeonHUDConfig,
+  type PauseMenuConfig,
+  type PauseMenuCallbacks,
+  type PauseMenuOption,
+  type ShopOverlayCallbacks,
+} from './components/index.js';
+
 // Re-export excalibur for convenience
 export * as ex from 'excalibur';

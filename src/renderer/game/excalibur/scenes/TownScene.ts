@@ -664,7 +664,7 @@ export class TownScene extends ex.Scene {
         // S for manual save - we'll handle this with 's' key
         // Note: InputAdapter doesn't have 's' yet, but we can check directly
 
-        // Dungeon selection navigation
+        // Dungeon selection navigation (arrows and W/S)
         input.onKeyPress('up', () => {
           if (!this.inputEnabled) return;
           if (this.dungeonUIActive) {
@@ -672,7 +672,21 @@ export class TownScene extends ex.Scene {
           }
         });
 
+        input.onKeyPress('w', () => {
+          if (!this.inputEnabled) return;
+          if (this.dungeonUIActive) {
+            this.selectPreviousDungeon();
+          }
+        });
+
         input.onKeyPress('down', () => {
+          if (!this.inputEnabled) return;
+          if (this.dungeonUIActive) {
+            this.selectNextDungeon();
+          }
+        });
+
+        input.onKeyPress('s', () => {
           if (!this.inputEnabled) return;
           if (this.dungeonUIActive) {
             this.selectNextDungeon();
@@ -894,7 +908,7 @@ export class TownScene extends ex.Scene {
 
     // Instructions
     const instructions = new ex.Label({
-      text: 'Up/Down: Select | ENTER: Enter | ESC: Cancel',
+      text: 'W/S or Up/Down: Select | ENTER: Enter | ESC: Cancel',
       pos: new ex.Vector(modalX, modalY + modalHeight / 2 - 15),
       font: new ex.Font({ size: 12, color: ex.Color.fromRGB(120, 120, 140) }),
       z: 501,

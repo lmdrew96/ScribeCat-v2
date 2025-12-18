@@ -15,7 +15,7 @@ import { TitleScene } from './excalibur/scenes/TitleScene.js';
 import { TownScene } from './excalibur/scenes/TownScene.js';
 import { InnScene } from './excalibur/scenes/InnScene.js';
 import { HomeScene } from './excalibur/scenes/HomeScene.js';
-import { ShopScene } from './excalibur/scenes/ShopScene.js';
+import { ShopSceneHybrid } from './excalibur/scenes/ShopSceneHybrid.js';
 import { InventoryScene } from './excalibur/scenes/InventoryScene.js';
 import { BattleScene } from './excalibur/scenes/BattleScene.js';
 import { DungeonScene, type DungeonSceneData } from './excalibur/scenes/DungeonScene.js';
@@ -93,12 +93,11 @@ export class StudyQuestGame {
     };
     this.excalibur.registerScene('home', homeScene);
 
-    // ShopScene
-    const shopScene = new ShopScene({
-      onExitToTown: () => {
-        this.goTo('town');
-      },
-    });
+    // ShopScene (using hybrid Canvas + HTML approach)
+    const shopScene = new ShopSceneHybrid();
+    shopScene.onExitToTown = () => {
+      this.goTo('town');
+    };
     this.excalibur.registerScene('shop', shopScene);
 
     // InventoryScene

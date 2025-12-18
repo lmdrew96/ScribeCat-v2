@@ -99,6 +99,8 @@ export class ShopScene extends ex.Scene {
 
   // Shop state
   private shopOpen = false;
+  private shopInputEnabled = false; // Separate cooldown for shop UI
+  private lastNavTime = 0; // Debounce for navigation to prevent double-presses
   private selectedTab = 0;
   private selectedItem = 0;
   private scrollOffset = 0;
@@ -106,6 +108,17 @@ export class ShopScene extends ex.Scene {
 
   // Input cooldown to prevent key events carrying over from scene transitions
   private inputEnabled = false;
+
+  /**
+   * Debounce navigation to prevent double-presses from duplicate key events.
+   * Returns true if navigation should proceed, false if it should be blocked.
+   */
+  private canNavigate(debounceMs = 80): boolean {
+    const now = Date.now();
+    if (now - this.lastNavTime < debounceMs) return false;
+    this.lastNavTime = now;
+    return true;
+  }
 
   // UI elements
   private shopUIElements: ex.Actor[] = [];
@@ -257,7 +270,8 @@ export class ShopScene extends ex.Scene {
         input.onKeyPress('enter', () => {
           if (!this.inputEnabled) return;
           if (this.shopOpen) {
-            if (!this.isProcessing) this.purchaseItem();
+            if (!this.shopInputEnabled || this.isProcessing) return;
+            this.purchaseItem();
           } else {
             this.checkShopkeeperInteraction();
           }
@@ -274,8 +288,20 @@ export class ShopScene extends ex.Scene {
           else this.exitToTown();
         });
 
+        // Item navigation (up/down/w/s) - with debounce to prevent double-firing
         input.onKeyPress('up', () => {
-          if (!this.inputEnabled) return;
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
+          if (!this.canNavigate()) return;
+          if (this.shopOpen && !this.isProcessing && this.selectedItem > 0) {
+            this.selectedItem--;
+            this.updateScrollOffset();
+            this.renderShopUI();
+          }
+        });
+
+        input.onKeyPress('w', () => {
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
+          if (!this.canNavigate()) return;
           if (this.shopOpen && !this.isProcessing && this.selectedItem > 0) {
             this.selectedItem--;
             this.updateScrollOffset();
@@ -284,7 +310,8 @@ export class ShopScene extends ex.Scene {
         });
 
         input.onKeyPress('down', () => {
-          if (!this.inputEnabled) return;
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
+          if (!this.canNavigate()) return;
           if (this.shopOpen && !this.isProcessing) {
             const items = this.getTabItems();
             if (this.selectedItem < items.length - 1) {
@@ -295,8 +322,23 @@ export class ShopScene extends ex.Scene {
           }
         });
 
-        input.onKeyPress('q', () => {
-          if (!this.inputEnabled) return;
+        input.onKeyPress('s', () => {
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
+          if (!this.canNavigate()) return;
+          if (this.shopOpen && !this.isProcessing) {
+            const items = this.getTabItems();
+            if (this.selectedItem < items.length - 1) {
+              this.selectedItem++;
+              this.updateScrollOffset();
+              this.renderShopUI();
+            }
+          }
+        });
+
+        // Tab navigation (left/right arrows and Q/E) - with debounce
+        input.onKeyPress('left', () => {
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
+          if (!this.canNavigate()) return;
           if (this.shopOpen && !this.isProcessing && this.selectedTab > 0) {
             this.selectedTab--;
             this.selectedItem = 0;
@@ -305,8 +347,31 @@ export class ShopScene extends ex.Scene {
           }
         });
 
+        input.onKeyPress('q', () => {
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
+          if (!this.canNavigate()) return;
+          if (this.shopOpen && !this.isProcessing && this.selectedTab > 0) {
+            this.selectedTab--;
+            this.selectedItem = 0;
+            this.scrollOffset = 0;
+            this.renderShopUI();
+          }
+        });
+
+        input.onKeyPress('right', () => {
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
+          if (!this.canNavigate()) return;
+          if (this.shopOpen && !this.isProcessing && this.selectedTab < TABS.length - 1) {
+            this.selectedTab++;
+            this.selectedItem = 0;
+            this.scrollOffset = 0;
+            this.renderShopUI();
+          }
+        });
+
         input.onKeyPress('e', () => {
-          if (!this.inputEnabled) return;
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
+          if (!this.canNavigate()) return;
           if (this.shopOpen && !this.isProcessing && this.selectedTab < TABS.length - 1) {
             this.selectedTab++;
             this.selectedItem = 0;
@@ -316,7 +381,7 @@ export class ShopScene extends ex.Scene {
         });
 
         input.onKeyPress('u', () => {
-          if (!this.inputEnabled) return;
+          if (!this.inputEnabled || !this.shopInputEnabled) return;
           if (this.shopOpen && this.selectedTab === 5 && !this.isProcessing) {
             this.unequipSlot();
           }
@@ -342,6 +407,8 @@ export class ShopScene extends ex.Scene {
   private openShop(): void {
     if (this.shopOpen) return;
     this.shopOpen = true;
+    this.shopInputEnabled = false; // Disable shop input briefly to prevent immediate actions
+    setTimeout(() => { this.shopInputEnabled = true; }, 150);
     this.player?.freeze();
     this.selectedTab = 0;
     this.selectedItem = 0;

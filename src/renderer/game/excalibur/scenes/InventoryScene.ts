@@ -115,7 +115,17 @@ export class InventoryScene extends ex.Scene {
       if (!this.isProcessing) this.exitScene();
     });
 
+    // Item navigation (up/down/w/s)
     this.inputManager.onKeyPress('up', () => {
+      if (!this.inputEnabled) return;
+      if (this.isProcessing) return;
+      if (this.selectedItem > 0) {
+        this.selectedItem--;
+        this.renderUI();
+      }
+    });
+
+    this.inputManager.onKeyPress('w', () => {
       if (!this.inputEnabled) return;
       if (this.isProcessing) return;
       if (this.selectedItem > 0) {
@@ -134,11 +144,42 @@ export class InventoryScene extends ex.Scene {
       }
     });
 
+    this.inputManager.onKeyPress('s', () => {
+      if (!this.inputEnabled) return;
+      if (this.isProcessing) return;
+      const items = this.getInventoryItems();
+      if (this.selectedItem < items.length - 1) {
+        this.selectedItem++;
+        this.renderUI();
+      }
+    });
+
+    // Tab navigation (left/right arrows and Q/E)
+    this.inputManager.onKeyPress('left', () => {
+      if (!this.inputEnabled) return;
+      if (this.isProcessing) return;
+      if (this.selectedTab > 0) {
+        this.selectedTab--;
+        this.selectedItem = 0;
+        this.renderUI();
+      }
+    });
+
     this.inputManager.onKeyPress('q', () => {
       if (!this.inputEnabled) return;
       if (this.isProcessing) return;
       if (this.selectedTab > 0) {
         this.selectedTab--;
+        this.selectedItem = 0;
+        this.renderUI();
+      }
+    });
+
+    this.inputManager.onKeyPress('right', () => {
+      if (!this.inputEnabled) return;
+      if (this.isProcessing) return;
+      if (this.selectedTab < TABS.length - 1) {
+        this.selectedTab++;
         this.selectedItem = 0;
         this.renderUI();
       }
