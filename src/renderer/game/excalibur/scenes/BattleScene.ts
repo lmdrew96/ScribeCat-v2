@@ -33,6 +33,7 @@ import {
 } from '../../loaders/EnemySpriteLoader.js';
 import { AudioManager } from '../../audio/AudioManager.js';
 import { createLogger } from '../../../../shared/logger.js';
+import { MessageToast } from '../components/MessageToast.js';
 
 const logger = createLogger('BattleScene');
 
@@ -80,7 +81,9 @@ export class BattleScene extends ex.Scene {
   private uiElements: ex.Actor[] = [];
   private menuElements: ex.Actor[] = [];
   private itemMenuElements: ex.Actor[] = [];
-  private messageElements: ex.Actor[] = [];
+
+  // HTML overlay components
+  private messageToast: MessageToast | null = null;
 
   // Entity references
   private enemyEntity: ex.Actor | null = null;
@@ -134,6 +137,7 @@ export class BattleScene extends ex.Scene {
     this.setupCombatants(enemyDef);
     this.setupHPBars();
     this.setupMenu();
+    this.setupOverlays();
     this.setupInputHandlers();
 
     // Start battle intro
@@ -146,13 +150,16 @@ export class BattleScene extends ex.Scene {
   }
 
   onDeactivate(): void {
+    // Cleanup HTML overlays
+    this.messageToast?.destroy();
+    this.messageToast = null;
+
     // Clean up input manager to remove engine-level event listeners
     this.inputManager?.destroy();
     this.inputManager = null;
     this.uiElements = [];
     this.menuElements = [];
     this.itemMenuElements = [];
-    this.messageElements = [];
     this.enemyEntity = null;
     this.playerEntity = null;
   }
@@ -887,36 +894,28 @@ export class BattleScene extends ex.Scene {
   // --- Utilities ---
 
   private showMessage(text: string, duration = 1.5): Promise<void> {
-    return new Promise(resolve => {
-      this.clearMessages();
-
-      const msgBg = new ex.Actor({
-        pos: new ex.Vector(CANVAS_WIDTH / 2, 70),
-        width: 400, height: 50, z: 200,
-      });
-      msgBg.graphics.use(new ex.Rectangle({ width: 400, height: 50, color: ex.Color.fromRGB(0, 0, 0, 0.8) }));
-      this.add(msgBg);
-      this.messageElements.push(msgBg);
-
-      const msgLabel = new ex.Label({
-        text,
-        pos: new ex.Vector(CANVAS_WIDTH / 2, 70),
-        font: new ex.Font({ size: 13, color: ex.Color.White }), z: 201,
-      });
-      msgLabel.graphics.anchor = ex.Vector.Half;
-      this.add(msgLabel);
-      this.messageElements.push(msgLabel);
-
-      setTimeout(() => {
-        this.clearMessages();
-        resolve();
-      }, duration * 1000);
-    });
+    return this.messageToast?.show(text, { duration: duration * 1000, position: 'top' }) || Promise.resolve();
   }
 
-  private clearMessages(): void {
-    for (const e of this.messageElements) e.kill();
-    this.messageElements = [];
+  /**
+   * Setup HTML overlay components
+   */
+  private setupOverlays(): void {
+    const canvas = this.engine.canvas;
+    const container = canvas.parentElement;
+
+    if (!container) {
+      console.warn('BattleScene: Could not find canvas container for overlays');
+      return;
+    }
+
+    // Ensure container has relative positioning for absolute overlays
+    if (getComputedStyle(container).position === 'static') {
+      container.style.position = 'relative';
+    }
+
+    // Create message toast
+    this.messageToast = new MessageToast(container);
   }
 
   private delay(ms: number): Promise<void> {

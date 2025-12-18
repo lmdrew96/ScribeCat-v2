@@ -16,6 +16,8 @@ import { loadNPCSprite } from '../../loaders/NPCSpriteLoader.js';
 import { AudioManager } from '../../audio/AudioManager.js';
 import { SceneFontCache } from '../ui/FontCache.js';
 import { PlayerActor } from '../actors/PlayerActor.js';
+import { MessageToast } from '../components/MessageToast.js';
+import { DialogOverlay, type DialogItem } from '../components/DialogOverlay.js';
 
 const REST_COST = 10; // Gold cost to rest
 
@@ -110,8 +112,10 @@ export class InnScene extends ex.Scene {
   private goldLabel: ex.Label | null = null;
   private hpLabel: ex.Label | null = null;
   private mpLabel: ex.Label | null = null;
-  private messageLabel: ex.Label | null = null;
-  private messageBg: ex.Actor | null = null;
+
+  // HTML overlay components
+  private messageToast: MessageToast | null = null;
+  private restDialog: DialogOverlay | null = null;
 
   // Callback for scene transitions (set by game coordinator)
   public onExitToTown: (() => void) | null = null;
@@ -145,6 +149,9 @@ export class InnScene extends ex.Scene {
     // Setup UI
     this.setupUI();
 
+    // Setup HTML overlays
+    this.setupOverlays();
+
     // Setup input handlers
     this.setupInputHandlers();
 
@@ -155,6 +162,12 @@ export class InnScene extends ex.Scene {
     // Reset input state to prevent stale handlers from firing
     this.inputEnabled = false;
 
+    // Cleanup HTML overlays
+    this.messageToast?.destroy();
+    this.messageToast = null;
+    this.restDialog?.destroy();
+    this.restDialog = null;
+
     // Excalibur handles cleanup automatically!
     // This is a major improvement over KAPLAY's manual cleanup
     this.player = null;
@@ -163,8 +176,6 @@ export class InnScene extends ex.Scene {
     this.goldLabel = null;
     this.hpLabel = null;
     this.mpLabel = null;
-    this.messageLabel = null;
-    this.messageBg = null;
   }
 
   private async setupBackground(): Promise<void> {
@@ -518,17 +529,32 @@ export class InnScene extends ex.Scene {
 
     // Already at full HP and MP
     if (hp >= maxHp && mp >= maxMp) {
-      this.showMessage("You're already feeling great!");
+      this.showMessage("You're already feeling great!", 'warning');
       return;
     }
 
     // Not enough gold
     if (gold < REST_COST) {
-      this.showMessage(`Not enough gold! (Need ${REST_COST})`);
+      this.showMessage(`Not enough gold! (Need ${REST_COST})`, 'error');
       return;
     }
 
-    // Rest - restore HP and MP
+    // Show rest confirmation dialog
+    this.player?.freeze();
+    if (this.restDialog) {
+      this.restDialog.setContent(
+        `<p style="margin: 0 0 8px;">Restore HP and MP for <span style="color: #fbbf24;">${REST_COST}G</span>?</p>
+         <p style="margin: 0; font-size: 12px; color: #888;">Current Gold: <span style="color: #fbbf24;">${gold}G</span></p>`
+      );
+      this.restDialog.open();
+    }
+  }
+
+  private performRest(): void {
+    const maxHp = GameState.getEffectiveMaxHealth();
+    const maxMp = GameState.getEffectiveMaxMana();
+
+    // Deduct gold and restore HP/MP
     GameState.player.gold -= REST_COST;
     GameState.player.health = maxHp;
     GameState.fullRestoreMana();
@@ -537,7 +563,7 @@ export class InnScene extends ex.Scene {
     this.updateStatsDisplay();
 
     // Show success message
-    this.showMessage('You feel refreshed! HP and MP restored.');
+    this.showMessage('You feel refreshed! HP and MP restored.', 'success');
 
     // Visual effect - green flash
     this.showHealEffect();
@@ -551,50 +577,51 @@ export class InnScene extends ex.Scene {
     console.log(`Rested! HP: ${maxHp}, MP: ${maxMp}, Gold remaining: ${GameState.player.gold}`);
   }
 
-  private showMessage(text: string): void {
-    // Remove existing message
-    if (this.messageBg) {
-      this.messageBg.kill();
-      this.messageBg = null;
+  private showMessage(text: string, type: 'default' | 'success' | 'error' | 'warning' = 'default'): void {
+    this.messageToast?.show(text, { type, duration: 2000, position: 'top' });
+  }
+
+  /**
+   * Setup HTML overlay components
+   */
+  private setupOverlays(): void {
+    const canvas = this.engine.canvas;
+    const container = canvas.parentElement;
+
+    if (!container) {
+      console.warn('InnScene: Could not find canvas container for overlays');
+      return;
     }
-    if (this.messageLabel) {
-      this.messageLabel.kill();
-      this.messageLabel = null;
+
+    // Ensure container has relative positioning for absolute overlays
+    if (getComputedStyle(container).position === 'static') {
+      container.style.position = 'relative';
     }
 
-    // Create message background
-    this.messageBg = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, 120),
-      width: 300,
-      height: 40,
-      z: 200,
-    });
-    this.messageBg.graphics.use(new ex.Rectangle({
-      width: 300,
-      height: 40,
-      color: ex.Color.fromRGB(0, 0, 0, 0.8),
-    }));
-    this.add(this.messageBg);
+    // Create message toast
+    this.messageToast = new MessageToast(container);
 
-    // Create message text
-    this.messageLabel = new ex.Label({
-      text,
-      pos: new ex.Vector(CANVAS_WIDTH / 2, 120),
-      font: this.fontCache.getFont(12, ex.Color.White),
-      z: 201,
+    // Create rest confirmation dialog
+    this.restDialog = new DialogOverlay(container, {
+      title: 'Rest at the Inn',
+      width: 300,
+      maxHeight: 200,
+      content: `<p style="margin: 0 0 8px;">Restore HP and MP for <span style="color: #fbbf24;">${REST_COST}G</span>?</p>`,
+      buttons: [
+        { id: 'rest', label: 'Rest', primary: true },
+        { id: 'cancel', label: 'Cancel' },
+      ],
+      controlsHint: '<kbd>Enter</kbd> Rest &nbsp; <kbd>Esc</kbd> Cancel',
+      onClose: () => {
+        this.player?.unfreeze();
+      },
+      onButtonClick: (buttonId) => {
+        if (buttonId === 'rest') {
+          this.performRest();
+        }
+        this.restDialog?.close();
+      },
     });
-    this.messageLabel.graphics.anchor = ex.Vector.Half;
-    this.add(this.messageLabel);
-
-    // Auto-hide after 2 seconds
-    const bg = this.messageBg;
-    const label = this.messageLabel;
-    setTimeout(() => {
-      bg?.kill();
-      label?.kill();
-      if (this.messageBg === bg) this.messageBg = null;
-      if (this.messageLabel === label) this.messageLabel = null;
-    }, 2000);
   }
 
   private showHealEffect(): void {

@@ -11,6 +11,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../config.js';
 import { InputManager } from '../adapters/InputAdapter.js';
 import { getItem, type ItemDefinition, type EquipmentSlot } from '../../data/items.js';
 import { MAX_VISIBLE_ITEMS } from '../ui/UIConstants.js';
+import { MessageToast } from '../components/MessageToast.js';
 
 export interface InventorySceneData {
   fromScene?: string;
@@ -43,8 +44,10 @@ export class InventoryScene extends ex.Scene {
 
   // UI elements
   private uiElements: ex.Actor[] = [];
-  private messageElements: ex.Actor[] = [];
   private goldLabel: ex.Label | null = null;
+
+  // HTML overlay components
+  private messageToast: MessageToast | null = null;
 
   // Callbacks
   public onExit: ((scene: string, data?: unknown) => void) | null = null;
@@ -61,6 +64,7 @@ export class InventoryScene extends ex.Scene {
     this.clear();
     this.setupBackground();
     this.setupUI();
+    this.setupOverlays();
     this.setupInputHandlers();
     this.renderUI();
 
@@ -71,11 +75,14 @@ export class InventoryScene extends ex.Scene {
     // Reset input state to prevent stale handlers from firing
     this.inputEnabled = false;
 
+    // Cleanup HTML overlays
+    this.messageToast?.destroy();
+    this.messageToast = null;
+
     // Clean up input manager to remove engine-level event listeners
     this.inputManager?.destroy();
     this.inputManager = null;
     this.uiElements = [];
-    this.messageElements = [];
     this.goldLabel = null;
   }
 
@@ -224,11 +231,6 @@ export class InventoryScene extends ex.Scene {
   private clearUI(): void {
     for (const e of this.uiElements) e.kill();
     this.uiElements = [];
-  }
-
-  private clearMessages(): void {
-    for (const e of this.messageElements) e.kill();
-    this.messageElements = [];
   }
 
   private renderUI(): void {
@@ -575,26 +577,38 @@ export class InventoryScene extends ex.Scene {
   }
 
   private showMessage(text: string, color: [number, number, number] = [255, 255, 255]): void {
-    this.clearMessages();
+    // Determine toast type based on color
+    let type: 'default' | 'success' | 'error' | 'warning' = 'default';
+    if (color[1] > 200 && color[0] < 150 && color[2] < 150) {
+      type = 'success'; // Green-ish
+    } else if (color[0] > 200 && color[1] < 150 && color[2] < 150) {
+      type = 'error'; // Red-ish
+    } else if (color[0] > 200 && color[1] > 150 && color[2] < 150) {
+      type = 'warning'; // Yellow-ish
+    }
 
-    const msgBg = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      width: 300, height: 40, z: 100,
-    });
-    msgBg.graphics.use(new ex.Rectangle({ width: 300, height: 40, color: ex.Color.fromRGB(0, 0, 0, 0.9) }));
-    this.add(msgBg);
-    this.messageElements.push(msgBg);
+    this.messageToast?.show(text, { type, duration: 1500, position: 'center' });
+  }
 
-    const msgLabel = new ex.Label({
-      text,
-      pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2),
-      font: new ex.Font({ size: 12, color: ex.Color.fromRGB(color[0], color[1], color[2]) }), z: 101,
-    });
-    msgLabel.graphics.anchor = ex.Vector.Half;
-    this.add(msgLabel);
-    this.messageElements.push(msgLabel);
+  /**
+   * Setup HTML overlay components
+   */
+  private setupOverlays(): void {
+    const canvas = this.engine.canvas;
+    const container = canvas.parentElement;
 
-    setTimeout(() => this.clearMessages(), 1500);
+    if (!container) {
+      console.warn('InventoryScene: Could not find canvas container for overlays');
+      return;
+    }
+
+    // Ensure container has relative positioning for absolute overlays
+    if (getComputedStyle(container).position === 'static') {
+      container.style.position = 'relative';
+    }
+
+    // Create message toast
+    this.messageToast = new MessageToast(container);
   }
 
   private exitScene(): void {

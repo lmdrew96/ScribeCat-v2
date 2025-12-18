@@ -28,6 +28,7 @@ import {
   clearColliderCache,
 } from '../loaders/TownTilemapLoader.js';
 import { PlayerActor } from '../actors/PlayerActor.js';
+import { DialogOverlay, type DialogItem } from '../components/DialogOverlay.js';
 
 // Map dimensions - will be updated from TMX when using tilemap
 let MAP_WIDTH = 640;
@@ -134,8 +135,7 @@ export class TownScene extends ex.Scene {
 
   // Dungeon selection state
   private dungeonUIActive = false;
-  private dungeonUIElements: ex.Actor[] = [];
-  private selectedDungeonIndex = 0;
+  private dungeonDialog: DialogOverlay | null = null;
   private dungeonList: DungeonInfo[] = [];
 
   // HUD elements (using ScreenElement for screen-space positioning)
@@ -173,7 +173,6 @@ export class TownScene extends ex.Scene {
 
     // Reset state
     this.dungeonUIActive = false;
-    this.selectedDungeonIndex = 0;
     this.buildings = [];
     this.doors = [];
 
@@ -199,17 +198,21 @@ export class TownScene extends ex.Scene {
     this.setupHUD();
     this.setupCamera();
     this.setupInputHandlers();
+    this.setupDungeonDialog();
   }
 
   onDeactivate(): void {
     // Reset input state to prevent stale handlers from firing
     this.inputEnabled = false;
 
+    // Cleanup HTML overlays
+    this.dungeonDialog?.destroy();
+    this.dungeonDialog = null;
+
     this.player = null;
     this.buildings = [];
     this.doors = [];
     this.tileActors = [];
-    this.dungeonUIElements = [];
     this.hudContainer = null;
     this.levelLabel = null;
     this.goldLabel = null;
@@ -516,71 +519,29 @@ export class TownScene extends ex.Scene {
       if (this.player?.getInputManager()) {
         const input = this.player.getInputManager()!;
 
-        // ENTER to interact
+        // ENTER to interact (DialogOverlay handles its own keyboard input when open)
         input.onKeyPress('enter', () => {
-          if (!this.inputEnabled) return;
-          if (this.dungeonUIActive) {
-            this.handleDungeonSelect();
-          } else {
-            this.checkDoorInteraction();
-          }
+          if (!this.inputEnabled || this.dungeonUIActive) return;
+          this.checkDoorInteraction();
         });
 
         input.onKeyPress('space', () => {
-          if (!this.inputEnabled) return;
-          if (!this.dungeonUIActive) {
-            this.checkDoorInteraction();
-          }
+          if (!this.inputEnabled || this.dungeonUIActive) return;
+          this.checkDoorInteraction();
         });
 
-        // ESC to cancel/menu
+        // ESC to cancel/menu (DialogOverlay handles its own ESC when open)
         input.onKeyPress('escape', () => {
           if (!this.inputEnabled) return;
-          if (this.dungeonUIActive) {
-            this.closeDungeonUI();
-          } else {
+          if (!this.dungeonUIActive) {
             this.goToScene('title');
           }
         });
 
         // I for inventory
         input.onKeyPress('i', () => {
-          if (!this.inputEnabled) return;
-          if (!this.dungeonUIActive) {
-            this.goToScene('inventory', { fromScene: 'town' });
-          }
-        });
-
-        // S for manual save - we'll handle this with 's' key
-        // Note: InputAdapter doesn't have 's' yet, but we can check directly
-
-        // Dungeon selection navigation (arrows and W/S)
-        input.onKeyPress('up', () => {
-          if (!this.inputEnabled) return;
-          if (this.dungeonUIActive) {
-            this.selectPreviousDungeon();
-          }
-        });
-
-        input.onKeyPress('w', () => {
-          if (!this.inputEnabled) return;
-          if (this.dungeonUIActive) {
-            this.selectPreviousDungeon();
-          }
-        });
-
-        input.onKeyPress('down', () => {
-          if (!this.inputEnabled) return;
-          if (this.dungeonUIActive) {
-            this.selectNextDungeon();
-          }
-        });
-
-        input.onKeyPress('s', () => {
-          if (!this.inputEnabled) return;
-          if (this.dungeonUIActive) {
-            this.selectNextDungeon();
-          }
+          if (!this.inputEnabled || this.dungeonUIActive) return;
+          this.goToScene('inventory', { fromScene: 'town' });
         });
       } else {
         setTimeout(checkPlayer, 100);
@@ -619,236 +580,71 @@ export class TownScene extends ex.Scene {
 
   // --- Dungeon Selection UI ---
 
+  /**
+   * Setup the dungeon selection dialog overlay
+   */
+  private setupDungeonDialog(): void {
+    const canvas = this.engine.canvas;
+    const container = canvas.parentElement;
+
+    if (!container) {
+      console.warn('TownScene: Could not find canvas container for overlays');
+      return;
+    }
+
+    // Ensure container has relative positioning for absolute overlays
+    if (getComputedStyle(container).position === 'static') {
+      container.style.position = 'relative';
+    }
+
+    this.dungeonDialog = new DialogOverlay(container, {
+      title: 'Select Dungeon',
+      width: 320,
+      maxHeight: 300,
+      content: `<p style="margin: 0 0 8px; font-size: 12px; color: #888;">Your Level: <span style="color: #64b4ff;">${GameState.player.level}</span></p>`,
+      controlsHint: '<kbd>↑↓</kbd> Select &nbsp; <kbd>Enter</kbd> Enter &nbsp; <kbd>Esc</kbd> Cancel',
+      onClose: () => {
+        this.dungeonUIActive = false;
+        this.player?.unfreeze();
+      },
+      onItemSelect: (item) => {
+        this.handleDungeonSelect(item.id);
+      },
+    });
+  }
+
   private showDungeonUI(): void {
     this.dungeonUIActive = true;
     this.player?.freeze();
     this.dungeonList = getAllDungeonInfo();
 
-    // Find first unlocked dungeon
-    this.selectedDungeonIndex = 0;
-    for (let i = 0; i < this.dungeonList.length; i++) {
-      if (isDungeonUnlocked(this.dungeonList[i].id, GameState.player.level)) {
-        this.selectedDungeonIndex = i;
-        break;
-      }
-    }
+    // Build dialog items from dungeon list
+    const items: DialogItem[] = this.dungeonList.map(dungeon => {
+      const isUnlocked = isDungeonUnlocked(dungeon.id, GameState.player.level);
+      return {
+        id: dungeon.id,
+        label: dungeon.name,
+        sublabel: isUnlocked ? `${dungeon.totalFloors} floors` : `Lv.${dungeon.requiredLevel} (LOCKED)`,
+        disabled: !isUnlocked,
+        data: dungeon,
+      };
+    });
 
-    this.renderDungeonUI();
+    // Update content with current level
+    this.dungeonDialog?.setContent(
+      `<p style="margin: 0 0 8px; font-size: 12px; color: #888;">Your Level: <span style="color: #64b4ff;">${GameState.player.level}</span></p>`
+    );
+
+    this.dungeonDialog?.open(items);
   }
 
   private closeDungeonUI(): void {
     this.dungeonUIActive = false;
-    this.player?.unfreeze();
-
-    for (const e of this.dungeonUIElements) {
-      e.kill();
-    }
-    this.dungeonUIElements = [];
+    this.dungeonDialog?.close();
   }
 
-  private renderDungeonUI(): void {
-    // Clear existing elements
-    for (const e of this.dungeonUIElements) {
-      e.kill();
-    }
-    this.dungeonUIElements = [];
-
-    const modalWidth = 280;
-    const modalHeight = 240;
-    // Use canvas center for screen-space positioning
-    const modalX = CANVAS_WIDTH / 2;
-    const modalY = CANVAS_HEIGHT / 2;
-
-    // Dark overlay - use ScreenElement for screen-space positioning
-    const overlay = new ex.ScreenElement({
-      pos: new ex.Vector(0, 0),
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-      z: 400,
-    });
-    overlay.graphics.use(new ex.Rectangle({
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-      color: ex.Color.fromRGB(0, 0, 0, 0.5),
-    }));
-    this.add(overlay);
-    this.dungeonUIElements.push(overlay);
-
-    // Modal background
-    const modal = new ex.ScreenElement({
-      pos: new ex.Vector(modalX - modalWidth / 2, modalY - modalHeight / 2),
-      width: modalWidth,
-      height: modalHeight,
-      z: 500,
-    });
-    modal.graphics.use(new ex.Rectangle({
-      width: modalWidth,
-      height: modalHeight,
-      color: ex.Color.fromHex('#141928'),
-      strokeColor: ex.Color.fromHex('#6496FF'),
-      lineWidth: 3,
-    }));
-    this.add(modal);
-    this.dungeonUIElements.push(modal);
-
-    // Title
-    const title = new ex.ScreenElement({
-      pos: new ex.Vector(modalX, modalY - modalHeight / 2 + 20),
-      z: 501,
-      anchor: ex.Vector.Half,
-    });
-    title.graphics.use(new ex.Text({
-      text: 'SELECT DUNGEON',
-      font: new ex.Font({ size: 14, color: ex.Color.fromHex('#64B4FF') }),
-    }));
-    this.add(title);
-    this.dungeonUIElements.push(title);
-
-    // Player level
-    const levelText = new ex.ScreenElement({
-      pos: new ex.Vector(modalX, modalY - modalHeight / 2 + 40),
-      z: 501,
-      anchor: ex.Vector.Half,
-    });
-    levelText.graphics.use(new ex.Text({
-      text: `Your Level: ${GameState.player.level}`,
-      font: new ex.Font({ size: 13, color: ex.Color.fromRGB(200, 200, 200) }),
-    }));
-    this.add(levelText);
-    this.dungeonUIElements.push(levelText);
-
-    // Dungeon list
-    const itemHeight = 26;
-    const listStartY = modalY - modalHeight / 2 + 60;
-
-    this.dungeonList.forEach((dungeon, i) => {
-      const isSelected = i === this.selectedDungeonIndex;
-      const isUnlocked = isDungeonUnlocked(dungeon.id, GameState.player.level);
-      const itemY = listStartY + i * itemHeight;
-
-      // Selection highlight
-      if (isSelected) {
-        const highlight = new ex.ScreenElement({
-          pos: new ex.Vector(modalX - (modalWidth - 20) / 2, itemY + itemHeight / 2 - (itemHeight - 4) / 2),
-          width: modalWidth - 20,
-          height: itemHeight - 4,
-          z: 501,
-        });
-        highlight.graphics.use(new ex.Rectangle({
-          width: modalWidth - 20,
-          height: itemHeight - 4,
-          color: ex.Color.fromHex('#283C64'),
-          strokeColor: ex.Color.fromHex('#6496FF'),
-          lineWidth: 1,
-        }));
-        this.add(highlight);
-        this.dungeonUIElements.push(highlight);
-
-        // Arrow
-        const arrow = new ex.ScreenElement({
-          pos: new ex.Vector(modalX - modalWidth / 2 + 20, itemY + itemHeight / 2),
-          z: 502,
-          anchor: new ex.Vector(0, 0.5),
-        });
-        arrow.graphics.use(new ex.Text({
-          text: '>',
-          font: new ex.Font({ size: 12, color: ex.Color.fromHex('#FFFF64') }),
-        }));
-        this.add(arrow);
-        this.dungeonUIElements.push(arrow);
-      }
-
-      // Dungeon name
-      const nameColor = isUnlocked
-        ? (isSelected ? ex.Color.White : ex.Color.fromRGB(200, 200, 200))
-        : ex.Color.fromRGB(100, 100, 100);
-
-      const name = new ex.ScreenElement({
-        pos: new ex.Vector(modalX - modalWidth / 2 + 35, itemY + itemHeight / 2),
-        z: 502,
-        anchor: new ex.Vector(0, 0.5),
-      });
-      name.graphics.use(new ex.Text({
-        text: dungeon.name,
-        font: new ex.Font({ size: 14, color: nameColor }),
-      }));
-      this.add(name);
-      this.dungeonUIElements.push(name);
-
-      // Right side info
-      const rightText = isUnlocked ? `${dungeon.totalFloors} floors` : `Lv.${dungeon.requiredLevel}`;
-      const rightColor = isUnlocked
-        ? ex.Color.fromRGB(150, 200, 150)
-        : ex.Color.fromRGB(180, 100, 100);
-
-      const rightLabel = new ex.ScreenElement({
-        pos: new ex.Vector(modalX + modalWidth / 2 - 20, itemY + itemHeight / 2),
-        z: 502,
-        anchor: new ex.Vector(1, 0.5),
-      });
-      rightLabel.graphics.use(new ex.Text({
-        text: rightText,
-        font: new ex.Font({ size: 12, color: rightColor }),
-      }));
-      this.add(rightLabel);
-      this.dungeonUIElements.push(rightLabel);
-
-      // Lock text for locked dungeons
-      if (!isUnlocked) {
-        const lockLabel = new ex.ScreenElement({
-          pos: new ex.Vector(modalX + modalWidth / 2 - 70, itemY + itemHeight / 2),
-          z: 502,
-          anchor: new ex.Vector(1, 0.5),
-        });
-        lockLabel.graphics.use(new ex.Text({
-          text: 'LOCKED',
-          font: new ex.Font({ size: 12, color: ex.Color.fromRGB(150, 80, 80) }),
-        }));
-        this.add(lockLabel);
-        this.dungeonUIElements.push(lockLabel);
-      }
-    });
-
-    // Instructions
-    const instructions = new ex.ScreenElement({
-      pos: new ex.Vector(modalX, modalY + modalHeight / 2 - 15),
-      z: 501,
-      anchor: ex.Vector.Half,
-    });
-    instructions.graphics.use(new ex.Text({
-      text: 'W/S or Up/Down: Select | ENTER: Enter | ESC: Cancel',
-      font: new ex.Font({ size: 12, color: ex.Color.fromRGB(120, 120, 140) }),
-    }));
-    this.add(instructions);
-    this.dungeonUIElements.push(instructions);
-  }
-
-  private selectPreviousDungeon(): void {
-    let newIndex = this.selectedDungeonIndex - 1;
-    while (newIndex >= 0) {
-      if (isDungeonUnlocked(this.dungeonList[newIndex].id, GameState.player.level)) {
-        this.selectedDungeonIndex = newIndex;
-        this.renderDungeonUI();
-        return;
-      }
-      newIndex--;
-    }
-  }
-
-  private selectNextDungeon(): void {
-    let newIndex = this.selectedDungeonIndex + 1;
-    while (newIndex < this.dungeonList.length) {
-      if (isDungeonUnlocked(this.dungeonList[newIndex].id, GameState.player.level)) {
-        this.selectedDungeonIndex = newIndex;
-        this.renderDungeonUI();
-        return;
-      }
-      newIndex++;
-    }
-  }
-
-  private handleDungeonSelect(): void {
-    const dungeon = this.dungeonList[this.selectedDungeonIndex];
+  private handleDungeonSelect(dungeonId: string): void {
+    const dungeon = this.dungeonList.find(d => d.id === dungeonId);
     if (dungeon && isDungeonUnlocked(dungeon.id, GameState.player.level)) {
       this.closeDungeonUI();
       this.goToScene('dungeon', {

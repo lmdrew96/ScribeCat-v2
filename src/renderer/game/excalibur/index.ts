@@ -77,11 +77,18 @@ export {
   DungeonHUD,
   PauseMenuController,
   ShopOverlay,
+  DialogOverlay,
+  MessageToast,
   type DungeonHUDConfig,
   type PauseMenuConfig,
   type PauseMenuCallbacks,
   type PauseMenuOption,
   type ShopOverlayCallbacks,
+  type DialogOverlayOptions,
+  type DialogButton,
+  type DialogItem,
+  type ToastType,
+  type ToastOptions,
 } from './components/index.js';
 
 // Re-export excalibur for convenience

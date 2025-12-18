@@ -184,11 +184,11 @@
             }
         },
         "assets/MAPS/Tile Maps/cat_village.tmx": {
-            "scale": 0.93,
-            "selectedLayer": 6,
+            "scale": 1.23,
+            "selectedLayer": 7,
             "viewCenter": {
-                "x": 329.5698924731183,
-                "y": 321.505376344086
+                "x": 399.18699186991864,
+                "y": 235.77235772357724
             }
         },
         "assets/MAPS/Tile Maps/dungeon1.tmx": {
@@ -336,6 +336,10 @@
                 "y": 69.33538225124855
             }
         },
+        "assets/MAPS/Tile Maps/interiors.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
         "assets/MAPS/Tile Maps/its_grass.tmx": {
             "scale": 0.5686,
             "selectedLayer": 0,
@@ -431,6 +435,22 @@
                 "y": 0
             }
         },
+        "assets/Tiles/Interior/inside.tsx": {
+            "dynamicWrapping": false
+        },
+        "assets/Tiles/Interior/interior2.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "assets/Tiles/Interior/interiors.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1.31
+        },
+        "assets/Tiles/Interior/test.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
         "assets/Tiles/PixelAdventure/InterfaceTiles.tsx": {
             "dynamicWrapping": true,
             "scaleInDock": 1,
@@ -447,12 +467,12 @@
         }
     },
     "last.exportedFilePath": "/Users/nae/Desktop/ScribeCat-v2/assets",
-    "last.externalTilesetPath": "/Users/nae/Desktop/ScribeCat-v2/assets/Tiles/Tiny Town",
-    "last.imagePath": "/Users/nae/Downloads/2D Pixel Dungeon Asset Pack/character and tileset",
+    "last.externalTilesetPath": "/Users/nae/Desktop/ScribeCat-v2/assets/Tiles/Dungeon",
+    "last.imagePath": "/Users/nae/Downloads/Modern tiles_Free/Interiors_free/16x16",
     "last.worldFilePath": "/Users/nae/Desktop/ScribeCat-v2/assets/WORLDS",
     "loadedWorlds": [
     ],
-    "map.height": 10,
+    "map.height": 20,
     "map.lastUsedExportFilter": "Tiled map files (*.tmx *.xml)",
     "map.lastUsedFormat": "tmx",
     "map.tileHeight": 16,
@@ -463,6 +483,10 @@
     "project": "StudyQuest.tiled-project",
     "property.type": "float",
     "recentFiles": [
+        "assets/Tiles/Interior/interior2.tsx",
+        "assets/Tiles/Interior/interiors.tsx",
+        "assets/Tiles/Interior/test.tsx",
+        "assets/MAPS/Tile Maps/interiors.tsx",
         "assets/Tiles/Dungeon/Dungeon_Tileset.tsx",
         "assets/MAPS/Tile Maps/dungeon_room15.tmx",
         "assets/MAPS/Tile Maps/dungeon_room12.tmx",
@@ -470,14 +494,12 @@
         "assets/MAPS/Tile Maps/dungeon_room5.tmx",
         "assets/MAPS/Tile Maps/dungeon_room4.tmx",
         "assets/MAPS/Tile Maps/dungeon_room3.tmx",
-        "assets/MAPS/Tile Maps/dungeon_room2.tmx",
-        "assets/MAPS/Tile Maps/dungeon1.tmx",
-        "assets/MAPS/Tile Maps/cat_village.tmx",
-        "assets/MAPS/Tile Maps/tree_line_yellow.tmx",
-        "assets/MAPS/Tile Maps/tree_line_green.tmx"
+        "assets/MAPS/Tile Maps/dungeon_room2.tmx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
     "tileset.lastUsedFormat": "tsx",
+    "tileset.margin": 0,
+    "tileset.spacing": 0,
     "tileset.tileSize": {
         "height": 16,
         "width": 16
