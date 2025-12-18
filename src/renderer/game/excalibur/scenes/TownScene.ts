@@ -12,9 +12,8 @@
 
 import * as ex from 'excalibur';
 import { GameState } from '../../state/GameState.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_SPEED } from '../../config.js';
-import { loadCatAnimation, type CatColor, type CatAnimationType } from '../adapters/SpriteAdapter.js';
-import { InputManager } from '../adapters/InputAdapter.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../config.js';
+import type { CatColor } from '../adapters/SpriteAdapter.js';
 import { saveDungeonProgress } from '../../services/StudyQuestService.js';
 import { type DungeonInfo, getAllDungeonInfo, isDungeonUnlocked } from '../../data/dungeons.js';
 import { loadBackground, createBackgroundActor, createFallbackBackground } from '../../loaders/BackgroundLoader.js';
@@ -28,6 +27,7 @@ import {
   getTownDoorPositions,
   clearColliderCache,
 } from '../loaders/TownTilemapLoader.js';
+import { PlayerActor } from '../actors/PlayerActor.js';
 
 // Map dimensions - will be updated from TMX when using tilemap
 let MAP_WIDTH = 640;
@@ -60,125 +60,6 @@ const BUILDINGS: BuildingConfig[] = [
 export interface TownSceneData {
   catColor?: CatColor;
   fromScene?: string;
-}
-
-/**
- * Player Actor for the Town scene
- */
-class PlayerActor extends ex.Actor {
-  private catColor: CatColor;
-  private animations: Map<CatAnimationType, ex.Animation> = new Map();
-  private currentAnim: CatAnimationType = 'idle';
-  private inputManager: InputManager | null = null;
-  private frozen = false;
-
-  constructor(config: { x: number; y: number; catColor: CatColor }) {
-    super({
-      pos: new ex.Vector(config.x, config.y),
-      width: 32,
-      height: 32,
-      anchor: ex.Vector.Half,
-      z: 10,
-    });
-    this.catColor = config.catColor;
-  }
-
-  async onInitialize(engine: ex.Engine): Promise<void> {
-    this.inputManager = new InputManager(engine);
-
-    try {
-      const idleAnim = await loadCatAnimation(this.catColor, 'idle');
-      const walkAnim = await loadCatAnimation(this.catColor, 'walk');
-      this.animations.set('idle', idleAnim);
-      this.animations.set('walk', walkAnim);
-      this.graphics.use(idleAnim);
-    } catch (err) {
-      console.warn('Failed to load cat animations:', err);
-      this.graphics.use(new ex.Rectangle({
-        width: 32,
-        height: 32,
-        color: ex.Color.Gray,
-      }));
-    }
-  }
-
-  onPreUpdate(engine: ex.Engine, delta: number): void {
-    if (!this.inputManager || this.frozen) {
-      this.vel = ex.Vector.Zero;
-      return;
-    }
-
-    const movement = this.inputManager.getMovementVector();
-    this.vel = movement.scale(PLAYER_SPEED);
-
-    // Calculate next position
-    const nextX = this.pos.x + this.vel.x * (delta / 1000);
-    const nextY = this.pos.y + this.vel.y * (delta / 1000);
-
-    // Check collisions using TMX collision rectangles
-    // Check X movement separately from Y for smoother sliding along walls
-    if (this.vel.x !== 0) {
-      if (!isPixelWalkable(nextX, this.pos.y)) {
-        this.vel.x = 0;
-      }
-    }
-    if (this.vel.y !== 0) {
-      if (!isPixelWalkable(this.pos.x, nextY)) {
-        this.vel.y = 0;
-      }
-    }
-
-    // Also check diagonal movement
-    if (this.vel.x !== 0 && this.vel.y !== 0) {
-      if (!isPixelWalkable(nextX, nextY)) {
-        // Try to slide along walls
-        if (isPixelWalkable(nextX, this.pos.y)) {
-          this.vel.y = 0;
-        } else if (isPixelWalkable(this.pos.x, nextY)) {
-          this.vel.x = 0;
-        } else {
-          this.vel = ex.Vector.Zero;
-        }
-      }
-    }
-
-    // Constrain to map bounds as fallback
-    const finalNextX = this.pos.x + this.vel.x * (delta / 1000);
-    const finalNextY = this.pos.y + this.vel.y * (delta / 1000);
-    if (finalNextX < 16 || finalNextX > MAP_WIDTH - 16) this.vel.x = 0;
-    if (finalNextY < 16 || finalNextY > MAP_HEIGHT - 16) this.vel.y = 0;
-
-    // Update animation
-    const isMoving = movement.x !== 0 || movement.y !== 0;
-    const targetAnim = isMoving ? 'walk' : 'idle';
-
-    if (targetAnim !== this.currentAnim && this.animations.has(targetAnim)) {
-      this.currentAnim = targetAnim;
-      this.graphics.use(this.animations.get(targetAnim)!);
-    }
-
-    if (movement.x < 0) this.graphics.flipHorizontal = true;
-    else if (movement.x > 0) this.graphics.flipHorizontal = false;
-  }
-
-  getInputManager(): InputManager | null {
-    return this.inputManager;
-  }
-
-  freeze(): void {
-    this.frozen = true;
-    this.vel = ex.Vector.Zero;
-  }
-
-  unfreeze(): void {
-    this.frozen = false;
-  }
-
-  onPreKill(): void {
-    // Clean up input manager to remove engine-level event listeners
-    this.inputManager?.destroy();
-    this.inputManager = null;
-  }
 }
 
 /**
@@ -534,6 +415,15 @@ export class TownScene extends ex.Scene {
       x: spawnX,
       y: spawnY,
       catColor,
+      // Use tilemap collision checker for town navigation
+      isWalkable: isPixelWalkable,
+      // Fallback bounds (tilemap handles most collision)
+      bounds: {
+        minX: 16,
+        maxX: MAP_WIDTH - 16,
+        minY: 16,
+        maxY: MAP_HEIGHT - 16,
+      },
     });
     this.add(this.player);
   }

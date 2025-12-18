@@ -1181,7 +1181,7 @@ export class DungeonScene extends ex.Scene {
   private leaveDungeon(): void {
     // Clear dungeon state
     GameState.dungeon.floor = null;
-    GameState.dungeon.currentRoomId = null;
+    GameState.dungeon.currentRoomId = '';
     GameState.dungeon.floorNumber = 1;
 
     this.callbacks.onExitToTown();

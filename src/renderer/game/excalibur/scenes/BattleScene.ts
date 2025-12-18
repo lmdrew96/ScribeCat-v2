@@ -32,6 +32,21 @@ import {
   type SlimeColor,
 } from '../../loaders/EnemySpriteLoader.js';
 import { AudioManager } from '../../audio/AudioManager.js';
+import { createLogger } from '../../../../shared/logger.js';
+
+const logger = createLogger('BattleScene');
+
+// Battle UI Constants
+const BATTLE_CONFIG = {
+  enemySize: 80,
+  playerSize: 64,
+  manaPerMagicAttack: 10,
+  magicDamageMultiplier: 1.5,
+  hitFlashDuration: 100,
+  messageDisplayDuration: 1.5,
+  inputCooldownDelay: 200,
+  enemyTurnDelay: 500,
+} as const;
 
 export interface BattleSceneData {
   enemyDef: EnemyDefinition;
@@ -83,7 +98,7 @@ export class BattleScene extends ex.Scene {
   onActivate(ctx: ex.SceneActivationContext<BattleSceneData>): void {
     this.sceneData = ctx.data || null;
     if (!this.sceneData) {
-      console.error('BattleScene: No battle data provided');
+      logger.error('No battle data provided');
       return;
     }
 
@@ -127,7 +142,7 @@ export class BattleScene extends ex.Scene {
       this.showMenu();
     });
 
-    console.log('=== StudyQuest Battle (Excalibur) ===');
+    logger.info('Battle started', { enemy: enemyDef.name, floor: floorLevel });
   }
 
   onDeactivate(): void {
@@ -182,7 +197,7 @@ export class BattleScene extends ex.Scene {
 
   private async setupCombatants(enemyDef: EnemyDefinition): Promise<void> {
     // Target display size for enemies (normalized)
-    const targetEnemySize = 80;
+    const targetEnemySize = BATTLE_CONFIG.enemySize;
 
     // Enemy actor
     this.enemyEntity = new ex.Actor({
@@ -245,7 +260,7 @@ export class BattleScene extends ex.Scene {
     // Player
     this.playerEntity = new ex.Actor({
       pos: new ex.Vector(150, CANVAS_HEIGHT - 180),
-      width: 64, height: 64, z: 25,
+      width: BATTLE_CONFIG.playerSize, height: BATTLE_CONFIG.playerSize, z: 25,
     });
 
     try {
@@ -254,7 +269,7 @@ export class BattleScene extends ex.Scene {
       this.playerEntity.graphics.use(idleAnim);
     } catch {
       this.playerEntity.graphics.use(new ex.Rectangle({
-        width: 64, height: 64, color: ex.Color.Gray,
+        width: BATTLE_CONFIG.playerSize, height: BATTLE_CONFIG.playerSize, color: ex.Color.Gray,
       }));
     }
     this.add(this.playerEntity);
@@ -540,8 +555,8 @@ export class BattleScene extends ex.Scene {
     // Flash enemy white to indicate hit
     if (this.enemyEntity) {
       const origGraphic = this.enemyEntity.graphics.current; // Save original BEFORE replacing
-      this.enemyEntity.graphics.use(new ex.Rectangle({ width: 80, height: 80, color: ex.Color.White }));
-      await this.delay(100);
+      this.enemyEntity.graphics.use(new ex.Rectangle({ width: BATTLE_CONFIG.enemySize, height: BATTLE_CONFIG.enemySize, color: ex.Color.White }));
+      await this.delay(BATTLE_CONFIG.hitFlashDuration);
       if (origGraphic) this.enemyEntity.graphics.use(origGraphic);
     }
 
@@ -553,7 +568,7 @@ export class BattleScene extends ex.Scene {
   private async playerMagic(): Promise<void> {
     if (!this.playerStats || !this.enemyStats) return;
 
-    const manaCost = 10;
+    const manaCost = BATTLE_CONFIG.manaPerMagicAttack;
     if ((this.playerStats.mana || 0) < manaCost) {
       await this.showMessage('Not enough MP!');
       this.actionInProgress = false;
@@ -566,7 +581,7 @@ export class BattleScene extends ex.Scene {
     GameState.player.mana = this.playerStats.mana;
     this.updatePlayerMp();
 
-    const damage = Math.floor(this.playerStats.attack * 1.5);
+    const damage = Math.floor(this.playerStats.attack * BATTLE_CONFIG.magicDamageMultiplier);
     this.enemyStats.hp = Math.max(0, this.enemyStats.hp - damage);
     this.updateEnemyHp();
 
@@ -601,7 +616,7 @@ export class BattleScene extends ex.Scene {
     this.phase = 'enemy_turn';
 
     const action = decideEnemyAction(this.enemyStats);
-    await this.delay(500);
+    await this.delay(BATTLE_CONFIG.enemyTurnDelay);
 
     if (action === 'attack') {
       let damage = calculateDamage(this.enemyStats.attack, this.playerStats.defense);
@@ -619,8 +634,8 @@ export class BattleScene extends ex.Scene {
       // Flash player red to indicate damage taken
       if (this.playerEntity) {
         const origGraphic = this.playerEntity.graphics.current; // Save original BEFORE replacing
-        this.playerEntity.graphics.use(new ex.Rectangle({ width: 64, height: 64, color: ex.Color.Red }));
-        await this.delay(100);
+        this.playerEntity.graphics.use(new ex.Rectangle({ width: BATTLE_CONFIG.playerSize, height: BATTLE_CONFIG.playerSize, color: ex.Color.Red }));
+        await this.delay(BATTLE_CONFIG.hitFlashDuration);
         if (origGraphic) this.playerEntity.graphics.use(origGraphic);
       }
 
@@ -641,7 +656,7 @@ export class BattleScene extends ex.Scene {
 
     GameState.addGold(goldReward);
     GameState.addXp(xpReward);
-    GameState.player.battlesWon = (GameState.player.battlesWon || 0) + 1;
+    GameState.recordBattleWin();
 
     await this.showMessage(`Victory! +${goldReward}G +${xpReward}XP`);
 
@@ -656,6 +671,9 @@ export class BattleScene extends ex.Scene {
 
   private async handleDefeat(): Promise<void> {
     this.phase = 'defeat';
+
+    // Record loss
+    GameState.recordBattleLoss();
 
     // Lose some gold
     const goldLoss = Math.floor(GameState.player.gold * 0.1);

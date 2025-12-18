@@ -34,12 +34,74 @@ export type Direction = 'north' | 'south' | 'east' | 'west';
 
 export type ContentType = 'enemy' | 'chest' | 'trap' | 'npc' | 'interactable' | 'exit' | 'puzzle' | 'secret';
 
+/**
+ * Union type for room content data based on content type.
+ * Provides type safety for the different content payloads.
+ */
+export interface EnemyContentData {
+  enemyId: string;
+  level?: number;
+  isBoss?: boolean;
+}
+
+export interface ChestContentData {
+  itemId?: string;
+  gold?: number;
+  opened?: boolean;
+}
+
+export interface TrapContentData {
+  trapType: string;
+  damage: number;
+  disarmed?: boolean;
+}
+
+export interface NPCContentData {
+  npcId: string;
+  dialogueId?: string;
+  items?: Array<{ itemId: string; price: number }>;
+}
+
+export interface PuzzleContentData {
+  puzzleType: 'riddle' | 'sequence' | 'memory';
+  solved?: boolean;
+  rewardItemId?: string;
+  rewardGold?: number;
+}
+
+export interface SecretContentData {
+  secretType: string;
+  revealed?: boolean;
+  rewardItemId?: string;
+  rewardGold?: number;
+}
+
+export interface ExitContentData {
+  targetFloor?: number;
+  targetDungeon?: string;
+}
+
+export interface InteractableContentData {
+  interactionType: string;
+  message?: string;
+}
+
+export type RoomContentData =
+  | EnemyContentData
+  | ChestContentData
+  | TrapContentData
+  | NPCContentData
+  | PuzzleContentData
+  | SecretContentData
+  | ExitContentData
+  | InteractableContentData;
+
 export interface RoomContent {
   id: string;
   type: ContentType;
   x: number; // Position within room (0-1 normalized)
   y: number;
-  data: any; // Enemy data, chest contents, etc.
+  data: RoomContentData;
   triggered: boolean;
 }
 

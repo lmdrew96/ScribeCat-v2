@@ -9,116 +9,19 @@
 
 import * as ex from 'excalibur';
 import { GameState } from '../../state/GameState.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_SPEED } from '../../config.js';
-import { loadCatAnimation, type CatColor, type CatAnimationType } from '../adapters/SpriteAdapter.js';
-import { InputManager } from '../adapters/InputAdapter.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../config.js';
+import type { CatColor } from '../adapters/SpriteAdapter.js';
 import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
 import { loadNPCSprite } from '../../loaders/NPCSpriteLoader.js';
 import { AudioManager } from '../../audio/AudioManager.js';
 import { SceneFontCache } from '../ui/FontCache.js';
+import { PlayerActor } from '../actors/PlayerActor.js';
 
 const REST_COST = 10; // Gold cost to rest
 
 export interface InnSceneData {
   catColor?: CatColor;
   fromScene?: string;
-}
-
-/**
- * Player Actor for the Inn scene
- */
-class PlayerActor extends ex.Actor {
-  private catColor: CatColor;
-  private animations: Map<CatAnimationType, ex.Animation> = new Map();
-  private currentAnim: CatAnimationType = 'idle';
-  private inputManager: InputManager | null = null;
-  private movementBounds: { minX: number; maxX: number; minY: number; maxY: number };
-
-  constructor(config: {
-    x: number;
-    y: number;
-    catColor: CatColor;
-    bounds: { minX: number; maxX: number; minY: number; maxY: number };
-  }) {
-    super({
-      pos: new ex.Vector(config.x, config.y),
-      width: 32,
-      height: 32,
-      anchor: ex.Vector.Half,
-      z: 10,
-    });
-    this.catColor = config.catColor;
-    this.movementBounds = config.bounds;
-  }
-
-  async onInitialize(engine: ex.Engine): Promise<void> {
-    this.inputManager = new InputManager(engine);
-
-    // Load animations
-    try {
-      const idleAnim = await loadCatAnimation(this.catColor, 'idle');
-      const walkAnim = await loadCatAnimation(this.catColor, 'walk');
-      this.animations.set('idle', idleAnim);
-      this.animations.set('walk', walkAnim);
-      this.graphics.use(idleAnim);
-    } catch (err) {
-      console.warn('Failed to load cat animations, using placeholder:', err);
-      // Fallback to colored rectangle
-      this.graphics.use(new ex.Rectangle({
-        width: 32,
-        height: 32,
-        color: ex.Color.fromHex('#808080'),
-      }));
-    }
-  }
-
-  onPreUpdate(engine: ex.Engine, delta: number): void {
-    if (!this.inputManager) return;
-
-    // Get movement input
-    const movement = this.inputManager.getMovementVector();
-    const speed = PLAYER_SPEED;
-
-    // Apply velocity
-    this.vel = movement.scale(speed);
-
-    // Constrain to bounds
-    const nextX = this.pos.x + this.vel.x * (delta / 1000);
-    const nextY = this.pos.y + this.vel.y * (delta / 1000);
-
-    if (nextX < this.movementBounds.minX || nextX > this.movementBounds.maxX) {
-      this.vel.x = 0;
-    }
-    if (nextY < this.movementBounds.minY || nextY > this.movementBounds.maxY) {
-      this.vel.y = 0;
-    }
-
-    // Update animation based on movement
-    const isMoving = movement.x !== 0 || movement.y !== 0;
-    const targetAnim = isMoving ? 'walk' : 'idle';
-
-    if (targetAnim !== this.currentAnim && this.animations.has(targetAnim)) {
-      this.currentAnim = targetAnim;
-      this.graphics.use(this.animations.get(targetAnim)!);
-    }
-
-    // Flip sprite based on direction
-    if (movement.x < 0) {
-      this.graphics.flipHorizontal = true;
-    } else if (movement.x > 0) {
-      this.graphics.flipHorizontal = false;
-    }
-  }
-
-  getInputManager(): InputManager | null {
-    return this.inputManager;
-  }
-
-  onPreKill(): void {
-    // Clean up input manager to remove engine-level event listeners
-    this.inputManager?.destroy();
-    this.inputManager = null;
-  }
 }
 
 /**

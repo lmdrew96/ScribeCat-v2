@@ -14,91 +14,17 @@
 
 import * as ex from 'excalibur';
 import { GameState } from '../../state/GameState.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, PLAYER_SPEED } from '../../config.js';
-import { loadCatAnimation, type CatColor, type CatAnimationType } from '../adapters/SpriteAdapter.js';
-import { InputManager } from '../adapters/InputAdapter.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../config.js';
+import type { CatColor } from '../adapters/SpriteAdapter.js';
 import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
 import { createNPCActor } from '../../loaders/NPCSpriteLoader.js';
 import { AudioManager } from '../../audio/AudioManager.js';
 import { ShopOverlay } from '../components/ShopOverlay.js';
+import { PlayerActor } from '../actors/PlayerActor.js';
 
 export interface ShopSceneData {
   catColor?: CatColor;
   fromScene?: string;
-}
-
-/**
- * Player Actor for Shop scene
- */
-class PlayerActor extends ex.Actor {
-  private catColor: CatColor;
-  private animations: Map<CatAnimationType, ex.Animation> = new Map();
-  private inputManager: InputManager | null = null;
-  private frozen = false;
-
-  constructor(config: { x: number; y: number; catColor: CatColor }) {
-    super({
-      pos: new ex.Vector(config.x, config.y),
-      width: 32,
-      height: 32,
-      anchor: ex.Vector.Half,
-      z: 10,
-    });
-    this.catColor = config.catColor;
-  }
-
-  async onInitialize(engine: ex.Engine): Promise<void> {
-    this.inputManager = new InputManager(engine);
-    try {
-      const idleAnim = await loadCatAnimation(this.catColor, 'idle');
-      const walkAnim = await loadCatAnimation(this.catColor, 'walk');
-      this.animations.set('idle', idleAnim);
-      this.animations.set('walk', walkAnim);
-      this.graphics.use(idleAnim);
-    } catch (err) {
-      this.graphics.use(new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Gray }));
-    }
-  }
-
-  onPreUpdate(engine: ex.Engine, delta: number): void {
-    if (!this.inputManager || this.frozen) {
-      this.vel = ex.Vector.Zero;
-      return;
-    }
-    const movement = this.inputManager.getMovementVector();
-    this.vel = movement.scale(PLAYER_SPEED);
-
-    // Bounds
-    const nextX = this.pos.x + this.vel.x * (delta / 1000);
-    const nextY = this.pos.y + this.vel.y * (delta / 1000);
-    if (nextX < 30 || nextX > CANVAS_WIDTH - 30) this.vel.x = 0;
-    if (nextY < 200 || nextY > CANVAS_HEIGHT - 60) this.vel.y = 0;
-
-    // Animation
-    const isMoving = movement.x !== 0 || movement.y !== 0;
-    const anim = isMoving ? 'walk' : 'idle';
-    if (this.animations.has(anim)) this.graphics.use(this.animations.get(anim)!);
-    if (movement.x < 0) this.graphics.flipHorizontal = true;
-    else if (movement.x > 0) this.graphics.flipHorizontal = false;
-  }
-
-  getInputManager(): InputManager | null {
-    return this.inputManager;
-  }
-
-  freeze(): void {
-    this.frozen = true;
-    this.vel = ex.Vector.Zero;
-  }
-
-  unfreeze(): void {
-    this.frozen = false;
-  }
-
-  onPreKill(): void {
-    this.inputManager?.destroy();
-    this.inputManager = null;
-  }
 }
 
 /**
@@ -296,6 +222,12 @@ export class ShopSceneHybrid extends ex.Scene {
       x: CANVAS_WIDTH / 2,
       y: CANVAS_HEIGHT - 120,
       catColor,
+      bounds: {
+        minX: 30,
+        maxX: CANVAS_WIDTH - 30,
+        minY: 200,
+        maxY: CANVAS_HEIGHT - 60,
+      },
     });
     this.add(this.player);
   }

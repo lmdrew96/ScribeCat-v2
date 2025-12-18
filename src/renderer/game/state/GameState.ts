@@ -723,8 +723,8 @@ class GameStateManager {
     const statBoosts = getLevelUpStats(this.player.level);
 
     // Apply stat increases
-    this.player.maxHealth += statBoosts.maxHp;
-    this.player.health = Math.min(this.player.health + statBoosts.maxHp, this.getEffectiveMaxHealth());
+    this.player.maxHealth += statBoosts.maxHealth;
+    this.player.health = Math.min(this.player.health + statBoosts.maxHealth, this.getEffectiveMaxHealth());
     this.player.attack += statBoosts.attack;
     this.player.defense += statBoosts.defense;
 
@@ -786,6 +786,24 @@ class GameStateManager {
       currentRoomId: '',
     };
     this.emit('reset');
+  }
+
+  /**
+   * Get stats needed for StudyQuest achievement tracking.
+   * This can be passed to AchievementsManager.updateStudyQuestProgress()
+   */
+  getAchievementStats(): {
+    hasCharacter: boolean;
+    level: number;
+    battlesWon: number;
+    totalGold: number;
+  } {
+    return {
+      hasCharacter: this.player.level > 0,
+      level: this.player.level,
+      battlesWon: this.player.battlesWon,
+      totalGold: this.player.totalGoldEarned,
+    };
   }
 }
 

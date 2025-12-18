@@ -7,6 +7,7 @@
 
 // Battle phases
 export type BattlePhase =
+  | 'intro'
   | 'start'
   | 'player_turn'
   | 'player_action'
@@ -18,14 +19,15 @@ export type BattlePhase =
 
 // Combat stats interface
 export interface CombatStats {
-  health: number;
-  maxHealth: number;
-  mana: number;
-  maxMana: number;
+  hp: number;
+  maxHp: number;
+  mana?: number;
+  maxMana?: number;
   attack: number;
   defense: number;
-  magic: number;
-  speed: number;
+  magic?: number;
+  speed?: number;
+  luck?: number;
 }
 
 // XP curve - exponential growth
@@ -139,8 +141,8 @@ export function calculateGoldReward(enemyLevel: number, isBoss: boolean = false)
  * Apply damage to a combatant
  */
 export function applyDamage(stats: CombatStats, damage: number): number {
-  const actualDamage = Math.min(stats.health, damage);
-  stats.health = Math.max(0, stats.health - damage);
+  const actualDamage = Math.min(stats.hp, damage);
+  stats.hp = Math.max(0, stats.hp - damage);
   return actualDamage;
 }
 
@@ -148,7 +150,7 @@ export function applyDamage(stats: CombatStats, damage: number): number {
  * Check if a combatant is defeated
  */
 export function isDefeated(stats: CombatStats): boolean {
-  return stats.health <= 0;
+  return stats.hp <= 0;
 }
 
 /**
@@ -156,11 +158,11 @@ export function isDefeated(stats: CombatStats): boolean {
  */
 export function decideEnemyAction(
   enemyStats: CombatStats,
-  playerStats: CombatStats,
+  playerStats?: CombatStats,
   availableActions: string[] = ['attack']
 ): string {
   // Simple AI - mostly attack, sometimes heal if low
-  const healthRatio = enemyStats.health / enemyStats.maxHealth;
+  const healthRatio = enemyStats.hp / enemyStats.maxHp;
 
   // If enemy has heal action and is low health, 40% chance to heal
   if (availableActions.includes('heal') && healthRatio < 0.3 && Math.random() < 0.4) {
@@ -168,8 +170,8 @@ export function decideEnemyAction(
   }
 
   // If enemy has magic and player defense is high, use magic
-  if (availableActions.includes('magic') && playerStats.defense > enemyStats.attack * 0.8) {
-    if (Math.random() < 0.5 && enemyStats.mana >= 10) {
+  if (playerStats && availableActions.includes('magic') && playerStats.defense > enemyStats.attack * 0.8) {
+    if (Math.random() < 0.5 && (enemyStats.mana ?? 0) >= 10) {
       return 'magic';
     }
   }
@@ -185,10 +187,13 @@ export function decideEnemyAction(
 
 /**
  * Attempt to flee from battle
+ * @param playerLuck - Player's luck stat (higher = better flee chance)
+ * @param enemySpeed - Enemy's speed stat (optional, defaults to 10)
  */
-export function attemptFlee(playerSpeed: number, enemySpeed: number): boolean {
-  // Base 50% flee chance, modified by speed difference
-  const speedRatio = playerSpeed / Math.max(1, enemySpeed);
+export function attemptFlee(playerLuck: number, enemySpeed: number = 10): boolean {
+  // Base 50% flee chance, modified by luck vs enemy speed
+  // Luck acts as effective speed for fleeing
+  const speedRatio = (playerLuck + 10) / Math.max(1, enemySpeed);
   const fleeChance = 0.5 * speedRatio;
 
   // Clamp between 10% and 90%
