@@ -117,6 +117,9 @@ export class InnScene extends ex.Scene {
   private messageToast: MessageToast | null = null;
   private restDialog: DialogOverlay | null = null;
 
+  // Pending timeout IDs for cleanup
+  private pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+
   // Callback for scene transitions (set by game coordinator)
   public onExitToTown: (() => void) | null = null;
 
@@ -126,7 +129,12 @@ export class InnScene extends ex.Scene {
 
     // Disable input briefly to prevent key events from previous scene
     this.inputEnabled = false;
-    setTimeout(() => { this.inputEnabled = true; }, 200);
+    
+    // Clear pending timeouts from previous activation
+    this.clearPendingTimeouts();
+    
+    // Schedule input enable with tracking
+    this.scheduledTimeout(() => { this.inputEnabled = true; }, 200);
 
     // Clear any existing actors from previous activation
     this.clear();
@@ -161,6 +169,9 @@ export class InnScene extends ex.Scene {
   onDeactivate(): void {
     // Reset input state to prevent stale handlers from firing
     this.inputEnabled = false;
+
+    // Cancel all pending timeouts to prevent callbacks after scene exit
+    this.clearPendingTimeouts();
 
     // Cleanup HTML overlays
     this.messageToast?.destroy();
@@ -470,7 +481,10 @@ export class InnScene extends ex.Scene {
   private setupInputHandlers(): void {
     // Wait for player to be initialized
     const checkPlayer = () => {
-      if (this.player?.getInputManager()) {
+      // Skip if scene is no longer active
+      if (!this.player) return;
+      
+      if (this.player.getInputManager()) {
         const input = this.player.getInputManager()!;
 
         // ESC to exit
@@ -489,11 +503,29 @@ export class InnScene extends ex.Scene {
           this.checkInteraction();
         });
       } else {
-        // Retry next frame
-        setTimeout(checkPlayer, 100);
+        // Retry next frame using tracked timeout
+        this.scheduledTimeout(checkPlayer, 100);
       }
     };
     checkPlayer();
+  }
+
+  /**
+   * Schedule a timeout and track it for cleanup
+   */
+  private scheduledTimeout(callback: () => void, delay: number): void {
+    const id = setTimeout(callback, delay);
+    this.pendingTimeouts.push(id);
+  }
+
+  /**
+   * Clear all pending timeouts
+   */
+  private clearPendingTimeouts(): void {
+    for (const id of this.pendingTimeouts) {
+      clearTimeout(id);
+    }
+    this.pendingTimeouts = [];
   }
 
   private checkInteraction(): void {

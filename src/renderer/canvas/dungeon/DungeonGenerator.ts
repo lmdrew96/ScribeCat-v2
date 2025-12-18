@@ -251,12 +251,61 @@ const SECRET_TYPES = [
 // Generator Class
 // ============================================================================
 
+// Door exclusion zones (normalized coordinates 0-1)
+// Content should not spawn within these zones to avoid blocking doors
+const DOOR_EXCLUSION_ZONES = {
+  north: { minX: 0.35, maxX: 0.65, minY: 0, maxY: 0.15 },
+  south: { minX: 0.35, maxX: 0.65, minY: 0.85, maxY: 1 },
+  east: { minX: 0.85, maxX: 1, minY: 0.35, maxY: 0.65 },
+  west: { minX: 0, maxX: 0.15, minY: 0.35, maxY: 0.65 },
+};
+
 export class DungeonGenerator {
   private config: DungeonConfig;
   private idCounter: number = 0;
 
   constructor(dungeonId: string) {
     this.config = DUNGEON_CONFIGS[dungeonId] || DUNGEON_CONFIGS.training;
+  }
+
+  /**
+   * Check if a position is too close to a door zone
+   */
+  private isNearDoor(x: number, y: number, room: DungeonRoom): boolean {
+    // Check each door that exists in this room
+    if (room.connections.north) {
+      const zone = DOOR_EXCLUSION_ZONES.north;
+      if (x >= zone.minX && x <= zone.maxX && y >= zone.minY && y <= zone.maxY) return true;
+    }
+    if (room.connections.south) {
+      const zone = DOOR_EXCLUSION_ZONES.south;
+      if (x >= zone.minX && x <= zone.maxX && y >= zone.minY && y <= zone.maxY) return true;
+    }
+    if (room.connections.east) {
+      const zone = DOOR_EXCLUSION_ZONES.east;
+      if (x >= zone.minX && x <= zone.maxX && y >= zone.minY && y <= zone.maxY) return true;
+    }
+    if (room.connections.west) {
+      const zone = DOOR_EXCLUSION_ZONES.west;
+      if (x >= zone.minX && x <= zone.maxX && y >= zone.minY && y <= zone.maxY) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Generate a safe position that avoids door areas
+   */
+  private getSafePosition(room: DungeonRoom, baseX: number, baseY: number, rangeX: number, rangeY: number): { x: number; y: number } {
+    const maxAttempts = 10;
+    for (let i = 0; i < maxAttempts; i++) {
+      const x = baseX + Math.random() * rangeX;
+      const y = baseY + Math.random() * rangeY;
+      if (!this.isNearDoor(x, y, room)) {
+        return { x, y };
+      }
+    }
+    // Fallback to center if can't find safe spot
+    return { x: 0.5, y: 0.5 };
   }
 
   /**
@@ -431,11 +480,12 @@ export class DungeonGenerator {
     // 40% chance for bonus treasure (if not already a treasure room)
     if (room.type !== 'treasure' && Math.random() < 0.4) {
       const pool = this.config.treasurePool;
+      const pos = this.getSafePosition(room, 0.15, 0.2, 0.2, 0.6);
       room.contents.push({
         id: this.generateId(),
         type: 'chest',
-        x: 0.15 + Math.random() * 0.2, // Left side of room
-        y: 0.2 + Math.random() * 0.6,
+        x: pos.x,
+        y: pos.y,
         data: {
           lootType: pool[Math.floor(Math.random() * pool.length)],
           goldAmount: Math.floor((5 + Math.random() * 10) * floor), // Smaller bonus chest
@@ -448,11 +498,12 @@ export class DungeonGenerator {
     if (room.type !== 'trap' && Math.random() < 0.3) {
       const numTraps = 1 + Math.floor(Math.random() * 2);
       for (let i = 0; i < numTraps; i++) {
+        const pos = this.getSafePosition(room, 0.2, 0.2, 0.6, 0.6);
         room.contents.push({
           id: this.generateId(),
           type: 'trap',
-          x: 0.1 + Math.random() * 0.8,
-          y: 0.1 + Math.random() * 0.8,
+          x: pos.x,
+          y: pos.y,
           data: {
             trapType: 'spike',
             damage: 3 + floor, // Slightly weaker bonus traps
@@ -465,11 +516,12 @@ export class DungeonGenerator {
     // 25% chance for bonus enemy (if not already an enemy room)
     if (room.type !== 'enemy' && Math.random() < 0.25) {
       const pool = this.config.enemyPool;
+      const pos = this.getSafePosition(room, 0.55, 0.3, 0.2, 0.4);
       room.contents.push({
         id: this.generateId(),
         type: 'enemy',
-        x: 0.7 + Math.random() * 0.15, // Right side of room
-        y: 0.3 + Math.random() * 0.4,
+        x: pos.x,
+        y: pos.y,
         data: {
           enemyType: pool[Math.floor(Math.random() * pool.length)],
           level: floor,
@@ -484,11 +536,12 @@ export class DungeonGenerator {
     const pool = this.config.enemyPool;
 
     for (let i = 0; i < enemyCount; i++) {
+      const pos = this.getSafePosition(room, 0.3, 0.3, 0.4, 0.4);
       room.contents.push({
         id: this.generateId(),
         type: 'enemy',
-        x: 0.3 + Math.random() * 0.4,
-        y: 0.3 + Math.random() * 0.4,
+        x: pos.x,
+        y: pos.y,
         data: {
           enemyType: pool[Math.floor(Math.random() * pool.length)],
           level: floor,
@@ -519,25 +572,24 @@ export class DungeonGenerator {
     const usedPositions: { x: number; y: number }[] = [];
 
     for (let i = 0; i < numTraps; i++) {
-      // Generate random position, avoiding center (too predictable) and edges
-      let x: number, y: number;
+      // Generate random position that avoids doors and other traps
+      let pos: { x: number; y: number };
       let attempts = 0;
       do {
-        x = 0.15 + Math.random() * 0.7; // 0.15 to 0.85
-        y = 0.15 + Math.random() * 0.7;
+        pos = this.getSafePosition(room, 0.2, 0.2, 0.6, 0.6);
         attempts++;
       } while (
         attempts < 10 &&
-        usedPositions.some(p => Math.abs(p.x - x) < 0.15 && Math.abs(p.y - y) < 0.15)
+        usedPositions.some(p => Math.abs(p.x - pos.x) < 0.15 && Math.abs(p.y - pos.y) < 0.15)
       );
 
-      usedPositions.push({ x, y });
+      usedPositions.push(pos);
 
       room.contents.push({
         id: this.generateId(),
         type: 'trap',
-        x,
-        y,
+        x: pos.x,
+        y: pos.y,
         data: {
           trapType: 'spike',
           damage: 5 + floor * 2,
@@ -580,6 +632,7 @@ export class DungeonGenerator {
 
   /**
    * Get merchant inventory based on dungeon tier
+   * Now includes more variety with consumables, equipment, and special items
    */
   private getMerchantInventory(): string[] {
     const dungeonId = this.config.id;
@@ -595,17 +648,64 @@ export class DungeonGenerator {
     };
     const tier = tierMap[dungeonId] || 1;
     
-    // Tier-appropriate items
-    const tierItems: Record<number, string[]> = {
+    // Base consumables per tier
+    const consumables: Record<number, string[]> = {
       1: ['health_potion', 'mana_vial', 'strength_tonic'],
-      2: ['health_potion', 'greater_potion', 'mana_flask', 'forest_brew'],
-      3: ['greater_potion', 'mana_flask', 'super_potion', 'catnip_potion'],
-      4: ['super_potion', 'mana_elixir', 'catnip_potion', 'page_of_wisdom'],
-      5: ['super_potion', 'max_potion', 'mana_elixir', 'phoenix_feather'],
-      6: ['max_potion', 'void_shield_potion', 'mana_elixir', 'phoenix_feather'],
+      2: ['health_potion', 'greater_potion', 'mana_flask', 'forest_brew', 'yarn_ball_bomb'],
+      3: ['greater_potion', 'super_potion', 'mana_crystal', 'crystal_elixir', 'catnip_potion'],
+      4: ['super_potion', 'mana_crystal', 'catnip_potion'],
+      5: ['super_potion', 'max_potion', 'mana_crystal', 'phoenix_feather'],
+      6: ['max_potion', 'void_shield_potion', 'phoenix_feather'],
     };
     
-    return tierItems[tier] || tierItems[1];
+    // Equipment available per tier
+    const equipment: Record<number, string[]> = {
+      1: ['wooden_sword', 'fishbone_dagger', 'leather_armor', 'lucky_charm'],
+      2: ['iron_sword', 'thorn_whip', 'iron_armor', 'tuna_can_shield', 'forest_amulet'],
+      3: ['crystal_sword', 'ice_blade', 'crystal_armor', 'frost_ring'],
+      4: ['arcane_staff', 'shadow_blade', 'wizard_robe', 'mystic_pendant'],
+      5: ['dragon_sword', 'flame_axe', 'dragon_mail', 'fire_heart'],
+      6: ['void_blade', 'cosmic_staff', 'void_armor', 'void_amulet'],
+    };
+    
+    // Special items per tier
+    const specials: Record<number, string[]> = {
+      1: ['training_manual'],
+      2: ['catnip_bundle'],
+      3: ['escape_rope'],
+      4: ['page_of_wisdom'],
+      5: ['phoenix_feather'],
+      6: ['void_essence'],
+    };
+    
+    // Build inventory: 3-5 consumables + 2-3 equipment + 0-1 special
+    const inventory: string[] = [];
+    
+    // Add consumables (random 3-4 from tier)
+    const tierConsumables = consumables[tier] || consumables[1];
+    const shuffledConsumables = [...tierConsumables].sort(() => Math.random() - 0.5);
+    inventory.push(...shuffledConsumables.slice(0, 3 + Math.floor(Math.random() * 2)));
+    
+    // Add equipment (random 2-3 from tier)
+    const tierEquipment = equipment[tier] || equipment[1];
+    const shuffledEquipment = [...tierEquipment].sort(() => Math.random() - 0.5);
+    inventory.push(...shuffledEquipment.slice(0, 2 + Math.floor(Math.random() * 2)));
+    
+    // 50% chance to add a special item
+    if (Math.random() < 0.5) {
+      const tierSpecials = specials[tier] || specials[1];
+      inventory.push(tierSpecials[Math.floor(Math.random() * tierSpecials.length)]);
+    }
+    
+    // Also add lower tier consumables for cheaper options (30% chance)
+    if (tier > 1 && Math.random() < 0.3) {
+      const lowerTierConsumables = consumables[tier - 1] || [];
+      if (lowerTierConsumables.length > 0) {
+        inventory.push(lowerTierConsumables[Math.floor(Math.random() * lowerTierConsumables.length)]);
+      }
+    }
+    
+    return inventory;
   }
 
   /**

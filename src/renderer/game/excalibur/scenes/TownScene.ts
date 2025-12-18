@@ -133,6 +133,9 @@ export class TownScene extends ex.Scene {
   // Input cooldown to prevent key events carrying over from scene transitions
   private inputEnabled = false;
 
+  // Pending timeout IDs for cleanup
+  private pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+
   // Dungeon selection state
   private dungeonUIActive = false;
   private dungeonDialog: DialogOverlay | null = null;
@@ -153,7 +156,12 @@ export class TownScene extends ex.Scene {
 
     // Disable input briefly to prevent key events from previous scene
     this.inputEnabled = false;
-    setTimeout(() => { this.inputEnabled = true; }, 200);
+    
+    // Clear pending timeouts from previous activation
+    this.clearPendingTimeouts();
+    
+    // Schedule input enable with tracking
+    this.scheduledTimeout(() => { this.inputEnabled = true; }, 200);
 
     // Clear any active dungeon run when entering town
     if (GameState.hasActiveDungeonRun()) {
@@ -204,6 +212,9 @@ export class TownScene extends ex.Scene {
   onDeactivate(): void {
     // Reset input state to prevent stale handlers from firing
     this.inputEnabled = false;
+
+    // Cancel all pending timeouts to prevent callbacks after scene exit
+    this.clearPendingTimeouts();
 
     // Cleanup HTML overlays
     this.dungeonDialog?.destroy();
@@ -562,7 +573,10 @@ export class TownScene extends ex.Scene {
 
   private setupInputHandlers(): void {
     const checkPlayer = () => {
-      if (this.player?.getInputManager()) {
+      // Skip if scene is no longer active
+      if (!this.player) return;
+      
+      if (this.player.getInputManager()) {
         const input = this.player.getInputManager()!;
 
         // ENTER to interact (DialogOverlay handles its own keyboard input when open)
@@ -590,10 +604,29 @@ export class TownScene extends ex.Scene {
           this.goToScene('inventory', { fromScene: 'town' });
         });
       } else {
-        setTimeout(checkPlayer, 100);
+        // Retry next frame using tracked timeout
+        this.scheduledTimeout(checkPlayer, 100);
       }
     };
     checkPlayer();
+  }
+
+  /**
+   * Schedule a timeout and track it for cleanup
+   */
+  private scheduledTimeout(callback: () => void, delay: number): void {
+    const id = setTimeout(callback, delay);
+    this.pendingTimeouts.push(id);
+  }
+
+  /**
+   * Clear all pending timeouts
+   */
+  private clearPendingTimeouts(): void {
+    for (const id of this.pendingTimeouts) {
+      clearTimeout(id);
+    }
+    this.pendingTimeouts = [];
   }
 
   private checkDoorInteraction(): void {

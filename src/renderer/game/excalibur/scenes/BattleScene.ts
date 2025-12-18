@@ -34,6 +34,7 @@ import {
 import { AudioManager } from '../../audio/AudioManager.js';
 import { createLogger } from '../../../../shared/logger.js';
 import { MessageToast } from '../components/MessageToast.js';
+import { BattleMenuOverlay } from '../components/BattleMenuOverlay.js';
 
 const logger = createLogger('BattleScene');
 
@@ -79,11 +80,10 @@ export class BattleScene extends ex.Scene {
 
   // UI elements
   private uiElements: ex.Actor[] = [];
-  private menuElements: ex.Actor[] = [];
-  private itemMenuElements: ex.Actor[] = [];
 
   // HTML overlay components
   private messageToast: MessageToast | null = null;
+  private battleMenuOverlay: BattleMenuOverlay | null = null;
 
   // Entity references
   private enemyEntity: ex.Actor | null = null;
@@ -153,13 +153,13 @@ export class BattleScene extends ex.Scene {
     // Cleanup HTML overlays
     this.messageToast?.destroy();
     this.messageToast = null;
+    this.battleMenuOverlay?.destroy();
+    this.battleMenuOverlay = null;
 
     // Clean up input manager to remove engine-level event listeners
     this.inputManager?.destroy();
     this.inputManager = null;
     this.uiElements = [];
-    this.menuElements = [];
-    this.itemMenuElements = [];
     this.enemyEntity = null;
     this.playerEntity = null;
   }
@@ -354,200 +354,21 @@ export class BattleScene extends ex.Scene {
   }
 
   private setupMenu(): void {
-    // Menu will be shown after intro
+    // Menu will be shown after intro (HTML overlay handles rendering)
   }
 
   private showMenu(): void {
-    this.clearMenu();
-
-    // Menu background
-    const menuBg = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 55),
-      width: 340, height: 80, z: 150,
-    });
-    menuBg.graphics.use(new ex.Rectangle({
-      width: 340, height: 80,
-      color: ex.Color.fromHex('#1E1E32'),
-      strokeColor: ex.Color.fromHex('#6496FF'), lineWidth: 3,
-    }));
-    this.add(menuBg);
-    this.menuElements.push(menuBg);
-
-    // Action buttons
-    ACTIONS.forEach((action, i) => {
-      const isSelected = i === this.selectedAction;
-      const col = i % 3;
-      const row = Math.floor(i / 3);
-      const x = CANVAS_WIDTH / 2 - 100 + col * 100;
-      const y = CANVAS_HEIGHT - 70 + row * 25;
-
-      const label = new ex.Label({
-        text: isSelected ? `> ${action}` : action,
-        pos: new ex.Vector(x, y),
-        font: new ex.Font({ size: 13, color: isSelected ? ex.Color.fromHex('#FFFF64') : ex.Color.fromRGB(200, 200, 200) }), z: 151,
-      });
-      this.add(label);
-      this.menuElements.push(label);
-    });
-  }
-
-  private clearMenu(): void {
-    for (const e of this.menuElements) e.kill();
-    this.menuElements = [];
+    // Use HTML overlay for menu
+    this.battleMenuOverlay?.show();
   }
 
   private hideMenu(): void {
-    this.clearMenu();
+    this.battleMenuOverlay?.hide();
   }
 
   private setupInputHandlers(): void {
-    const engine = this.engine;
-    if (!engine) return;
-
-    this.inputManager = new InputManager(engine);
-
-    this.inputManager.onKeyPress('left', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) return;
-      if (this.selectedAction > 0) {
-        this.selectedAction--;
-        this.showMenu();
-      }
-    });
-
-    this.inputManager.onKeyPress('a', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) return;
-      if (this.selectedAction > 0) {
-        this.selectedAction--;
-        this.showMenu();
-      }
-    });
-
-    this.inputManager.onKeyPress('right', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) return;
-      if (this.selectedAction < ACTIONS.length - 1) {
-        this.selectedAction++;
-        this.showMenu();
-      }
-    });
-
-    this.inputManager.onKeyPress('d', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) return;
-      if (this.selectedAction < ACTIONS.length - 1) {
-        this.selectedAction++;
-        this.showMenu();
-      }
-    });
-
-    this.inputManager.onKeyPress('up', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) {
-        if (this.selectedItemIndex > 0) {
-          this.selectedItemIndex--;
-          this.showItemMenu();
-        }
-      } else if (this.selectedAction >= 3) {
-        this.selectedAction -= 3;
-        this.showMenu();
-      }
-    });
-
-    this.inputManager.onKeyPress('w', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) {
-        if (this.selectedItemIndex > 0) {
-          this.selectedItemIndex--;
-          this.showItemMenu();
-        }
-      } else if (this.selectedAction >= 3) {
-        this.selectedAction -= 3;
-        this.showMenu();
-      }
-    });
-
-    this.inputManager.onKeyPress('down', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) {
-        const items = this.getConsumableItems();
-        if (this.selectedItemIndex < items.length - 1) {
-          this.selectedItemIndex++;
-          this.showItemMenu();
-        }
-      } else if (this.selectedAction < 3 && this.selectedAction + 3 < ACTIONS.length) {
-        this.selectedAction += 3;
-        this.showMenu();
-      }
-    });
-
-    this.inputManager.onKeyPress('s', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) {
-        const items = this.getConsumableItems();
-        if (this.selectedItemIndex < items.length - 1) {
-          this.selectedItemIndex++;
-          this.showItemMenu();
-        }
-      } else if (this.selectedAction < 3 && this.selectedAction + 3 < ACTIONS.length) {
-        this.selectedAction += 3;
-        this.showMenu();
-      }
-    });
-
-    this.inputManager.onKeyPress('enter', () => {
-      if (this.phase !== 'player_turn' || this.actionInProgress) return;
-      if (this.itemMenuVisible) {
-        this.useSelectedItem();
-      } else {
-        this.executeAction();
-      }
-    });
-
-    this.inputManager.onKeyPress('escape', () => {
-      if (this.itemMenuVisible) {
-        this.hideItemMenu();
-        this.showMenu();
-      }
-    });
-  }
-
-  private async executeAction(): Promise<void> {
-    if (this.actionInProgress) return;
-
-    const action = ACTIONS[this.selectedAction];
-    this.actionInProgress = true;
-    this.hideMenu();
-
-    switch (action) {
-      case 'Attack':
-        await this.playerAttack();
-        break;
-      case 'Magic':
-        await this.playerMagic();
-        break;
-      case 'Defend':
-        await this.playerDefend();
-        break;
-      case 'Item':
-        this.showItemMenu();
-        this.actionInProgress = false;
-        return;
-      case 'Run':
-        await this.playerFlee();
-        break;
-    }
-
-    if (this.phase !== 'victory' && this.phase !== 'defeat' && this.phase !== 'flee') {
-      await this.enemyTurn();
-    }
-
-    if (this.phase !== 'victory' && this.phase !== 'defeat' && this.phase !== 'flee') {
-      this.phase = 'player_turn';
-      this.actionInProgress = false;
-      this.showMenu();
-    }
+    // Input is now handled by the HTML BattleMenuOverlay
+    // No additional handlers needed
   }
 
   private async playerAttack(): Promise<void> {
@@ -700,7 +521,7 @@ export class BattleScene extends ex.Scene {
     }
   }
 
-  // --- Item Menu ---
+  // --- Item Menu (handled by HTML overlay) ---
 
   private getConsumableItems(): { id: string; quantity: number; name: string }[] {
     return GameState.player.items
@@ -717,148 +538,14 @@ export class BattleScene extends ex.Scene {
   private showItemMenu(): void {
     this.itemMenuVisible = true;
     this.hideMenu();
-    this.clearItemMenu();
-
+    // Show HTML item menu overlay
     const items = this.getConsumableItems();
-    const menuX = CANVAS_WIDTH / 2;
-    const menuY = 150;
-    const menuWidth = 280;
-    const menuHeight = Math.min(items.length, 5) * 28 + 60;
-
-    // Background
-    const bg = new ex.Actor({
-      pos: new ex.Vector(menuX, menuY + menuHeight / 2),
-      width: menuWidth, height: menuHeight, z: 200,
-    });
-    bg.graphics.use(new ex.Rectangle({
-      width: menuWidth, height: menuHeight,
-      color: ex.Color.fromHex('#141428'),
-      strokeColor: ex.Color.fromHex('#6496FF'), lineWidth: 3,
-    }));
-    this.add(bg);
-    this.itemMenuElements.push(bg);
-
-    // Title
-    const title = new ex.Label({
-      text: 'Select Item',
-      pos: new ex.Vector(menuX, menuY + 15),
-      font: new ex.Font({ size: 14, color: ex.Color.White }), z: 201,
-    });
-    title.graphics.anchor = ex.Vector.Half;
-    this.add(title);
-    this.itemMenuElements.push(title);
-
-    if (items.length === 0) {
-      const noItems = new ex.Label({
-        text: 'No items available!',
-        pos: new ex.Vector(menuX, menuY + 50),
-        font: new ex.Font({ size: 13, color: ex.Color.fromRGB(150, 150, 150) }), z: 201,
-      });
-      noItems.graphics.anchor = ex.Vector.Half;
-      this.add(noItems);
-      this.itemMenuElements.push(noItems);
-    } else {
-      items.slice(0, 5).forEach((item, i) => {
-        const isSelected = i === this.selectedItemIndex;
-        const y = menuY + 35 + i * 28;
-
-        const rowBg = new ex.Actor({
-          pos: new ex.Vector(menuX, y + 12),
-          width: menuWidth - 20, height: 24, z: 201,
-        });
-        rowBg.graphics.use(new ex.Rectangle({
-          width: menuWidth - 20, height: 24,
-          color: isSelected ? ex.Color.fromHex('#3C3C64') : ex.Color.fromHex('#1E1E32'),
-          strokeColor: isSelected ? ex.Color.fromHex('#FBBF24') : ex.Color.fromHex('#3C3C50'), lineWidth: 1,
-        }));
-        this.add(rowBg);
-        this.itemMenuElements.push(rowBg);
-
-        const nameLabel = new ex.Label({
-          text: isSelected ? `> ${item.name}` : item.name,
-          pos: new ex.Vector(menuX - menuWidth / 2 + 25, y + 12),
-          font: new ex.Font({ size: 13, color: isSelected ? ex.Color.fromHex('#FFFF64') : ex.Color.White }), z: 202,
-        });
-        nameLabel.graphics.anchor = new ex.Vector(0, 0.5);
-        this.add(nameLabel);
-        this.itemMenuElements.push(nameLabel);
-
-        const qtyLabel = new ex.Label({
-          text: `x${item.quantity}`,
-          pos: new ex.Vector(menuX + menuWidth / 2 - 25, y + 12),
-          font: new ex.Font({ size: 12, color: ex.Color.fromRGB(150, 200, 150) }), z: 202,
-        });
-        qtyLabel.graphics.anchor = new ex.Vector(1, 0.5);
-        this.add(qtyLabel);
-        this.itemMenuElements.push(qtyLabel);
-      });
-    }
-
-    // Instructions
-    const instr = new ex.Label({
-      text: 'ENTER: Use | ESC: Back',
-      pos: new ex.Vector(menuX, menuY + menuHeight - 15),
-      font: new ex.Font({ size: 11, color: ex.Color.fromRGB(150, 150, 150) }), z: 201,
-    });
-    instr.graphics.anchor = ex.Vector.Half;
-    this.add(instr);
-    this.itemMenuElements.push(instr);
-  }
-
-  private clearItemMenu(): void {
-    for (const e of this.itemMenuElements) e.kill();
-    this.itemMenuElements = [];
+    this.battleMenuOverlay?.showItemMenu(items);
   }
 
   private hideItemMenu(): void {
     this.itemMenuVisible = false;
-    this.clearItemMenu();
-  }
-
-  private async useSelectedItem(): Promise<void> {
-    if (!this.playerStats) return;
-
-    const items = this.getConsumableItems();
-    if (items.length === 0 || this.selectedItemIndex >= items.length) return;
-
-    const selectedItem = items[this.selectedItemIndex];
-    const itemDef = getItem(selectedItem.id);
-    if (!itemDef) return;
-
-    this.actionInProgress = true;
-    this.hideItemMenu();
-
-    // Use item
-    GameState.removeItem(selectedItem.id, 1);
-
-    if (itemDef.effect?.type === 'heal') {
-      const healAmount = itemDef.effect.value;
-      const actualHeal = Math.min(healAmount, this.playerStats.maxHp - this.playerStats.hp);
-      this.playerStats.hp += actualHeal;
-      GameState.player.health = this.playerStats.hp;
-      this.updatePlayerHp();
-      await this.showMessage(`Used ${itemDef.name}! Healed ${actualHeal} HP!`);
-    } else if (itemDef.effect?.type === 'mana_restore') {
-      const restoreAmount = itemDef.effect.value;
-      const actualRestore = Math.min(restoreAmount, (this.playerStats.maxMana || 0) - (this.playerStats.mana || 0));
-      this.playerStats.mana = (this.playerStats.mana || 0) + actualRestore;
-      GameState.player.mana = this.playerStats.mana;
-      this.updatePlayerMp();
-      await this.showMessage(`Used ${itemDef.name}! Restored ${actualRestore} MP!`);
-    } else {
-      await this.showMessage(`Used ${itemDef.name}!`);
-    }
-
-    // Enemy turn after using item
-    if (this.phase !== 'victory' && this.phase !== 'defeat') {
-      await this.enemyTurn();
-    }
-
-    if (this.phase !== 'victory' && this.phase !== 'defeat' && this.phase !== 'flee') {
-      this.phase = 'player_turn';
-      this.actionInProgress = false;
-      this.showMenu();
-    }
+    this.battleMenuOverlay?.hideItemMenu();
   }
 
   // --- HP Updates ---
@@ -916,6 +603,105 @@ export class BattleScene extends ex.Scene {
 
     // Create message toast
     this.messageToast = new MessageToast(container);
+
+    // Create battle menu overlay
+    this.battleMenuOverlay = new BattleMenuOverlay(container, {
+      onSelectAction: (action: string) => {
+        if (this.phase !== 'player_turn' || this.actionInProgress) return;
+        this.executeActionByName(action);
+      },
+      onUseItem: (itemId: string) => {
+        if (this.phase !== 'player_turn' || this.actionInProgress) return;
+        this.useItemById(itemId);
+      },
+      onCloseItemMenu: () => {
+        this.itemMenuVisible = false;
+      },
+      getConsumableItems: () => this.getConsumableItems(),
+      getPlayerMana: () => this.playerStats?.mana || 0,
+      getManaPerMagic: () => BATTLE_CONFIG.manaPerMagicAttack,
+    });
+  }
+
+  /**
+   * Execute an action by name (used by HTML overlay)
+   */
+  private async executeActionByName(action: string): Promise<void> {
+    if (this.actionInProgress) return;
+
+    this.actionInProgress = true;
+    this.battleMenuOverlay?.hide();
+
+    switch (action) {
+      case 'Attack':
+        await this.playerAttack();
+        break;
+      case 'Magic':
+        await this.playerMagic();
+        break;
+      case 'Defend':
+        await this.playerDefend();
+        break;
+      case 'Run':
+        await this.playerFlee();
+        break;
+    }
+
+    if (this.phase !== 'victory' && this.phase !== 'defeat' && this.phase !== 'flee') {
+      await this.enemyTurn();
+    }
+
+    if (this.phase !== 'victory' && this.phase !== 'defeat' && this.phase !== 'flee') {
+      this.phase = 'player_turn';
+      this.actionInProgress = false;
+      this.showMenu();
+    }
+  }
+
+  /**
+   * Use an item by ID (used by HTML overlay)
+   */
+  private async useItemById(itemId: string): Promise<void> {
+    if (!this.playerStats) return;
+
+    const itemDef = getItem(itemId);
+    if (!itemDef) return;
+
+    this.actionInProgress = true;
+    this.itemMenuVisible = false;
+    this.battleMenuOverlay?.hide();
+
+    // Use item
+    GameState.removeItem(itemId, 1);
+
+    if (itemDef.effect?.type === 'heal') {
+      const healAmount = itemDef.effect.value;
+      const actualHeal = Math.min(healAmount, this.playerStats.maxHp - this.playerStats.hp);
+      this.playerStats.hp += actualHeal;
+      GameState.player.health = this.playerStats.hp;
+      this.updatePlayerHp();
+      await this.showMessage(`Used ${itemDef.name}! Healed ${actualHeal} HP!`);
+    } else if (itemDef.effect?.type === 'mana_restore') {
+      const restoreAmount = itemDef.effect.value;
+      const actualRestore = Math.min(restoreAmount, (this.playerStats.maxMana || 0) - (this.playerStats.mana || 0));
+      this.playerStats.mana = (this.playerStats.mana || 0) + actualRestore;
+      GameState.player.mana = this.playerStats.mana;
+      this.updatePlayerMp();
+      await this.showMessage(`Used ${itemDef.name}! Restored ${actualRestore} MP!`);
+    } else {
+      await this.showMessage(`Used ${itemDef.name}!`);
+    }
+
+    // Enemy turn after using item
+    if (this.phase !== 'victory' && this.phase !== 'defeat') {
+      await this.enemyTurn();
+    }
+
+    if (this.phase !== 'victory' && this.phase !== 'defeat' && this.phase !== 'flee') {
+      this.phase = 'player_turn';
+      this.actionInProgress = false;
+      this.showMenu();
+    }
   }
 
   private delay(ms: number): Promise<void> {

@@ -13,6 +13,13 @@ export {
   type PauseMenuOption,
 } from './PauseMenuController.js';
 
+// Battle components
+export {
+  BattleMenuOverlay,
+  type BattleMenuCallbacks,
+  type BattleItem,
+} from './BattleMenuOverlay.js';
+
 // Shop components
 export { ShopOverlay, type ShopOverlayCallbacks } from './ShopOverlay.js';
 

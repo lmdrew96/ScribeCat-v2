@@ -134,10 +134,15 @@ export class DungeonScene extends ex.Scene {
   // Input cooldown to prevent key events carrying over from scene transitions
   private inputEnabled = false;
 
+  // Pending timeout IDs for cleanup
+  private pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+
   // Player
   private player!: ex.Actor;
   private catColor: CatColor = 'gray';
   private playerFrozen = false;
+  private playerAnimations: Map<string, ex.Animation> = new Map();
+  private currentPlayerAnim: 'idle' | 'walk' = 'idle';
 
   // Dungeon state
   private dungeonId = 'training';
@@ -173,6 +178,9 @@ export class DungeonScene extends ex.Scene {
 
   // HUD actors
   private hpBar!: ex.Actor;
+  private hpTextLabel!: ex.Actor;
+  private levelLabel!: ex.Actor;
+  private xpLabel!: ex.Actor;
   private goldLabel!: ex.Actor;
   private floorLabel!: ex.Actor;
 
@@ -204,7 +212,12 @@ export class DungeonScene extends ex.Scene {
 
     // Disable input briefly to prevent key events from previous scene
     this.inputEnabled = false;
-    setTimeout(() => { this.inputEnabled = true; }, 200);
+    
+    // Clear pending timeouts from previous activation
+    this.clearPendingTimeouts();
+    
+    // Schedule input enable with tracking
+    this.scheduledTimeout(() => { this.inputEnabled = true; }, 200);
 
     GameState.setCatColor(this.catColor);
     GameState.dungeon.dungeonId = this.dungeonId;
@@ -240,6 +253,9 @@ export class DungeonScene extends ex.Scene {
   onDeactivate(): void {
     // Reset input state to prevent stale handlers from firing
     this.inputEnabled = false;
+
+    // Cancel all pending timeouts to prevent callbacks after scene exit
+    this.clearPendingTimeouts();
 
     // Clean up input manager to remove engine-level event listeners
     this.inputManager?.destroy();
@@ -359,12 +375,18 @@ export class DungeonScene extends ex.Scene {
       z: 10,
     });
 
-    // Load cat animation
+    // Load cat animations (idle + walk)
     try {
-      const anim = await loadCatAnimation(this.catColor, 'idle');
-      if (anim) {
-        this.player.graphics.use(anim);
+      const idleAnim = await loadCatAnimation(this.catColor, 'idle');
+      const walkAnim = await loadCatAnimation(this.catColor, 'walk');
+      if (idleAnim) {
+        this.playerAnimations.set('idle', idleAnim);
+        this.player.graphics.use(idleAnim);
       }
+      if (walkAnim) {
+        this.playerAnimations.set('walk', walkAnim);
+      }
+      this.currentPlayerAnim = 'idle';
     } catch {
       // Fallback to colored rectangle
       this.player.graphics.use(
@@ -424,48 +446,48 @@ export class DungeonScene extends ex.Scene {
     this.uiActors.push(this.hpBar);
 
     // HP Text overlay
-    const hpText = new ex.Actor({
+    this.hpTextLabel = new ex.Actor({
       pos: ex.vec(70, 12),
       z: 53,
     });
-    hpText.graphics.use(
+    this.hpTextLabel.graphics.use(
       new ex.Text({
         text: `${GameState.player.health}/${GameState.getEffectiveMaxHealth()}`,
         font: this.fontCache.getFont(11, ex.Color.White),
       })
     );
-    this.add(hpText);
-    this.uiActors.push(hpText);
+    this.add(this.hpTextLabel);
+    this.uiActors.push(this.hpTextLabel);
 
     // Level label
-    const levelLabel = new ex.Actor({
+    this.levelLabel = new ex.Actor({
       pos: ex.vec(10, 32),
       anchor: ex.vec(0, 0.5),
       z: 51,
     });
-    levelLabel.graphics.use(
+    this.levelLabel.graphics.use(
       new ex.Text({
         text: `Lv.${GameState.player.level}`,
         font: this.fontCache.getFont(12, ex.Color.White),
       })
     );
-    this.add(levelLabel);
-    this.uiActors.push(levelLabel);
+    this.add(this.levelLabel);
+    this.uiActors.push(this.levelLabel);
 
     // XP label
-    const xpLabel = new ex.Actor({
+    this.xpLabel = new ex.Actor({
       pos: ex.vec(60, 32),
       anchor: ex.vec(0, 0.5),
       z: 51,
     });
-    xpLabel.graphics.use(
+    this.xpLabel.graphics.use(
       new ex.Text({
         text: `XP: ${GameState.player.xp}`,
         font: this.fontCache.getFontHex(11, '#a78bfa'),
       })
     );
-    this.add(xpLabel);
-    this.uiActors.push(xpLabel);
+    this.add(this.xpLabel);
+    this.uiActors.push(this.xpLabel);
 
     // Gold label
     this.goldLabel = new ex.Actor({
@@ -861,7 +883,7 @@ export class DungeonScene extends ex.Scene {
       actor.actions.moveTo(ex.vec(targetX, targetY), moveSpeed).callMethod(() => {
         // Pause then pick new target
         const pauseDuration = pauseMin + Math.random() * (pauseMax - pauseMin);
-        setTimeout(() => {
+        this.scheduledTimeout(() => {
           if (!actor.isKilled()) {
             pickNewTarget();
           }
@@ -871,7 +893,7 @@ export class DungeonScene extends ex.Scene {
 
     // Start wandering after a random initial delay
     const initialDelay = Math.random() * 2000;
-    setTimeout(() => {
+    this.scheduledTimeout(() => {
       if (!actor.isKilled()) {
         pickNewTarget();
       }
@@ -1026,7 +1048,9 @@ export class DungeonScene extends ex.Scene {
     if (this.inputManager?.isKeyHeld('w')) dy -= 1;
     if (this.inputManager?.isKeyHeld('s')) dy += 1;
 
-    if (dx !== 0 || dy !== 0) {
+    const isMoving = dx !== 0 || dy !== 0;
+
+    if (isMoving) {
       const len = Math.sqrt(dx * dx + dy * dy);
       dx /= len;
       dy /= len;
@@ -1037,13 +1061,28 @@ export class DungeonScene extends ex.Scene {
       const bounds = this.getMovementBounds();
       this.player.pos.x = Math.max(bounds.minX, Math.min(bounds.maxX, newX));
       this.player.pos.y = Math.max(bounds.minY, Math.min(bounds.maxY, newY));
+
+      // Flip sprite based on horizontal direction
+      if (dx < 0) {
+        this.player.graphics.flipHorizontal = true;
+      } else if (dx > 0) {
+        this.player.graphics.flipHorizontal = false;
+      }
+    }
+
+    // Switch animation based on movement state
+    const targetAnim = isMoving ? 'walk' : 'idle';
+    if (targetAnim !== this.currentPlayerAnim && this.playerAnimations.has(targetAnim)) {
+      this.currentPlayerAnim = targetAnim;
+      this.player.graphics.use(this.playerAnimations.get(targetAnim)!);
     }
   }
 
   private updateHUD(): void {
     // Update HP bar (use effective max health to include equipment bonuses)
     const effectiveMaxHp = GameState.getEffectiveMaxHealth();
-    const ratio = GameState.player.health / effectiveMaxHp;
+    const currentHp = GameState.player.health;
+    const ratio = currentHp / effectiveMaxHp;
     const hpWidth = Math.max(0, 120 * ratio);
 
     let hpColor = ex.Color.fromRGB(60, 220, 100);
@@ -1054,6 +1093,30 @@ export class DungeonScene extends ex.Scene {
     }
 
     this.hpBar.graphics.use(new ex.Rectangle({ width: hpWidth, height: 14, color: hpColor }));
+
+    // Update HP text
+    this.hpTextLabel.graphics.use(
+      new ex.Text({
+        text: `${currentHp}/${effectiveMaxHp}`,
+        font: this.fontCache.getFont(11, ex.Color.White),
+      })
+    );
+
+    // Update level
+    this.levelLabel.graphics.use(
+      new ex.Text({
+        text: `Lv.${GameState.player.level}`,
+        font: this.fontCache.getFont(12, ex.Color.White),
+      })
+    );
+
+    // Update XP
+    this.xpLabel.graphics.use(
+      new ex.Text({
+        text: `XP: ${GameState.player.xp}`,
+        font: this.fontCache.getFontHex(11, '#a78bfa'),
+      })
+    );
 
     // Update gold
     this.goldLabel.graphics.use(
@@ -1076,7 +1139,7 @@ export class DungeonScene extends ex.Scene {
       if (!room.connections[direction]) continue;
 
       const dist = this.player.pos.distance(ex.vec(pos.x, pos.y));
-      if (dist < ROOM_CONFIG.doorSize) {
+      if (dist < 32) { // Reduced from doorSize (56) for better interaction feel
         this.highlightedDoor = direction;
         break;
       }
@@ -1087,6 +1150,9 @@ export class DungeonScene extends ex.Scene {
 
     // Check merchants
     this.checkNearbyMerchants(room);
+
+    // Reveal nearby hidden traps/secrets (visual hint when close)
+    this.revealNearbyHiddenContent(room);
 
     // Check content triggers
     this.checkContentTriggers(room);
@@ -1103,7 +1169,7 @@ export class DungeonScene extends ex.Scene {
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
 
-      if (this.player.pos.distance(ex.vec(x, y)) < 50) {
+      if (this.player.pos.distance(ex.vec(x, y)) < 25) { // Reduced from 50 - must get closer to secrets
         this.nearbySecret = content;
         break;
       }
@@ -1120,7 +1186,7 @@ export class DungeonScene extends ex.Scene {
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
 
-      if (this.player.pos.distance(ex.vec(x, y)) < 50) {
+      if (this.player.pos.distance(ex.vec(x, y)) < 35) { // Reduced from 50
         this.nearbyMerchant = content;
         break;
       }
@@ -1137,9 +1203,79 @@ export class DungeonScene extends ex.Scene {
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
 
-      if (this.player.pos.distance(ex.vec(x, y)) < 40) {
+      if (this.player.pos.distance(ex.vec(x, y)) < 28) { // Reduced from 40
         this.handleContentTrigger(content, room, x, y);
         break;
+      }
+    }
+  }
+
+  /**
+   * Reveal hidden traps and secrets when player gets very close
+   * Creates subtle visual hints without triggering them
+   */
+  private revealNearbyHiddenContent(room: DungeonRoom): void {
+    const { width, height, offsetX, offsetY } = ROOM_CONFIG;
+    const revealDistance = 40; // Distance at which hidden content becomes visible
+
+    for (const content of room.contents) {
+      if (content.triggered) continue;
+
+      const x = offsetX + content.x * width;
+      const y = offsetY + content.y * height;
+      const dist = this.player.pos.distance(ex.vec(x, y));
+      const contentId = `reveal_${content.id}`;
+
+      // Check if trap needs to be revealed
+      if (content.type === 'trap' && dist < revealDistance) {
+        // Only create reveal indicator if not already exists
+        if (!this.contentActors.has(contentId)) {
+          const revealActor = new ex.Actor({
+            pos: ex.vec(x, y),
+            width: 16,
+            height: 16,
+            z: 4,
+          });
+          // Subtle pulsing danger indicator
+          revealActor.graphics.use(
+            new ex.Circle({
+              radius: 8,
+              color: ex.Color.fromRGB(255, 80, 80, 0.4),
+              strokeColor: ex.Color.fromRGB(255, 60, 60, 0.6),
+              lineWidth: 2,
+            })
+          );
+          this.add(revealActor);
+          this.contentActors.set(contentId, revealActor);
+        }
+      }
+      // Check if secret needs to be revealed (undiscovered secrets get a shimmer)
+      else if (content.type === 'secret' && !content.data?.discovered && dist < revealDistance) {
+        if (!this.contentActors.has(contentId)) {
+          const revealActor = new ex.Actor({
+            pos: ex.vec(x, y),
+            width: 16,
+            height: 16,
+            z: 4,
+          });
+          // Golden shimmer for secrets
+          revealActor.graphics.use(
+            new ex.Circle({
+              radius: 10,
+              color: ex.Color.fromRGB(255, 220, 100, 0.3),
+              strokeColor: ex.Color.fromRGB(255, 200, 50, 0.5),
+              lineWidth: 2,
+            })
+          );
+          this.add(revealActor);
+          this.contentActors.set(contentId, revealActor);
+        }
+      }
+      // Remove reveal indicator if player moved away
+      else if (dist >= revealDistance && this.contentActors.has(contentId)) {
+        const actor = this.contentActors.get(contentId);
+        actor?.kill();
+        this.contentActors.delete(contentId);
       }
     }
   }
@@ -1300,14 +1436,14 @@ export class DungeonScene extends ex.Scene {
       GameState.dungeon.floorNumber = 1;
       GameState.dungeon.currentRoomId = '';
 
-      setTimeout(() => {
+      this.scheduledTimeout(() => {
         this.callbacks.onExitToTown();
       }, 2000);
     } else {
       // Next floor
       this.showFloatingMessage(`Floor ${currentFloor} Complete!`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, '#fbbf24');
 
-      setTimeout(() => {
+      this.scheduledTimeout(() => {
         const nextFloor = currentFloor + 1;
         const generator = new DungeonGenerator(this.dungeonId);
         const newFloorData = generator.generate(nextFloor);
@@ -1519,7 +1655,7 @@ export class DungeonScene extends ex.Scene {
     this.showFloatingMessage('Returning to town...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10, '#ffff64');
 
     // Clear dungeon state and return to town after delay
-    setTimeout(() => {
+    this.scheduledTimeout(() => {
       GameState.dungeon.floor = null;
       GameState.dungeon.currentRoomId = '';
       GameState.dungeon.floorNumber = 1;
@@ -1629,7 +1765,7 @@ export class DungeonScene extends ex.Scene {
     // Animate up and fade
     msg.actions.moveBy(ex.vec(0, -40), 1000);
 
-    setTimeout(() => {
+    this.scheduledTimeout(() => {
       msg.kill();
     }, 1000);
   }
@@ -1653,6 +1789,24 @@ export class DungeonScene extends ex.Scene {
     if (this.player) {
       this.player.kill();
     }
+  }
+
+  /**
+   * Schedule a timeout and track it for cleanup
+   */
+  private scheduledTimeout(callback: () => void, delay: number): void {
+    const id = setTimeout(callback, delay);
+    this.pendingTimeouts.push(id);
+  }
+
+  /**
+   * Clear all pending timeouts
+   */
+  private clearPendingTimeouts(): void {
+    for (const id of this.pendingTimeouts) {
+      clearTimeout(id);
+    }
+    this.pendingTimeouts = [];
   }
 
   private delay(ms: number): Promise<void> {

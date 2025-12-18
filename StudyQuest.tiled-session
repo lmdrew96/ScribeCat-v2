@@ -464,11 +464,16 @@
         "assets/Tiles/Tiny Town/Tiny_Town_Tiles.tsx": {
             "scaleInDock": 1,
             "scaleInEditor": 1
+        },
+        "assets/Tiles/items/items.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         }
     },
     "last.exportedFilePath": "/Users/nae/Desktop/ScribeCat-v2/assets",
     "last.externalTilesetPath": "/Users/nae/Desktop/ScribeCat-v2/assets/Tiles/Dungeon",
-    "last.imagePath": "/Users/nae/Downloads/Modern tiles_Free/Interiors_free/16x16",
+    "last.imagePath": "/Users/nae/Desktop/ScribeCat-v2/assets/ITEMS",
     "last.worldFilePath": "/Users/nae/Desktop/ScribeCat-v2/assets/WORLDS",
     "loadedWorlds": [
     ],
@@ -483,6 +488,7 @@
     "project": "StudyQuest.tiled-project",
     "property.type": "float",
     "recentFiles": [
+        "assets/Tiles/items/items.tsx",
         "assets/Tiles/Interior/interior2.tsx",
         "assets/Tiles/Interior/interiors.tsx",
         "assets/Tiles/Interior/test.tsx",
@@ -493,8 +499,7 @@
         "assets/MAPS/Tile Maps/dungeon_room6.tmx",
         "assets/MAPS/Tile Maps/dungeon_room5.tmx",
         "assets/MAPS/Tile Maps/dungeon_room4.tmx",
-        "assets/MAPS/Tile Maps/dungeon_room3.tmx",
-        "assets/MAPS/Tile Maps/dungeon_room2.tmx"
+        "assets/MAPS/Tile Maps/dungeon_room3.tmx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
     "tileset.lastUsedFormat": "tsx",
@@ -504,5 +509,5 @@
         "height": 16,
         "width": 16
     },
-    "tileset.type": 0
+    "tileset.type": 1
 }

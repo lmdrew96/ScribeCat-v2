@@ -76,6 +76,9 @@ export class HomeScene extends ex.Scene {
   // Input cooldown to prevent key events carrying over from scene transitions
   private inputEnabled = false;
 
+  // Pending timeout IDs for cleanup
+  private pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+
   // Decoration state
   private decorateMode = false;
   private selectedDecorationIndex = 0;
@@ -95,7 +98,12 @@ export class HomeScene extends ex.Scene {
 
     // Disable input briefly to prevent key events from previous scene
     this.inputEnabled = false;
-    setTimeout(() => { this.inputEnabled = true; }, 200);
+    
+    // Clear pending timeouts from previous activation
+    this.clearPendingTimeouts();
+    
+    // Schedule input enable with tracking
+    this.scheduledTimeout(() => { this.inputEnabled = true; }, 200);
 
     // Reset state
     this.decorateMode = false;
@@ -128,6 +136,9 @@ export class HomeScene extends ex.Scene {
   onDeactivate(): void {
     // Reset input state to prevent stale handlers from firing
     this.inputEnabled = false;
+
+    // Cancel all pending timeouts to prevent callbacks after scene exit
+    this.clearPendingTimeouts();
 
     this.player = null;
     this.door = null;
@@ -262,7 +273,10 @@ export class HomeScene extends ex.Scene {
 
   private setupInputHandlers(): void {
     const checkPlayer = () => {
-      if (this.player?.getInputManager()) {
+      // Skip if scene is no longer active
+      if (!this.player) return;
+      
+      if (this.player.getInputManager()) {
         const input = this.player.getInputManager()!;
 
         // ESC to exit or cancel decorate mode
@@ -322,10 +336,29 @@ export class HomeScene extends ex.Scene {
           }
         });
       } else {
-        setTimeout(checkPlayer, 100);
+        // Retry next frame using tracked timeout
+        this.scheduledTimeout(checkPlayer, 100);
       }
     };
     checkPlayer();
+  }
+
+  /**
+   * Schedule a timeout and track it for cleanup
+   */
+  private scheduledTimeout(callback: () => void, delay: number): void {
+    const id = setTimeout(callback, delay);
+    this.pendingTimeouts.push(id);
+  }
+
+  /**
+   * Clear all pending timeouts
+   */
+  private clearPendingTimeouts(): void {
+    for (const id of this.pendingTimeouts) {
+      clearTimeout(id);
+    }
+    this.pendingTimeouts = [];
   }
 
   // --- Decoration System ---
