@@ -163,60 +163,57 @@ const TOWN_TILE_BASE = '../../assets/tiles/Tiny Town/';
 // Base path for water/grass tiles
 const WATER_TILE_BASE = '../../assets/tiles/GrassWaterTiles/';
 
-// Kenney Tiny Town tile mapping (based on preview layout)
-// Row 0: Grass, Row 1: Trees, Row 2: Roofs, Row 3: Fences
-// Row 4-5: Walls, Row 6: Paths, Row 7: Water/Bridge, Row 8-9: Props
+// Kenney Tiny Town tile mapping using actual asset file names
 // Tiles are 16x16 pixels
 export const TILE_IMAGES: Partial<Record<TileType, string>> = {
-  [TileType.GRASS]: `${TOWN_TILE_BASE}tile_0000.png`,    // Grass center (Row 0)
-  [TileType.PATH]: `${TOWN_TILE_BASE}tile_0072.png`,     // Path/road tile (Row 6)
-  [TileType.WATER]: `${WATER_TILE_BASE}tile_0037.png`,   // Solid water center
-  [TileType.BRIDGE]: `${TOWN_TILE_BASE}tile_0088.png`,   // Bridge/planks (Row 7)
-  [TileType.TREE]: `${TOWN_TILE_BASE}tile_0012.png`,     // Tree (Row 1)
-  [TileType.ROCK]: `${TOWN_TILE_BASE}tile_0108.png`,     // Rock/stone (Row 9)
-  [TileType.FLOWER]: `${TOWN_TILE_BASE}tile_0018.png`,   // Flower/bush (Row 1)
-  [TileType.BUILDING_FLOOR]: `${TOWN_TILE_BASE}tile_0073.png`, // Door mat (Row 6)
-  // Shore edge tiles (GrassWaterTiles - 3 rows: top 0018-0020, middle 0036-0038, bottom 0054-0056)
-  [TileType.WATER_SHORE_TL]: `${WATER_TILE_BASE}tile_0018.png`,  // Top-left corner
-  [TileType.WATER_SHORE_T]: `${WATER_TILE_BASE}tile_0019.png`,   // Top edge
-  [TileType.WATER_SHORE_TR]: `${WATER_TILE_BASE}tile_0020.png`,  // Top-right corner
-  [TileType.WATER_SHORE_L]: `${WATER_TILE_BASE}tile_0036.png`,   // Left edge
-  [TileType.WATER_SHORE_R]: `${WATER_TILE_BASE}tile_0038.png`,   // Right edge
-  [TileType.WATER_SHORE_BL]: `${WATER_TILE_BASE}tile_0054.png`,  // Bottom-left corner
-  [TileType.WATER_SHORE_B]: `${WATER_TILE_BASE}tile_0055.png`,   // Bottom edge
-  [TileType.WATER_SHORE_BR]: `${WATER_TILE_BASE}tile_0056.png`,  // Bottom-right corner
+  [TileType.GRASS]: `${WATER_TILE_BASE}grass_center.png`,              // Grass center
+  [TileType.PATH]: `${TOWN_TILE_BASE}stone_path.png`,                  // Stone path/road
+  [TileType.WATER]: `${WATER_TILE_BASE}water_mid.png`,                 // Solid water center
+  [TileType.BRIDGE]: `${TOWN_TILE_BASE}mid_rail.png`,                  // Bridge/planks
+  [TileType.TREE]: `${TOWN_TILE_BASE}green_tree_top.png`,              // Tree
+  [TileType.ROCK]: `${TOWN_TILE_BASE}pot.png`,                         // Rock/stone (using pot as placeholder)
+  [TileType.FLOWER]: `${WATER_TILE_BASE}flower_grass_center.png`,      // Flower/bush
+  [TileType.BUILDING_FLOOR]: `${TOWN_TILE_BASE}stone_path.png`,        // Door mat (reuse stone path)
+  // Shore edge tiles (GrassWaterTiles)
+  [TileType.WATER_SHORE_TL]: `${WATER_TILE_BASE}water_top_left.png`,   // Top-left corner
+  [TileType.WATER_SHORE_T]: `${WATER_TILE_BASE}water_top_mid.png`,     // Top edge
+  [TileType.WATER_SHORE_TR]: `${WATER_TILE_BASE}water_top right.png`,  // Top-right corner (note space in filename)
+  [TileType.WATER_SHORE_L]: `${WATER_TILE_BASE}water_mid_left.png`,    // Left edge
+  [TileType.WATER_SHORE_R]: `${WATER_TILE_BASE}water_mid_right.png`,   // Right edge
+  [TileType.WATER_SHORE_BL]: `${WATER_TILE_BASE}water_bottom_left.png`,  // Bottom-left corner
+  [TileType.WATER_SHORE_B]: `${WATER_TILE_BASE}water_bottom_mid.png`,    // Bottom edge
+  [TileType.WATER_SHORE_BR]: `${WATER_TILE_BASE}water_bottom_right.png`, // Bottom-right corner
 };
 
-// Building sprites (using Kenney tiles for walls/roofs)
-// Row 2 (24-35): Roofs, Row 4-5 (48-71): Walls with windows/doors
+// Building sprites using actual asset file names
 export const BUILDING_TILES = {
-  // Wall tiles (Row 4-5: tiles 48-71)
-  wallStone: `${TOWN_TILE_BASE}tile_0060.png`,
-  wallWood: `${TOWN_TILE_BASE}tile_0048.png`,
+  // Wall tiles
+  wallStone: `${TOWN_TILE_BASE}mid_stone_wall.png`,
+  wallWood: `${TOWN_TILE_BASE}mid_wood_wall.png`,
 
-  // Roof tiles (Row 2: tiles 24-35)
-  roofBlue: `${TOWN_TILE_BASE}tile_0024.png`,
-  roofBrown: `${TOWN_TILE_BASE}tile_0027.png`,
-  roofOrange: `${TOWN_TILE_BASE}tile_0030.png`,
+  // Roof tiles
+  roofBlue: `${TOWN_TILE_BASE}mid_castle_roof.png`,
+  roofBrown: `${TOWN_TILE_BASE}mid_wood_roof.png`,
+  roofOrange: `${TOWN_TILE_BASE}mid_stone_roof.png`,
 
-  // Door tiles (Row 4-5)
-  doorWood: `${TOWN_TILE_BASE}tile_0049.png`,
-  doorOpen: `${TOWN_TILE_BASE}tile_0050.png`,
+  // Door tiles
+  doorWood: `${TOWN_TILE_BASE}wood_door.png`,
+  doorOpen: `${TOWN_TILE_BASE}wood_doorway.png`,
 
-  // Window tiles (Row 4-5)
-  window: `${TOWN_TILE_BASE}tile_0051.png`,
+  // Window tiles
+  window: `${TOWN_TILE_BASE}wood_window.png`,
 
-  // Signs (Row 8: props)
-  signShop: `${TOWN_TILE_BASE}tile_0096.png`,
-  signInn: `${TOWN_TILE_BASE}tile_0097.png`,
+  // Signs
+  signShop: `${TOWN_TILE_BASE}sign.png`,
+  signInn: `${TOWN_TILE_BASE}sign.png`,
 };
 
-// Props/decorations (Row 8-9: tiles 96-119)
+// Props/decorations using actual asset file names
 export const PROP_TILES = {
-  barrel: `${TOWN_TILE_BASE}tile_0098.png`,
-  crate: `${TOWN_TILE_BASE}tile_0099.png`,
-  fence: `${TOWN_TILE_BASE}tile_0036.png`,  // Row 3: fences
-  lamp: `${TOWN_TILE_BASE}tile_0100.png`,
+  barrel: `${TOWN_TILE_BASE}pot.png`,
+  crate: `${TOWN_TILE_BASE}log.png`,
+  fence: `${TOWN_TILE_BASE}mid_fence.png`,
+  lamp: `${TOWN_TILE_BASE}coin.png`,  // Using coin as placeholder (no lamp available)
 };
 
 // List of all tile images to preload

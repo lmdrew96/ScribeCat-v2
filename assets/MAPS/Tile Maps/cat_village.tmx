@@ -207,12 +207,12 @@
 </data>
  </layer>
  <objectgroup id="8" name="positions">
-  <object id="93" name="home_door" x="464" y="64" width="16" height="16"/>
-  <object id="94" name="shop_door" x="560" y="96" width="16" height="16"/>
-  <object id="96" name="inn_door" x="96" y="400" width="16" height="16"/>
-  <object id="98" name="barn_door" x="352" y="352" width="32" height="16"/>
-  <object id="99" name="dungeon_door" x="160" y="128" width="32" height="16"/>
-  <object id="102" name="spawn" x="464" y="96">
+  <object id="93" name="home_door" x="468" y="52" width="8" height="12"/>
+  <object id="94" name="shop_door" x="564" y="84" width="8" height="12"/>
+  <object id="96" name="inn_door" x="100" y="388" width="8" height="12"/>
+  <object id="98" name="barn_door" x="356" y="340" width="24" height="12"/>
+  <object id="99" name="dungeon_door" x="168" y="108" width="16" height="20"/>
+  <object id="102" name="spawn" x="472" y="76">
    <point/>
   </object>
  </objectgroup>
@@ -239,7 +239,7 @@
   <object id="130" x="304" y="400" width="48" height="16"/>
   <object id="131" x="300" y="340" width="36" height="12"/>
   <object id="132" x="400" y="368" width="16" height="16"/>
-  <object id="133" x="48" y="336" width="80" height="48"/>
+  <object id="133" x="48" y="336" width="80" height="64"/>
   <object id="134" x="128" y="384" width="16" height="16"/>
   <object id="135" x="192" y="228" width="64" height="12"/>
   <object id="136" x="192" y="240" width="16" height="16"/>
@@ -273,11 +273,11 @@
   <object id="166" x="624" y="96" width="12" height="16"/>
   <object id="167" x="612" y="80" width="12" height="16"/>
   <object id="168" x="592" y="80" width="16" height="16"/>
-  <object id="169" x="528" y="48" width="64" height="32"/>
-  <object id="170" x="432" y="16" width="64" height="32"/>
+  <object id="169" x="528" y="48" width="64" height="48"/>
+  <object id="170" x="432" y="16" width="64" height="48"/>
   <object id="171" x="492" y="0" width="28" height="20"/>
   <object id="172" x="416" y="0" width="28" height="32"/>
-  <object id="173" x="256" y="4" width="32" height="28"/>
+  <object id="173" x="256" y="0" width="32" height="32"/>
   <object id="174" x="224" y="0" width="32" height="16"/>
   <object id="175" x="88" y="56" width="32" height="28"/>
   <object id="176" x="48" y="16" width="32" height="32"/>
@@ -290,8 +290,8 @@
   <object id="183" x="0" y="176" width="32" height="64"/>
   <object id="184" x="80" y="208" width="32" height="68"/>
   <object id="185" x="112" y="224" width="32" height="32"/>
-  <object id="186" x="144" y="64" width="64" height="48"/>
+  <object id="186" x="144" y="64" width="64" height="64"/>
   <object id="187" x="160" y="48" width="32" height="16"/>
-  <object id="189" x="336" y="288" width="64" height="32"/>
+  <object id="189" x="336" y="288" width="64" height="64"/>
  </objectgroup>
 </map>

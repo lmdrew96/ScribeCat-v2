@@ -19,13 +19,22 @@ import { saveDungeonProgress } from '../../services/StudyQuestService.js';
 import { type DungeonInfo, getAllDungeonInfo, isDungeonUnlocked } from '../../data/dungeons.js';
 import { loadBackground, createBackgroundActor, createFallbackBackground } from '../../loaders/BackgroundLoader.js';
 import { AudioManager } from '../../audio/AudioManager.js';
+import {
+  preloadTownTiles,
+  createTownTilemapActors,
+  getTilemapDimensions,
+  isPixelWalkable,
+  getSpawnPixelPosition,
+  getTownDoorPositions,
+  clearColliderCache,
+} from '../loaders/TownTilemapLoader.js';
 
-// Map dimensions
-const MAP_WIDTH = 640;
-const MAP_HEIGHT = 480;
+// Map dimensions - will be updated from TMX when using tilemap
+let MAP_WIDTH = 640;
+let MAP_HEIGHT = 480;
 
-// Camera zoom
-const CAMERA_ZOOM = 1.5;
+// Camera zoom - reduced for wider view of cat_village
+const CAMERA_ZOOM = 1.0;
 
 // Building configurations
 interface BuildingConfig {
@@ -102,12 +111,42 @@ class PlayerActor extends ex.Actor {
     const movement = this.inputManager.getMovementVector();
     this.vel = movement.scale(PLAYER_SPEED);
 
-    // Constrain to map bounds
+    // Calculate next position
     const nextX = this.pos.x + this.vel.x * (delta / 1000);
     const nextY = this.pos.y + this.vel.y * (delta / 1000);
 
-    if (nextX < 20 || nextX > MAP_WIDTH - 20) this.vel.x = 0;
-    if (nextY < 200 || nextY > MAP_HEIGHT - 20) this.vel.y = 0;
+    // Check collisions using TMX collision rectangles
+    // Check X movement separately from Y for smoother sliding along walls
+    if (this.vel.x !== 0) {
+      if (!isPixelWalkable(nextX, this.pos.y)) {
+        this.vel.x = 0;
+      }
+    }
+    if (this.vel.y !== 0) {
+      if (!isPixelWalkable(this.pos.x, nextY)) {
+        this.vel.y = 0;
+      }
+    }
+
+    // Also check diagonal movement
+    if (this.vel.x !== 0 && this.vel.y !== 0) {
+      if (!isPixelWalkable(nextX, nextY)) {
+        // Try to slide along walls
+        if (isPixelWalkable(nextX, this.pos.y)) {
+          this.vel.y = 0;
+        } else if (isPixelWalkable(this.pos.x, nextY)) {
+          this.vel.x = 0;
+        } else {
+          this.vel = ex.Vector.Zero;
+        }
+      }
+    }
+
+    // Constrain to map bounds as fallback
+    const finalNextX = this.pos.x + this.vel.x * (delta / 1000);
+    const finalNextY = this.pos.y + this.vel.y * (delta / 1000);
+    if (finalNextX < 16 || finalNextX > MAP_WIDTH - 16) this.vel.x = 0;
+    if (finalNextY < 16 || finalNextY > MAP_HEIGHT - 16) this.vel.y = 0;
 
     // Update animation
     const isMoving = movement.x !== 0 || movement.y !== 0;
@@ -171,7 +210,7 @@ class BuildingActor extends ex.Actor {
 }
 
 /**
- * Door Actor
+ * Door Actor - invisible interaction zone for TMX doors
  */
 class DoorActor extends ex.Actor {
   public buildingConfig: BuildingConfig;
@@ -188,13 +227,8 @@ class DoorActor extends ex.Actor {
   }
 
   onInitialize(): void {
-    this.graphics.use(new ex.Rectangle({
-      width: 40,
-      height: 30,
-      color: ex.Color.fromHex('#654321'),
-      strokeColor: ex.Color.Black,
-      lineWidth: 2,
-    }));
+    // Don't render any graphics - the door is already rendered in the TMX tilemap
+    // This actor is just for interaction detection
   }
 }
 
@@ -207,6 +241,13 @@ export class TownScene extends ex.Scene {
   private buildings: BuildingActor[] = [];
   private doors: DoorActor[] = [];
 
+  // Tilemap state
+  private tileActors: ex.Actor[] = [];
+  private useTilemap = true; // Set to false to use background image instead
+  private tilemapScale = 2;
+  private tilemapOffsetX = 0;
+  private tilemapOffsetY = 0;
+
   // Input cooldown to prevent key events carrying over from scene transitions
   private inputEnabled = false;
 
@@ -216,7 +257,8 @@ export class TownScene extends ex.Scene {
   private selectedDungeonIndex = 0;
   private dungeonList: DungeonInfo[] = [];
 
-  // HUD elements
+  // HUD elements (using ScreenElement for screen-space positioning)
+  private hudContainer: ex.ScreenElement | null = null;
   private levelLabel: ex.Label | null = null;
   private goldLabel: ex.Label | null = null;
   private saveStatusLabel: ex.Label | null = null;
@@ -256,16 +298,26 @@ export class TownScene extends ex.Scene {
 
     this.clear();
 
-    // Setup scene
-    this.setupBackground();
+    // Setup scene - use async initialization
+    this.initializeScene(catColor);
+
+    console.log('=== StudyQuest Town (Excalibur) ===');
+    console.log(`Cat: ${catColor}, Level: ${GameState.player.level}, Gold: ${GameState.player.gold}`);
+  }
+
+  /**
+   * Async scene initialization - ensures tilemap is loaded before setting up doors
+   */
+  private async initializeScene(catColor: CatColor): Promise<void> {
+    // Setup background first (loads TMX file)
+    await this.setupBackground();
+    
+    // Now that TMX is loaded, setup buildings/doors
     this.setupBuildings();
     this.setupPlayer(catColor);
     this.setupHUD();
     this.setupCamera();
     this.setupInputHandlers();
-
-    console.log('=== StudyQuest Town (Excalibur) ===');
-    console.log(`Cat: ${catColor}, Level: ${GameState.player.level}, Gold: ${GameState.player.gold}`);
   }
 
   onDeactivate(): void {
@@ -275,55 +327,105 @@ export class TownScene extends ex.Scene {
     this.player = null;
     this.buildings = [];
     this.doors = [];
+    this.tileActors = [];
     this.dungeonUIElements = [];
+    this.hudContainer = null;
     this.levelLabel = null;
     this.goldLabel = null;
     this.saveStatusLabel = null;
   }
 
   private async setupBackground(): Promise<void> {
-    // Try to load the town background image
-    const bgImage = await loadBackground('town');
-
-    if (bgImage) {
-      // Use the actual background image with scale-and-crop
-      const bgActor = createBackgroundActor(bgImage, MAP_WIDTH, MAP_HEIGHT, 0);
-      this.add(bgActor);
+    if (this.useTilemap) {
+      // Use tile-based map
+      await this.setupTilemap();
     } else {
-      // Fallback to solid color if image fails to load
-      const grass = new ex.Actor({
-        pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT / 2),
-        width: MAP_WIDTH,
-        height: MAP_HEIGHT,
-        z: 0,
-      });
-      grass.graphics.use(new ex.Rectangle({
-        width: MAP_WIDTH,
-        height: MAP_HEIGHT,
-        color: ex.Color.fromHex('#228B22'),
-      }));
-      this.add(grass);
+      // Try to load the town background image
+      const bgImage = await loadBackground('town');
 
-      // Path/walkable area
-      const path = new ex.Actor({
-        pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT - 100),
-        width: MAP_WIDTH - 40,
-        height: 200,
-        z: 1,
-      });
-      path.graphics.use(new ex.Rectangle({
-        width: MAP_WIDTH - 40,
-        height: 200,
-        color: ex.Color.fromHex('#D2B48C'),
-      }));
-      this.add(path);
+      if (bgImage) {
+        // Use the actual background image with scale-and-crop
+        const bgActor = createBackgroundActor(bgImage, MAP_WIDTH, MAP_HEIGHT, 0);
+        this.add(bgActor);
+      } else {
+        // Fallback to solid color if image fails to load
+        const grass = new ex.Actor({
+          pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT / 2),
+          width: MAP_WIDTH,
+          height: MAP_HEIGHT,
+          z: 0,
+        });
+        grass.graphics.use(new ex.Rectangle({
+          width: MAP_WIDTH,
+          height: MAP_HEIGHT,
+          color: ex.Color.fromHex('#228B22'),
+        }));
+        this.add(grass);
+
+        // Path/walkable area
+        const path = new ex.Actor({
+          pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT - 100),
+          width: MAP_WIDTH - 40,
+          height: 200,
+          z: 1,
+        });
+        path.graphics.use(new ex.Rectangle({
+          width: MAP_WIDTH - 40,
+          height: 200,
+          color: ex.Color.fromHex('#D2B48C'),
+        }));
+        this.add(path);
+      }
     }
 
     // Start town music
     AudioManager.playSceneMusic('town');
   }
 
+  /**
+   * Setup tile-based background using cat_village.tmx
+   */
+  private async setupTilemap(): Promise<void> {
+    // Preload tile images
+    await preloadTownTiles();
+
+    // Get tilemap dimensions and update map size
+    const dims = getTilemapDimensions(this.tilemapScale);
+    MAP_WIDTH = dims.width;
+    MAP_HEIGHT = dims.height;
+
+    // No offset needed - tilemap fills the map area
+    this.tilemapOffsetX = 0;
+    this.tilemapOffsetY = 0;
+
+    // Clear collider cache (in case scale changed)
+    clearColliderCache();
+
+    // Create tile actors
+    this.tileActors = createTownTilemapActors(
+      this.tilemapOffsetX,
+      this.tilemapOffsetY,
+      this.tilemapScale,
+      -10 // Base z-index for tiles
+    );
+
+    // Add all tile actors to the scene
+    for (const actor of this.tileActors) {
+      this.add(actor);
+    }
+
+    console.log(`[TownScene] Created ${this.tileActors.length} tile actors, map size: ${MAP_WIDTH}x${MAP_HEIGHT}`);
+  }
+
   private setupBuildings(): void {
+    // When using tilemap, buildings are rendered in the TMX file
+    // Only create doors from the TMX door positions
+    if (this.useTilemap) {
+      this.setupTilemapDoors();
+      return;
+    }
+
+    // Fallback: Use hardcoded buildings for non-tilemap mode
     for (const config of BUILDINGS) {
       // Building
       const building = new BuildingActor(config);
@@ -365,62 +467,128 @@ export class TownScene extends ex.Scene {
     }
   }
 
+  /**
+   * Setup doors from the TMX file positions
+   */
+  private setupTilemapDoors(): void {
+    const doorPositions = getTownDoorPositions(this.tilemapOffsetX, this.tilemapOffsetY, this.tilemapScale);
+    
+    console.log(`[TownScene] Found ${doorPositions.length} door positions from TMX`);
+
+    // Map TMX door names to building configs
+    const doorNameToScene: Record<string, { scene: string; label: string }> = {
+      'home_door': { scene: 'home', label: 'Home' },
+      'shop_door': { scene: 'shop', label: 'Shop' },
+      'inn_door': { scene: 'inn', label: 'Inn' },
+      'dungeon_door': { scene: 'dungeon', label: 'Dungeon' },
+      'barn_door': { scene: 'barn', label: 'Barn' },
+    };
+
+    for (const door of doorPositions) {
+      const mapping = doorNameToScene[door.name];
+      if (!mapping) {
+        console.log(`[TownScene] Skipping unknown door: ${door.name}`);
+        continue;
+      }
+
+      console.log(`[TownScene] Creating door: ${door.name} at (${door.x}, ${door.y}) size ${door.width}x${door.height}`);
+
+      // Create a pseudo BuildingConfig for the door
+      const config: BuildingConfig = {
+        name: door.name.replace('_door', ''),
+        label: mapping.label,
+        scene: mapping.scene,
+        x: door.x,
+        y: door.y,
+        width: door.width,
+        height: door.height,
+        color: '#8B4513',
+        doorX: door.x + door.width / 2,
+        doorY: door.y + door.height / 2,
+      };
+
+      // Create door actor at the door position
+      const doorActor = new DoorActor(config);
+      this.add(doorActor);
+      this.doors.push(doorActor);
+
+      // Labels removed - building names are shown on signs in the TMX
+    }
+
+    console.log(`[TownScene] Created ${this.doors.length} doors from TMX`);
+  }
+
   private setupPlayer(catColor: CatColor): void {
-    // Spawn in center of walkable area
+    // Determine spawn position
+    let spawnX = MAP_WIDTH / 2;
+    let spawnY = MAP_HEIGHT - 100;
+
+    if (this.useTilemap) {
+      // Use tilemap spawn position
+      const spawn = getSpawnPixelPosition(this.tilemapOffsetX, this.tilemapOffsetY, this.tilemapScale);
+      spawnX = spawn.x;
+      spawnY = spawn.y;
+    }
+
     this.player = new PlayerActor({
-      x: MAP_WIDTH / 2,
-      y: MAP_HEIGHT - 100,
+      x: spawnX,
+      y: spawnY,
       catColor,
     });
     this.add(this.player);
   }
 
   private setupHUD(): void {
-    // HUD needs to be screen-space fixed, which Excalibur handles differently
-    // We'll create HUD elements with high z-index and update position in onPreUpdate
-
-    // HUD background
-    const hudBg = new ex.Actor({
-      pos: ex.Vector.Zero,
-      width: 120,
-      height: 50,
-      anchor: ex.Vector.Zero,
+    // Use ScreenElement for HUD - stays fixed in screen space regardless of camera
+    this.hudContainer = new ex.ScreenElement({
+      pos: ex.vec(0, 0),
       z: 1000,
     });
-    hudBg.graphics.use(new ex.Rectangle({
+
+    // HUD background graphic
+    const hudBgGraphic = new ex.Rectangle({
       width: 120,
       height: 50,
       color: ex.Color.fromRGB(0, 0, 0, 0.6),
-    }));
-    this.add(hudBg);
+    });
+    this.hudContainer.graphics.use(hudBgGraphic);
+    this.add(this.hudContainer);
 
-    // Level
-    this.levelLabel = new ex.Label({
+    // Level label (as child screen element)
+    const levelElement = new ex.ScreenElement({
+      pos: ex.vec(10, 12),
+      z: 1001,
+    });
+    levelElement.graphics.use(new ex.Text({
       text: `Lv.${GameState.player.level}`,
-      pos: new ex.Vector(10, 15),
       font: new ex.Font({ size: 12, color: ex.Color.White }),
+    }));
+    this.add(levelElement);
+    this.levelLabel = levelElement as unknown as ex.Label;
+
+    // Gold label
+    const goldElement = new ex.ScreenElement({
+      pos: ex.vec(10, 32),
       z: 1001,
     });
-    this.add(this.levelLabel);
-
-    // Gold
-    this.goldLabel = new ex.Label({
+    goldElement.graphics.use(new ex.Text({
       text: `Gold: ${GameState.player.gold}`,
-      pos: new ex.Vector(10, 35),
       font: new ex.Font({ size: 13, color: ex.Color.fromHex('#FBBF24') }),
-      z: 1001,
-    });
-    this.add(this.goldLabel);
+    }));
+    this.add(goldElement);
+    this.goldLabel = goldElement as unknown as ex.Label;
 
-    // Controls hint (centered at top)
-    const controls = new ex.Label({
-      text: 'Arrow/WASD: Move | ENTER: Interact | I: Inventory | S: Save',
-      pos: new ex.Vector(MAP_WIDTH / 2, 10),
-      font: new ex.Font({ size: 12, color: ex.Color.fromRGB(100, 100, 120) }),
+    // Controls hint (centered at top of screen)
+    const controlsElement = new ex.ScreenElement({
+      pos: ex.vec(CANVAS_WIDTH / 2, 5),
       z: 1000,
+      anchor: ex.vec(0.5, 0),
     });
-    controls.graphics.anchor = new ex.Vector(0.5, 0);
-    this.add(controls);
+    controlsElement.graphics.use(new ex.Text({
+      text: 'Arrow/WASD: Move | ENTER: Interact | I: Inventory',
+      font: new ex.Font({ size: 11, color: ex.Color.fromRGB(150, 150, 170) }),
+    }));
+    this.add(controlsElement);
   }
 
   private setupCamera(): void {
@@ -450,8 +618,7 @@ export class TownScene extends ex.Scene {
       this.camera.pos = new ex.Vector(camX, camY);
     }
 
-    // Update HUD positions to follow camera (screen-space simulation)
-    // Note: In a full implementation, we'd use Excalibur's ScreenElement
+    // HUD elements use ScreenElement so they automatically stay fixed to screen
   }
 
   private setupInputHandlers(): void {
@@ -521,10 +688,14 @@ export class TownScene extends ex.Scene {
   private checkDoorInteraction(): void {
     if (!this.player) return;
 
+    // Increased interaction distance for scaled tilemap (scale=2, doors are larger)
+    const interactionDistance = 80;
+
     for (const door of this.doors) {
       const dist = this.player.pos.distance(door.pos);
-      if (dist < 50) {
+      if (dist < interactionDistance) {
         const config = door.buildingConfig;
+        console.log(`[TownScene] Entering ${config.name} (distance: ${dist.toFixed(1)})`);
 
         if (config.name === 'dungeon') {
           this.showDungeonUI();

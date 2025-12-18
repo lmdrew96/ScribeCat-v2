@@ -492,12 +492,12 @@ export class BattleScene extends ex.Scene {
 
     await this.showMessage(`You attack for ${damage} damage!`);
 
-    // Flash enemy
+    // Flash enemy white to indicate hit
     if (this.enemyEntity) {
-      const origColor = this.enemyEntity.graphics.current;
+      const origGraphic = this.enemyEntity.graphics.current; // Save original BEFORE replacing
       this.enemyEntity.graphics.use(new ex.Rectangle({ width: 80, height: 80, color: ex.Color.White }));
       await this.delay(100);
-      if (origColor) this.enemyEntity.graphics.use(origColor);
+      if (origGraphic) this.enemyEntity.graphics.use(origGraphic);
     }
 
     if (isDefeated(this.enemyStats)) {
@@ -571,9 +571,9 @@ export class BattleScene extends ex.Scene {
 
       await this.showMessage(`${this.sceneData.enemyDef.name} attacks for ${damage} damage!`);
 
-      // Flash player
+      // Flash player red to indicate damage taken
       if (this.playerEntity) {
-        const origGraphic = this.playerEntity.graphics.current;
+        const origGraphic = this.playerEntity.graphics.current; // Save original BEFORE replacing
         this.playerEntity.graphics.use(new ex.Rectangle({ width: 64, height: 64, color: ex.Color.Red }));
         await this.delay(100);
         if (origGraphic) this.playerEntity.graphics.use(origGraphic);

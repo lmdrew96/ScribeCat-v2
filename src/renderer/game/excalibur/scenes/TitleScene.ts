@@ -79,7 +79,7 @@ export class TitleScene extends ex.Scene {
     this.setupInputHandlers();
 
     // Play title music
-    AudioManager.getInstance().playSceneMusic('title');
+    AudioManager.playSceneMusic('title');
 
     console.log('=== StudyQuest Title Scene (Excalibur) ===');
   }
@@ -501,7 +501,7 @@ export class TitleScene extends ex.Scene {
     this.settingsSelection = 0;
     this.clearSettingsMenu();
 
-    const audio = AudioManager.getInstance();
+    const audio = AudioManager;
     const menuX = CANVAS_WIDTH / 2;
     const menuStartY = 120;
     const rowHeight = 50;
@@ -643,7 +643,7 @@ export class TitleScene extends ex.Scene {
     if (!engine) return;
 
     this.inputManager = new InputManager(engine);
-    const audio = AudioManager.getInstance();
+    const audio = AudioManager;
 
     // Navigate settings
     this.inputManager.onKeyPress('up', () => {
@@ -691,7 +691,7 @@ export class TitleScene extends ex.Scene {
   private adjustSetting(delta: number): void {
     if (!this.settingsMenuActive) return;
 
-    const audio = AudioManager.getInstance();
+    const audio = AudioManager;
     const step = 0.1; // 10% increments
 
     switch (this.settingsSelection) {
@@ -721,7 +721,7 @@ export class TitleScene extends ex.Scene {
   private activateSetting(): void {
     if (!this.settingsMenuActive) return;
 
-    const audio = AudioManager.getInstance();
+    const audio = AudioManager;
 
     switch (this.settingsSelection) {
       case 2: // Toggle Music
@@ -741,7 +741,7 @@ export class TitleScene extends ex.Scene {
   private refreshSettingsMenu(): void {
     this.clearSettingsMenu();
     
-    const audio = AudioManager.getInstance();
+    const audio = AudioManager;
     const menuX = CANVAS_WIDTH / 2;
     const menuStartY = 120;
     const rowHeight = 50;

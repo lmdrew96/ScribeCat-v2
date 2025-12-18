@@ -66,57 +66,57 @@ const CAT_ANIMATION_FILES: Record<CatColor, Record<CatAnimationType, string>> = 
   siamese: {
     idle: 'IdleCattt', idle2: 'Idle2Cattt', walk: 'RunCattt', run: 'RunCattt',
     sit: 'Sittinggg', sleep: 'SleepCattt', attack: 'AttackCattt', hurt: 'HurtCatttt',
-    die: 'DieCattt', die2: 'Die2Cattt', jump: 'JumpCatttt',
+    die: 'DieCattt', die2: 'Die2', jump: 'JumpCatttt',
   },
   bengal: {
-    idle: 'IdleCattt', idle2: 'Idle2Cattt', walk: 'RunCattt', run: 'RunCattt',
-    sit: 'Sittinggg', sleep: 'SleepCattt', attack: 'AttackCattt', hurt: 'HurtCatttt',
-    die: 'DieCattt', die2: 'Die2Cattt', jump: 'JumpCatttt',
+    idle: 'IdleCatt', idle2: 'Idle2Catt', walk: 'RunCatt', run: 'RunCatt',
+    sit: 'Sittingg', sleep: 'SleepCatt', attack: 'AttackCatt', hurt: 'HurtCattt',
+    die: 'DieCatt', die2: 'Die2Catt', jump: 'JumpCattt',
   },
   tricolor: {
-    idle: 'IdleCattt', idle2: 'Idle2Cattt', walk: 'RunCattt', run: 'RunCattt',
-    sit: 'Sittinggg', sleep: 'SleepCattt', attack: 'AttackCattt', hurt: 'HurtCatttt',
-    die: 'DieCattt', die2: 'Die2Cattt', jump: 'JumpCatttt',
+    idle: 'IdleCatt', idle2: 'Idle2Catt', walk: 'RunCatt', run: 'RunCatt',
+    sit: 'Sittingg', sleep: 'SleepCatt', attack: 'AttackCatt', hurt: 'HurtCattt',
+    die: 'DieCatt', die2: 'Die', jump: 'JumpCattt',
   },
   egypt: {
+    idle: 'IdleCatb', idle2: 'Idle2Catb', walk: 'RunCatb', run: 'RunCatb',
+    sit: 'Sittingb', sleep: 'SleepCatb', attack: 'AttackCatb', hurt: 'HurtCatb',
+    die: 'DieCatb', die2: 'Die2Catb', jump: 'JumpCabt',
+  },
+  batman: {
+    idle: 'IdleCatt', idle2: 'IdleCatt', walk: 'RunCatt', run: 'RunCatt',
+    sit: 'Sittingg', sleep: 'SleepCatt', attack: 'AttackCatt', hurt: 'HurtCattt',
+    die: 'DieCatt', die2: 'Die2Catt', jump: 'JumpCattt',
+  },
+  demon: {
+    idle: 'IdleCatd', idle2: 'Idle2Catd', walk: 'RunCatd', run: 'RunCatd',
+    sit: 'Sittingd', sleep: 'SleepCatd', attack: 'AttackCatd', hurt: 'HurtCatd',
+    die: 'DieCatd', die2: 'Die2Catd', jump: 'JumpCatd',
+  },
+  pumpkin: {
+    idle: 'IdlePumpkingLightoff', idle2: 'Idle2PumpkingLightoff', walk: 'IdlePumpkingLighton', run: 'IdlePumpkingLighton',
+    sit: 'IdlePumpkingLightoff', sleep: 'IdlePumpkingLightoff', attack: 'IdlePumpkingLighton', hurt: 'IdlePumpkingLightoff',
+    die: 'DiePumpkin', die2: 'DiePumpkin', jump: 'JumpPumpkinLightOff',
+  },
+  vampire: {
+    idle: 'IdleCatb', idle2: 'Idle2Catb', walk: 'RunCatb', run: 'RunCatb',
+    sit: 'Sittingb', sleep: 'SleepCatb', attack: 'AttackCatb', hurt: 'HurtCatb',
+    die: 'DieCatb', die2: 'Die2Catb', jump: 'JumpCabt',
+  },
+  wizard: {
+    idle: 'IdleCatb', idle2: 'Idle2Catb', walk: 'RunCatb', run: 'RunCatb',
+    sit: 'Sittingb', sleep: 'Sleeping', attack: 'Attack', hurt: 'HurtCatb',
+    die: 'DieCatb', die2: 'Die2Catb', jump: 'Jump',
+  },
+  xmas: {
     idle: 'IdleCattt', idle2: 'Idle2Cattt', walk: 'RunCattt', run: 'RunCattt',
     sit: 'Sittinggg', sleep: 'SleepCattt', attack: 'AttackCattt', hurt: 'HurtCatttt',
     die: 'DieCattt', die2: 'Die2Cattt', jump: 'JumpCatttt',
   },
-  batman: {
-    idle: 'IdleCat', idle2: 'Idle2Cat', walk: 'RunCat', run: 'RunCat',
-    sit: 'Sitting', sleep: 'SleepCat', attack: 'AttackCat', hurt: 'HurtCat',
-    die: 'DieCat', die2: 'Die2Cat', jump: 'JumpCat',
-  },
-  demon: {
-    idle: 'IdleCat', idle2: 'Idle2Cat', walk: 'RunCat', run: 'RunCat',
-    sit: 'Sitting', sleep: 'SleepCat', attack: 'AttackCat', hurt: 'HurtCat',
-    die: 'DieCat', die2: 'Die2Cat', jump: 'JumpCat',
-  },
-  pumpkin: {
-    idle: 'IdleCat', idle2: 'Idle2Cat', walk: 'RunCat', run: 'RunCat',
-    sit: 'Sitting', sleep: 'SleepCat', attack: 'AttackCat', hurt: 'HurtCat',
-    die: 'DieCat', die2: 'Die2Cat', jump: 'JumpCat',
-  },
-  vampire: {
-    idle: 'IdleCat', idle2: 'Idle2Cat', walk: 'RunCat', run: 'RunCat',
-    sit: 'Sitting', sleep: 'SleepCat', attack: 'AttackCat', hurt: 'HurtCat',
-    die: 'DieCat', die2: 'Die2Cat', jump: 'JumpCat',
-  },
-  wizard: {
-    idle: 'IdleCat', idle2: 'Idle2Cat', walk: 'RunCat', run: 'RunCat',
-    sit: 'Sitting', sleep: 'SleepCat', attack: 'AttackCat', hurt: 'HurtCat',
-    die: 'DieCat', die2: 'Die2Cat', jump: 'JumpCat',
-  },
-  xmas: {
-    idle: 'IdleCat', idle2: 'Idle2Cat', walk: 'RunCat', run: 'RunCat',
-    sit: 'Sitting', sleep: 'SleepCat', attack: 'AttackCat', hurt: 'HurtCat',
-    die: 'DieCat', die2: 'Die2Cat', jump: 'JumpCat',
-  },
   superhero: {
-    idle: 'IdleCat', idle2: 'Idle2Cat', walk: 'RunCat', run: 'RunCat',
-    sit: 'Sitting', sleep: 'SleepCat', attack: 'AttackCat', hurt: 'HurtCat',
-    die: 'DieCat', die2: 'Die2Cat', jump: 'JumpCat',
+    idle: 'SUPERHERO_CAT', idle2: 'SUPERHERO_CAT', walk: 'SUPERHERO_CAT', run: 'SUPERHERO_CAT',
+    sit: 'SUPERHERO_CAT', sleep: 'SUPERHERO_CAT', attack: 'SUPERHERO_CAT', hurt: 'SUPERHERO_CAT',
+    die: 'SUPERHERO_CAT', die2: 'SUPERHERO_CAT', jump: 'SUPERHERO_CAT',
   },
   // Zombie cat uses a single combined sprite sheet - handled specially
   zombie: {

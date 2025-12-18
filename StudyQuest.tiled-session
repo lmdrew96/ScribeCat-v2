@@ -3,19 +3,19 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "assets/MAPS/Tile Maps/cat_village.tmx",
+    "activeFile": "",
     "expandedProjectPaths": [
-        "assets/Tiles/GrassWaterTiles",
-        "assets/MAPS",
+        "assets/Tiles",
+        "assets/Tiles/Tiny Town",
+        "assets/MAPS/Tile Maps",
         "assets/Kenney Assets",
         "assets/Kenney Assets/kenney_tiny-dungeon",
-        "assets/Tiles/PixelAdventure",
-        "assets/Tiles",
         "assets",
-        "assets/MAPS/Tile Maps",
-        "assets/Tiles/Tiny Town",
         ".",
-        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled"
+        "assets/Tiles/GrassWaterTiles",
+        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled",
+        "assets/Tiles/PixelAdventure",
+        "assets/MAPS"
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
@@ -459,8 +459,6 @@
     "map.tileWidth": 16,
     "map.width": 20,
     "openFiles": [
-        "assets/MAPS/Tile Maps/cat_village.tmx",
-        "assets/MAPS/Tile Maps/tree_line_yellow.tmx"
     ],
     "project": "StudyQuest.tiled-project",
     "property.type": "float",

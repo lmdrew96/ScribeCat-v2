@@ -10,6 +10,7 @@ import { GameState } from '../../state/GameState.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../config.js';
 import { InputManager } from '../adapters/InputAdapter.js';
 import { getItem, type ItemDefinition, type EquipmentSlot } from '../../data/items.js';
+import { MAX_VISIBLE_ITEMS } from '../ui/UIConstants.js';
 
 export interface InventorySceneData {
   fromScene?: string;
@@ -24,7 +25,6 @@ export interface InventorySceneData {
 }
 
 const TABS = ['All', 'Items', 'Equip', 'Special', 'Decor'];
-const MAX_VISIBLE_ITEMS = 8;
 
 /**
  * Main Inventory Scene

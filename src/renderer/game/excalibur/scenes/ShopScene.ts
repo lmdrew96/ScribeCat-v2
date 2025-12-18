@@ -15,6 +15,7 @@ import { getItem, getShopItemsForTier, getUnlockedTier, type ItemDefinition, typ
 import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
 import { createNPCActor } from '../../loaders/NPCSpriteLoader.js';
 import { AudioManager } from '../../audio/AudioManager.js';
+import { MAX_VISIBLE_ITEMS } from '../ui/UIConstants.js';
 
 export interface ShopSceneData {
   catColor?: CatColor;
@@ -22,7 +23,6 @@ export interface ShopSceneData {
 }
 
 const TABS = ['Items', 'Weapons', 'Armor', 'Special', 'Decor', 'Equip', 'Sell'];
-const MAX_VISIBLE_ITEMS = 5;
 
 /**
  * Player Actor for Shop scene
@@ -673,20 +673,35 @@ export class ShopScene extends ex.Scene {
   private unequipSlot(): void {
     if (this.isProcessing) return;
 
-    const slots: EquipmentSlot[] = ['weapon', 'armor', 'accessory'];
-    for (const slot of slots) {
-      if (GameState.player.equipped[slot]) {
-        const itemId = GameState.player.equipped[slot]!;
-        const item = getItem(itemId);
-        GameState.unequipItem(slot);
-        this.showMessage(`Unequipped ${item?.name || slot}!`);
-        setTimeout(() => {
-          if (this.shopOpen) this.renderShopUI();
-        }, 100);
-        return;
-      }
+    // Get the currently selected equipment item
+    const equipment = this.getPlayerEquipment();
+    if (equipment.length === 0 || this.selectedItem >= equipment.length) {
+      this.showMessage('No item selected!');
+      return;
     }
-    this.showMessage('Nothing equipped!');
+
+    const selectedEquip = equipment[this.selectedItem];
+    const item = getItem(selectedEquip.id);
+
+    // Check if this specific item is currently equipped in its slot
+    if (GameState.player.equipped[selectedEquip.slot] === selectedEquip.id) {
+      this.isProcessing = true;
+      GameState.unequipItem(selectedEquip.slot);
+      this.showMessage(`Unequipped ${item?.name || selectedEquip.slot}!`);
+
+      // Adjust selection if needed
+      const updatedEquipment = this.getPlayerEquipment();
+      if (this.selectedItem >= updatedEquipment.length) {
+        this.selectedItem = Math.max(0, updatedEquipment.length - 1);
+      }
+
+      setTimeout(() => {
+        this.isProcessing = false;
+        if (this.shopOpen) this.renderShopUI();
+      }, 100);
+    } else {
+      this.showMessage('Item not equipped!');
+    }
   }
 
   private showMessage(text: string): void {

@@ -19,6 +19,15 @@ import {
 import type { CatColor } from '../../data/catSprites.js';
 import { ENEMIES, getRandomEnemy } from '../../data/enemies.js';
 import { getChestLootItem, getItem, type DungeonTier } from '../../data/items.js';
+import {
+  loadStaticEnemySprite,
+  loadSlimeAnimation,
+  getSlimeColorFromFolder,
+  getStaticEnemyIdFromFile,
+  type SlimeColor,
+  type StaticEnemyId,
+} from '../../loaders/EnemySpriteLoader.js';
+import { SceneFontCache } from '../ui/FontCache.js';
 
 // Scene data passed when entering dungeon
 export interface DungeonSceneData {
@@ -82,6 +91,34 @@ const SEQUENCES = [
   { pattern: [0, 2, 1, 0], display: '↑ ↓ → ↑' },
 ];
 
+// Puzzle state types for type safety
+interface Riddle {
+  question: string;
+  answer: number;
+  options: string[];
+}
+
+interface Sequence {
+  pattern: number[];
+  display: string;
+}
+
+interface RiddlePuzzleState {
+  type: 'riddle';
+  riddle: Riddle;
+  selectedOption: number;
+}
+
+interface SequencePuzzleState {
+  type: 'sequence';
+  sequence: Sequence;
+  inputIndex: number;
+  inputs: number[];
+  showPattern: boolean;
+}
+
+type PuzzleState = RiddlePuzzleState | SequencePuzzleState | null;
+
 /**
  * DungeonScene - Excalibur implementation
  */
@@ -114,7 +151,7 @@ export class DungeonScene extends ex.Scene {
   // Puzzle state
   private puzzleActive = false;
   private currentPuzzle: RoomContent | null = null;
-  private puzzleState: any = null;
+  private puzzleState: PuzzleState = null;
 
   // Merchant state
   private merchantActive = false;
@@ -134,6 +171,9 @@ export class DungeonScene extends ex.Scene {
   private hpBar!: ex.Actor;
   private goldLabel!: ex.Actor;
   private floorLabel!: ex.Actor;
+
+  // Font cache for performance optimization
+  private fontCache = new SceneFontCache();
 
   // Scene data for return from battle
   private sceneData: DungeonSceneData = {};
@@ -293,7 +333,7 @@ export class DungeonScene extends ex.Scene {
     this.goldLabel.graphics.use(
       new ex.Text({
         text: `Gold: ${GameState.player.gold}`,
-        font: new ex.Font({ size: 13, color: ex.Color.fromHex('#fbbf24') }),
+        font: this.fontCache.getFontHex(13, '#fbbf24'),
       })
     );
     this.add(this.goldLabel);
@@ -307,7 +347,7 @@ export class DungeonScene extends ex.Scene {
     this.floorLabel.graphics.use(
       new ex.Text({
         text: `Floor ${this.floorNumber}/${config.totalFloors}`,
-        font: new ex.Font({ size: 13, color: ex.Color.fromRGB(200, 200, 200) }),
+        font: this.fontCache.getFontRGB(13, 200, 200, 200),
       })
     );
     this.add(this.floorLabel);
@@ -380,7 +420,7 @@ export class DungeonScene extends ex.Scene {
       arrow.graphics.use(
         new ex.Text({
           text: arrows[direction],
-          font: new ex.Font({ size: 20, color: ex.Color.White }),
+          font: this.fontCache.getFont(20, ex.Color.White),
         })
       );
       this.add(arrow);
@@ -423,7 +463,7 @@ export class DungeonScene extends ex.Scene {
     }
   }
 
-  private createContentActor(content: RoomContent, x: number, y: number): void {
+  private async createContentActor(content: RoomContent, x: number, y: number): Promise<void> {
     const colors: Record<string, string> = {
       enemy: '#ef4444',
       chest: '#fbbf24',
@@ -452,7 +492,49 @@ export class DungeonScene extends ex.Scene {
       height: size * 2,
       z: 5,
     });
-    actor.graphics.use(new ex.Circle({ radius: size, color: ex.Color.fromHex(color) }));
+
+    // Try to load actual sprite for enemies
+    let spriteLoaded = false;
+    if (content.type === 'enemy') {
+      const enemyId = typeof content.data === 'string' ? content.data : content.data?.enemyType;
+      const enemyDef = enemyId ? ENEMIES[enemyId] : null;
+
+      if (enemyDef) {
+        const targetSize = 24; // Small preview size for dungeon map
+
+        if (enemyDef.spriteFolder) {
+          // Animated slime enemy
+          const slimeColor = getSlimeColorFromFolder(enemyDef.spriteFolder);
+          if (slimeColor) {
+            const idleAnim = await loadSlimeAnimation(slimeColor, 'idle');
+            if (idleAnim) {
+              const scale = targetSize / 32; // Slimes are 32x32
+              idleAnim.scale = ex.vec(scale, scale);
+              actor.graphics.use(idleAnim);
+              spriteLoaded = true;
+            }
+          }
+        } else if (enemyDef.spriteFile) {
+          // Static enemy
+          const staticId = getStaticEnemyIdFromFile(enemyDef.spriteFile);
+          if (staticId) {
+            const sprite = await loadStaticEnemySprite(staticId);
+            if (sprite) {
+              const scale = targetSize / Math.max(sprite.width, sprite.height);
+              sprite.scale = ex.vec(scale, scale);
+              actor.graphics.use(sprite);
+              spriteLoaded = true;
+            }
+          }
+        }
+      }
+    }
+
+    // Fallback to colored circle if sprite not loaded
+    if (!spriteLoaded) {
+      actor.graphics.use(new ex.Circle({ radius: size, color: ex.Color.fromHex(color) }));
+    }
+
     (actor as any).contentId = content.id;
     (actor as any).contentType = content.type;
 
@@ -460,9 +542,9 @@ export class DungeonScene extends ex.Scene {
     this.roomActors.push(actor);
     this.contentActors.set(content.id, actor);
 
-    // Icon
+    // Icon (only show if sprite wasn't loaded)
     const icon = icons[content.type];
-    if (icon) {
+    if (icon && !spriteLoaded) {
       const iconActor = new ex.Actor({
         pos: ex.vec(x, y),
         z: 6,
@@ -470,7 +552,7 @@ export class DungeonScene extends ex.Scene {
       iconActor.graphics.use(
         new ex.Text({
           text: icon,
-          font: new ex.Font({ size: 14, color: ex.Color.White }),
+          font: this.fontCache.getFont(14, ex.Color.White),
         })
       );
       this.add(iconActor);
@@ -552,8 +634,9 @@ export class DungeonScene extends ex.Scene {
   }
 
   private updateHUD(): void {
-    // Update HP bar
-    const ratio = GameState.player.health / GameState.player.maxHealth;
+    // Update HP bar (use effective max health to include equipment bonuses)
+    const effectiveMaxHp = GameState.getEffectiveMaxHealth();
+    const ratio = GameState.player.health / effectiveMaxHp;
     const hpWidth = Math.max(0, 80 * ratio);
 
     let hpColor = ex.Color.fromRGB(60, 220, 100);
@@ -569,7 +652,7 @@ export class DungeonScene extends ex.Scene {
     this.goldLabel.graphics.use(
       new ex.Text({
         text: `Gold: ${GameState.player.gold}`,
-        font: new ex.Font({ size: 13, color: ex.Color.fromHex('#fbbf24') }),
+        font: this.fontCache.getFontHex(13, '#fbbf24'),
       })
     );
   }
@@ -741,10 +824,11 @@ export class DungeonScene extends ex.Scene {
   private triggerCampfire(content: RoomContent, x: number, y: number): void {
     content.triggered = true;
 
+    const effectiveMaxHp = GameState.getEffectiveMaxHealth();
     const healPercent = content.data?.healPercent || 30;
-    const healAmount = Math.floor(GameState.player.maxHealth * (healPercent / 100));
+    const healAmount = Math.floor(effectiveMaxHp * (healPercent / 100));
     GameState.player.health = Math.min(
-      GameState.player.maxHealth,
+      effectiveMaxHp,
       GameState.player.health + healAmount
     );
 
@@ -759,7 +843,7 @@ export class DungeonScene extends ex.Scene {
     const secretName = content.data?.secretName || 'Secret';
 
     if (rewardType === 'full_heal') {
-      GameState.player.health = GameState.player.maxHealth;
+      GameState.player.health = GameState.getEffectiveMaxHealth();
       this.showFloatingMessage(`${secretName}!`, x, y - 30, '#ffdc64');
       this.showFloatingMessage('Fully Healed!', x, y - 10, '#64dc64');
     } else {
@@ -845,7 +929,7 @@ export class DungeonScene extends ex.Scene {
     this.floorLabel.graphics.use(
       new ex.Text({
         text: `Floor ${this.floorNumber}/${config.totalFloors}`,
-        font: new ex.Font({ size: 13, color: ex.Color.fromRGB(200, 200, 200) }),
+        font: this.fontCache.getFontRGB(13, 200, 200, 200),
       })
     );
   }
@@ -1030,7 +1114,7 @@ export class DungeonScene extends ex.Scene {
     title.graphics.use(
       new ex.Text({
         text: 'PAUSED',
-        font: new ex.Font({ size: 16, color: ex.Color.White }),
+        font: this.fontCache.getFont(16, ex.Color.White),
       })
     );
     this.add(title);
@@ -1047,10 +1131,10 @@ export class DungeonScene extends ex.Scene {
       optActor.graphics.use(
         new ex.Text({
           text: `${isSelected ? '> ' : '  '}${opt}`,
-          font: new ex.Font({
-            size: 14,
-            color: isSelected ? ex.Color.fromHex('#ffff64') : ex.Color.fromRGB(180, 180, 180),
-          }),
+          font: this.fontCache.getFontHex(
+            14,
+            isSelected ? '#ffff64' : '#b4b4b4'
+          ),
         })
       );
       this.add(optActor);
@@ -1059,6 +1143,8 @@ export class DungeonScene extends ex.Scene {
   }
 
   private handlePauseMenuInput(): void {
+    if (!this.inputEnabled) return;
+
     if (this.inputManager?.wasKeyPressed('up')) {
       this.pauseMenuSelection = Math.max(0, this.pauseMenuSelection - 1);
       this.renderPauseMenu();
@@ -1122,7 +1208,7 @@ export class DungeonScene extends ex.Scene {
     this.clearPuzzleUI();
 
     const riddle = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
-    this.puzzleState = { type: 'riddle', riddle, selectedOption: 0 };
+    this.puzzleState = { type: 'riddle', riddle, selectedOption: 0 } as RiddlePuzzleState;
 
     // Background
     const bg = new ex.Actor({
@@ -1142,7 +1228,7 @@ export class DungeonScene extends ex.Scene {
     title.graphics.use(
       new ex.Text({
         text: 'Riddle Stone',
-        font: new ex.Font({ size: 14, color: ex.Color.fromHex('#64b4ff') }),
+        font: this.fontCache.getFontHex(14, '#64b4ff'),
       })
     );
     this.add(title);
@@ -1153,7 +1239,7 @@ export class DungeonScene extends ex.Scene {
     question.graphics.use(
       new ex.Text({
         text: riddle.question,
-        font: new ex.Font({ size: 14, color: ex.Color.White }),
+        font: this.fontCache.getFont(14, ex.Color.White),
       })
     );
     this.add(question);
@@ -1166,7 +1252,7 @@ export class DungeonScene extends ex.Scene {
     instr.graphics.use(
       new ex.Text({
         text: 'Up/Down: Select | ENTER: Answer | ESC: Leave',
-        font: new ex.Font({ size: 12, color: ex.Color.fromRGB(150, 150, 150) }),
+        font: this.fontCache.getFontRGB(12, 150, 150, 150),
       })
     );
     this.add(instr);
@@ -1180,17 +1266,19 @@ export class DungeonScene extends ex.Scene {
       actor?.kill();
     }
 
+    if (!this.puzzleState || this.puzzleState.type !== 'riddle') return;
+
     const riddle = this.puzzleState.riddle;
     riddle.options.forEach((opt: string, i: number) => {
-      const isSelected = i === this.puzzleState.selectedOption;
+      const isSelected = i === this.puzzleState!.selectedOption;
       const optActor = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 155 + i * 28), z: 502 });
       optActor.graphics.use(
         new ex.Text({
           text: `${i + 1}. ${opt}`,
-          font: new ex.Font({
-            size: 13,
-            color: isSelected ? ex.Color.fromHex('#64ff64') : ex.Color.White,
-          }),
+          font: this.fontCache.getFontHex(
+            13,
+            isSelected ? '#64ff64' : '#FFFFFF'
+          ),
         })
       );
       this.add(optActor);
@@ -1202,7 +1290,7 @@ export class DungeonScene extends ex.Scene {
     this.clearPuzzleUI();
 
     const sequence = SEQUENCES[Math.floor(Math.random() * SEQUENCES.length)];
-    this.puzzleState = { type: 'sequence', sequence, inputIndex: 0, inputs: [], showPattern: true };
+    this.puzzleState = { type: 'sequence', sequence, inputIndex: 0, inputs: [], showPattern: true } as SequencePuzzleState;
 
     // Background
     const bg = new ex.Actor({
@@ -1222,7 +1310,7 @@ export class DungeonScene extends ex.Scene {
     title.graphics.use(
       new ex.Text({
         text: 'Sequence Lock',
-        font: new ex.Font({ size: 14, color: ex.Color.fromHex('#ffb464') }),
+        font: this.fontCache.getFontHex(14, '#ffb464'),
       })
     );
     this.add(title);
@@ -1233,7 +1321,7 @@ export class DungeonScene extends ex.Scene {
     pattern.graphics.use(
       new ex.Text({
         text: `Memorize: ${sequence.display}`,
-        font: new ex.Font({ size: 16, color: ex.Color.fromHex('#ffff64') }),
+        font: this.fontCache.getFontHex(16, '#ffff64'),
       })
     );
     this.add(pattern);
@@ -1250,6 +1338,9 @@ export class DungeonScene extends ex.Scene {
 
   private renderSequenceInput(): void {
     this.clearPuzzleUI();
+
+    if (!this.puzzleState || this.puzzleState.type !== 'sequence') return;
+    const seqState = this.puzzleState;
 
     // Background
     const bg = new ex.Actor({
@@ -1269,7 +1360,7 @@ export class DungeonScene extends ex.Scene {
     title.graphics.use(
       new ex.Text({
         text: 'Enter the Sequence!',
-        font: new ex.Font({ size: 14, color: ex.Color.fromHex('#ffb464') }),
+        font: this.fontCache.getFontHex(14, '#ffb464'),
       })
     );
     this.add(title);
@@ -1277,12 +1368,12 @@ export class DungeonScene extends ex.Scene {
 
     // Show inputs
     const arrows = ['Up', 'Right', 'Down'];
-    const inputStr = this.puzzleState.inputs.map((i: number) => arrows[i]).join(' ') || '...';
+    const inputStr = seqState.inputs.map((i: number) => arrows[i]).join(' ') || '...';
     const inputs = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 130), z: 501 });
     inputs.graphics.use(
       new ex.Text({
         text: `Your input: ${inputStr}`,
-        font: new ex.Font({ size: 14, color: ex.Color.fromHex('#64ff64') }),
+        font: this.fontCache.getFontHex(14, '#64ff64'),
       })
     );
     this.add(inputs);
@@ -1292,8 +1383,8 @@ export class DungeonScene extends ex.Scene {
     const progress = new ex.Actor({ pos: ex.vec(CANVAS_WIDTH / 2, 155), z: 501 });
     progress.graphics.use(
       new ex.Text({
-        text: `${this.puzzleState.inputs.length}/${this.puzzleState.sequence.pattern.length}`,
-        font: new ex.Font({ size: 12, color: ex.Color.fromRGB(200, 200, 200) }),
+        text: `${seqState.inputs.length}/${seqState.sequence.pattern.length}`,
+        font: this.fontCache.getFontRGB(12, 200, 200, 200),
       })
     );
     this.add(progress);
@@ -1304,7 +1395,7 @@ export class DungeonScene extends ex.Scene {
     instr.graphics.use(
       new ex.Text({
         text: 'Arrow Keys: Input | ESC: Give up',
-        font: new ex.Font({ size: 12, color: ex.Color.fromRGB(150, 150, 150) }),
+        font: this.fontCache.getFontRGB(12, 150, 150, 150),
       })
     );
     this.add(instr);
@@ -1312,6 +1403,7 @@ export class DungeonScene extends ex.Scene {
   }
 
   private handlePuzzleInput(): void {
+    if (!this.inputEnabled) return;
     if (!this.puzzleActive || !this.puzzleState) return;
 
     if (this.inputManager?.wasKeyPressed('escape')) {
@@ -1324,17 +1416,18 @@ export class DungeonScene extends ex.Scene {
     }
 
     if (this.puzzleState.type === 'riddle') {
-      if (this.inputManager?.wasKeyPressed('up') && this.puzzleState.selectedOption > 0) {
-        this.puzzleState.selectedOption--;
+      const riddleState = this.puzzleState;
+      if (this.inputManager?.wasKeyPressed('up') && riddleState.selectedOption > 0) {
+        riddleState.selectedOption--;
         this.renderRiddleOptions();
       } else if (
         this.inputManager?.wasKeyPressed('down') &&
-        this.puzzleState.selectedOption < this.puzzleState.riddle.options.length - 1
+        riddleState.selectedOption < riddleState.riddle.options.length - 1
       ) {
-        this.puzzleState.selectedOption++;
+        riddleState.selectedOption++;
         this.renderRiddleOptions();
       } else if (this.inputManager?.wasKeyPressed('enter')) {
-        const correct = this.puzzleState.selectedOption === this.puzzleState.riddle.answer;
+        const correct = riddleState.selectedOption === riddleState.riddle.answer;
         if (correct) {
           this.solvePuzzle();
         } else {
@@ -1342,18 +1435,19 @@ export class DungeonScene extends ex.Scene {
         }
       }
     } else if (this.puzzleState.type === 'sequence' && !this.puzzleState.showPattern) {
+      const seqState = this.puzzleState;
       let input = -1;
       if (this.inputManager?.wasKeyPressed('up')) input = 0;
       else if (this.inputManager?.wasKeyPressed('right')) input = 1;
       else if (this.inputManager?.wasKeyPressed('down')) input = 2;
 
       if (input >= 0) {
-        this.puzzleState.inputs.push(input);
+        seqState.inputs.push(input);
         this.renderSequenceInput();
 
-        if (this.puzzleState.inputs.length === this.puzzleState.sequence.pattern.length) {
-          const correct = this.puzzleState.inputs.every(
-            (v: number, i: number) => v === this.puzzleState.sequence.pattern[i]
+        if (seqState.inputs.length === seqState.sequence.pattern.length) {
+          const correct = seqState.inputs.every(
+            (v: number, i: number) => v === seqState.sequence.pattern[i]
           );
           if (correct) {
             this.solvePuzzle();
@@ -1440,7 +1534,7 @@ export class DungeonScene extends ex.Scene {
     title.graphics.use(
       new ex.Text({
         text: 'Merchant',
-        font: new ex.Font({ size: 16, color: ex.Color.fromHex('#ffc864') }),
+        font: this.fontCache.getFontHex(16, '#ffc864'),
       })
     );
     this.add(title);
@@ -1451,7 +1545,7 @@ export class DungeonScene extends ex.Scene {
     gold.graphics.use(
       new ex.Text({
         text: `Your Gold: ${GameState.player.gold}`,
-        font: new ex.Font({ size: 13, color: ex.Color.fromHex('#fbbf24') }),
+        font: this.fontCache.getFontHex(13, '#fbbf24'),
       })
     );
     this.add(gold);
@@ -1470,10 +1564,10 @@ export class DungeonScene extends ex.Scene {
       itemActor.graphics.use(
         new ex.Text({
           text: `${isSelected ? '> ' : '  '}${item.name} - ${item.buyPrice}g`,
-          font: new ex.Font({
-            size: 13,
-            color: isSelected ? ex.Color.White : ex.Color.fromRGB(180, 180, 180),
-          }),
+          font: this.fontCache.getFontHex(
+            13,
+            isSelected ? '#FFFFFF' : '#b4b4b4'
+          ),
         })
       );
       this.add(itemActor);
@@ -1485,7 +1579,7 @@ export class DungeonScene extends ex.Scene {
     instr.graphics.use(
       new ex.Text({
         text: 'Up/Down: Select | ENTER: Buy | ESC: Leave',
-        font: new ex.Font({ size: 12, color: ex.Color.fromRGB(150, 150, 150) }),
+        font: this.fontCache.getFontRGB(12, 150, 150, 150),
       })
     );
     this.add(instr);
@@ -1493,6 +1587,8 @@ export class DungeonScene extends ex.Scene {
   }
 
   private handleMerchantInput(): void {
+    if (!this.inputEnabled) return;
+
     const items = this.nearbyMerchant?.data?.inventory || ['potion_minor', 'potion_medium'];
 
     if (this.inputManager?.wasKeyPressed('escape')) {
@@ -1542,7 +1638,7 @@ export class DungeonScene extends ex.Scene {
     msg.graphics.use(
       new ex.Text({
         text,
-        font: new ex.Font({ size: 14, color: ex.Color.fromHex(color) }),
+        font: this.fontCache.getFontHex(14, color),
       })
     );
     this.add(msg);

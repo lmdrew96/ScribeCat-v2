@@ -15,6 +15,7 @@ import { InputManager } from '../adapters/InputAdapter.js';
 import { loadBackground, createBackgroundActor } from '../../loaders/BackgroundLoader.js';
 import { loadNPCSprite } from '../../loaders/NPCSpriteLoader.js';
 import { AudioManager } from '../../audio/AudioManager.js';
+import { SceneFontCache } from '../ui/FontCache.js';
 
 const REST_COST = 10; // Gold cost to rest
 
@@ -124,6 +125,8 @@ class PlayerActor extends ex.Actor {
  * Innkeeper NPC Actor
  */
 class InnkeeperActor extends ex.Actor {
+  private targetSize = 60;
+
   constructor(x: number, y: number) {
     super({
       pos: new ex.Vector(x, y),
@@ -134,15 +137,24 @@ class InnkeeperActor extends ex.Actor {
     });
   }
 
-  onInitialize(): void {
-    // Placeholder rectangle for innkeeper
-    this.graphics.use(new ex.Rectangle({
-      width: 40,
-      height: 60,
-      color: ex.Color.fromHex('#90EE90'), // Light green
-      strokeColor: ex.Color.Black,
-      lineWidth: 2,
-    }));
+  async onInitialize(): Promise<void> {
+    // Try to load the actual innkeeper sprite
+    const sprite = await loadNPCSprite('innkeeper');
+    if (sprite) {
+      // Scale sprite to target size
+      const scale = this.targetSize / Math.max(sprite.width, sprite.height);
+      sprite.scale = new ex.Vector(scale, scale);
+      this.graphics.use(sprite);
+    } else {
+      // Fallback to placeholder rectangle if sprite fails to load
+      this.graphics.use(new ex.Rectangle({
+        width: 40,
+        height: 60,
+        color: ex.Color.fromHex('#90EE90'), // Light green
+        strokeColor: ex.Color.Black,
+        lineWidth: 2,
+      }));
+    }
   }
 }
 
@@ -187,6 +199,9 @@ export class InnScene extends ex.Scene {
 
   // Input cooldown to prevent key events carrying over from scene transitions
   private inputEnabled = false;
+
+  // Font cache for performance optimization
+  private fontCache = new SceneFontCache();
 
   // UI elements
   private goldLabel: ex.Label | null = null;
@@ -394,7 +409,7 @@ export class InnScene extends ex.Scene {
     const label = new ex.Label({
       text: 'Innkeeper',
       pos: new ex.Vector(CANVAS_WIDTH - 130, 120),
-      font: new ex.Font({ size: 13, color: ex.Color.White }),
+      font: this.fontCache.getFont(13, ex.Color.White),
       z: 10,
     });
     label.graphics.anchor = ex.Vector.Half;
@@ -416,7 +431,7 @@ export class InnScene extends ex.Scene {
     const label = new ex.Label({
       text: 'Exit',
       pos: new ex.Vector(50, CANVAS_HEIGHT - 10),
-      font: new ex.Font({ size: 13, color: ex.Color.White }),
+      font: this.fontCache.getFont(13, ex.Color.White),
       z: 10,
     });
     label.graphics.anchor = ex.Vector.Half;
@@ -457,7 +472,7 @@ export class InnScene extends ex.Scene {
     this.goldLabel = new ex.Label({
       text: `Gold: ${GameState.player.gold}`,
       pos: new ex.Vector(CANVAS_WIDTH - 100, 18),
-      font: new ex.Font({ size: 14, color: ex.Color.fromHex('#FBBF24') }),
+      font: this.fontCache.getFontHex(14, '#FBBF24'),
       z: 51,
     });
     this.add(this.goldLabel);
@@ -466,7 +481,7 @@ export class InnScene extends ex.Scene {
     this.hpLabel = new ex.Label({
       text: '',
       pos: new ex.Vector(CANVAS_WIDTH - 100, 45),
-      font: new ex.Font({ size: 14, color: ex.Color.Green }),
+      font: this.fontCache.getFont(14, ex.Color.Green),
       z: 51,
     });
     this.add(this.hpLabel);
@@ -475,7 +490,7 @@ export class InnScene extends ex.Scene {
     this.mpLabel = new ex.Label({
       text: '',
       pos: new ex.Vector(CANVAS_WIDTH - 100, 60),
-      font: new ex.Font({ size: 14, color: ex.Color.fromHex('#6496FF') }),
+      font: this.fontCache.getFontHex(14, '#6496FF'),
       z: 51,
     });
     this.add(this.mpLabel);
@@ -486,7 +501,7 @@ export class InnScene extends ex.Scene {
     const sceneLabel = new ex.Label({
       text: 'The Cozy Inn',
       pos: new ex.Vector(20, 20),
-      font: new ex.Font({ size: 16, color: ex.Color.White }),
+      font: this.fontCache.getFont(16, ex.Color.White),
       z: 50,
     });
     this.add(sceneLabel);
@@ -495,7 +510,7 @@ export class InnScene extends ex.Scene {
     const statusLabel = new ex.Label({
       text: 'Rest here to recover HP and MP',
       pos: new ex.Vector(20, 45),
-      font: new ex.Font({ size: 13, color: ex.Color.fromRGB(200, 200, 200) }),
+      font: this.fontCache.getFontRGB(13, 200, 200, 200),
       z: 50,
     });
     this.add(statusLabel);
@@ -504,7 +519,7 @@ export class InnScene extends ex.Scene {
     const controlsLabel = new ex.Label({
       text: 'Arrow/WASD: Move | ENTER: Interact | ESC: Back',
       pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 15),
-      font: new ex.Font({ size: 12, color: ex.Color.fromRGB(200, 200, 200) }),
+      font: this.fontCache.getFontRGB(12, 200, 200, 200),
       z: 50,
     });
     controlsLabel.graphics.anchor = ex.Vector.Half;
@@ -519,18 +534,18 @@ export class InnScene extends ex.Scene {
 
     if (this.hpLabel) {
       this.hpLabel.text = `HP: ${hp}/${maxHp}`;
-      this.hpLabel.font = new ex.Font({
-        size: 14,
-        color: hp < maxHp ? ex.Color.fromHex('#FF6464') : ex.Color.fromHex('#64FF64'),
-      });
+      this.hpLabel.font = this.fontCache.getFontHex(
+        14,
+        hp < maxHp ? '#FF6464' : '#64FF64'
+      );
     }
 
     if (this.mpLabel) {
       this.mpLabel.text = `MP: ${mp}/${maxMp}`;
-      this.mpLabel.font = new ex.Font({
-        size: 14,
-        color: mp < maxMp ? ex.Color.fromHex('#6496FF') : ex.Color.fromHex('#64C8FF'),
-      });
+      this.mpLabel.font = this.fontCache.getFontHex(
+        14,
+        mp < maxMp ? '#6496FF' : '#64C8FF'
+      );
     }
 
     if (this.goldLabel) {
@@ -662,7 +677,7 @@ export class InnScene extends ex.Scene {
     this.messageLabel = new ex.Label({
       text,
       pos: new ex.Vector(CANVAS_WIDTH / 2, 120),
-      font: new ex.Font({ size: 12, color: ex.Color.White }),
+      font: this.fontCache.getFont(12, ex.Color.White),
       z: 201,
     });
     this.messageLabel.graphics.anchor = ex.Vector.Half;
