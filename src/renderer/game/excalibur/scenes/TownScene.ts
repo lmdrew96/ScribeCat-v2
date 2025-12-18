@@ -633,7 +633,7 @@ export class TownScene extends ex.Scene {
     if (!this.player) return;
 
     // Interaction distance for building doors
-    const interactionDistance = 16;
+    const interactionDistance = 32;
 
     for (const door of this.doors) {
       const dist = this.player.pos.distance(door.pos);

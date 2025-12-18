@@ -348,6 +348,14 @@
                 "y": 459.02215969046784
             }
         },
+        "assets/MAPS/Tile Maps/shop_interior.tmx": {
+            "scale": 2.37,
+            "selectedLayer": 5,
+            "viewCenter": {
+                "x": 108.43881856540084,
+                "y": 69.62025316455697
+            }
+        },
         "assets/MAPS/Tile Maps/tiny_tree_cluster_green.tmx": {
             "scale": 1,
             "selectedLayer": 0,
