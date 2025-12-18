@@ -9,6 +9,7 @@
  */
 
 import { StudyQuestGame } from '../game/StudyQuestGame.js';
+import { AudioManager } from '../game/audio/AudioManager.js';
 
 export class StudyQuestModal {
   private modal: HTMLDivElement | null = null;
@@ -209,6 +210,9 @@ export class StudyQuestModal {
 
     this.isOpen = false;
     this.modal?.classList.remove('open');
+
+    // Stop game music when closing the modal
+    AudioManager.stopMusic();
 
     // Don't destroy the game - just hide the modal
     // KAPLAY has global singleton behavior and k.quit() doesn't properly reset it

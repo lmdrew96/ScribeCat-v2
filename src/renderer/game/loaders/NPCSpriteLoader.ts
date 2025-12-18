@@ -38,7 +38,8 @@ export function getNPCPath(id: NPCId): string {
  */
 export async function loadNPCSprite(id: NPCId): Promise<ex.Sprite | null> {
   if (spriteCache.has(id)) {
-    return spriteCache.get(id)!;
+    // Clone the cached sprite to avoid scale mutations affecting the cache
+    return spriteCache.get(id)!.clone();
   }
 
   try {
@@ -47,7 +48,8 @@ export async function loadNPCSprite(id: NPCId): Promise<ex.Sprite | null> {
     await image.load();
     const sprite = image.toSprite();
     spriteCache.set(id, sprite);
-    return sprite;
+    // Return a clone so the cached version stays pristine
+    return sprite.clone();
   } catch (err) {
     console.warn(`[NPCSpriteLoader] Failed to load NPC sprite: ${id}`, err);
     return null;

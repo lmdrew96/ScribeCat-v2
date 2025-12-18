@@ -124,7 +124,8 @@ export function getSlimeAnimPath(color: SlimeColor, anim: SlimeAnimationType): s
  */
 export async function loadStaticEnemySprite(id: StaticEnemyId): Promise<ex.Sprite | null> {
   if (staticSpriteCache.has(id)) {
-    return staticSpriteCache.get(id)!;
+    // Clone the cached sprite to avoid scale mutations affecting the cache
+    return staticSpriteCache.get(id)!.clone();
   }
 
   try {
@@ -133,7 +134,8 @@ export async function loadStaticEnemySprite(id: StaticEnemyId): Promise<ex.Sprit
     await image.load();
     const sprite = image.toSprite();
     staticSpriteCache.set(id, sprite);
-    return sprite;
+    // Return a clone so the cached version stays pristine
+    return sprite.clone();
   } catch (err) {
     console.warn(`[EnemySpriteLoader] Failed to load static enemy: ${id}`, err);
     return null;

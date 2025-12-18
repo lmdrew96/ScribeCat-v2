@@ -27,6 +27,7 @@ import {
   type SlimeColor,
   type StaticEnemyId,
 } from '../../loaders/EnemySpriteLoader.js';
+import { loadNPCSprite, type NPCId } from '../../loaders/NPCSpriteLoader.js';
 import { SceneFontCache } from '../ui/FontCache.js';
 
 // Scene data passed when entering dungeon
@@ -528,6 +529,19 @@ export class DungeonScene extends ex.Scene {
           }
         }
       }
+    } else if (content.type === 'npc') {
+      // Load NPC sprite for merchants and other NPCs
+      const npcType = content.data?.npcType;
+      if (npcType === 'merchant') {
+        const sprite = await loadNPCSprite('shopkeeper');
+        if (sprite) {
+          const targetSize = 32;
+          const scale = targetSize / Math.max(sprite.width, sprite.height);
+          sprite.scale = ex.vec(scale, scale);
+          actor.graphics.use(sprite);
+          spriteLoaded = true;
+        }
+      }
     }
 
     // Fallback to colored circle if sprite not loaded
@@ -537,6 +551,11 @@ export class DungeonScene extends ex.Scene {
 
     (actor as any).contentId = content.id;
     (actor as any).contentType = content.type;
+
+    // Add wandering behavior for enemies
+    if (content.type === 'enemy') {
+      this.addWanderBehavior(actor, x, y);
+    }
 
     this.add(actor);
     this.roomActors.push(actor);
@@ -558,6 +577,62 @@ export class DungeonScene extends ex.Scene {
       this.add(iconActor);
       this.roomActors.push(iconActor);
     }
+  }
+
+  /**
+   * Add wandering behavior to an enemy actor.
+   * The enemy will randomly move within a small radius of its spawn point.
+   */
+  private addWanderBehavior(actor: ex.Actor, originX: number, originY: number): void {
+    const wanderRadius = 30; // Max distance from origin
+    const moveSpeed = 20; // Pixels per second
+    const pauseMin = 1000; // Min pause between moves (ms)
+    const pauseMax = 3000; // Max pause between moves (ms)
+
+    // Track the original spawn position
+    (actor as any).originX = originX;
+    (actor as any).originY = originY;
+
+    // Function to pick a new wander target
+    const pickNewTarget = () => {
+      // Pick random angle and distance
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * wanderRadius;
+
+      // Calculate target position within bounds
+      const bounds = this.getMovementBounds();
+      let targetX = originX + Math.cos(angle) * distance;
+      let targetY = originY + Math.sin(angle) * distance;
+
+      // Clamp to room bounds
+      targetX = Math.max(bounds.minX, Math.min(bounds.maxX, targetX));
+      targetY = Math.max(bounds.minY, Math.min(bounds.maxY, targetY));
+
+      // Calculate move duration based on distance
+      const dx = targetX - actor.pos.x;
+      const dy = targetY - actor.pos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const duration = (dist / moveSpeed) * 1000;
+
+      // Move to target
+      actor.actions.moveTo(ex.vec(targetX, targetY), moveSpeed).callMethod(() => {
+        // Pause then pick new target
+        const pauseDuration = pauseMin + Math.random() * (pauseMax - pauseMin);
+        setTimeout(() => {
+          if (!actor.isKilled()) {
+            pickNewTarget();
+          }
+        }, pauseDuration);
+      });
+    };
+
+    // Start wandering after a random initial delay
+    const initialDelay = Math.random() * 2000;
+    setTimeout(() => {
+      if (!actor.isKilled()) {
+        pickNewTarget();
+      }
+    }, initialDelay);
   }
 
   private getDoorPositions(): Record<Direction, { x: number; y: number }> {

@@ -113,11 +113,16 @@ export class StudyQuestGame {
     this.excalibur.registerScene('inventory', inventoryScene);
 
     // BattleScene
-    const battleScene = new BattleScene({
-      onBattleEnd: (victory: boolean, returnScene: string, returnData?: unknown) => {
-        this.goTo(returnScene, returnData as Record<string, unknown>);
-      },
-    });
+    const battleScene = new BattleScene();
+    battleScene.onBattleEnd = (result: 'victory' | 'defeat' | 'flee', returnData?: unknown) => {
+      // On battle end, return to the scene that started the battle
+      const sceneData = returnData as Record<string, unknown> | undefined;
+      if (sceneData) {
+        this.goTo('dungeon', sceneData);
+      } else {
+        this.goTo('town');
+      }
+    };
     this.excalibur.registerScene('battle', battleScene);
 
     // DungeonScene

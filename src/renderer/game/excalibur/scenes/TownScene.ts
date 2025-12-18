@@ -655,27 +655,28 @@ export class TownScene extends ex.Scene {
 
     const modalWidth = 280;
     const modalHeight = 240;
-    const modalX = MAP_WIDTH / 2;
-    const modalY = MAP_HEIGHT / 2;
+    // Use canvas center for screen-space positioning
+    const modalX = CANVAS_WIDTH / 2;
+    const modalY = CANVAS_HEIGHT / 2;
 
-    // Dark overlay
-    const overlay = new ex.Actor({
-      pos: new ex.Vector(MAP_WIDTH / 2, MAP_HEIGHT / 2),
-      width: MAP_WIDTH,
-      height: MAP_HEIGHT,
+    // Dark overlay - use ScreenElement for screen-space positioning
+    const overlay = new ex.ScreenElement({
+      pos: new ex.Vector(0, 0),
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
       z: 400,
     });
     overlay.graphics.use(new ex.Rectangle({
-      width: MAP_WIDTH,
-      height: MAP_HEIGHT,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
       color: ex.Color.fromRGB(0, 0, 0, 0.5),
     }));
     this.add(overlay);
     this.dungeonUIElements.push(overlay);
 
     // Modal background
-    const modal = new ex.Actor({
-      pos: new ex.Vector(modalX, modalY),
+    const modal = new ex.ScreenElement({
+      pos: new ex.Vector(modalX - modalWidth / 2, modalY - modalHeight / 2),
       width: modalWidth,
       height: modalHeight,
       z: 500,
@@ -691,24 +692,28 @@ export class TownScene extends ex.Scene {
     this.dungeonUIElements.push(modal);
 
     // Title
-    const title = new ex.Label({
-      text: 'SELECT DUNGEON',
+    const title = new ex.ScreenElement({
       pos: new ex.Vector(modalX, modalY - modalHeight / 2 + 20),
-      font: new ex.Font({ size: 14, color: ex.Color.fromHex('#64B4FF') }),
       z: 501,
+      anchor: ex.Vector.Half,
     });
-    title.graphics.anchor = ex.Vector.Half;
+    title.graphics.use(new ex.Text({
+      text: 'SELECT DUNGEON',
+      font: new ex.Font({ size: 14, color: ex.Color.fromHex('#64B4FF') }),
+    }));
     this.add(title);
     this.dungeonUIElements.push(title);
 
     // Player level
-    const levelText = new ex.Label({
-      text: `Your Level: ${GameState.player.level}`,
+    const levelText = new ex.ScreenElement({
       pos: new ex.Vector(modalX, modalY - modalHeight / 2 + 40),
-      font: new ex.Font({ size: 13, color: ex.Color.fromRGB(200, 200, 200) }),
       z: 501,
+      anchor: ex.Vector.Half,
     });
-    levelText.graphics.anchor = ex.Vector.Half;
+    levelText.graphics.use(new ex.Text({
+      text: `Your Level: ${GameState.player.level}`,
+      font: new ex.Font({ size: 13, color: ex.Color.fromRGB(200, 200, 200) }),
+    }));
     this.add(levelText);
     this.dungeonUIElements.push(levelText);
 
@@ -723,8 +728,8 @@ export class TownScene extends ex.Scene {
 
       // Selection highlight
       if (isSelected) {
-        const highlight = new ex.Actor({
-          pos: new ex.Vector(modalX, itemY + itemHeight / 2),
+        const highlight = new ex.ScreenElement({
+          pos: new ex.Vector(modalX - (modalWidth - 20) / 2, itemY + itemHeight / 2 - (itemHeight - 4) / 2),
           width: modalWidth - 20,
           height: itemHeight - 4,
           z: 501,
@@ -740,13 +745,15 @@ export class TownScene extends ex.Scene {
         this.dungeonUIElements.push(highlight);
 
         // Arrow
-        const arrow = new ex.Label({
-          text: '>',
+        const arrow = new ex.ScreenElement({
           pos: new ex.Vector(modalX - modalWidth / 2 + 20, itemY + itemHeight / 2),
-          font: new ex.Font({ size: 12, color: ex.Color.fromHex('#FFFF64') }),
           z: 502,
+          anchor: new ex.Vector(0, 0.5),
         });
-        arrow.graphics.anchor = new ex.Vector(0, 0.5);
+        arrow.graphics.use(new ex.Text({
+          text: '>',
+          font: new ex.Font({ size: 12, color: ex.Color.fromHex('#FFFF64') }),
+        }));
         this.add(arrow);
         this.dungeonUIElements.push(arrow);
       }
@@ -756,13 +763,15 @@ export class TownScene extends ex.Scene {
         ? (isSelected ? ex.Color.White : ex.Color.fromRGB(200, 200, 200))
         : ex.Color.fromRGB(100, 100, 100);
 
-      const name = new ex.Label({
-        text: dungeon.name,
+      const name = new ex.ScreenElement({
         pos: new ex.Vector(modalX - modalWidth / 2 + 35, itemY + itemHeight / 2),
-        font: new ex.Font({ size: 14, color: nameColor }),
         z: 502,
+        anchor: new ex.Vector(0, 0.5),
       });
-      name.graphics.anchor = new ex.Vector(0, 0.5);
+      name.graphics.use(new ex.Text({
+        text: dungeon.name,
+        font: new ex.Font({ size: 14, color: nameColor }),
+      }));
       this.add(name);
       this.dungeonUIElements.push(name);
 
@@ -772,38 +781,44 @@ export class TownScene extends ex.Scene {
         ? ex.Color.fromRGB(150, 200, 150)
         : ex.Color.fromRGB(180, 100, 100);
 
-      const rightLabel = new ex.Label({
-        text: rightText,
+      const rightLabel = new ex.ScreenElement({
         pos: new ex.Vector(modalX + modalWidth / 2 - 20, itemY + itemHeight / 2),
-        font: new ex.Font({ size: 12, color: rightColor }),
         z: 502,
+        anchor: new ex.Vector(1, 0.5),
       });
-      rightLabel.graphics.anchor = new ex.Vector(1, 0.5);
+      rightLabel.graphics.use(new ex.Text({
+        text: rightText,
+        font: new ex.Font({ size: 12, color: rightColor }),
+      }));
       this.add(rightLabel);
       this.dungeonUIElements.push(rightLabel);
 
       // Lock text for locked dungeons
       if (!isUnlocked) {
-        const lockLabel = new ex.Label({
-          text: 'LOCKED',
+        const lockLabel = new ex.ScreenElement({
           pos: new ex.Vector(modalX + modalWidth / 2 - 70, itemY + itemHeight / 2),
-          font: new ex.Font({ size: 12, color: ex.Color.fromRGB(150, 80, 80) }),
           z: 502,
+          anchor: new ex.Vector(1, 0.5),
         });
-        lockLabel.graphics.anchor = new ex.Vector(1, 0.5);
+        lockLabel.graphics.use(new ex.Text({
+          text: 'LOCKED',
+          font: new ex.Font({ size: 12, color: ex.Color.fromRGB(150, 80, 80) }),
+        }));
         this.add(lockLabel);
         this.dungeonUIElements.push(lockLabel);
       }
     });
 
     // Instructions
-    const instructions = new ex.Label({
-      text: 'W/S or Up/Down: Select | ENTER: Enter | ESC: Cancel',
+    const instructions = new ex.ScreenElement({
       pos: new ex.Vector(modalX, modalY + modalHeight / 2 - 15),
-      font: new ex.Font({ size: 12, color: ex.Color.fromRGB(120, 120, 140) }),
       z: 501,
+      anchor: ex.Vector.Half,
     });
-    instructions.graphics.anchor = ex.Vector.Half;
+    instructions.graphics.use(new ex.Text({
+      text: 'W/S or Up/Down: Select | ENTER: Enter | ESC: Cancel',
+      font: new ex.Font({ size: 12, color: ex.Color.fromRGB(120, 120, 140) }),
+    }));
     this.add(instructions);
     this.dungeonUIElements.push(instructions);
   }

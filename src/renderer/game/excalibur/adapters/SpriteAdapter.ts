@@ -215,16 +215,18 @@ export async function loadCatAnimation(
 ): Promise<ex.Animation> {
   const cacheKey = `${color}-${animation}-anim`;
 
-  // Return cached if available
+  // Return cloned cached animation if available
+  // Cloning prevents scale mutations from affecting the cached version
   if (animationCache.has(cacheKey)) {
-    return animationCache.get(cacheKey)!;
+    return animationCache.get(cacheKey)!.clone();
   }
 
   const spriteSheet = await loadCatSpriteSheet(color, animation);
   const anim = createCatAnimation(spriteSheet, animation);
 
   animationCache.set(cacheKey, anim);
-  return anim;
+  // Return a clone so the cached version stays pristine
+  return anim.clone();
 }
 
 /**
