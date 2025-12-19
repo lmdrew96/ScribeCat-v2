@@ -40,6 +40,7 @@ export class BattleMenuOverlay {
   private callbacks: BattleMenuCallbacks;
   private _isVisible = false;
   private _itemMenuVisible = false;
+  private _actionsDisabled = false;
   private selectedActionIndex = 0;
   private selectedItemIndex = 0;
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -285,7 +286,16 @@ export class BattleMenuOverlay {
         opacity: 0.4;
         cursor: not-allowed;
       }
+      .sq-battle-actions.all-disabled .sq-battle-action {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
 
+      .sq-battle-actions.all-disabled .sq-battle-action.selected {
+        border-color: #888;
+        background: rgba(100, 100, 100, 0.3);
+      }
       .sq-battle-action-icon {
         font-size: 20px;
         line-height: 1;
@@ -462,6 +472,36 @@ export class BattleMenuOverlay {
     this._itemMenuVisible = false;
     this.container.style.display = 'none';
     this.removeKeyboardHandlers();
+  }
+
+  /**
+   * Disable all action buttons but keep menu visible
+   */
+  disableActions(): void {
+    this._actionsDisabled = true;
+    this.removeKeyboardHandlers();
+    this.hideItemMenu();
+    const actionsContainer = this.container.querySelector('.sq-battle-actions');
+    if (actionsContainer) {
+      actionsContainer.classList.add('all-disabled');
+    }
+    const hintContainer = this.container.querySelector('.sq-battle-hint');
+    if (hintContainer) {
+      hintContainer.textContent = 'Action in progress...';
+    }
+  }
+
+  /**
+   * Re-enable action buttons
+   */
+  enableActions(): void {
+    this._actionsDisabled = false;
+    const actionsContainer = this.container.querySelector('.sq-battle-actions');
+    if (actionsContainer) {
+      actionsContainer.classList.remove('all-disabled');
+    }
+    this.renderActions();
+    this.setupKeyboardHandlers();
   }
 
   private renderActions(): void {

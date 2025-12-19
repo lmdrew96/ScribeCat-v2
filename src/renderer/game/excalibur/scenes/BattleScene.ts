@@ -337,7 +337,12 @@ export class BattleScene extends ex.Scene {
 
   private showMenu(): void {
     // Use HTML overlay for menu
-    this.battleMenuOverlay?.show();
+    if (this.battleMenuOverlay?.isVisible) {
+      // Already visible, just re-enable actions
+      this.battleMenuOverlay.enableActions();
+    } else {
+      this.battleMenuOverlay?.show();
+    }
   }
 
   private hideMenu(): void {
@@ -642,7 +647,7 @@ export class BattleScene extends ex.Scene {
     if (this.actionInProgress) return;
 
     this.actionInProgress = true;
-    this.battleMenuOverlay?.hide();
+    this.battleMenuOverlay?.disableActions();
 
     switch (action) {
       case 'Attack':
@@ -681,7 +686,7 @@ export class BattleScene extends ex.Scene {
 
     this.actionInProgress = true;
     this.itemMenuVisible = false;
-    this.battleMenuOverlay?.hide();
+    this.battleMenuOverlay?.disableActions();
 
     // Use item
     GameState.removeItem(itemId, 1);
