@@ -53,6 +53,10 @@ export class TitleScene extends ex.Scene {
   private settingsMenuActors: ex.Actor[] = [];
   private settingsSelection = 0;
 
+  // Continue mode - allow cat color selection before resuming
+  private continueMode = false;
+  private continueModeLabel: ex.Label | null = null;
+
   // Message display
   private messageLabel: ex.Label | null = null;
   private messageBg: ex.Actor | null = null;
@@ -66,6 +70,7 @@ export class TitleScene extends ex.Scene {
     this.selectedCatIndex = 0;
     this.selectedButton = 0;
     this.settingsMenuActive = false;
+    this.continueMode = false;
 
     // Clear any existing actors
     this.clear();
@@ -96,6 +101,7 @@ export class TitleScene extends ex.Scene {
     this.buttonLabels = [];
     this.messageLabel = null;
     this.messageBg = null;
+    this.continueModeLabel = null;
   }
 
   private setupBackground(): void {
@@ -429,23 +435,91 @@ export class TitleScene extends ex.Scene {
   }
 
   private async handleContinue(): Promise<void> {
+    // If already in continue mode, confirm cat selection and resume game
+    if (this.continueMode) {
+      const selectedCat = ALL_CAT_COLORS[this.selectedCatIndex];
+      const isUnlocked = this.isCatUnlockedForPlayer(selectedCat);
+
+      if (!isUnlocked) {
+        this.showMessage('Cat is locked! Choose an unlocked cat.', ex.Color.fromRGB(255, 100, 100));
+        return;
+      }
+
+      // Apply selected cat color and continue
+      GameState.setCatColor(selectedCat);
+      this.exitContinueMode();
+
+      // Navigate to appropriate scene
+      if (GameState.hasActiveDungeonRun()) {
+        this.onContinueGame?.().then(() => {});
+        // The callback will handle navigation
+      } else {
+        this.onContinueGame?.().then(() => {});
+      }
+      return;
+    }
+
     // Show loading message
     this.showMessage('Loading cloud save...', ex.Color.fromRGB(255, 255, 100));
 
     if (this.onContinueGame) {
-      const result = await this.onContinueGame();
+      // First load from cloud to check if save exists
+      const { GameState: GS } = await import('../../state/GameState.js');
+      const success = await GS.loadFromCloud();
 
       // Clear loading message
       this.clearMessage();
 
-      if (!result.success) {
+      if (!success) {
         this.showMessage('No saved game found. Sign in or start a new game!', ex.Color.fromRGB(255, 100, 100));
+        return;
       }
-      // If success, the callback handler will navigate to the appropriate scene
+
+      // Enter continue mode - allow player to change cat before resuming
+      this.enterContinueMode();
     } else {
       this.clearMessage();
       this.showMessage('Continue not available', ex.Color.fromRGB(255, 100, 100));
     }
+  }
+
+  /**
+   * Enter continue mode - show cat selection UI for continuing game
+   */
+  private enterContinueMode(): void {
+    this.continueMode = true;
+
+    // Find the index of the player's current cat color
+    const currentCatIndex = ALL_CAT_COLORS.indexOf(GameState.player.catColor);
+    if (currentCatIndex >= 0) {
+      this.selectedCatIndex = currentCatIndex;
+      this.updateCatPreview();
+    }
+
+    // Show continue mode indicator
+    this.continueModeLabel = new ex.Label({
+      text: `Level ${GameState.player.level} | ${GameState.player.gold}G | Change cat? (ENTER to confirm)`,
+      pos: new ex.Vector(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 40),
+      font: new ex.Font({ size: 14, color: ex.Color.fromHex('#64ff64') }),
+      z: 50,
+    });
+    this.continueModeLabel.graphics.anchor = ex.Vector.Half;
+    this.add(this.continueModeLabel);
+
+    // Update menu button highlight to show Continue is selected
+    this.selectedButton = 1; // Continue button
+    this.updateButtonHighlight();
+  }
+
+  /**
+   * Exit continue mode
+   */
+  private exitContinueMode(): void {
+    this.continueMode = false;
+    if (this.continueModeLabel?.scene) {
+      this.continueModeLabel.kill();
+    }
+    this.continueModeLabel = null;
   }
 
   private showMessage(text: string, color: ex.Color): void {

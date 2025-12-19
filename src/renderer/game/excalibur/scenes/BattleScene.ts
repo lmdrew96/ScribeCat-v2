@@ -56,9 +56,20 @@ const BATTLE_CONFIG = {
   victoryDelay: 500,
 } as const;
 
+// Dungeon tier mapping for difficulty scaling
+const DUNGEON_TIER_MAP: Record<string, number> = {
+  training: 1,
+  forest: 1,
+  crystal: 2,
+  library: 2,
+  volcano: 3,
+  void: 3,
+};
+
 export interface BattleSceneData {
   enemyDef: EnemyDefinition;
   floorLevel?: number;
+  dungeonId?: string;
   returnScene: string;
   returnData?: unknown;
 }
@@ -101,6 +112,10 @@ export class BattleScene extends ex.Scene {
   
   // Player animations cache for battle
   private playerAnimations: Map<string, ex.Animation> = new Map();
+  
+  // Enemy animations cache for battle
+  private enemyAnimations: Map<string, ex.Animation> = new Map();
+  private enemyIsAnimated = false;
 
   // Callbacks
   public onBattleEnd: ((result: 'victory' | 'defeat' | 'flee', data?: unknown) => void) | null = null;
@@ -112,10 +127,13 @@ export class BattleScene extends ex.Scene {
       return;
     }
 
-    const { enemyDef, floorLevel = 1 } = this.sceneData;
+    const { enemyDef, floorLevel = 1, dungeonId } = this.sceneData;
+    
+    // Calculate dungeon tier for scaling
+    const dungeonTier = dungeonId ? (DUNGEON_TIER_MAP[dungeonId] || 1) : 1;
 
-    // Initialize combat stats
-    const scaledEnemy = scaleEnemyStats(enemyDef, floorLevel);
+    // Initialize combat stats with floor and dungeon tier scaling
+    const scaledEnemy = scaleEnemyStats(enemyDef, floorLevel, dungeonTier);
     this.enemyStats = {
       hp: scaledEnemy.hp,
       maxHp: scaledEnemy.hp,
@@ -234,19 +252,31 @@ export class BattleScene extends ex.Scene {
       width: targetEnemySize, height: targetEnemySize, z: 20,
     });
 
+    // Clear previous enemy animations
+    this.enemyAnimations.clear();
+    this.enemyIsAnimated = false;
+
     // Try to load actual enemy sprite
     let spriteLoaded = false;
 
     if (enemyDef.spriteFolder) {
-      // Animated slime enemy
+      // Animated slime enemy - load all animations
       const slimeColor = getSlimeColorFromFolder(enemyDef.spriteFolder);
       if (slimeColor) {
-        const idleAnim = await loadSlimeAnimation(slimeColor, 'idle');
+        const animTypes = ['idle', 'attack', 'hurt', 'death1'] as const;
+        for (const animType of animTypes) {
+          const anim = await loadSlimeAnimation(slimeColor, animType);
+          if (anim) {
+            const scale = calculateEnemyScale(enemyDef, targetEnemySize);
+            anim.scale = new ex.Vector(scale, scale);
+            this.enemyAnimations.set(animType, anim);
+          }
+        }
+        
+        const idleAnim = this.enemyAnimations.get('idle');
         if (idleAnim) {
-          // Scale up slime sprites (32x32) to target size
-          const scale = calculateEnemyScale(enemyDef, targetEnemySize);
-          idleAnim.scale = new ex.Vector(scale, scale);
           this.enemyEntity.graphics.use(idleAnim);
+          this.enemyIsAnimated = true;
           spriteLoaded = true;
         }
       }
@@ -385,6 +415,10 @@ export class BattleScene extends ex.Scene {
     this.playPlayerAnimation('idle', false);
 
     if (isDefeated(this.enemyStats)) {
+      // Play enemy death animation if available
+      if (this.enemyIsAnimated) {
+        await this.playEnemyAnimation('death1');
+      }
       await this.handleVictory();
     }
   }
@@ -420,6 +454,10 @@ export class BattleScene extends ex.Scene {
     await this.playMagicHitEffect(this.enemyEntity);
 
     if (isDefeated(this.enemyStats)) {
+      // Play enemy death animation if available
+      if (this.enemyIsAnimated) {
+        await this.playEnemyAnimation('death1');
+      }
       await this.handleVictory();
     }
   }
@@ -462,6 +500,11 @@ export class BattleScene extends ex.Scene {
     await this.delay(BATTLE_CONFIG.turnTransitionDelay);
 
     if (action === 'attack') {
+      // Play enemy attack animation if available
+      if (this.enemyIsAnimated) {
+        await this.playEnemyAnimation('attack');
+      }
+
       // Animate enemy moving toward player
       const targetY = this.enemyEntity.pos.y + BATTLE_CONFIG.attackMoveDistance;
       await this.animateMove(this.enemyEntity, new ex.Vector(this.enemyEntity.pos.x, targetY), BATTLE_CONFIG.attackMoveDuration);
@@ -484,8 +527,11 @@ export class BattleScene extends ex.Scene {
       // Player hit reaction
       await this.playHitEffect(this.playerEntity, 'player');
 
-      // Animate enemy moving back
+      // Animate enemy moving back and return to idle
       await this.animateMove(this.enemyEntity, this.enemyStartPos, BATTLE_CONFIG.attackMoveDuration);
+      if (this.enemyIsAnimated) {
+        this.playEnemyAnimation('idle', false);
+      }
 
       if (isDefeated(this.playerStats)) {
         await this.handleDefeat();
@@ -503,15 +549,19 @@ export class BattleScene extends ex.Scene {
     const xpReward = calculateXpReward(enemyDef, floorLevel);
 
     GameState.addGold(goldReward);
-    GameState.addXp(xpReward);
+    const { levelsGained } = GameState.addXp(xpReward);
     GameState.recordBattleWin();
 
     await this.showMessage(`Victory! +${goldReward}G +${xpReward}XP`);
 
-    // Check level up
-    const leveledUp = GameState.checkLevelUp();
-    if (leveledUp) {
-      await this.showMessage(`Level Up! You are now level ${GameState.player.level}!`);
+    // Show all level ups
+    if (levelsGained > 0) {
+      for (let i = 0; i < levelsGained; i++) {
+        const levelAtGain = GameState.player.level - levelsGained + i + 1;
+        await this.showMessage(`Level Up! You are now level ${levelAtGain}!`);
+        // Play level up sound
+        AudioManager.playSfx('levelUp');
+      }
     }
 
     this.endBattle('victory');
@@ -770,8 +820,11 @@ export class BattleScene extends ex.Scene {
     // For player, use hurt animation if available
     if (type === 'player' && this.playerAnimations.has('hurt')) {
       await this.playPlayerAnimation('hurt');
+    } else if (type === 'enemy' && this.enemyIsAnimated && this.enemyAnimations.has('hurt')) {
+      // Use enemy hurt animation if available
+      await this.playEnemyAnimation('hurt');
     } else {
-      // Flash for enemies or fallback
+      // Flash for static enemies or fallback
       actor.graphics.use(new ex.Rectangle({ width: size, height: size, color: flashColor }));
     }
 
@@ -797,9 +850,11 @@ export class BattleScene extends ex.Scene {
       requestAnimationFrame(shake);
     });
 
-    // Restore original graphic (return to idle for player)
+    // Restore original graphic (return to idle for player/enemy)
     if (type === 'player') {
       this.playPlayerAnimation('idle', false);
+    } else if (type === 'enemy' && this.enemyIsAnimated) {
+      this.playEnemyAnimation('idle', false);
     } else if (origGraphic) {
       actor.graphics.use(origGraphic);
     }
@@ -923,6 +978,29 @@ export class BattleScene extends ex.Scene {
       const frameCount = anim.frames.length;
       const duration = frameCount * (1000 / 12); // Assuming ~12 FPS
       await this.delay(Math.min(duration, 500)); // Cap at 500ms
+    }
+  }
+
+  /**
+   * Play an enemy animation by type (for animated enemies like slimes)
+   * @param animType - Type of animation ('idle', 'attack', 'hurt', 'death1')
+   * @param wait - Whether to wait for the animation to complete (default: true)
+   */
+  private async playEnemyAnimation(animType: string, wait = true): Promise<void> {
+    if (!this.enemyEntity || !this.enemyIsAnimated) return;
+    
+    const anim = this.enemyAnimations.get(animType);
+    if (!anim) return;
+    
+    // Reset animation to start from beginning
+    anim.reset();
+    this.enemyEntity.graphics.use(anim);
+    
+    if (wait) {
+      // Wait for animation duration (estimate based on frames)
+      const frameCount = anim.frames.length;
+      const duration = frameCount * (1000 / 8); // Slimes use ~8 FPS
+      await this.delay(Math.min(duration, 600)); // Cap at 600ms
     }
   }
 }

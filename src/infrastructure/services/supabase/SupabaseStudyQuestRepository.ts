@@ -349,6 +349,49 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
     return StudyQuestItem.fromDatabase(data);
   }
 
+  /**
+   * Get an item by its item_key (e.g., 'wooden_sword', 'health_potion')
+   */
+  async getItemByKey(itemKey: string): Promise<StudyQuestItem | null> {
+    const { data, error } = await this.getClient()
+      .from('study_quest_items')
+      .select('*')
+      .eq('item_key', itemKey)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      console.error('Failed to get item by key:', error);
+      throw new Error(`Failed to get item by key: ${error.message}`);
+    }
+
+    return StudyQuestItem.fromDatabase(data);
+  }
+
+  /**
+   * Get item keys for given item UUIDs
+   * Used to convert stored UUIDs back to item keys for the game
+   */
+  async getItemKeysByIds(itemIds: string[]): Promise<Map<string, string>> {
+    if (itemIds.length === 0) return new Map();
+
+    const { data, error } = await this.getClient()
+      .from('study_quest_items')
+      .select('id, item_key')
+      .in('id', itemIds);
+
+    if (error) {
+      console.error('Failed to get item keys:', error);
+      return new Map();
+    }
+
+    const result = new Map<string, string>();
+    for (const item of data) {
+      result.set(item.id, item.item_key);
+    }
+    return result;
+  }
+
   async getInventory(characterId: string): Promise<InventorySlot[]> {
     const { data, error } = await this.getClient()
       .from('study_quest_inventory')
@@ -556,23 +599,34 @@ export class SupabaseStudyQuestRepository implements IStudyQuestRepository {
     }
   }
 
-  async equipItem(characterId: string, itemId: string): Promise<StudyQuestCharacter> {
-    const item = await this.getItem(itemId);
+  /**
+   * Equip an item to a character
+   * @param characterId - The character's UUID
+   * @param itemKeyOrId - Either an item_key (e.g., 'wooden_sword') or item UUID
+   */
+  async equipItem(characterId: string, itemKeyOrId: string): Promise<StudyQuestCharacter> {
+    // Try to find the item - first by item_key, then by UUID
+    let item = await this.getItemByKey(itemKeyOrId);
+    if (!item) {
+      item = await this.getItem(itemKeyOrId);
+    }
+    
     if (!item || !item.isEquippable) {
-      throw new Error('Item cannot be equipped');
+      throw new Error(`Item cannot be equipped: ${itemKeyOrId}`);
     }
 
     const updateParams: UpdateCharacterParams = { characterId };
 
+    // Store the UUID in the database
     switch (item.itemType) {
       case 'weapon':
-        updateParams.equippedWeaponId = itemId;
+        updateParams.equippedWeaponId = item.id;
         break;
       case 'armor':
-        updateParams.equippedArmorId = itemId;
+        updateParams.equippedArmorId = item.id;
         break;
       case 'accessory':
-        updateParams.equippedAccessoryId = itemId;
+        updateParams.equippedAccessoryId = item.id;
         break;
     }
 

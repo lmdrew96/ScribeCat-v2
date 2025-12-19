@@ -163,6 +163,17 @@ export interface IStudyQuestRepository {
   getItem(itemId: string): Promise<StudyQuestItem | null>;
 
   /**
+   * Get an item by its item_key (e.g., 'wooden_sword')
+   */
+  getItemByKey(itemKey: string): Promise<StudyQuestItem | null>;
+
+  /**
+   * Get item keys for given item UUIDs
+   * Used to convert stored UUIDs back to item keys for the game
+   */
+  getItemKeysByIds(itemIds: string[]): Promise<Map<string, string>>;
+
+  /**
    * Get a character's inventory
    */
   getInventory(characterId: string): Promise<InventorySlot[]>;

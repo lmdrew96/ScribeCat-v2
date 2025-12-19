@@ -92,7 +92,33 @@ export function registerStudyQuestHandlers(): void {
   ipcMain.handle('studyquest:get-character', async (_event, userId: string) => {
     try {
       const character = await studyQuestRepo.getCharacterByUserId(userId);
-      return { success: true, character: character?.toJSON() ?? null };
+      if (!character) {
+        return { success: true, character: null };
+      }
+
+      // Convert equipped item UUIDs to item keys for the game
+      const characterData = character.toJSON();
+      const equippedIds = [
+        characterData.equippedWeaponId,
+        characterData.equippedArmorId,
+        characterData.equippedAccessoryId,
+      ].filter((id): id is string => !!id);
+
+      if (equippedIds.length > 0) {
+        const idToKeyMap = await studyQuestRepo.getItemKeysByIds(equippedIds);
+        // Replace UUIDs with item keys
+        if (characterData.equippedWeaponId) {
+          characterData.equippedWeaponId = idToKeyMap.get(characterData.equippedWeaponId) || characterData.equippedWeaponId;
+        }
+        if (characterData.equippedArmorId) {
+          characterData.equippedArmorId = idToKeyMap.get(characterData.equippedArmorId) || characterData.equippedArmorId;
+        }
+        if (characterData.equippedAccessoryId) {
+          characterData.equippedAccessoryId = idToKeyMap.get(characterData.equippedAccessoryId) || characterData.equippedAccessoryId;
+        }
+      }
+
+      return { success: true, character: characterData };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Failed to get character:', error);

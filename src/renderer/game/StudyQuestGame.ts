@@ -141,6 +141,7 @@ export class StudyQuestGame {
         this.goTo('battle', {
           enemyDef,
           floorLevel: returnData.floorNumber,
+          dungeonId: returnData.dungeonId,
           returnScene: 'dungeon',
           returnData,
         });

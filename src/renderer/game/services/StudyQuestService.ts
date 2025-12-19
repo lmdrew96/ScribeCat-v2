@@ -148,6 +148,9 @@ export async function saveCharacter(characterId: string, updates: {
   gold?: number;
   xp?: number;
   level?: number;
+  equippedWeaponId?: string | null;
+  equippedArmorId?: string | null;
+  equippedAccessoryId?: string | null;
 }): Promise<boolean> {
   if (!ipc?.invoke) return false;
 
@@ -174,6 +177,29 @@ export async function saveCharacter(characterId: string, updates: {
         characterId,
         amount: updates.gold,
       });
+    }
+
+    // Save equipped items (use undefined to skip, null to unequip)
+    if (updates.equippedWeaponId !== undefined) {
+      if (updates.equippedWeaponId) {
+        await ipc.invoke('studyquest:equip-item', { characterId, itemId: updates.equippedWeaponId });
+      } else {
+        await ipc.invoke('studyquest:unequip-item', { characterId, slot: 'weapon' });
+      }
+    }
+    if (updates.equippedArmorId !== undefined) {
+      if (updates.equippedArmorId) {
+        await ipc.invoke('studyquest:equip-item', { characterId, itemId: updates.equippedArmorId });
+      } else {
+        await ipc.invoke('studyquest:unequip-item', { characterId, slot: 'armor' });
+      }
+    }
+    if (updates.equippedAccessoryId !== undefined) {
+      if (updates.equippedAccessoryId) {
+        await ipc.invoke('studyquest:equip-item', { characterId, itemId: updates.equippedAccessoryId });
+      } else {
+        await ipc.invoke('studyquest:unequip-item', { characterId, slot: 'accessory' });
+      }
     }
 
     return true;

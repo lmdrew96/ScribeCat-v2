@@ -439,20 +439,51 @@ export function getRandomEnemy(
 }
 
 /**
- * Scale enemy stats based on floor level
- * Attack scales more aggressively to make battles challenging
+ * Get a tier multiplier based on enemy tier
+ * Higher tier enemies have better base scaling
+ */
+function getTierMultiplier(tier: EnemyTier): number {
+  switch (tier) {
+    case 'low': return 1.0;
+    case 'mid': return 1.15;
+    case 'high': return 1.3;
+    case 'boss': return 1.5;
+    default: return 1.0;
+  }
+}
+
+/**
+ * Scale enemy stats based on floor level and enemy tier
+ * Combines floor scaling with tier-based multipliers for more dynamic difficulty
+ * 
+ * @param enemy - The enemy definition to scale
+ * @param floorLevel - The dungeon floor level (1-based)
+ * @param dungeonTier - Optional dungeon difficulty tier (1-3, defaults to 1)
  */
 export function scaleEnemyStats(
   enemy: EnemyDefinition,
-  floorLevel: number
+  floorLevel: number,
+  dungeonTier = 1
 ): { hp: number; attack: number; defense: number } {
-  const scaleFactor = 1 + (floorLevel - 1) * 0.15; // 15% increase per floor
-  const attackScaleFactor = 1 + (floorLevel - 1) * 0.25; // 25% increase per floor for attack (more challenging)
+  // Base scaling from floor level
+  const floorScaleFactor = 1 + (floorLevel - 1) * 0.15; // 15% increase per floor
+  const floorAttackFactor = 1 + (floorLevel - 1) * 0.25; // 25% increase per floor for attack
+  
+  // Tier-based multiplier (enemy tier)
+  const tierMult = getTierMultiplier(enemy.tier);
+  
+  // Dungeon difficulty bonus (1 = easy dungeon, 2 = medium, 3 = hard)
+  const dungeonMult = 1 + (dungeonTier - 1) * 0.1; // +10% per dungeon tier
+  
+  // Combined scaling
+  const hpScale = floorScaleFactor * tierMult * dungeonMult;
+  const attackScale = floorAttackFactor * tierMult * dungeonMult;
+  const defenseScale = floorScaleFactor * tierMult * dungeonMult;
   
   return {
-    hp: Math.floor(enemy.baseHp * scaleFactor),
-    attack: Math.floor(enemy.baseAttack * attackScaleFactor) + 3, // +3 base damage boost
-    defense: Math.floor(enemy.baseDefense * scaleFactor),
+    hp: Math.floor(enemy.baseHp * hpScale),
+    attack: Math.floor(enemy.baseAttack * attackScale) + Math.floor(floorLevel * 0.5), // Progressive base damage
+    defense: Math.floor(enemy.baseDefense * defenseScale),
   };
 }
 
