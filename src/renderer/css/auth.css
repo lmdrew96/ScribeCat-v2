@@ -59,8 +59,8 @@
 
 .auth-close-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 16px;
+  right: -16px;
   background: var(--bg-secondary);
   border: var(--border-medium) solid var(--border-color-neo);
   font-size: 24px;
@@ -96,10 +96,9 @@
 
 .auth-header {
   text-align: center;
-  padding: 40px 40px 30px;
+  padding: 0px 0px 30px;
   border-bottom: var(--border-medium) solid var(--border-color-neo);
   background-color: var(--accent-secondary);
-  border-radius: var(--radius-neo-xl) var(--radius-neo-xl) 0 0;
 }
 
 .auth-logo {
@@ -439,7 +438,6 @@
   color: var(--text-primary);
   font-weight: 600;
   font-size: 14px;
-  box-shadow: var(--shadow-neo-sm);
   transition: all 0.2s;
   overflow: hidden;
 }
@@ -618,7 +616,6 @@
 }
 
 .account-section:last-child {
-  border-bottom: none;
   margin-bottom: 0;
 }
 
@@ -660,6 +657,7 @@
   border-radius: 8px;
   padding: 16px;
   background: rgba(220, 53, 69, 0.08);
+  margin-bottom: 0;
 }
 
 .account-danger-zone .account-section-title {

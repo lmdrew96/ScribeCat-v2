@@ -31,10 +31,10 @@ export class AccountSettingsModal {
 
     this.modal.innerHTML = `
       <div class="auth-modal-content">
-        <button class="auth-close-btn" title="Close">×</button>
+        
 
         <div class="auth-header">
-          <h2>Account Settings</h2>
+          <button class="auth-close-btn" title="Close">×</button><h2>Account Settings</h2>
           <p>Manage your account information and preferences</p>
         </div>
 

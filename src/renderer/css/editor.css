@@ -100,8 +100,8 @@
 
 /* Session Title Input - Neobrutalism Style */
 .session-title-input {
-  min-width: 150px;
-  max-width: 250px;
+  min-width: 350px;
+  max-width: 500px;
   flex: 1;
   padding: 8px 12px;
   background-color: var(--bg-tertiary);
@@ -1428,7 +1428,7 @@
 /* Recording Controls Bar - Floating Pill Style */
 .recording-controls-bar {
   padding: 12px 20px;
-  margin: 0;
+  margin: 10px;
   background-color: var(--bg-tertiary);
   border: var(--border-thin) solid var(--border-color-neo);
   border-radius: var(--radius-neo-pill);
@@ -1437,6 +1437,7 @@
   gap: 12px;
   flex-wrap: nowrap;
   box-shadow: var(--shadow-neo-sm);
+  overflow: scroll;
 }
 
 .transcription-container {

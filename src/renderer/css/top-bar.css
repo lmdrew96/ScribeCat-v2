@@ -75,7 +75,6 @@
 /* StudyQuest Button - Special styling */
 .studyquest-btn {
   position: relative;
-  background: linear-gradient(135deg, #4a4a8e 0%, #2a2a4e 100%);
   border: var(--border-medium) solid #6a6aae;
 }
 
@@ -86,7 +85,7 @@
 
 .studyquest-icon {
   font-size: 18px;
-  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.5));
+  height: 20px;
 }
 
 /* Record Button - Neobrutalism Style */
