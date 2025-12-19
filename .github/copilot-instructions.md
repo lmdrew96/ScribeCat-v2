@@ -109,9 +109,9 @@ interface Achievement {
 - **Study Mode** - Timeline/Grid/List/Board views, filtering, multi-session study sets
 
 ### AI Integration (Claude claude-sonnet-4-5-20250929)
+- **8 AI Study Tools** - Summary, Key Concepts, Flashcards, Quiz, Weak Spots, ELI5, Study Plan, Concept Map
 - Smart Chat (contextual Q&A)
 - Content analysis and suggestions
-- AI-powered study assistance
 
 ### Social & Collaboration Features
 - **Friend System** - Username support (@username search), friend requests, mutual friends
@@ -122,14 +122,15 @@ interface Achievement {
 - **User Profiles** - Avatars, display names, online status
 
 ### Gamification & Productivity
-- **Achievements** - Milestone tracking and badges
+- **38 Achievements** - Milestone tracking across 7 categories (time, sessions, streaks, goals, marathon, special, StudyQuest)
 - **Goals** - Study goals with progress tracking
-- **Focus Mode** - Distraction-free environment
+- **Focus Mode** - 4 modes (Normal, Recording, Review, Study)
 - **Custom Layouts** - Flexible UI arrangements
 - **Keyboard Shortcuts** - Comprehensive shortcut system
+- **Break Reminders** - Configurable study break notifications
 
 ### Customization
-- **40 Themes** - 8 in each category (Calm, Energetic, Focus, Creative, Balanced)
+- **40 Themes** - 8 in each category (Calm, Energetic, Focus, Creative, Balanced) + 8 High Contrast
 - **Light & Dark Variants** - Every theme has both modes
 - **Neobrutalism Design** - Bold borders, shadows, distinctive UI
 - **Custom Fonts** - GalaxyCaterpillar (title), RonysiswadiArchitect5 (UI headers)

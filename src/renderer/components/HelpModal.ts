@@ -229,7 +229,7 @@ export class HelpModal {
 
       <h2>Gamification & Productivity</h2>
       <ul>
-        <li><strong>25 Achievements:</strong> Unlock badges for study milestones</li>
+        <li><strong>38 Achievements:</strong> Unlock badges for study milestones across 7 categories</li>
         <li><strong>Study Goals:</strong> Set daily and weekly targets</li>
         <li><strong>Streaks:</strong> Build consistency with streak tracking</li>
         <li><strong>Focus Modes:</strong> 4 modes to minimize distractions</li>
@@ -239,7 +239,7 @@ export class HelpModal {
       <h2>Organization & Export</h2>
       <ul>
         <li><strong>Canvas LMS Integration:</strong> Organize sessions by course</li>
-        <li><strong>48+ Beautiful Themes:</strong> Customize your workspace for focus, creativity, and productivity</li>
+        <li><strong>40 Beautiful Themes:</strong> Customize your workspace for focus, creativity, and productivity</li>
         <li><strong>Custom Layouts:</strong> Drag-to-resize panels and saved presets</li>
         <li><strong>Export Options:</strong> Export to PDF, DOCX, TXT, HTML, and Google Drive</li>
       </ul>
@@ -387,7 +387,7 @@ export class HelpModal {
       <h2>Achievements & Goals</h2>
       <p>Track your progress and stay motivated:</p>
       <ul>
-        <li><strong>25 Achievements:</strong> Badges across 6 categories (time, sessions, streaks, marathons, special)</li>
+        <li><strong>38 Achievements:</strong> Badges across 7 categories (time, sessions, streaks, goals, marathon, special, StudyQuest)</li>
         <li><strong>Study Goals:</strong> Set daily or weekly study time targets</li>
         <li><strong>Streaks:</strong> Build consistency by studying regularly</li>
       </ul>

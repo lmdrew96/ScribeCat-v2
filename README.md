@@ -2,7 +2,7 @@
 
 > ScribeCat scribes and is cat. 🐱✨
 
-**A powerful desktop application for recording lectures, meetings, and conversations with real-time transcription, intelligent note-taking, and 9 AI-powered study tools.**
+**A powerful desktop application for recording lectures, meetings, and conversations with real-time transcription, intelligent note-taking, and 8 AI-powered study tools.**
 
 Built with Electron, TypeScript, and modern web technologies, ScribeCat combines high-quality audio recording with AssemblyAI's real-time transcription, a rich text editor powered by Tiptap, and Claude AI integration for comprehensive study assistance including flashcards, quizzes, summaries, concept maps, and personalized study plans.
 
@@ -36,7 +36,7 @@ Built with Electron, TypeScript, and modern web technologies, ScribeCat combines
 - **Google Drive Export** - directly save exports to your Google Drive
 
 ### 🤖 AI-Powered Study Tools
-ScribeCat includes **9 innovative AI study tools** powered by Claude AI, designed to help you master your content:
+ScribeCat includes **8 AI study tools** powered by Claude AI, designed to help you master your content:
 
 **Content Analysis:**
 - **Summary Generator** - Comprehensive summaries with session attribution for multi-session study sets
@@ -44,9 +44,8 @@ ScribeCat includes **9 innovative AI study tools** powered by Claude AI, designe
 - **Weak Spots Detector** - Identifies difficult concepts with severity levels and mini-lessons
 
 **Active Learning:**
-- **Flashcard Generator** - Interactive flashcards (5-7 for single sessions, 8-12 for multi-session)
+- **Flashcard Generator** - Interactive flashcards with Review and Learn modes (spaced repetition)
 - **Quiz Generator** - Multiple-choice quizzes with configurable question counts (5/10/15/20)
-- **Learn Mode** - Spaced repetition learning with progress tracking (Quizlet-style)
 
 **Advanced Tools:**
 - **ELI5 Explainer** - "Explain Like I'm 5" simple explanations using analogies
@@ -55,28 +54,50 @@ ScribeCat includes **9 innovative AI study tools** powered by Claude AI, designe
 
 All tools support both single-session and multi-session study sets, with AI-powered content generation and interactive UI.
 
+### 👥 Social & Collaboration
+- **Friends System** - Connect with classmates via @username search
+- **Study Rooms** - Collaborative spaces for 2-8 participants with real-time editing
+- **Real-time Chat** - Message friends in study rooms with typing indicators
+- **Session Sharing** - Share sessions with viewer or editor access
+- **Presence Indicators** - See who's online and available to study
+
+### 🎮 Multiplayer Games
+Challenge friends with AI-generated questions from your study materials:
+- **Quiz Battle** - Competitive head-to-head quiz showdowns
+- **Jeopardy** - Classic game show format with categories and point values
+- **Hot Seat Challenge** - Rapid-fire challenge mode with power-ups
+- **Lightning Chain** - Speed-based chain challenges with bonuses
+
+### 🏆 Gamification & Productivity
+- **38 Achievements** - Unlock badges across 7 categories (time, sessions, streaks, goals, marathon, special, StudyQuest)
+- **Study Goals** - Set daily and weekly study time targets
+- **Streaks** - Build consistency with streak tracking
+- **Focus Modes** - 4 modes (Normal, Recording, Review, Study) to optimize your workspace
+- **Break Reminders** - Configurable study break notifications
+- **StudyQuest** - RPG-style gamification with character progression and battles
+
 ### 🎨 Customization
 - **40 Beautiful Themes** across 5 categories, each with light and dark variants:
-  - **Calm** (8 themes) - Peaceful, serene color palettes for distraction-free work
-  - **Energetic** (8 themes) - Vibrant, dynamic colors to keep you motivated
-  - **Focus** (8 themes) - Optimized for concentration and productivity
-  - **Creative** (8 themes) - Inspiring palettes for brainstorming and ideation
-  - **Balanced** (8 themes) - Versatile themes suitable for any task
-- **Light & Dark Variants** - Every theme has both light and dark mode versions
+  - **Calm** - Peaceful, serene color palettes for distraction-free work
+  - **Energetic** - Vibrant, dynamic colors to keep you motivated
+  - **Focus** - Optimized for concentration and productivity
+  - **Creative** - Inspiring palettes for brainstorming and ideation
+  - **Balanced** - Versatile themes suitable for any task
+- **High Contrast** - 8 additional themes for accessibility
+- **Custom Layouts** - Drag-to-resize panels and saved presets
 - **Theme Persistence** - Your theme preference is automatically saved
 
-### ☁️ Cloud & Sharing
+### ☁️ Cloud & Sync
 - **Cloud Sync** via Supabase - access your sessions across devices
-- **Session Sharing** - share recordings with others via secure links
-- **Permission Management** - control who can view or edit shared sessions
-- **Real-Time Collaboration** - shared sessions update automatically
-- **Authentication** - secure sign-in with email/password
+- **Google Drive Export** - Export directly to your Google Drive
+- **Canvas LMS Integration** - Organize sessions by course
+- **Authentication** - Secure sign-in with email/password or Google OAuth
 
 ### 🗑️ Organization
-- **Trash System** - deleted sessions are moved to trash (30-day retention)
-- **Restore Deleted Sessions** - recover sessions from trash before permanent deletion
-- **Auto-Cleanup** - trash is automatically emptied after 30 days
-- **Course Organization** - tag sessions with course information
+- **Trash System** - Deleted sessions are moved to trash (30-day retention)
+- **Restore Deleted Sessions** - Recover sessions from trash before permanent deletion
+- **Auto-Cleanup** - Trash is automatically emptied after 30 days
+- **Multiple Views** - Timeline, Grid, List, or Board (kanban) layouts
 
 ### 🔒 Security & Privacy
 - **Local-First** - recordings and notes stored locally on your device
