@@ -113,8 +113,7 @@
 .keyboard-shortcuts-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.85);
 }
 
 .keyboard-shortcuts-modal {
