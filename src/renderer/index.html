@@ -617,31 +617,12 @@
                         </svg>
                     </div>
                     <div class="settings-group-content">
-                        <!-- Transcription Mode Section -->
+                        <!-- Transcription Settings Section -->
                         <section class="settings-section">
-                            <h3>Transcription Mode</h3>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="transcription-mode" value="assemblyai" id="mode-assemblyai" checked>
-                            <span class="radio-text">
-                                <strong>AssemblyAI</strong>
-                                <small>Real-time streaming, word-by-word display</small>
-                            </span>
-                        </label>
-                    </div>
-                    <p class="help-text">
-                        AssemblyAI provides real-time streaming transcription with word-by-word display. API key required.
-                    </p>
-                </section>
-
-                        <!-- Transcription Accuracy Settings Section -->
-                        <section class="settings-section">
-                            <h3>Transcription Accuracy Settings</h3>
+                            <h3>Transcription Settings</h3>
                             <p class="help-text" style="margin-bottom: 15px;">
-                                Configure AssemblyAI transcription parameters for improved accuracy. These settings only apply when AssemblyAI mode is selected.
+                                Configure real-time transcription parameters for improved accuracy.
                             </p>
-
-                            <!-- Speech Model selector removed - not supported in v3 WebSocket API -->
 
                             <div class="form-group">
                                 <label for="language-select">Language:</label>
@@ -680,16 +661,6 @@
                                 ></textarea>
                                 <small class="help-text">
                                     Boost accuracy for course-specific terms, professor names, or technical jargon. Separate terms with commas. Each term must be 5-50 characters. Max 100 terms.
-                                </small>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="speaker-labels-checkbox" disabled>
-                                    <span>Enable Speaker Diarization</span>
-                                </label>
-                                <small class="help-text" style="color: #888;">
-                                    Not available for real-time streaming. Speaker diarization is only supported for pre-recorded audio files or multi-channel streaming.
                                 </small>
                             </div>
 

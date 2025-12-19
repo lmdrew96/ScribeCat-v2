@@ -69,7 +69,7 @@
 }
 
 .status-disconnected .status-text {
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 /* Collaborators List */

@@ -27,7 +27,6 @@ export interface TranscriptionAccuracySettings {
 
 export class SettingsManager {
   private settingsModal: HTMLElement;
-  private transcriptionMode: 'assemblyai' = 'assemblyai';
   private transcriptionSettings: TranscriptionAccuracySettings = {
     speechModel: 'best',
     languageCode: '',
@@ -158,15 +157,6 @@ export class SettingsManager {
       }
     });
 
-    // Transcription mode change
-    const modeRadios = document.querySelectorAll('input[name="transcription-mode"]');
-    modeRadios.forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        const target = e.target as HTMLInputElement;
-        this.transcriptionMode = target.value as 'assemblyai';
-      });
-    });
-
     // 🎉 Easter Egg: Secret theme unlock with "meow meow meow"
     this.initializeThemeEasterEgg();
   }
@@ -248,11 +238,7 @@ export class SettingsManager {
    */
   private async loadSettings(): Promise<void> {
     try {
-      // Load transcription mode
-      const mode = await window.scribeCat.store.get('transcription-mode');
-      this.transcriptionMode = (mode as 'assemblyai') || 'assemblyai';
-
-      // Load transcription accuracy settings
+      // Load transcription settings
       const settings = await window.scribeCat.store.get('transcription-accuracy-settings');
       if (settings) {
         this.transcriptionSettings = settings as TranscriptionAccuracySettings;
@@ -269,25 +255,10 @@ export class SettingsManager {
    * Update UI elements from loaded settings
    */
   private updateUIFromSettings(): void {
-    // Set transcription mode radio
-    const modeRadio = document.getElementById(
-      `mode-${this.transcriptionMode}`
-    ) as HTMLInputElement;
-    if (modeRadio) {
-      modeRadio.checked = true;
-    }
-
-    // Set transcription accuracy settings
-    // Speech model selector removed - not supported in v3 WebSocket API
-
+    // Set transcription settings
     const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
     if (languageSelect) {
       languageSelect.value = this.transcriptionSettings.languageCode;
-    }
-
-    const speakerLabelsCheckbox = document.getElementById('speaker-labels-checkbox') as HTMLInputElement;
-    if (speakerLabelsCheckbox) {
-      speakerLabelsCheckbox.checked = this.transcriptionSettings.speakerLabels;
     }
 
     const disfluenciesCheckbox = document.getElementById('disfluencies-checkbox') as HTMLInputElement;
@@ -341,18 +312,8 @@ export class SettingsManager {
    */
   private async saveSettings(): Promise<void> {
     try {
-      // Save transcription mode
-      const modeRadio = document.querySelector(
-        'input[name="transcription-mode"]:checked'
-      ) as HTMLInputElement;
-      if (modeRadio) {
-        this.transcriptionMode = modeRadio.value as 'assemblyai';
-        await window.scribeCat.store.set('transcription-mode', this.transcriptionMode);
-      }
-
-      // Save transcription accuracy settings
+      // Save transcription settings
       const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
-      const speakerLabelsCheckbox = document.getElementById('speaker-labels-checkbox') as HTMLInputElement;
       const disfluenciesCheckbox = document.getElementById('disfluencies-checkbox') as HTMLInputElement;
       const punctuateCheckbox = document.getElementById('punctuate-checkbox') as HTMLInputElement;
       const formatTextCheckbox = document.getElementById('format-text-checkbox') as HTMLInputElement;
@@ -368,12 +329,12 @@ export class SettingsManager {
       }
 
       this.transcriptionSettings = {
-        speechModel: 'best',  // Default value, not user-configurable (not supported in v3 API)
+        speechModel: 'best',  // Default value (not supported in real-time API)
         languageCode: languageSelect?.value || '',
-        speakerLabels: false,  // Always false, not supported for streaming
-        disfluencies: disfluenciesCheckbox?.checked || true,
-        punctuate: punctuateCheckbox?.checked || true,
-        formatText: formatTextCheckbox?.checked || true,
+        speakerLabels: false,  // Not supported for real-time streaming
+        disfluencies: disfluenciesCheckbox?.checked ?? true,
+        punctuate: punctuateCheckbox?.checked ?? true,
+        formatText: formatTextCheckbox?.checked ?? true,
         keyterms: keyterms
       };
 

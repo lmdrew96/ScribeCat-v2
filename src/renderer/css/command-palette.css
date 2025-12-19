@@ -307,11 +307,11 @@
 }
 
 [data-theme*="light"] .command-palette-input {
-  color: #1e1e1e;
+  color: var(--text-primary);
 }
 
 [data-theme*="light"] .command-palette-input::placeholder {
-  color: #666666;
+  color: var(--text-tertiary);
 }
 
 [data-theme*="light"] .command-palette-hint {
@@ -326,15 +326,15 @@
 }
 
 [data-theme*="light"] .command-title {
-  color: #1e1e1e;
+  color: var(--text-primary);
 }
 
 [data-theme*="light"] .command-description {
-  color: #666666;
+  color: var(--text-secondary);
 }
 
 [data-theme*="light"] .command-category {
-  color: #666666;
+  color: var(--text-tertiary);
 }
 
 [data-theme*="light"] .command-palette-footer {
@@ -343,7 +343,7 @@
 }
 
 [data-theme*="light"] .command-palette-hint-group {
-  color: #666666;
+  color: var(--text-secondary);
 }
 
 /* Smooth scroll behavior */

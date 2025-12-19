@@ -225,11 +225,11 @@
 }
 
 [data-theme*="light"] .suggestion-chip-title {
-  color: #1e1e1e;
+  color: var(--text-primary);
 }
 
 [data-theme*="light"] .suggestion-chip-description {
-  color: #666666;
+  color: var(--text-secondary);
 }
 
 [data-theme*="light"] .suggestion-chip-icon {

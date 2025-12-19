@@ -3,9 +3,8 @@
   flex: 1;
   display: flex;
   overflow: hidden;
-  padding: 12px;
-  padding-right: 18px; /* Extra padding to account for shadow */
-  gap: 12px;
+  padding: 20px 30px;
+  gap: 20px;
   background-color: var(--bg-primary);
 }
 
@@ -20,6 +19,7 @@
   border: var(--border-medium) solid var(--border-color-neo);
   box-shadow: var(--shadow-neo-lg);
   overflow: hidden;
+  position: relative;
 }
 
 /* Right Panel: Transcription - Floating Card Style */
@@ -44,6 +44,7 @@
   justify-content: space-between;
   gap: 12px;
   min-height: 60px;
+  margin: -1px -1px 0 -1px;
   border-radius: var(--radius-neo-xl) var(--radius-neo-xl) 0 0;
 }
 
@@ -1345,7 +1346,7 @@
   table-layout: fixed;
   width: 100%;
   margin: 1rem 0;
-  border: 1px solid #666666;
+  border: 1px solid var(--editor-table-border);
 }
 
 .notes-html-content table tbody td,
@@ -1353,7 +1354,7 @@
 .notes-html-content table thead th,
 .notes-html-content table thead td {
   min-width: 1em;
-  border: 1px solid #666666;
+  border: 1px solid var(--editor-table-border);
   padding: 8px 12px;
   vertical-align: top;
   box-sizing: border-box;
@@ -1427,7 +1428,7 @@
 /* Recording Controls Bar - Floating Pill Style */
 .recording-controls-bar {
   padding: 12px 20px;
-  margin: 12px;
+  margin: 0;
   background-color: var(--bg-tertiary);
   border: var(--border-thin) solid var(--border-color-neo);
   border-radius: var(--radius-neo-pill);
