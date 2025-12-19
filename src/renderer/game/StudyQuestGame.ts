@@ -16,7 +16,7 @@ import { TownScene } from './excalibur/scenes/TownScene.js';
 import { InnScene } from './excalibur/scenes/InnScene.js';
 import { HomeScene } from './excalibur/scenes/HomeScene.js';
 import { ShopSceneHybrid } from './excalibur/scenes/ShopSceneHybrid.js';
-import { InventoryScene } from './excalibur/scenes/InventoryScene.js';
+import { InventoryScene } from './excalibur/scenes/InventorySceneHybrid.js';
 import { BattleScene } from './excalibur/scenes/BattleScene.js';
 import { DungeonScene, type DungeonSceneData } from './excalibur/scenes/DungeonScene.js';
 

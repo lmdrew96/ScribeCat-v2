@@ -1,7 +1,7 @@
 # Claude Code Instructions for ScribeCat v2
 
 ## About This Project
-ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **2.9.0**
+ScribeCat v2 is an Electron desktop app for transcription, note-taking, and collaborative studying. Current version: **2.10.0**
 
 **Tech Stack:** Electron 38 + Vite, TypeScript (strict mode), TipTap rich-text editor, Yjs for CRDT collaboration, Supabase backend, AssemblyAI transcription, Claude AI integration
 

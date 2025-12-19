@@ -61,6 +61,8 @@ const BUILDINGS: BuildingConfig[] = [
 export interface TownSceneData {
   catColor?: CatColor;
   fromScene?: string;
+  playerX?: number;
+  playerY?: number;
 }
 
 /**
@@ -141,6 +143,9 @@ export class TownScene extends ex.Scene {
   private dungeonDialog: DialogOverlay | null = null;
   private dungeonList: DungeonInfo[] = [];
 
+  // Track registered input handler cancellers for cleanup
+  private inputHandlerCancellers: (() => void)[] = [];
+
   // HUD elements (using ScreenElement for screen-space positioning)
   private hudContainer: ex.ScreenElement | null = null;
   private levelLabel: ex.Label | null = null;
@@ -215,6 +220,12 @@ export class TownScene extends ex.Scene {
 
     // Cancel all pending timeouts to prevent callbacks after scene exit
     this.clearPendingTimeouts();
+
+    // Cancel all registered input handlers
+    for (const cancel of this.inputHandlerCancellers) {
+      cancel();
+    }
+    this.inputHandlerCancellers = [];
 
     // Cleanup HTML overlays
     this.dungeonDialog?.destroy();
@@ -418,8 +429,12 @@ export class TownScene extends ex.Scene {
     let spawnX = MAP_WIDTH / 2;
     let spawnY = MAP_HEIGHT - 100;
 
-    if (this.useTilemap) {
-      // Use tilemap spawn position
+    // Check if returning from inventory with saved position
+    if (this.sceneData.playerX !== undefined && this.sceneData.playerY !== undefined) {
+      spawnX = this.sceneData.playerX;
+      spawnY = this.sceneData.playerY;
+    } else if (this.useTilemap) {
+      // Use tilemap spawn position for fresh entry
       const spawn = getSpawnPixelPosition(this.tilemapOffsetX, this.tilemapOffsetY, this.tilemapScale);
       spawnX = spawn.x;
       spawnY = spawn.y;
@@ -572,6 +587,12 @@ export class TownScene extends ex.Scene {
   }
 
   private setupInputHandlers(): void {
+    // Clear any existing handlers first
+    for (const cancel of this.inputHandlerCancellers) {
+      cancel();
+    }
+    this.inputHandlerCancellers = [];
+
     const checkPlayer = () => {
       // Skip if scene is no longer active
       if (!this.player) return;
@@ -580,29 +601,39 @@ export class TownScene extends ex.Scene {
         const input = this.player.getInputManager()!;
 
         // ENTER to interact (DialogOverlay handles its own keyboard input when open)
-        input.onKeyPress('enter', () => {
+        const cancelEnter = input.onKeyPress('enter', () => {
           if (!this.inputEnabled || this.dungeonUIActive) return;
           this.checkDoorInteraction();
         });
+        this.inputHandlerCancellers.push(cancelEnter);
 
-        input.onKeyPress('space', () => {
+        const cancelSpace = input.onKeyPress('space', () => {
           if (!this.inputEnabled || this.dungeonUIActive) return;
           this.checkDoorInteraction();
         });
+        this.inputHandlerCancellers.push(cancelSpace);
 
         // ESC to cancel/menu (DialogOverlay handles its own ESC when open)
-        input.onKeyPress('escape', () => {
+        const cancelEscape = input.onKeyPress('escape', () => {
           if (!this.inputEnabled) return;
           if (!this.dungeonUIActive) {
             this.goToScene('title');
           }
         });
+        this.inputHandlerCancellers.push(cancelEscape);
 
         // I for inventory
-        input.onKeyPress('i', () => {
+        const cancelInventory = input.onKeyPress('i', () => {
           if (!this.inputEnabled || this.dungeonUIActive) return;
-          this.goToScene('inventory', { fromScene: 'town' });
+          // Pass current player position so we can restore it on return
+          const playerPos = this.player?.pos;
+          this.goToScene('inventory', {
+            fromScene: 'town',
+            playerX: playerPos?.x,
+            playerY: playerPos?.y,
+          });
         });
+        this.inputHandlerCancellers.push(cancelInventory);
       } else {
         // Retry next frame using tracked timeout
         this.scheduledTimeout(checkPlayer, 100);

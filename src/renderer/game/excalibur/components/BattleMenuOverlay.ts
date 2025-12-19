@@ -44,6 +44,15 @@ export class BattleMenuOverlay {
   private selectedItemIndex = 0;
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
 
+  // Stats bar DOM references
+  private playerHpFill: HTMLElement | null = null;
+  private playerHpValue: HTMLElement | null = null;
+  private playerMpFill: HTMLElement | null = null;
+  private playerMpValue: HTMLElement | null = null;
+  private enemyHpFill: HTMLElement | null = null;
+  private enemyHpValue: HTMLElement | null = null;
+  private enemyNameEl: HTMLElement | null = null;
+
   constructor(parentElement: HTMLElement, callbacks: BattleMenuCallbacks) {
     this.callbacks = callbacks;
 
@@ -76,6 +85,33 @@ export class BattleMenuOverlay {
 
   private buildDOM(): void {
     this.container.innerHTML = `
+      <div class="sq-battle-stats">
+        <div class="sq-battle-stats-player">
+          <div class="sq-stat-bar sq-hp-bar">
+            <span class="sq-stat-label">HP</span>
+            <div class="sq-stat-track">
+              <div class="sq-stat-fill sq-hp-fill"></div>
+            </div>
+            <span class="sq-stat-value sq-hp-value">0/0</span>
+          </div>
+          <div class="sq-stat-bar sq-mp-bar">
+            <span class="sq-stat-label">MP</span>
+            <div class="sq-stat-track sq-mp-track">
+              <div class="sq-stat-fill sq-mp-fill"></div>
+            </div>
+            <span class="sq-stat-value sq-mp-value">0/0</span>
+          </div>
+        </div>
+        <div class="sq-battle-stats-enemy">
+          <span class="sq-enemy-name">Enemy</span>
+          <div class="sq-stat-bar sq-enemy-hp-bar">
+            <div class="sq-stat-track">
+              <div class="sq-stat-fill sq-enemy-hp-fill"></div>
+            </div>
+            <span class="sq-stat-value sq-enemy-hp-value">0/0</span>
+          </div>
+        </div>
+      </div>
       <div class="sq-battle-menu">
         <div class="sq-battle-actions"></div>
         <div class="sq-battle-hint"></div>
@@ -93,6 +129,15 @@ export class BattleMenuOverlay {
     `;
 
     this.container.addEventListener('click', (e) => this.handleClick(e));
+
+    // Cache stats bar DOM references
+    this.playerHpFill = this.container.querySelector('.sq-hp-fill');
+    this.playerHpValue = this.container.querySelector('.sq-hp-value');
+    this.playerMpFill = this.container.querySelector('.sq-mp-fill');
+    this.playerMpValue = this.container.querySelector('.sq-mp-value');
+    this.enemyHpFill = this.container.querySelector('.sq-enemy-hp-fill');
+    this.enemyHpValue = this.container.querySelector('.sq-enemy-hp-value');
+    this.enemyNameEl = this.container.querySelector('.sq-enemy-name');
   }
 
   private addStyles(): void {
@@ -103,6 +148,95 @@ export class BattleMenuOverlay {
     styles.textContent = `
       .sq-battle-menu-overlay {
         font-family: 'Segoe UI', system-ui, sans-serif;
+      }
+
+      /* Stats Panel - HP/MP bars above action menu */
+      .sq-battle-stats {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 16px;
+        background: rgba(20, 20, 40, 0.92);
+        border-top: 2px solid #4a6aaa;
+      }
+
+      .sq-battle-stats-player,
+      .sq-battle-stats-enemy {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .sq-battle-stats-enemy {
+        align-items: flex-end;
+      }
+
+      .sq-stat-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .sq-stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 22px;
+        color: #aaa;
+      }
+
+      .sq-stat-track {
+        width: 110px;
+        height: 12px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #4a6aaa;
+      }
+
+      .sq-mp-track {
+        height: 10px;
+      }
+
+      .sq-stat-fill {
+        height: 100%;
+        transition: width 0.3s ease-out, background-color 0.3s ease;
+        border-radius: 5px;
+      }
+
+      .sq-hp-fill {
+        background: #3CDC64;
+        width: 100%;
+      }
+
+      .sq-mp-fill {
+        background: #6496FF;
+        width: 100%;
+      }
+
+      .sq-enemy-hp-fill {
+        background: #F03C3C;
+        width: 100%;
+      }
+
+      .sq-stat-value {
+        font-size: 11px;
+        min-width: 50px;
+        color: #fff;
+      }
+
+      .sq-battle-stats-player .sq-stat-value {
+        text-align: left;
+      }
+
+      .sq-battle-stats-enemy .sq-stat-value {
+        text-align: right;
+        min-width: 45px;
+      }
+
+      .sq-enemy-name {
+        font-size: 12px;
+        color: #F03C3C;
+        font-weight: 600;
+        margin-bottom: 2px;
       }
 
       .sq-battle-menu {
@@ -536,6 +670,50 @@ export class BattleMenuOverlay {
     if (this.keyHandler) {
       window.removeEventListener('keydown', this.keyHandler);
       this.keyHandler = null;
+    }
+  }
+
+  // --- Stats bar update methods ---
+
+  /**
+   * Update the player HP bar display
+   */
+  updatePlayerHP(current: number, max: number): void {
+    if (!this.playerHpFill || !this.playerHpValue) return;
+    const ratio = Math.max(0, Math.min(1, current / Math.max(1, max)));
+    this.playerHpFill.style.width = `${ratio * 100}%`;
+    // Color changes based on HP ratio: green > yellow > red
+    const color = ratio > 0.5 ? '#3CDC64' : ratio > 0.25 ? '#F0C83C' : '#F03C3C';
+    this.playerHpFill.style.backgroundColor = color;
+    this.playerHpValue.textContent = `${current}/${max}`;
+  }
+
+  /**
+   * Update the player MP bar display
+   */
+  updatePlayerMP(current: number, max: number): void {
+    if (!this.playerMpFill || !this.playerMpValue) return;
+    const ratio = Math.max(0, Math.min(1, current / Math.max(1, max)));
+    this.playerMpFill.style.width = `${ratio * 100}%`;
+    this.playerMpValue.textContent = `${current}/${max}`;
+  }
+
+  /**
+   * Update the enemy HP bar display
+   */
+  updateEnemyHP(current: number, max: number): void {
+    if (!this.enemyHpFill || !this.enemyHpValue) return;
+    const ratio = Math.max(0, Math.min(1, current / Math.max(1, max)));
+    this.enemyHpFill.style.width = `${ratio * 100}%`;
+    this.enemyHpValue.textContent = `${current}/${max}`;
+  }
+
+  /**
+   * Set the enemy name displayed in the stats panel
+   */
+  setEnemyName(name: string): void {
+    if (this.enemyNameEl) {
+      this.enemyNameEl.textContent = name;
     }
   }
 

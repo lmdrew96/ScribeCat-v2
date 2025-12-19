@@ -56,6 +56,7 @@ export class PlayerActor extends ex.Actor {
   private catColor: CatColor;
   private animations: Map<CatAnimationType, ex.Animation> = new Map();
   private currentAnim: CatAnimationType = 'idle';
+  private currentAnimApplied = false; // Track if current animation is already applied
   private inputManager: InputManager | null = null;
   private movementBounds?: {
     minX: number;
@@ -161,8 +162,10 @@ export class PlayerActor extends ex.Actor {
     const isMoving = movement.x !== 0 || movement.y !== 0;
     const targetAnim = isMoving ? 'walk' : 'idle';
 
-    if (targetAnim !== this.currentAnim && this.animations.has(targetAnim)) {
+    // Only apply animation if it's different from current OR hasn't been applied yet
+    if ((targetAnim !== this.currentAnim || !this.currentAnimApplied) && this.animations.has(targetAnim)) {
       this.currentAnim = targetAnim;
+      this.currentAnimApplied = true;
       this.graphics.use(this.animations.get(targetAnim)!);
     }
 
@@ -190,6 +193,7 @@ export class PlayerActor extends ex.Actor {
     // Switch to idle animation when frozen
     if (this.animations.has('idle')) {
       this.currentAnim = 'idle';
+      this.currentAnimApplied = true;
       this.graphics.use(this.animations.get('idle')!);
     }
   }
@@ -199,6 +203,8 @@ export class PlayerActor extends ex.Actor {
    */
   unfreeze(): void {
     this.frozen = false;
+    // Reset animation applied flag so next movement update applies correct animation
+    this.currentAnimApplied = false;
   }
 
   /**

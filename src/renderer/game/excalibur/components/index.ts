@@ -23,6 +23,9 @@ export {
 // Shop components
 export { ShopOverlay, type ShopOverlayCallbacks } from './ShopOverlay.js';
 
+// Inventory components
+export { InventoryOverlay, type InventoryOverlayCallbacks } from './InventoryOverlay.js';
+
 // Dialog components
 export {
   DialogOverlay,

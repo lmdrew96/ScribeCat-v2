@@ -44,10 +44,16 @@ const BATTLE_CONFIG = {
   playerSize: 64,
   manaPerMagicAttack: 10,
   magicDamageMultiplier: 1.5,
-  hitFlashDuration: 100,
+  hitFlashDuration: 150,
+  shakeDuration: 300,
+  shakeIntensity: 8,
+  attackMoveDistance: 40,
+  attackMoveDuration: 200,
   messageDisplayDuration: 1.5,
   inputCooldownDelay: 200,
-  enemyTurnDelay: 500,
+  enemyTurnDelay: 800,
+  turnTransitionDelay: 400,
+  victoryDelay: 500,
 } as const;
 
 export interface BattleSceneData {
@@ -88,12 +94,10 @@ export class BattleScene extends ex.Scene {
   // Entity references
   private enemyEntity: ex.Actor | null = null;
   private playerEntity: ex.Actor | null = null;
-  private enemyHpBar: ex.Actor | null = null;
-  private playerHpBar: ex.Actor | null = null;
-  private playerMpBar: ex.Actor | null = null;
-  private enemyHpLabel: ex.Label | null = null;
-  private playerHpLabel: ex.Label | null = null;
-  private playerMpLabel: ex.Label | null = null;
+
+  // Original positions for animations
+  private playerStartPos: ex.Vector | null = null;
+  private enemyStartPos: ex.Vector | null = null;
 
   // Callbacks
   public onBattleEnd: ((result: 'victory' | 'defeat' | 'flee', data?: unknown) => void) | null = null;
@@ -140,6 +144,9 @@ export class BattleScene extends ex.Scene {
     this.setupOverlays();
     this.setupInputHandlers();
 
+    // Initialize stats bars with current values
+    this.initializeStatsBars(enemyDef.name);
+
     // Start battle intro
     this.showMessage(`A wild ${enemyDef.name} appeared!`).then(() => {
       this.phase = 'player_turn';
@@ -147,6 +154,18 @@ export class BattleScene extends ex.Scene {
     });
 
     logger.info('Battle started', { enemy: enemyDef.name, floor: floorLevel });
+  }
+
+  /**
+   * Initialize the HTML stats bars with enemy name and current HP/MP values
+   */
+  private initializeStatsBars(enemyName: string): void {
+    if (!this.battleMenuOverlay) return;
+    
+    this.battleMenuOverlay.setEnemyName(enemyName);
+    this.updateEnemyHp();
+    this.updatePlayerHp();
+    this.updatePlayerMp();
   }
 
   onDeactivate(): void {
@@ -254,6 +273,9 @@ export class BattleScene extends ex.Scene {
     }
     this.add(this.enemyEntity);
 
+    // Store enemy starting position for animations
+    this.enemyStartPos = this.enemyEntity.pos.clone();
+
     // Enemy name
     const enemyName = new ex.Label({
       text: enemyDef.name,
@@ -264,9 +286,10 @@ export class BattleScene extends ex.Scene {
     this.add(enemyName);
     this.uiElements.push(enemyName);
 
-    // Player
+    // Player - positioned in lower-left of visible battle area
+    // Note: HTML battle menu + stats panel covers bottom ~140px
     this.playerEntity = new ex.Actor({
-      pos: new ex.Vector(150, CANVAS_HEIGHT - 180),
+      pos: new ex.Vector(100, 190),
       width: BATTLE_CONFIG.playerSize, height: BATTLE_CONFIG.playerSize, z: 25,
     });
 
@@ -280,77 +303,14 @@ export class BattleScene extends ex.Scene {
       }));
     }
     this.add(this.playerEntity);
+
+    // Store player starting position for animations
+    this.playerStartPos = this.playerEntity.pos.clone();
   }
 
   private setupHPBars(): void {
-    // Enemy HP bar
-    const enemyHpBg = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH - 105, 47),
-      width: 150, height: 16, z: 100,
-    });
-    enemyHpBg.graphics.use(new ex.Rectangle({ width: 150, height: 16, color: ex.Color.fromHex('#280000') }));
-    this.add(enemyHpBg);
-
-    this.enemyHpBar = new ex.Actor({
-      pos: new ex.Vector(CANVAS_WIDTH - 178, 47),
-      width: 146, height: 12, anchor: new ex.Vector(0, 0.5), z: 101,
-    });
-    this.enemyHpBar.graphics.use(new ex.Rectangle({ width: 146, height: 12, color: ex.Color.fromHex('#F03C3C') }));
-    this.add(this.enemyHpBar);
-
-    this.enemyHpLabel = new ex.Label({
-      text: `${this.enemyStats?.hp}/${this.enemyStats?.maxHp}`,
-      pos: new ex.Vector(CANVAS_WIDTH - 105, 47),
-      font: new ex.Font({ size: 12, color: ex.Color.White }), z: 103,
-    });
-    this.enemyHpLabel.graphics.anchor = ex.Vector.Half;
-    this.add(this.enemyHpLabel);
-
-    // Player HP bar
-    const playerHpBg = new ex.Actor({
-      pos: new ex.Vector(110, CANVAS_HEIGHT - 122),
-      width: 180, height: 18, z: 100,
-    });
-    playerHpBg.graphics.use(new ex.Rectangle({ width: 180, height: 18, color: ex.Color.fromHex('#143228') }));
-    this.add(playerHpBg);
-
-    this.playerHpBar = new ex.Actor({
-      pos: new ex.Vector(22, CANVAS_HEIGHT - 122),
-      width: 176, height: 14, anchor: new ex.Vector(0, 0.5), z: 101,
-    });
-    this.playerHpBar.graphics.use(new ex.Rectangle({ width: 176, height: 14, color: ex.Color.fromHex('#3CDC64') }));
-    this.add(this.playerHpBar);
-
-    this.playerHpLabel = new ex.Label({
-      text: `HP: ${this.playerStats?.hp}/${this.playerStats?.maxHp}`,
-      pos: new ex.Vector(110, CANVAS_HEIGHT - 122),
-      font: new ex.Font({ size: 13, color: ex.Color.White }), z: 103,
-    });
-    this.playerHpLabel.graphics.anchor = ex.Vector.Half;
-    this.add(this.playerHpLabel);
-
-    // Player MP bar
-    const playerMpBg = new ex.Actor({
-      pos: new ex.Vector(110, CANVAS_HEIGHT - 102),
-      width: 180, height: 14, z: 100,
-    });
-    playerMpBg.graphics.use(new ex.Rectangle({ width: 180, height: 14, color: ex.Color.fromHex('#141E32') }));
-    this.add(playerMpBg);
-
-    this.playerMpBar = new ex.Actor({
-      pos: new ex.Vector(22, CANVAS_HEIGHT - 102),
-      width: 176, height: 10, anchor: new ex.Vector(0, 0.5), z: 101,
-    });
-    this.playerMpBar.graphics.use(new ex.Rectangle({ width: 176, height: 10, color: ex.Color.fromHex('#6496FF') }));
-    this.add(this.playerMpBar);
-
-    this.playerMpLabel = new ex.Label({
-      text: `MP: ${this.playerStats?.mana}/${this.playerStats?.maxMana}`,
-      pos: new ex.Vector(110, CANVAS_HEIGHT - 102),
-      font: new ex.Font({ size: 12, color: ex.Color.White }), z: 103,
-    });
-    this.playerMpLabel.graphics.anchor = ex.Vector.Half;
-    this.add(this.playerMpLabel);
+    // HP/MP bars are now rendered in the BattleMenuOverlay HTML component
+    // Initial values are set in onActivate after overlay setup
   }
 
   private setupMenu(): void {
@@ -372,21 +332,30 @@ export class BattleScene extends ex.Scene {
   }
 
   private async playerAttack(): Promise<void> {
-    if (!this.enemyStats || !this.playerStats) return;
+    if (!this.enemyStats || !this.playerStats || !this.playerEntity || !this.enemyEntity) return;
 
+    // Store original position if not set
+    if (!this.playerStartPos) {
+      this.playerStartPos = this.playerEntity.pos.clone();
+    }
+
+    // Animate player moving toward enemy
+    const targetX = this.playerEntity.pos.x + BATTLE_CONFIG.attackMoveDistance;
+    await this.animateMove(this.playerEntity, new ex.Vector(targetX, this.playerEntity.pos.y), BATTLE_CONFIG.attackMoveDuration);
+
+    // Calculate and apply damage
     const damage = calculateDamage(this.playerStats.attack, this.enemyStats.defense);
     this.enemyStats.hp = Math.max(0, this.enemyStats.hp - damage);
     this.updateEnemyHp();
 
-    await this.showMessage(`You attack for ${damage} damage!`);
+    // Show damage message
+    await this.showMessage(`You attack for ${damage} damage!`, 1.0);
 
-    // Flash enemy white to indicate hit
-    if (this.enemyEntity) {
-      const origGraphic = this.enemyEntity.graphics.current; // Save original BEFORE replacing
-      this.enemyEntity.graphics.use(new ex.Rectangle({ width: BATTLE_CONFIG.enemySize, height: BATTLE_CONFIG.enemySize, color: ex.Color.White }));
-      await this.delay(BATTLE_CONFIG.hitFlashDuration);
-      if (origGraphic) this.enemyEntity.graphics.use(origGraphic);
-    }
+    // Enemy hit reaction - flash and shake
+    await this.playHitEffect(this.enemyEntity, 'enemy');
+
+    // Animate player moving back
+    await this.animateMove(this.playerEntity, this.playerStartPos, BATTLE_CONFIG.attackMoveDuration);
 
     if (isDefeated(this.enemyStats)) {
       await this.handleVictory();
@@ -394,7 +363,7 @@ export class BattleScene extends ex.Scene {
   }
 
   private async playerMagic(): Promise<void> {
-    if (!this.playerStats || !this.enemyStats) return;
+    if (!this.playerStats || !this.enemyStats || !this.playerEntity || !this.enemyEntity) return;
 
     const manaCost = BATTLE_CONFIG.manaPerMagicAttack;
     if ((this.playerStats.mana || 0) < manaCost) {
@@ -405,15 +374,23 @@ export class BattleScene extends ex.Scene {
       return;
     }
 
+    // Consume mana
     this.playerStats.mana = (this.playerStats.mana || 0) - manaCost;
     GameState.player.mana = this.playerStats.mana;
     this.updatePlayerMp();
 
+    // Magic effect - flash player with magic color
+    await this.playMagicCastEffect(this.playerEntity);
+
+    // Calculate magic damage
     const damage = Math.floor(this.playerStats.attack * BATTLE_CONFIG.magicDamageMultiplier);
     this.enemyStats.hp = Math.max(0, this.enemyStats.hp - damage);
     this.updateEnemyHp();
 
-    await this.showMessage(`Magic attack for ${damage} damage!`);
+    await this.showMessage(`Magic attack for ${damage} damage!`, 1.0);
+
+    // Enemy hit with magic effect
+    await this.playMagicHitEffect(this.enemyEntity);
 
     if (isDefeated(this.enemyStats)) {
       await this.handleVictory();
@@ -422,7 +399,13 @@ export class BattleScene extends ex.Scene {
 
   private async playerDefend(): Promise<void> {
     this.playerDefending = true;
-    await this.showMessage('You brace for impact!');
+    
+    // Visual feedback - brief defensive glow
+    if (this.playerEntity) {
+      await this.playDefendEffect(this.playerEntity);
+    }
+    
+    await this.showMessage('You brace for impact!', 0.8);
   }
 
   private async playerFlee(): Promise<void> {
@@ -439,15 +422,26 @@ export class BattleScene extends ex.Scene {
   }
 
   private async enemyTurn(): Promise<void> {
-    if (!this.enemyStats || !this.playerStats || !this.sceneData) return;
+    if (!this.enemyStats || !this.playerStats || !this.sceneData || !this.enemyEntity || !this.playerEntity) return;
 
     this.phase = 'enemy_turn';
 
+    // Store enemy start position if not set
+    if (!this.enemyStartPos) {
+      this.enemyStartPos = this.enemyEntity.pos.clone();
+    }
+
     const action = decideEnemyAction(this.enemyStats);
-    await this.delay(BATTLE_CONFIG.enemyTurnDelay);
+    await this.delay(BATTLE_CONFIG.turnTransitionDelay);
 
     if (action === 'attack') {
+      // Animate enemy moving toward player
+      const targetY = this.enemyEntity.pos.y + BATTLE_CONFIG.attackMoveDistance;
+      await this.animateMove(this.enemyEntity, new ex.Vector(this.enemyEntity.pos.x, targetY), BATTLE_CONFIG.attackMoveDuration);
+
+      // Calculate damage
       let damage = calculateDamage(this.enemyStats.attack, this.playerStats.defense);
+      const wasDefending = this.playerDefending;
       if (this.playerDefending) {
         damage = Math.floor(damage / 2);
         this.playerDefending = false;
@@ -457,15 +451,14 @@ export class BattleScene extends ex.Scene {
       GameState.player.health = this.playerStats.hp;
       this.updatePlayerHp();
 
-      await this.showMessage(`${this.sceneData.enemyDef.name} attacks for ${damage} damage!`);
+      const defendText = wasDefending ? ' (blocked!)' : '';
+      await this.showMessage(`${this.sceneData.enemyDef.name} attacks for ${damage} damage!${defendText}`, 1.0);
 
-      // Flash player red to indicate damage taken
-      if (this.playerEntity) {
-        const origGraphic = this.playerEntity.graphics.current; // Save original BEFORE replacing
-        this.playerEntity.graphics.use(new ex.Rectangle({ width: BATTLE_CONFIG.playerSize, height: BATTLE_CONFIG.playerSize, color: ex.Color.Red }));
-        await this.delay(BATTLE_CONFIG.hitFlashDuration);
-        if (origGraphic) this.playerEntity.graphics.use(origGraphic);
-      }
+      // Player hit reaction
+      await this.playHitEffect(this.playerEntity, 'player');
+
+      // Animate enemy moving back
+      await this.animateMove(this.enemyEntity, this.enemyStartPos, BATTLE_CONFIG.attackMoveDuration);
 
       if (isDefeated(this.playerStats)) {
         await this.handleDefeat();
@@ -551,31 +544,18 @@ export class BattleScene extends ex.Scene {
   // --- HP Updates ---
 
   private updateEnemyHp(): void {
-    if (!this.enemyStats || !this.enemyHpBar || !this.enemyHpLabel) return;
-    const ratio = this.enemyStats.hp / this.enemyStats.maxHp;
-    this.enemyHpBar.graphics.use(new ex.Rectangle({
-      width: 146 * ratio, height: 12, color: ex.Color.fromHex('#F03C3C'),
-    }));
-    this.enemyHpLabel.text = `${this.enemyStats.hp}/${this.enemyStats.maxHp}`;
+    if (!this.enemyStats) return;
+    this.battleMenuOverlay?.updateEnemyHP(this.enemyStats.hp, this.enemyStats.maxHp);
   }
 
   private updatePlayerHp(): void {
-    if (!this.playerStats || !this.playerHpBar || !this.playerHpLabel) return;
-    const ratio = this.playerStats.hp / this.playerStats.maxHp;
-    const color = ratio > 0.5 ? '#3CDC64' : ratio > 0.25 ? '#F0C83C' : '#F03C3C';
-    this.playerHpBar.graphics.use(new ex.Rectangle({
-      width: 176 * ratio, height: 14, color: ex.Color.fromHex(color),
-    }));
-    this.playerHpLabel.text = `HP: ${this.playerStats.hp}/${this.playerStats.maxHp}`;
+    if (!this.playerStats) return;
+    this.battleMenuOverlay?.updatePlayerHP(this.playerStats.hp, this.playerStats.maxHp);
   }
 
   private updatePlayerMp(): void {
-    if (!this.playerStats || !this.playerMpBar || !this.playerMpLabel) return;
-    const ratio = (this.playerStats.mana || 0) / (this.playerStats.maxMana || 1);
-    this.playerMpBar.graphics.use(new ex.Rectangle({
-      width: 176 * ratio, height: 10, color: ex.Color.fromHex('#6496FF'),
-    }));
-    this.playerMpLabel.text = `MP: ${this.playerStats.mana}/${this.playerStats.maxMana}`;
+    if (!this.playerStats) return;
+    this.battleMenuOverlay?.updatePlayerMP(this.playerStats.mana || 0, this.playerStats.maxMana || 1);
   }
 
   // --- Utilities ---
@@ -706,5 +686,173 @@ export class BattleScene extends ex.Scene {
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // --- Animation Helper Methods ---
+
+  /**
+   * Animate an actor moving to a target position
+   */
+  private animateMove(actor: ex.Actor, target: ex.Vector, duration: number): Promise<void> {
+    return new Promise(resolve => {
+      const startPos = actor.pos.clone();
+      const startTime = Date.now();
+
+      const updatePos = () => {
+        const elapsed = Date.now() - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        // Ease out quad for smooth deceleration
+        const eased = 1 - (1 - t) * (1 - t);
+        
+        actor.pos = new ex.Vector(
+          startPos.x + (target.x - startPos.x) * eased,
+          startPos.y + (target.y - startPos.y) * eased
+        );
+
+        if (t < 1) {
+          requestAnimationFrame(updatePos);
+        } else {
+          actor.pos = target.clone();
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(updatePos);
+    });
+  }
+
+  /**
+   * Play hit effect - flash and shake
+   */
+  private async playHitEffect(actor: ex.Actor, type: 'player' | 'enemy'): Promise<void> {
+    const origGraphic = actor.graphics.current;
+    const origPos = actor.pos.clone();
+    const size = type === 'player' ? BATTLE_CONFIG.playerSize : BATTLE_CONFIG.enemySize;
+    const flashColor = type === 'player' ? ex.Color.Red : ex.Color.White;
+
+    // Flash
+    actor.graphics.use(new ex.Rectangle({ width: size, height: size, color: flashColor }));
+
+    // Shake
+    const shakeStart = Date.now();
+    const shakeDuration = BATTLE_CONFIG.shakeDuration;
+    const intensity = BATTLE_CONFIG.shakeIntensity;
+
+    await new Promise<void>(resolve => {
+      const shake = () => {
+        const elapsed = Date.now() - shakeStart;
+        if (elapsed < shakeDuration) {
+          const decay = 1 - (elapsed / shakeDuration);
+          const offsetX = (Math.random() - 0.5) * intensity * decay * 2;
+          const offsetY = (Math.random() - 0.5) * intensity * decay * 2;
+          actor.pos = new ex.Vector(origPos.x + offsetX, origPos.y + offsetY);
+          requestAnimationFrame(shake);
+        } else {
+          actor.pos = origPos.clone();
+          resolve();
+        }
+      };
+      requestAnimationFrame(shake);
+    });
+
+    // Restore original graphic
+    if (origGraphic) actor.graphics.use(origGraphic);
+  }
+
+  /**
+   * Play magic cast effect
+   */
+  private async playMagicCastEffect(actor: ex.Actor): Promise<void> {
+    const origGraphic = actor.graphics.current;
+    const origPos = actor.pos.clone();
+
+    // Quick scale pulse
+    const pulseStart = Date.now();
+    const pulseDuration = 300;
+
+    await new Promise<void>(resolve => {
+      const pulse = () => {
+        const elapsed = Date.now() - pulseStart;
+        if (elapsed < pulseDuration) {
+          const t = elapsed / pulseDuration;
+          const scale = 1 + Math.sin(t * Math.PI) * 0.15;
+          actor.scale = new ex.Vector(scale, scale);
+          requestAnimationFrame(pulse);
+        } else {
+          actor.scale = new ex.Vector(1, 1);
+          resolve();
+        }
+      };
+      requestAnimationFrame(pulse);
+    });
+
+    // Flash blue/purple for magic
+    actor.graphics.use(new ex.Rectangle({ 
+      width: BATTLE_CONFIG.playerSize, 
+      height: BATTLE_CONFIG.playerSize, 
+      color: ex.Color.fromHex('#9966FF') 
+    }));
+    await this.delay(150);
+    if (origGraphic) actor.graphics.use(origGraphic);
+  }
+
+  /**
+   * Play magic hit effect on target
+   */
+  private async playMagicHitEffect(actor: ex.Actor): Promise<void> {
+    const origGraphic = actor.graphics.current;
+    const origPos = actor.pos.clone();
+
+    // Multi-flash with purple/blue
+    const colors = [
+      ex.Color.fromHex('#9966FF'),
+      ex.Color.fromHex('#6699FF'),
+      ex.Color.fromHex('#9966FF'),
+    ];
+
+    for (const color of colors) {
+      actor.graphics.use(new ex.Rectangle({ 
+        width: BATTLE_CONFIG.enemySize, 
+        height: BATTLE_CONFIG.enemySize, 
+        color 
+      }));
+      await this.delay(80);
+    }
+
+    // Shake
+    const shakeStart = Date.now();
+    await new Promise<void>(resolve => {
+      const shake = () => {
+        const elapsed = Date.now() - shakeStart;
+        if (elapsed < 200) {
+          const offsetX = (Math.random() - 0.5) * 6;
+          const offsetY = (Math.random() - 0.5) * 6;
+          actor.pos = new ex.Vector(origPos.x + offsetX, origPos.y + offsetY);
+          requestAnimationFrame(shake);
+        } else {
+          actor.pos = origPos.clone();
+          resolve();
+        }
+      };
+      requestAnimationFrame(shake);
+    });
+
+    if (origGraphic) actor.graphics.use(origGraphic);
+  }
+
+  /**
+   * Play defend effect
+   */
+  private async playDefendEffect(actor: ex.Actor): Promise<void> {
+    const origGraphic = actor.graphics.current;
+
+    // Brief defensive color flash
+    actor.graphics.use(new ex.Rectangle({ 
+      width: BATTLE_CONFIG.playerSize, 
+      height: BATTLE_CONFIG.playerSize, 
+      color: ex.Color.fromHex('#66CCFF') 
+    }));
+    await this.delay(200);
+    if (origGraphic) actor.graphics.use(origGraphic);
   }
 }
