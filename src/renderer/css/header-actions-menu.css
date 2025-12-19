@@ -1,0 +1,232 @@
+/* ===== Header Actions Dropdown Menu - Neobrutalism Style ===== */
+
+/* Menu Button */
+.header-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-neo-md);
+  border: var(--border-medium) solid var(--border-color-neo);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+  position: relative;
+  -webkit-app-region: no-drag;
+  box-shadow: var(--shadow-neo-sm);
+}
+
+.header-menu-btn:hover {
+  background-color: var(--accent);
+  color: var(--text-on-accent, #fff);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-md);
+}
+
+.header-menu-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
+}
+
+.header-menu-btn[aria-expanded="true"] {
+  background-color: var(--accent);
+  color: var(--text-on-accent, #fff);
+}
+
+.menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+/* Dropdown Menu */
+.header-dropdown-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 220px;
+  max-width: 280px;
+  background-color: var(--bg-secondary);
+  border: var(--border-medium) solid var(--border-color-neo);
+  border-radius: var(--radius-neo-md);
+  box-shadow: var(--shadow-neo-lg);
+  padding: 8px 0;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+.header-dropdown-menu.hidden {
+  display: none;
+}
+
+.header-dropdown-menu.visible {
+  display: block;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Menu Sections */
+.header-menu-section {
+  padding: 4px 0;
+}
+
+/* Account Header */
+.header-menu-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.header-menu-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-neo-md);
+  border: var(--border-thin) solid var(--border-color-neo);
+  background-color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.header-menu-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header-menu-initials {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-on-accent, #fff);
+  text-transform: uppercase;
+}
+
+.header-menu-account-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Divider */
+.header-menu-divider {
+  height: 1px;
+  background-color: var(--border-color-neo);
+  margin: 4px 12px;
+  opacity: 0.5;
+}
+
+/* Menu Items */
+.header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 16px);
+  margin: 2px 8px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-neo-sm);
+  background-color: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.1s ease, transform 0.1s ease;
+}
+
+.header-menu-item:hover {
+  background-color: var(--bg-tertiary);
+  transform: translateX(2px);
+}
+
+.header-menu-item:focus {
+  outline: none;
+  background-color: var(--accent);
+  color: var(--text-on-accent, #fff);
+}
+
+.header-menu-item:focus svg {
+  stroke: var(--text-on-accent, #fff);
+}
+
+.header-menu-item:active {
+  transform: translateX(0);
+}
+
+.header-menu-item svg {
+  flex-shrink: 0;
+  stroke: var(--text-secondary);
+  transition: stroke 0.1s ease;
+}
+
+.header-menu-item:hover svg {
+  stroke: var(--text-primary);
+}
+
+.header-menu-item span {
+  flex: 1;
+}
+
+/* Badge */
+.header-menu-badge {
+  background-color: var(--record-color, #ef4444);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-neo-sm);
+  min-width: 20px;
+  text-align: center;
+  border: var(--border-thin) solid var(--border-color-neo);
+  box-shadow: 2px 2px 0 var(--border-color-neo);
+}
+
+/* Animation for opening */
+@keyframes menu-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.header-dropdown-menu.visible {
+  animation: menu-slide-in 0.15s ease forwards;
+}
+
+/* High contrast adjustments */
+[data-high-contrast="true"] .header-dropdown-menu {
+  border-width: 3px;
+}
+
+[data-high-contrast="true"] .header-menu-item:focus {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Dark mode text contrast fix */
+[data-theme-mode="dark"] .header-menu-item {
+  color: var(--text-primary);
+}
+
+[data-theme-mode="dark"] .header-menu-item svg {
+  stroke: var(--text-secondary);
+}
+
+[data-theme-mode="dark"] .header-menu-item:hover svg {
+  stroke: var(--text-primary);
+}

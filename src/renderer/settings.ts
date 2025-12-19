@@ -290,6 +290,13 @@ export class SettingsManager {
   }
 
   /**
+   * Open settings modal (public API)
+   */
+  open(): void {
+    this.openSettings();
+  }
+
+  /**
    * Open settings modal
    */
   private openSettings(): void {

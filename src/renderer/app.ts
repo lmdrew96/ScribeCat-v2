@@ -31,6 +31,7 @@ import { initEmojiPicker } from './components/editor/EmojiPicker.js';
 import { initializeShortcutValidation } from './managers/ShortcutRegistry.js';
 import { AnimationService } from './effects/AnimationService.js';
 import { getButtonController, ButtonController } from './components/ButtonController.js';
+import { HeaderActionsMenu } from './components/HeaderActionsMenu.js';
 
 // StudyQuest modal (KAPLAY-based game) and manager
 import { StudyQuestModal } from './components/StudyQuestModal.js';
@@ -71,6 +72,7 @@ let confettiManager: ConfettiManager;
 let buttonController: ButtonController;
 let studyQuestModal: StudyQuestModal;
 let studyQuestManager: StudyQuestManager;
+let headerActionsMenu: HeaderActionsMenu;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -112,9 +114,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize settings manager
   settingsManager = new SettingsManager(themeManager, authManager, accountSettingsModal);
+  (window as any).settingsManager = settingsManager;
 
   // Expose authManager globally
   window.authManager = authManager;
+  (window as any).authScreen = authScreen;
 
   // Initialize study mode manager
   studyModeManager = new StudyModeManager(authManager);
@@ -135,6 +139,45 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   studyQuestManager = new StudyQuestManager();
   window.studyQuestManager = studyQuestManager;
+
+  // Initialize HeaderActionsMenu (single hamburger dropdown in top-right)
+  headerActionsMenu = new HeaderActionsMenu({
+    authManager,
+    onStudyQuest: () => {
+      studyQuestModal?.open();
+    },
+    onFriends: () => {
+      const currentUser = authManager.getCurrentUser();
+      if (currentUser) {
+        socialManagers.friendsModal.open(currentUser.id);
+      }
+    },
+    onStudyRooms: () => {
+      const currentUser = authManager.getCurrentUser();
+      if (currentUser) {
+        socialManagers.browseRoomsModal.show((roomId) => {
+          socialManagers.studyRoomView.show(roomId, () => {
+            socialManagers.browseRoomsModal.show((nextRoomId) =>
+              socialManagers.studyRoomView.show(nextRoomId)
+            );
+          });
+        });
+      }
+    },
+    onStudyMode: () => {
+      studyModeManager?.toggleStudyMode();
+    },
+    onSettings: () => {
+      settingsManager?.open();
+    },
+    onHelp: () => {
+      helpModal?.show();
+    },
+    onSignIn: () => {
+      authScreen.show();
+    },
+  });
+  (window as any).headerActionsMenu = headerActionsMenu;
 
   // Initialize recording controls
   recordingControls = new AppRecordingControls({
@@ -268,29 +311,7 @@ function setupEventListeners(): void {
     trashModal.onEmptyTrash(() => {});
   }
 
-  // Friends button
-  const friendsBtn = document.getElementById('friends-btn') as HTMLButtonElement;
-  friendsBtn?.addEventListener('click', () => {
-    const currentUser = authManager.getCurrentUser();
-    if (currentUser) {
-      socialManagers.friendsModal.open(currentUser.id);
-    }
-  });
-
-  // Study Rooms button
-  const studyRoomsBtn = document.getElementById('study-rooms-btn') as HTMLButtonElement;
-  studyRoomsBtn?.addEventListener('click', () => {
-    const currentUser = authManager.getCurrentUser();
-    if (currentUser) {
-      socialManagers.browseRoomsModal.show((roomId) => {
-        socialManagers.studyRoomView.show(roomId, () => {
-          socialManagers.browseRoomsModal.show((nextRoomId) =>
-            socialManagers.studyRoomView.show(nextRoomId)
-          );
-        });
-      });
-    }
-  });
+  // Note: Friends, Study Rooms, and other header actions are now handled by HeaderActionsMenu
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {

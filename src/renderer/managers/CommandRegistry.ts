@@ -160,8 +160,9 @@ export class CommandRegistry {
         shortcut: 'Cmd+,',
         keywords: ['settings', 'preferences', 'config'],
         action: () => {
-          const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
-          settingsBtn?.click();
+          // Use settingsManager directly since button is in dropdown menu
+          (window as any).settingsManager?.open() ||
+          document.getElementById('settings-btn')?.click();
         }
       }
     ];
@@ -415,8 +416,8 @@ export class CommandRegistry {
         icon: getIconHTML('palette', { size: 16 }),
         keywords: ['theme', 'appearance', 'color', 'dark', 'light'],
         action: () => {
-          const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
-          settingsBtn?.click();
+          // Open settings directly
+          (window as any).settingsManager?.open();
           // Wait for modal to open, then scroll to appearance section
           setTimeout(() => {
             const appearanceGroup = document.querySelector('[data-group="appearance"]') as HTMLElement;
@@ -432,8 +433,7 @@ export class CommandRegistry {
         icon: getIconHTML('mic', { size: 16 }),
         keywords: ['transcription', 'assemblyai', 'accuracy', 'settings'],
         action: () => {
-          const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
-          settingsBtn?.click();
+          (window as any).settingsManager?.open();
           setTimeout(() => {
             const transcriptionGroup = document.querySelector('[data-group="transcription-ai"]') as HTMLElement;
             transcriptionGroup?.click();
@@ -448,8 +448,7 @@ export class CommandRegistry {
         icon: getIconHTML('link', { size: 16 }),
         keywords: ['integrations', 'google', 'drive', 'canvas', 'connect'],
         action: () => {
-          const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
-          settingsBtn?.click();
+          (window as any).settingsManager?.open();
           setTimeout(() => {
             const integrationsGroup = document.querySelector('[data-group="integrations"]') as HTMLElement;
             integrationsGroup?.click();
@@ -519,8 +518,14 @@ export class CommandRegistry {
         icon: getIconHTML('user', { size: 16 }),
         keywords: ['sign', 'in', 'login', 'auth'],
         action: () => {
-          const signInBtn = document.getElementById('signin-btn') as HTMLButtonElement;
-          signInBtn?.click();
+          // Use authScreen directly since button is in dropdown menu
+          const authScreen = (window as any).authScreen;
+          if (authScreen) {
+            authScreen.show();
+          } else {
+            // Fallback to click the menu item if it exists
+            document.getElementById('signin-btn')?.click();
+          }
         }
       }
     ];

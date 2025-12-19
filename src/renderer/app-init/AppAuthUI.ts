@@ -35,31 +35,18 @@ export class AppAuthUI {
    * Set up authentication UI
    */
   static setup(deps: AuthUIDependencies): void {
-    const signinBtn = document.getElementById('signin-btn');
-    const friendsBtn = document.getElementById('friends-btn');
-    const studyRoomsBtn = document.getElementById('study-rooms-btn');
-    const studyQuestBtn = document.getElementById('studyquest-btn');
-
     // Listen for auth state changes
     deps.authManager.onAuthStateChange(async (user) => {
       if (user) {
         // User is authenticated
-        AppAuthUI.handleUserSignedIn(deps, user, signinBtn, friendsBtn, studyRoomsBtn, studyQuestBtn);
+        AppAuthUI.handleUserSignedIn(deps, user);
       } else {
         // User is not authenticated
-        AppAuthUI.handleUserSignedOut(deps, signinBtn, friendsBtn, studyRoomsBtn, studyQuestBtn);
+        AppAuthUI.handleUserSignedOut(deps);
       }
     });
 
-    // Add click listener to signin button
-    signinBtn?.addEventListener('click', () => {
-      deps.authScreen.show();
-    });
-
-    // StudyQuest button click - opens the game modal
-    studyQuestBtn?.addEventListener('click', () => {
-      deps.studyQuestModal?.open();
-    });
+    // Note: Button click handlers are now managed by HeaderActionsMenu
   }
 
   /**
@@ -67,24 +54,8 @@ export class AppAuthUI {
    */
   private static async handleUserSignedIn(
     deps: AuthUIDependencies,
-    user: any,
-    signinBtn: HTMLElement | null,
-    friendsBtn: HTMLElement | null,
-    studyRoomsBtn: HTMLElement | null,
-    studyQuestBtn: HTMLElement | null
+    user: any
   ): Promise<void> {
-    // Hide signin button, show friends, study rooms, and StudyQuest buttons
-    signinBtn?.classList.add('hidden');
-    if (friendsBtn) {
-      friendsBtn.style.display = 'block';
-    }
-    if (studyRoomsBtn) {
-      studyRoomsBtn.style.display = 'block';
-    }
-    if (studyQuestBtn) {
-      studyQuestBtn.style.display = 'flex';
-    }
-
     // Initialize managers for this user
     await deps.friendsManager.initialize(user.id);
     await deps.studyRoomsManager.initialize(user.id);
@@ -107,35 +78,16 @@ export class AppAuthUI {
     deps.browseRoomsModal.setCurrentUserId(user.id);
     deps.studyRoomView.setCurrentUserInfo(user.id, user.email, user.fullName || user.email);
 
-    // Update study rooms badge
-    AppAuthUI.setupStudyRoomsBadge(deps, user.id);
-
-    // Update friends badge
-    AppAuthUI.setupFriendsBadge(deps);
+    // Update HeaderActionsMenu badge counts
+    AppAuthUI.setupHeaderMenuBadges(deps, user.id);
   }
 
   /**
    * Handle user signed out state
    */
   private static handleUserSignedOut(
-    deps: AuthUIDependencies,
-    signinBtn: HTMLElement | null,
-    friendsBtn: HTMLElement | null,
-    studyRoomsBtn: HTMLElement | null,
-    studyQuestBtn: HTMLElement | null
+    deps: AuthUIDependencies
   ): void {
-    // Show signin button, hide friends, study rooms, and StudyQuest buttons
-    signinBtn?.classList.remove('hidden');
-    if (friendsBtn) {
-      friendsBtn.style.display = 'none';
-    }
-    if (studyRoomsBtn) {
-      studyRoomsBtn.style.display = 'none';
-    }
-    if (studyQuestBtn) {
-      studyQuestBtn.style.display = 'none';
-    }
-
     // Clear managers
     deps.friendsManager.clear();
     deps.studyRoomsManager.clear();
@@ -153,46 +105,29 @@ export class AppAuthUI {
   }
 
   /**
-   * Set up study rooms badge with pending invitations
+   * Set up badge counts for HeaderActionsMenu
    */
-  private static setupStudyRoomsBadge(deps: AuthUIDependencies, userId: string): void {
-    const invitationsCount = deps.studyRoomsManager.getPendingInvitationsCount();
-    const roomsBadge = document.getElementById('rooms-badge');
-    if (roomsBadge) {
-      roomsBadge.textContent = invitationsCount.toString();
-      roomsBadge.style.display = invitationsCount > 0 ? 'inline-block' : 'none';
-    }
+  private static setupHeaderMenuBadges(deps: AuthUIDependencies, userId: string): void {
+    // Get HeaderActionsMenu from window (set in app.ts)
+    const headerMenu = (window as any).headerActionsMenu;
 
-    // Listen for invitations changes
-    deps.studyRoomsManager.addInvitationsListener((invitations) => {
-      const pendingCount = invitations.filter(inv =>
-        inv.status === 'pending' && inv.inviteeId === userId
-      ).length;
-      const badge = document.getElementById('rooms-badge');
-      if (badge) {
-        badge.textContent = pendingCount.toString();
-        badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
-      }
-    });
-  }
-
-  /**
-   * Set up friends badge with combined requests and unread messages count
-   */
-  private static setupFriendsBadge(deps: AuthUIDependencies): void {
+    // Update friends badge
     const updateFriendsBadge = () => {
       const requestsCount = deps.friendsManager.getIncomingRequestsCount();
       const unreadMessagesCount = deps.messagesManager.getUnreadCount();
       const totalCount = requestsCount + unreadMessagesCount;
-      const badge = document.getElementById('friends-badge');
-      if (badge) {
-        badge.textContent = totalCount.toString();
-        badge.style.display = totalCount > 0 ? 'inline-block' : 'none';
-      }
+      headerMenu?.updateFriendsCount(totalCount);
     };
 
-    // Initial badge update
+    // Update rooms badge
+    const updateRoomsBadge = () => {
+      const pendingCount = deps.studyRoomsManager.getPendingInvitationsCount();
+      headerMenu?.updateRoomsCount(pendingCount);
+    };
+
+    // Initial badge updates
     updateFriendsBadge();
+    updateRoomsBadge();
 
     // Listen for changes
     deps.friendsManager.addRequestsListener(() => {
@@ -201,6 +136,13 @@ export class AppAuthUI {
 
     deps.messagesManager.addUnreadCountListener(() => {
       updateFriendsBadge();
+    });
+
+    deps.studyRoomsManager.addInvitationsListener((invitations) => {
+      const pendingCount = invitations.filter(inv =>
+        inv.status === 'pending' && inv.inviteeId === userId
+      ).length;
+      headerMenu?.updateRoomsCount(pendingCount);
     });
   }
 }
