@@ -192,12 +192,13 @@ export async function getInventory(characterId: string): Promise<InventorySlot[]
   try {
     const result = await ipc.invoke('studyquest:get-inventory', characterId) as {
       success: boolean;
-      inventory?: Array<{ item: { id: string }; quantity: number }>;
+      inventory?: Array<{ item: { id: string; itemKey: string }; quantity: number }>;
     };
 
     if (result.success && result.inventory) {
+      // Use itemKey (e.g., 'potion_minor') not UUID - the frontend item system uses string keys
       return result.inventory.map(slot => ({
-        itemId: slot.item.id,
+        itemId: slot.item.itemKey,
         quantity: slot.quantity,
       }));
     }

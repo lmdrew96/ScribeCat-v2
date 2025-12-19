@@ -14,7 +14,7 @@ import { UI_LAYERS } from '../ui/UIConstants.js';
 /**
  * Pause menu options
  */
-export type PauseMenuOption = 'resume' | 'leave';
+export type PauseMenuOption = 'resume' | 'settings' | 'leave';
 
 /**
  * Pause menu configuration
@@ -34,12 +34,15 @@ export interface PauseMenuConfig {
 export interface PauseMenuCallbacks {
   /** Called when user selects Resume */
   onResume: () => void;
+  /** Called when user selects Settings */
+  onSettings?: () => void;
   /** Called when user selects Leave Dungeon */
   onLeaveDungeon: () => void;
 }
 
 const MENU_OPTIONS: { id: PauseMenuOption; label: string }[] = [
   { id: 'resume', label: 'Resume' },
+  { id: 'settings', label: 'Settings' },
   { id: 'leave', label: 'Leave Dungeon' },
 ];
 
@@ -136,6 +139,10 @@ export class PauseMenuController {
       case 'resume':
         this.hide();
         break;
+      case 'settings':
+        this.hide();
+        this.callbacks.onSettings?.();
+        break;
       case 'leave':
         this.hide();
         this.callbacks.onLeaveDungeon();
@@ -172,7 +179,7 @@ export class PauseMenuController {
 
     // Menu box
     const menuWidth = 200;
-    const menuHeight = 120;
+    const menuHeight = 148;
     const menuBox = new ex.Actor({
       pos: ex.vec(centerX, centerY),
       width: menuWidth,

@@ -27,6 +27,7 @@ const TABS = [
   { id: 'all', label: 'All' },
   { id: 'items', label: 'Items' },
   { id: 'equip', label: 'Equipment' },
+  { id: 'equipped', label: 'Equipped' },
   { id: 'special', label: 'Special' },
   { id: 'decor', label: 'Decor' },
 ] as const;
@@ -554,6 +555,9 @@ export class InventoryOverlay {
         return allItems.filter(inv => inv.item.type === 'consumable');
       case 'equip':
         return allItems.filter(inv => inv.item.type === 'equipment');
+      case 'equipped':
+        // Return only currently equipped items
+        return this.getEquippedItems();
       case 'special':
         return allItems.filter(inv => inv.item.type === 'special' || inv.item.type === 'key');
       case 'decor':
@@ -561,6 +565,27 @@ export class InventoryOverlay {
       default:
         return allItems;
     }
+  }
+
+  /**
+   * Get currently equipped items as inventory-style entries
+   */
+  private getEquippedItems(): { id: string; quantity: number; item: ItemDefinition }[] {
+    const equipped = GameState.player.equipped;
+    const result: { id: string; quantity: number; item: ItemDefinition }[] = [];
+    
+    const slots: Array<'weapon' | 'armor' | 'accessory'> = ['weapon', 'armor', 'accessory'];
+    for (const slot of slots) {
+      const itemId = equipped[slot];
+      if (itemId) {
+        const item = getItem(itemId);
+        if (item) {
+          result.push({ id: itemId, quantity: 1, item });
+        }
+      }
+    }
+    
+    return result;
   }
 
   /**
@@ -572,7 +597,10 @@ export class InventoryOverlay {
     const items = this.getFilteredItems();
 
     if (items.length === 0) {
-      this.listContainer.innerHTML = '<div class="sq-inventory-empty">No items in this category</div>';
+      const emptyMessage = this.selectedTab === 'equipped' 
+        ? 'No gear equipped. Equip items from the Equipment tab!'
+        : 'No items in this category';
+      this.listContainer.innerHTML = `<div class="sq-inventory-empty">${emptyMessage}</div>`;
       return;
     }
 
@@ -589,8 +617,16 @@ export class InventoryOverlay {
       const iconColor = inv.item.iconColor || [100, 100, 100];
       const bgColor = `rgb(${iconColor[0]}, ${iconColor[1]}, ${iconColor[2]})`;
       
-      // Get an emoji icon based on item type
-      const getTypeIcon = (type: string): string => {
+      // Get an emoji icon based on item type or slot
+      const getTypeIcon = (type: string, slot?: string): string => {
+        // For equipped tab, show slot-specific icons
+        if (this.selectedTab === 'equipped' && slot) {
+          switch (slot) {
+            case 'weapon': return '⚔️';
+            case 'armor': return '🛡️';
+            case 'accessory': return '💍';
+          }
+        }
         switch (type) {
           case 'consumable': return '🧪';
           case 'equipment': return '⚔️';
@@ -600,6 +636,11 @@ export class InventoryOverlay {
           default: return '📦';
         }
       };
+      
+      // For equipped tab, show slot instead of type
+      const typeLabel = this.selectedTab === 'equipped' && inv.item.slot
+        ? inv.item.slot.toUpperCase()
+        : inv.item.type;
 
       return `
         <div 
@@ -608,14 +649,17 @@ export class InventoryOverlay {
           data-item-id="${inv.id}"
         >
           <div class="sq-inventory-item-icon" style="background: ${bgColor}">
-            ${getTypeIcon(inv.item.type)}
+            ${getTypeIcon(inv.item.type, inv.item.slot)}
           </div>
           <div class="sq-inventory-item-info">
             <div class="sq-inventory-item-name">${inv.item.name}</div>
-            <div class="sq-inventory-item-type">${inv.item.type}</div>
+            <div class="sq-inventory-item-type">${typeLabel}</div>
           </div>
-          <div class="sq-inventory-item-qty">×${inv.quantity}</div>
-          ${isEquipped ? '<div class="sq-inventory-item-equipped">EQUIPPED</div>' : ''}
+          ${this.selectedTab === 'equipped' 
+            ? '<div class="sq-inventory-item-equipped">EQUIPPED</div>' 
+            : `<div class="sq-inventory-item-qty">×${inv.quantity}</div>
+               ${isEquipped ? '<div class="sq-inventory-item-equipped">EQUIPPED</div>' : ''}`
+          }
         </div>
       `;
     }).join('');

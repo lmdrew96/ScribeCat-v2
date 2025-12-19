@@ -98,6 +98,9 @@ export class BattleScene extends ex.Scene {
   // Original positions for animations
   private playerStartPos: ex.Vector | null = null;
   private enemyStartPos: ex.Vector | null = null;
+  
+  // Player animations cache for battle
+  private playerAnimations: Map<string, ex.Animation> = new Map();
 
   // Callbacks
   public onBattleEnd: ((result: 'victory' | 'defeat' | 'flee', data?: unknown) => void) | null = null;
@@ -293,11 +296,26 @@ export class BattleScene extends ex.Scene {
       width: BATTLE_CONFIG.playerSize, height: BATTLE_CONFIG.playerSize, z: 25,
     });
 
-    try {
-      const idleAnim = await loadCatAnimation(GameState.player.catColor, 'idle');
-      idleAnim.scale = new ex.Vector(2, 2);
+    // Load all battle animations for player
+    this.playerAnimations.clear();
+    const animTypes = ['idle', 'attack', 'hurt', 'die'] as const;
+    for (const animType of animTypes) {
+      try {
+        const anim = await loadCatAnimation(GameState.player.catColor, animType);
+        if (anim) {
+          anim.scale = new ex.Vector(2, 2);
+          this.playerAnimations.set(animType, anim);
+        }
+      } catch {
+        // Animation not available, skip
+      }
+    }
+    
+    // Use idle animation as default
+    const idleAnim = this.playerAnimations.get('idle');
+    if (idleAnim) {
       this.playerEntity.graphics.use(idleAnim);
-    } catch {
+    } else {
       this.playerEntity.graphics.use(new ex.Rectangle({
         width: BATTLE_CONFIG.playerSize, height: BATTLE_CONFIG.playerSize, color: ex.Color.Gray,
       }));
@@ -339,6 +357,9 @@ export class BattleScene extends ex.Scene {
       this.playerStartPos = this.playerEntity.pos.clone();
     }
 
+    // Play attack animation if available
+    await this.playPlayerAnimation('attack');
+
     // Animate player moving toward enemy
     const targetX = this.playerEntity.pos.x + BATTLE_CONFIG.attackMoveDistance;
     await this.animateMove(this.playerEntity, new ex.Vector(targetX, this.playerEntity.pos.y), BATTLE_CONFIG.attackMoveDuration);
@@ -354,8 +375,9 @@ export class BattleScene extends ex.Scene {
     // Enemy hit reaction - flash and shake
     await this.playHitEffect(this.enemyEntity, 'enemy');
 
-    // Animate player moving back
+    // Animate player moving back and return to idle
     await this.animateMove(this.playerEntity, this.playerStartPos, BATTLE_CONFIG.attackMoveDuration);
+    this.playPlayerAnimation('idle', false);
 
     if (isDefeated(this.enemyStats)) {
       await this.handleVictory();
@@ -493,6 +515,9 @@ export class BattleScene extends ex.Scene {
   private async handleDefeat(): Promise<void> {
     this.phase = 'defeat';
 
+    // Play death animation
+    await this.playPlayerAnimation('die');
+
     // Record loss
     GameState.recordBattleLoss();
 
@@ -501,8 +526,15 @@ export class BattleScene extends ex.Scene {
     GameState.spendGold(goldLoss);
 
     await this.showMessage(`Defeated! Lost ${goldLoss}G...`);
+    await this.showMessage('Returning to town...');
 
-    // Restore some HP
+    // Clear dungeon state (same as trap death)
+    GameState.dungeon.floor = null;
+    GameState.dungeon.currentRoomId = '';
+    GameState.dungeon.floorNumber = 1;
+    GameState.dungeon.dungeonId = null;
+
+    // Restore some HP so player isn't stuck at 0
     GameState.player.health = Math.floor(GameState.getEffectiveMaxHealth() * 0.25);
 
     this.endBattle('defeat');
@@ -730,8 +762,13 @@ export class BattleScene extends ex.Scene {
     const size = type === 'player' ? BATTLE_CONFIG.playerSize : BATTLE_CONFIG.enemySize;
     const flashColor = type === 'player' ? ex.Color.Red : ex.Color.White;
 
-    // Flash
-    actor.graphics.use(new ex.Rectangle({ width: size, height: size, color: flashColor }));
+    // For player, use hurt animation if available
+    if (type === 'player' && this.playerAnimations.has('hurt')) {
+      await this.playPlayerAnimation('hurt');
+    } else {
+      // Flash for enemies or fallback
+      actor.graphics.use(new ex.Rectangle({ width: size, height: size, color: flashColor }));
+    }
 
     // Shake
     const shakeStart = Date.now();
@@ -755,8 +792,12 @@ export class BattleScene extends ex.Scene {
       requestAnimationFrame(shake);
     });
 
-    // Restore original graphic
-    if (origGraphic) actor.graphics.use(origGraphic);
+    // Restore original graphic (return to idle for player)
+    if (type === 'player') {
+      this.playPlayerAnimation('idle', false);
+    } else if (origGraphic) {
+      actor.graphics.use(origGraphic);
+    }
   }
 
   /**
@@ -854,5 +895,29 @@ export class BattleScene extends ex.Scene {
     }));
     await this.delay(200);
     if (origGraphic) actor.graphics.use(origGraphic);
+  }
+
+  /**
+   * Play a player animation by type
+   * @param animType - Type of animation ('idle', 'attack', 'hurt', 'die')
+   * @param wait - Whether to wait for the animation to complete (default: true)
+   */
+  private async playPlayerAnimation(animType: string, wait = true): Promise<void> {
+    if (!this.playerEntity) return;
+    
+    const anim = this.playerAnimations.get(animType);
+    if (!anim) return;
+    
+    // Reset animation to start from beginning
+    anim.reset();
+    this.playerEntity.graphics.use(anim);
+    
+    if (wait) {
+      // Wait for animation duration (estimate based on frames)
+      // Non-looping animations like attack/hurt/die should complete
+      const frameCount = anim.frames.length;
+      const duration = frameCount * (1000 / 12); // Assuming ~12 FPS
+      await this.delay(Math.min(duration, 500)); // Cap at 500ms
+    }
   }
 }

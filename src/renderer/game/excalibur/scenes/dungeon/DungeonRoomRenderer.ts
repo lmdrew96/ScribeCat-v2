@@ -6,7 +6,14 @@
 
 import * as ex from 'excalibur';
 import { GameState } from '../../../state/GameState.js';
-import type { DungeonRoom, RoomContent } from '../../../../canvas/dungeon/DungeonGenerator.js';
+import type { 
+  DungeonRoom, 
+  RoomContent,
+  EnemyContentData,
+  SecretContentData,
+  ExitContentData,
+  NPCContentData,
+} from '../../../../canvas/dungeon/DungeonGenerator.js';
 import { ENEMIES } from '../../../data/enemies.js';
 import {
   loadStaticEnemySprite,
@@ -240,25 +247,40 @@ export class DungeonRoomRenderer {
     for (const content of room.contents) {
       // Skip triggered content (except NPCs)
       if (content.triggered && content.type !== 'npc') {
-        if (content.type === 'exit' && content.data?.requiresBossDefeated && content.data?.bossDefeated) {
-          // Continue to draw
+        if (content.type === 'exit') {
+          const exitData = content.data as ExitContentData;
+          if (exitData?.requiresBossDefeated && exitData?.bossDefeated) {
+            // Continue to draw
+          } else {
+            continue;
+          }
         } else {
           continue;
         }
       }
 
       // Secrets hidden until discovered
-      if (content.type === 'secret' && !content.data?.discovered) continue;
+      if (content.type === 'secret') {
+        const secretData = content.data as SecretContentData;
+        if (!secretData?.discovered) continue;
+      }
 
       // Traps invisible until triggered
       if (content.type === 'trap' && !content.triggered) continue;
 
       // Check boss defeat for exit
-      if (content.type === 'exit' && content.data?.requiresBossDefeated && !content.data?.bossDefeated) {
-        const bossEnemies = room.contents.filter((c) => c.type === 'enemy' && c.data?.isBoss);
-        const allBossDefeated = bossEnemies.every((c) => c.triggered);
-        if (!allBossDefeated) continue;
-        content.data.bossDefeated = true;
+      if (content.type === 'exit') {
+        const exitData = content.data as ExitContentData;
+        if (exitData?.requiresBossDefeated && !exitData?.bossDefeated) {
+          const bossEnemies = room.contents.filter((c) => {
+            if (c.type !== 'enemy') return false;
+            const enemyData = c.data as EnemyContentData;
+            return enemyData?.isBoss;
+          });
+          const allBossDefeated = bossEnemies.every((c) => c.triggered);
+          if (!allBossDefeated) continue;
+          (exitData as ExitContentData).bossDefeated = true;
+        }
       }
 
       const x = offsetX + content.x * width;
@@ -329,7 +351,13 @@ export class DungeonRoomRenderer {
    * Load enemy sprite for a content actor
    */
   private async loadEnemySprite(actor: ex.Actor, content: RoomContent): Promise<boolean> {
-    const enemyId = typeof content.data === 'string' ? content.data : content.data?.enemyType;
+    let enemyId: string | undefined;
+    if (typeof content.data === 'string') {
+      enemyId = content.data;
+    } else {
+      const enemyData = content.data as EnemyContentData;
+      enemyId = enemyData?.enemyType || enemyData?.enemyId;
+    }
     const enemyDef = enemyId ? ENEMIES[enemyId] : null;
 
     if (!enemyDef) return false;
@@ -367,7 +395,8 @@ export class DungeonRoomRenderer {
    * Load NPC sprite for a content actor
    */
   private async loadNPCSprite(actor: ex.Actor, content: RoomContent): Promise<boolean> {
-    const npcType = content.data?.npcType;
+    const npcData = content.data as NPCContentData;
+    const npcType = npcData?.npcType;
     if (npcType === 'merchant') {
       const sprite = await loadNPCSprite('shopkeeper');
       if (sprite) {
@@ -557,24 +586,27 @@ export class DungeonRoomRenderer {
           this.scene.add(revealActor);
           this.contentActors.set(contentId, revealActor);
         }
-      } else if (content.type === 'secret' && !content.data?.discovered && dist < revealDistance) {
-        if (!this.contentActors.has(contentId)) {
-          const revealActor = new ex.Actor({
-            pos: ex.vec(x, y),
-            width: 16,
-            height: 16,
-            z: 4,
-          });
-          revealActor.graphics.use(
-            new ex.Circle({
-              radius: 10,
-              color: ex.Color.fromRGB(255, 220, 100, 0.3),
-              strokeColor: ex.Color.fromRGB(255, 200, 50, 0.5),
-              lineWidth: 2,
-            })
-          );
-          this.scene.add(revealActor);
-          this.contentActors.set(contentId, revealActor);
+      } else if (content.type === 'secret') {
+        const secretData = content.data as SecretContentData;
+        if (!secretData?.discovered && dist < revealDistance) {
+          if (!this.contentActors.has(contentId)) {
+            const revealActor = new ex.Actor({
+              pos: ex.vec(x, y),
+              width: 16,
+              height: 16,
+              z: 4,
+            });
+            revealActor.graphics.use(
+              new ex.Circle({
+                radius: 10,
+                color: ex.Color.fromRGB(255, 220, 100, 0.3),
+                strokeColor: ex.Color.fromRGB(255, 200, 50, 0.5),
+                lineWidth: 2,
+              })
+            );
+            this.scene.add(revealActor);
+            this.contentActors.set(contentId, revealActor);
+          }
         }
       } else if (dist >= revealDistance && this.contentActors.has(contentId)) {
         const actor = this.contentActors.get(contentId);
@@ -592,7 +624,29 @@ export class DungeonRoomRenderer {
       actor.kill();
     }
     this.roomActors = [];
+    
+    // Clear all content actors including reveal indicators
+    for (const [, actor] of this.contentActors) {
+      actor.kill();
+    }
     this.contentActors.clear();
+  }
+  
+  /**
+   * Clear only reveal indicator actors (traps/secrets)
+   * Called when changing rooms/floors to ensure indicators don't persist
+   */
+  clearRevealIndicators(): void {
+    const toRemove: string[] = [];
+    for (const [key, actor] of this.contentActors) {
+      if (key.startsWith('reveal_')) {
+        actor.kill();
+        toRemove.push(key);
+      }
+    }
+    for (const key of toRemove) {
+      this.contentActors.delete(key);
+    }
   }
   
   /**

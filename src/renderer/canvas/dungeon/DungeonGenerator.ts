@@ -40,6 +40,7 @@ export type ContentType = 'enemy' | 'chest' | 'trap' | 'npc' | 'interactable' | 
  */
 export interface EnemyContentData {
   enemyId: string;
+  enemyType?: string; // Alias for enemyId, used by some code paths
   level?: number;
   isBoss?: boolean;
 }
@@ -47,6 +48,7 @@ export interface EnemyContentData {
 export interface ChestContentData {
   itemId?: string;
   gold?: number;
+  goldAmount?: number; // Alias for gold, used by some code paths
   opened?: boolean;
 }
 
@@ -54,12 +56,15 @@ export interface TrapContentData {
   trapType: string;
   damage: number;
   disarmed?: boolean;
+  discovered?: boolean; // Track if trap has been revealed
 }
 
 export interface NPCContentData {
   npcId: string;
+  npcType?: string; // e.g., 'merchant', 'healer', etc.
   dialogueId?: string;
   items?: Array<{ itemId: string; price: number }>;
+  inventory?: string[]; // Item keys for merchant inventory
 }
 
 export interface PuzzleContentData {
@@ -67,23 +72,35 @@ export interface PuzzleContentData {
   solved?: boolean;
   rewardItemId?: string;
   rewardGold?: number;
+  goldReward?: number; // Alias for rewardGold
+  xpReward?: number;
 }
 
 export interface SecretContentData {
   secretType: string;
   revealed?: boolean;
+  discovered?: boolean; // Alias for revealed
   rewardItemId?: string;
   rewardGold?: number;
+  rewardType?: string; // e.g., 'gold_large', 'full_heal'
+  secretName?: string; // Display name for the secret
+  goldReward?: number; // Alias for rewardGold
+  xpReward?: number;
+  healPercent?: number; // For healing secrets
 }
 
 export interface ExitContentData {
   targetFloor?: number;
   targetDungeon?: string;
+  requiresBossDefeated?: boolean; // Exit blocked until boss is defeated
+  bossDefeated?: boolean; // Track boss defeat state
 }
 
 export interface InteractableContentData {
   interactionType: string;
+  interactType?: string; // Alias for interactionType (e.g., 'campfire')
   message?: string;
+  healPercent?: number; // For campfire healing
 }
 
 export type RoomContentData =

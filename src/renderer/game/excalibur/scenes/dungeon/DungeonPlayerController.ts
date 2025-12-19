@@ -6,7 +6,7 @@
 
 import * as ex from 'excalibur';
 import { GameState } from '../../../state/GameState.js';
-import { InputManager } from '../../adapters/InputAdapter.js';
+import { InputManager, type GameKey } from '../../adapters/InputAdapter.js';
 import { loadCatAnimation } from '../../adapters/SpriteAdapter.js';
 import type { CatColor } from '../../../data/catSprites.js';
 import { ROOM_CONFIG, CANVAS_WIDTH, CANVAS_HEIGHT, type DungeonSceneData } from './DungeonConstants.js';
@@ -42,6 +42,10 @@ export class DungeonPlayerController {
   private playerAnimations: Map<string, ex.Animation> = new Map();
   private currentPlayerAnim: 'idle' | 'walk' = 'idle';
   
+  // Animation state tracking to prevent flickering
+  private lastAnimSwitch = 0;
+  private animSwitchCooldown = 100; // ms cooldown between animation switches
+  
   constructor(scene: ex.Scene, config: PlayerControllerConfig) {
     this.scene = scene;
     this.config = config;
@@ -59,6 +63,12 @@ export class DungeonPlayerController {
    * Setup the player actor with position and animations
    */
   async setup(returnFromBattle = false, savedX?: number, savedY?: number): Promise<void> {
+    // Reset player state to ensure clean start
+    this.playerFrozen = false;
+    this.currentPlayerAnim = 'idle';
+    this.lastAnimSwitch = 0;
+    this.playerAnimations.clear();
+    
     // Determine start position
     let startX = ROOM_CONFIG.offsetX + ROOM_CONFIG.width / 2;
     let startY = ROOM_CONFIG.offsetY + ROOM_CONFIG.height / 2;
@@ -145,11 +155,18 @@ export class DungeonPlayerController {
       }
     }
 
-    // Switch animation based on movement state
+    // Switch animation based on movement state (with debounce to prevent flickering)
     const targetAnim = isMoving ? 'walk' : 'idle';
-    if (targetAnim !== this.currentPlayerAnim && this.playerAnimations.has(targetAnim)) {
+    const now = Date.now();
+    if (targetAnim !== this.currentPlayerAnim && 
+        this.playerAnimations.has(targetAnim) &&
+        now - this.lastAnimSwitch > this.animSwitchCooldown) {
       this.currentPlayerAnim = targetAnim;
-      this.player.graphics.use(this.playerAnimations.get(targetAnim)!);
+      this.lastAnimSwitch = now;
+      const anim = this.playerAnimations.get(targetAnim)!;
+      // Reset animation to first frame before switching to prevent flicker
+      anim.reset();
+      this.player.graphics.use(anim);
     }
   }
   
@@ -232,7 +249,7 @@ export class DungeonPlayerController {
   /**
    * Check if a key was just pressed (for interactions)
    */
-  wasKeyPressed(key: string): boolean {
+  wasKeyPressed(key: GameKey): boolean {
     return this.inputManager?.wasKeyPressed(key) ?? false;
   }
   

@@ -251,12 +251,15 @@ class GameStateManager {
       const xpToAdd = this.player.xp - (this.cloudCharacter?.currentXp || 0);
       const goldToAdd = this.player.gold - (this.cloudCharacter?.gold || 0);
 
-      // Save character stats
+      // Save character stats including equipped items
       const statsSuccess = await saveCharacter(this.characterId, {
         hp: this.player.health,
         gold: goldToAdd > 0 ? goldToAdd : undefined,
         xp: xpToAdd > 0 ? xpToAdd : undefined,
         level: this.player.level,
+        equippedWeaponId: this.player.equipped.weapon,
+        equippedArmorId: this.player.equipped.armor,
+        equippedAccessoryId: this.player.equipped.accessory,
       });
 
       // Save inventory (convert from InventoryItem[] to the format the backend expects)

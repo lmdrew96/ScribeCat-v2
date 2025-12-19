@@ -471,10 +471,19 @@ export class BattleMenuOverlay {
 
     const playerMana = this.callbacks.getPlayerMana();
     const manaPerMagic = this.callbacks.getManaPerMagic();
+    const hasConsumables = this.callbacks.getConsumableItems().length > 0;
 
     actionsContainer.innerHTML = ACTIONS.map((action, index) => {
       const isSelected = index === this.selectedActionIndex;
-      const isDisabled = action.id === 'Magic' && playerMana < manaPerMagic;
+      
+      // Determine if action should be disabled
+      let isDisabled = false;
+      if (action.id === 'Magic' && playerMana < manaPerMagic) {
+        isDisabled = true;
+      } else if (action.id === 'Item' && !hasConsumables) {
+        isDisabled = true;
+      }
+      
       return `
         <div 
           class="sq-battle-action ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}"
@@ -495,6 +504,8 @@ export class BattleMenuOverlay {
       if (playerMana < manaPerMagic) {
         hint = `Not enough MP! (Need ${manaPerMagic})`;
       }
+    } else if (selectedAction.id === 'Item' && !hasConsumables) {
+      hint = 'No usable items in inventory!';
     }
     hintContainer.textContent = hint;
   }
@@ -628,7 +639,10 @@ export class BattleMenuOverlay {
         if (playerMana < manaPerMagic) return;
       }
       
+      // Check if item is disabled (no consumables)
       if (action.id === 'Item') {
+        const hasConsumables = this.callbacks.getConsumableItems().length > 0;
+        if (!hasConsumables) return;
         this.showItemMenu();
       } else {
         this.callbacks.onSelectAction(action.id);

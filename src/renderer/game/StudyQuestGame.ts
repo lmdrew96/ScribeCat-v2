@@ -115,7 +115,12 @@ export class StudyQuestGame {
     // BattleScene
     const battleScene = new BattleScene();
     battleScene.onBattleEnd = (result: 'victory' | 'defeat' | 'flee', returnData?: unknown) => {
-      // On battle end, return to the scene that started the battle
+      // On defeat, return to town (dungeon state already cleared in BattleScene)
+      if (result === 'defeat') {
+        this.goTo('town');
+        return;
+      }
+      // On victory or flee, return to the scene that started the battle
       const sceneData = returnData as Record<string, unknown> | undefined;
       if (sceneData) {
         this.goTo('dungeon', sceneData);
@@ -178,17 +183,102 @@ export class StudyQuestGame {
       clearInterval(this.autosaveInterval);
     }
 
-    // Autosave every 30 seconds if cloud sync is enabled
+    // Autosave every 60 seconds if cloud sync is enabled
     this.autosaveInterval = window.setInterval(() => {
       if (GameState.isCloudSyncEnabled()) {
-        console.log('Periodic autosave triggered...');
-        GameState.saveToCloud().catch((err) => {
-          console.warn('Periodic autosave failed:', err);
-        });
+        this.performAutosave('periodic');
       }
-    }, 30000); // 30 seconds
+    }, 60000); // 60 seconds
 
-    console.log('Autosave system initialized (30s interval)');
+    console.log('Autosave system initialized (60s interval)');
+  }
+
+  /**
+   * Perform autosave with visual indicator
+   */
+  private async performAutosave(reason: string): Promise<void> {
+    console.log(`Autosave triggered: ${reason}`);
+    this.showSaveIndicator();
+    try {
+      await GameState.saveToCloud();
+    } catch (err) {
+      console.warn('Autosave failed:', err);
+    } finally {
+      this.hideSaveIndicator();
+    }
+  }
+
+  /**
+   * Show saving indicator in canvas container
+   */
+  private showSaveIndicator(): void {
+    const container = this.excalibur.getEngine().canvas.parentElement;
+    if (!container) return;
+
+    // Remove existing indicator if present
+    this.hideSaveIndicator();
+
+    const indicator = document.createElement('div');
+    indicator.id = 'sq-save-indicator';
+    indicator.style.cssText = `
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 10px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid #6496ff;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 11px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    `;
+    indicator.innerHTML = `
+      <span class="sq-save-spinner" style="
+        width: 10px;
+        height: 10px;
+        border: 2px solid #6496ff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: sq-spin 1s linear infinite;
+      "></span>
+      Saving...
+    `;
+
+    // Add spinner animation if not present
+    if (!document.getElementById('sq-save-indicator-styles')) {
+      const style = document.createElement('style');
+      style.id = 'sq-save-indicator-styles';
+      style.textContent = `
+        @keyframes sq-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    container.appendChild(indicator);
+  }
+
+  /**
+   * Hide saving indicator
+   */
+  private hideSaveIndicator(): void {
+    const indicator = document.getElementById('sq-save-indicator');
+    indicator?.remove();
+  }
+
+  /**
+   * Trigger a save after significant events (floor clear, boss defeat, level up)
+   */
+  triggerEventSave(event: 'floor_clear' | 'boss_defeat' | 'level_up'): void {
+    if (GameState.isCloudSyncEnabled()) {
+      this.performAutosave(event);
+    }
   }
 
   /**

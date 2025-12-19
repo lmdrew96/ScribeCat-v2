@@ -10,7 +10,15 @@ import {
   DungeonGenerator, 
   DUNGEON_CONFIGS,
   type DungeonRoom, 
-  type RoomContent 
+  type RoomContent,
+  type EnemyContentData,
+  type ChestContentData,
+  type TrapContentData,
+  type NPCContentData,
+  type PuzzleContentData,
+  type SecretContentData,
+  type ExitContentData,
+  type InteractableContentData,
 } from '../../../../canvas/dungeon/DungeonGenerator.js';
 import { getChestLootItem, getItem } from '../../../data/items.js';
 import { 
@@ -184,7 +192,8 @@ export class DungeonInteractionHandler {
 
     for (const content of room.contents) {
       if (content.type !== 'secret' || content.triggered) continue;
-      if (content.data?.discovered) continue;
+      const secretData = content.data as SecretContentData;
+      if (secretData?.discovered) continue;
 
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
@@ -204,7 +213,9 @@ export class DungeonInteractionHandler {
     const { width, height, offsetX, offsetY } = ROOM_CONFIG;
 
     for (const content of room.contents) {
-      if (content.type !== 'npc' || content.data?.npcType !== 'merchant') continue;
+      if (content.type !== 'npc') continue;
+      const npcData = content.data as NPCContentData;
+      if (npcData?.npcType !== 'merchant') continue;
 
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
@@ -224,12 +235,15 @@ export class DungeonInteractionHandler {
 
     for (const content of room.contents) {
       if (content.triggered) continue;
-      if (content.type === 'secret' && !content.data?.discovered) continue;
+      if (content.type === 'secret') {
+        const secretData = content.data as SecretContentData;
+        if (!secretData?.discovered) continue;
+      }
 
       const x = offsetX + content.x * width;
       const y = offsetY + content.y * height;
 
-      if (playerPos.distance(ex.vec(x, y)) < 16) {
+      if (playerPos.distance(ex.vec(x, y)) < 24) {
         this.handleContentTrigger(content, room, x, y);
         break;
       }
@@ -259,11 +273,13 @@ export class DungeonInteractionHandler {
       case 'trap':
         this.triggerTrap(content, x, y);
         break;
-      case 'interactable':
-        if (content.data?.interactType === 'campfire') {
+      case 'interactable': {
+        const interactData = content.data as InteractableContentData;
+        if (interactData?.interactType === 'campfire') {
           this.triggerCampfire(content, x, y);
         }
         break;
+      }
     }
   }
   
@@ -276,8 +292,13 @@ export class DungeonInteractionHandler {
     let enemyId = 'grey_slime';
     if (typeof content.data === 'string') {
       enemyId = content.data;
-    } else if (content.data?.enemyType) {
-      enemyId = content.data.enemyType;
+    } else {
+      const enemyData = content.data as EnemyContentData;
+      if (enemyData?.enemyType) {
+        enemyId = enemyData.enemyType;
+      } else if (enemyData?.enemyId) {
+        enemyId = enemyData.enemyId;
+      }
     }
 
     const returnData: DungeonSceneData = {
@@ -301,7 +322,8 @@ export class DungeonInteractionHandler {
     content.triggered = true;
 
     const floorNumber = this.config.getFloorNumber();
-    const goldAmount = content.data?.goldAmount || 10 * floorNumber + Math.floor(Math.random() * 20);
+    const chestData = content.data as ChestContentData;
+    const goldAmount = chestData?.goldAmount || chestData?.gold || 10 * floorNumber + Math.floor(Math.random() * 20);
     GameState.addGold(goldAmount);
     this.config.showFloatingMessage(`+${goldAmount} Gold!`, x, y - 20, '#fbbf24');
 
@@ -325,7 +347,8 @@ export class DungeonInteractionHandler {
   private triggerTrap(content: RoomContent, x: number, y: number): void {
     content.triggered = true;
 
-    const damage = content.data?.damage || 5;
+    const trapData = content.data as TrapContentData;
+    const damage = trapData?.damage || 5;
     GameState.player.health = Math.max(0, GameState.player.health - damage);
     this.config.showFloatingMessage(`-${damage} HP!`, x, y - 20, '#f43f3f');
 
@@ -344,7 +367,8 @@ export class DungeonInteractionHandler {
     content.triggered = true;
 
     const effectiveMaxHp = GameState.getEffectiveMaxHealth();
-    const healPercent = content.data?.healPercent || 30;
+    const interactData = content.data as InteractableContentData;
+    const healPercent = interactData?.healPercent || 30;
     const healAmount = Math.floor(effectiveMaxHp * (healPercent / 100));
     GameState.player.health = Math.min(effectiveMaxHp, GameState.player.health + healAmount);
 
@@ -358,16 +382,17 @@ export class DungeonInteractionHandler {
   private claimSecret(content: RoomContent, x: number, y: number): void {
     content.triggered = true;
 
-    const rewardType = content.data?.rewardType || 'gold_large';
-    const secretName = content.data?.secretName || 'Secret';
+    const secretData = content.data as SecretContentData;
+    const rewardType = secretData?.rewardType || 'gold_large';
+    const secretName = secretData?.secretName || 'Secret';
 
     if (rewardType === 'full_heal') {
       GameState.player.health = GameState.getEffectiveMaxHealth();
       this.config.showFloatingMessage(`${secretName}!`, x, y - 30, '#ffdc64');
       this.config.showFloatingMessage('Fully Healed!', x, y - 10, '#64dc64');
     } else {
-      const goldReward = content.data?.goldReward || 100;
-      const xpReward = content.data?.xpReward || 30;
+      const goldReward = secretData?.goldReward || 100;
+      const xpReward = secretData?.xpReward || 30;
       GameState.addGold(goldReward);
       GameState.addXp(xpReward);
       this.config.showFloatingMessage(`${secretName}!`, x, y - 30, '#ffdc64');
@@ -382,8 +407,13 @@ export class DungeonInteractionHandler {
    */
   private handleExit(content: RoomContent, room: DungeonRoom): void {
     // Check if boss needs to be defeated
-    if (content.data?.requiresBossDefeated) {
-      const bossEnemies = room.contents.filter((c) => c.type === 'enemy' && c.data?.isBoss);
+    const exitData = content.data as ExitContentData;
+    if (exitData?.requiresBossDefeated) {
+      const bossEnemies = room.contents.filter((c) => {
+        if (c.type !== 'enemy') return false;
+        const enemyData = c.data as EnemyContentData;
+        return enemyData?.isBoss;
+      });
       const allBossDefeated = bossEnemies.every((c) => c.triggered);
       if (!allBossDefeated) {
         const playerPos = this.config.getPlayerPosition();
@@ -466,7 +496,7 @@ export class DungeonInteractionHandler {
   private discoverSecret(): void {
     if (!this.nearbySecret) return;
 
-    this.nearbySecret.data.discovered = true;
+    (this.nearbySecret.data as SecretContentData).discovered = true;
     const playerPos = this.config.getPlayerPosition();
     this.config.showFloatingMessage('You found something!', playerPos.x, playerPos.y - 20, '#ffdc64');
     this.config.renderRoom();
@@ -568,7 +598,8 @@ export class DungeonInteractionHandler {
     this.currentPuzzle = content;
     this.config.setPlayerFrozen(true);
 
-    const puzzleType = content.data?.puzzleType || 'riddle';
+    const puzzleData = content.data as PuzzleContentData;
+    const puzzleType = puzzleData?.puzzleType || 'riddle';
     if (puzzleType === 'riddle' || puzzleType === 'memory') {
       const riddle = RIDDLES[Math.floor(Math.random() * RIDDLES.length)];
       this.puzzleOverlay?.openRiddle(riddle);
@@ -582,8 +613,9 @@ export class DungeonInteractionHandler {
     if (!this.currentPuzzle) return;
 
     this.currentPuzzle.triggered = true;
-    const goldReward = this.currentPuzzle.data?.goldReward || 50;
-    const xpReward = this.currentPuzzle.data?.xpReward || 20;
+    const puzzleData = this.currentPuzzle.data as PuzzleContentData;
+    const goldReward = puzzleData?.goldReward || puzzleData?.rewardGold || 50;
+    const xpReward = puzzleData?.xpReward || 20;
 
     GameState.addGold(goldReward);
     GameState.addXp(xpReward);
@@ -616,7 +648,8 @@ export class DungeonInteractionHandler {
     this.merchantActive = true;
     this.config.setPlayerFrozen(true);
     
-    const inventory = this.nearbyMerchant.data?.inventory || ['potion_minor', 'potion_medium'];
+    const npcData = this.nearbyMerchant.data as NPCContentData;
+    const inventory = npcData?.inventory || ['potion_minor', 'potion_medium'];
     this.merchantOverlay?.open(inventory);
   }
   
