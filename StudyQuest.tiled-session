@@ -3,19 +3,19 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "",
+    "activeFile": "assets/MAPS/Tile Maps/cat_village.tmx",
     "expandedProjectPaths": [
-        "assets/Tiles",
-        "assets/Tiles/Tiny Town",
-        "assets/MAPS/Tile Maps",
-        "assets/Kenney Assets",
-        "assets/Kenney Assets/kenney_tiny-dungeon",
         "assets",
-        ".",
-        "assets/Tiles/GrassWaterTiles",
-        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled",
         "assets/Tiles/PixelAdventure",
-        "assets/MAPS"
+        "assets/Tiles/GrassWaterTiles",
+        "assets/Kenney Assets/kenney_tiny-dungeon",
+        "assets/Tiles",
+        "assets/MAPS",
+        "assets/Kenney Assets/kenney_tiny-dungeon/Tiled",
+        ".",
+        "assets/Tiles/Tiny Town",
+        "assets/Kenney Assets",
+        "assets/MAPS/Tile Maps"
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
@@ -184,11 +184,15 @@
             }
         },
         "assets/MAPS/Tile Maps/cat_village.tmx": {
+            "expandedObjectLayers": [
+                8,
+                9
+            ],
             "scale": 1.23,
             "selectedLayer": 7,
             "viewCenter": {
-                "x": 399.18699186991864,
-                "y": 235.77235772357724
+                "x": 169.10569105691056,
+                "y": 153.65853658536588
             }
         },
         "assets/MAPS/Tile Maps/dungeon1.tmx": {
@@ -349,6 +353,10 @@
             }
         },
         "assets/MAPS/Tile Maps/shop_interior.tmx": {
+            "expandedObjectLayers": [
+                6,
+                7
+            ],
             "scale": 2.37,
             "selectedLayer": 5,
             "viewCenter": {
@@ -444,7 +452,9 @@
             }
         },
         "assets/Tiles/Interior/inside.tsx": {
-            "dynamicWrapping": false
+            "dynamicWrapping": false,
+            "scaleInDock": 1.9359,
+            "scaleInEditor": 1
         },
         "assets/Tiles/Interior/interior2.tsx": {
             "scaleInDock": 1,
@@ -452,7 +462,7 @@
         },
         "assets/Tiles/Interior/interiors.tsx": {
             "dynamicWrapping": false,
-            "scaleInDock": 1,
+            "scaleInDock": 1.8906,
             "scaleInEditor": 1.31
         },
         "assets/Tiles/Interior/test.tsx": {
@@ -466,7 +476,7 @@
         },
         "assets/Tiles/Tiny Town/TinyTownTiles.tsx": {
             "dynamicWrapping": false,
-            "scaleInDock": 2.48,
+            "scaleInDock": 2,
             "scaleInEditor": 1.7248
         },
         "assets/Tiles/Tiny Town/Tiny_Town_Tiles.tsx": {
@@ -492,10 +502,14 @@
     "map.tileWidth": 16,
     "map.width": 20,
     "openFiles": [
+        "assets/MAPS/Tile Maps/cat_village.tmx"
     ],
     "project": "StudyQuest.tiled-project",
     "property.type": "float",
     "recentFiles": [
+        "assets/MAPS/Tile Maps/cat_village.tmx",
+        "assets/Tiles/Interior/inside.tsx",
+        "assets/MAPS/Tile Maps/shop_interior.tmx",
         "assets/Tiles/items/items.tsx",
         "assets/Tiles/Interior/interior2.tsx",
         "assets/Tiles/Interior/interiors.tsx",
@@ -504,10 +518,7 @@
         "assets/Tiles/Dungeon/Dungeon_Tileset.tsx",
         "assets/MAPS/Tile Maps/dungeon_room15.tmx",
         "assets/MAPS/Tile Maps/dungeon_room12.tmx",
-        "assets/MAPS/Tile Maps/dungeon_room6.tmx",
-        "assets/MAPS/Tile Maps/dungeon_room5.tmx",
-        "assets/MAPS/Tile Maps/dungeon_room4.tmx",
-        "assets/MAPS/Tile Maps/dungeon_room3.tmx"
+        "assets/MAPS/Tile Maps/dungeon_room6.tmx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
     "tileset.lastUsedFormat": "tsx",

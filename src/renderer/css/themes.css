@@ -151,7 +151,6 @@
 
 .theme-category.high-contrast {
   background-color: rgba(255, 255, 255, 0.3);
-  color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
@@ -181,7 +180,6 @@
 
 .theme-variant.variant-light {
   background-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
