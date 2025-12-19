@@ -42,19 +42,19 @@ export type CatAnimationType =
 export const FRAME_WIDTH = 32;
 export const FRAME_HEIGHT = 32;
 
-// Animation frame counts
+// Animation frame counts (based on actual sprite sheet dimensions)
 export const ANIMATION_FRAMES: Record<CatAnimationType, number> = {
-  idle: 4,
-  idle2: 4,
+  idle: 7,
+  idle2: 14,
   walk: 7,
   run: 7,
-  sit: 4,
-  sleep: 4,
-  attack: 4,
-  hurt: 2,
-  die: 4,
-  die2: 4,
-  jump: 8,
+  sit: 3,
+  sleep: 3,
+  attack: 9,
+  hurt: 7,
+  die: 15,
+  die2: 14,
+  jump: 13,
 };
 
 // Animation speeds (FPS)
