@@ -176,7 +176,7 @@ export class InventoryOverlay {
         top: 50%;
         transform: translate(-50%, -50%);
         width: 420px;
-        max-height: 340px;
+        max-height: 85%;
         display: flex;
         flex-direction: column;
         background: linear-gradient(180deg, #2a2a4e 0%, #1e1e32 100%);

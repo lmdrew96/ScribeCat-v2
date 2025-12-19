@@ -36,3 +36,6 @@ export {
 
 // Toast/notification components
 export { MessageToast, type ToastType, type ToastOptions } from './MessageToast.js';
+
+// Title screen components
+export { TitleOverlay, type TitleOverlayCallbacks } from './TitleOverlay.js';

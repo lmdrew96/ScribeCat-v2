@@ -97,6 +97,9 @@
   padding: var(--sq-padding-lg);
   box-shadow: 4px 4px 0 var(--sq-shadow);
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  max-height: 90%;
 }
 
 .sq-panel-header {
@@ -106,6 +109,7 @@
   margin-bottom: var(--sq-padding-md);
   padding-bottom: var(--sq-padding-sm);
   border-bottom: 2px solid var(--sq-panel-border-dark);
+  flex-shrink: 0;
 }
 
 .sq-panel-title {
@@ -123,6 +127,7 @@
   padding: var(--sq-padding-xs);
   line-height: 1;
   transition: color 0.1s;
+  flex-shrink: 0;
 }
 
 .sq-panel-close:hover {
@@ -132,6 +137,7 @@
 .sq-panel-body {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .sq-panel-footer {
@@ -139,6 +145,7 @@
   padding-top: var(--sq-padding-sm);
   border-top: 2px solid var(--sq-panel-border-dark);
   text-align: center;
+  flex-shrink: 0;
 }
 
 /* ============================================================================
@@ -181,7 +188,9 @@
  * Scrollable List
  * ============================================================================ */
 .sq-list {
-  max-height: 200px;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--sq-scrollbar-thumb) var(--sq-scrollbar-bg);

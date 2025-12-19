@@ -178,7 +178,7 @@ export class ShopOverlay {
         top: 50%;
         transform: translate(-50%, -50%);
         width: 380px;
-        max-height: 300px;
+        max-height: 85%;
         display: flex;
         flex-direction: column;
         background: linear-gradient(180deg, #2a2a4e 0%, #1e1e32 100%);
@@ -283,7 +283,7 @@ export class ShopOverlay {
 
       .sq-shop-list {
         flex: 1;
-        max-height: 140px;
+        min-height: 80px;
         overflow-y: auto;
       }
 
@@ -313,7 +313,6 @@ export class ShopOverlay {
         padding: 10px;
         font-size: 11px;
         overflow-y: auto;
-        max-height: 140px;
         border: 1px solid rgba(100, 150, 255, 0.2);
       }
 

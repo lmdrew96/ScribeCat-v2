@@ -125,11 +125,15 @@ export class DungeonPuzzleOverlay {
         top: 50%;
         transform: translate(-50%, -50%);
         width: 420px;
+        max-width: 90%;
+        max-height: 85%;
         background: linear-gradient(180deg, #2a2a4e 0%, #1e1e32 100%);
         border: 3px solid #6496ff;
         border-radius: 12px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
 
       .sq-puzzle-header {

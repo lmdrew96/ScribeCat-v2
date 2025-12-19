@@ -101,7 +101,7 @@ export class DungeonMerchantOverlay {
         top: 50%;
         transform: translate(-50%, -50%);
         width: 340px;
-        max-height: 320px;
+        max-height: 85%;
         background: linear-gradient(180deg, #2a2436 0%, #1e1828 100%);
         border: 3px solid #ffc864;
         border-radius: 12px;

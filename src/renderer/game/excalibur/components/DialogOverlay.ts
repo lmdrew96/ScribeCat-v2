@@ -65,8 +65,8 @@ export class DialogOverlay {
 
   constructor(parentElement: HTMLElement, options: DialogOverlayOptions) {
     this.options = {
-      width: 320,
-      maxHeight: 280,
+      width: 340,
+      maxHeight: 85,
       showCloseButton: true,
       closeOnBackdrop: true,
       ...options,
@@ -106,7 +106,7 @@ export class DialogOverlay {
 
     this.container.innerHTML = `
       <div class="sq-backdrop" data-action="close"></div>
-      <div class="sq-panel sq-dialog-panel" style="width: ${width}px; max-height: ${maxHeight}px;">
+      <div class="sq-panel sq-dialog-panel" style="width: ${width}px; max-height: ${maxHeight}%;">
         <div class="sq-panel-header">
           <h3 class="sq-panel-title">${title}</h3>
           ${showCloseButton ? '<button class="sq-panel-close" data-action="close">&times;</button>' : ''}
@@ -230,7 +230,8 @@ export class DialogOverlay {
       }
 
       .sq-dialog-list {
-        max-height: 160px;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
       }
 

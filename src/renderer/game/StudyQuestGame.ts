@@ -11,7 +11,7 @@ import { getEnemy } from './data/enemies.js';
 
 // Excalibur imports
 import { ExcaliburGame } from './excalibur/index.js';
-import { TitleScene } from './excalibur/scenes/TitleScene.js';
+import { TitleSceneHybrid } from './excalibur/scenes/TitleSceneHybrid.js';
 import { TownScene } from './excalibur/scenes/TownScene.js';
 import { InnScene } from './excalibur/scenes/InnScene.js';
 import { HomeScene } from './excalibur/scenes/HomeScene.js';
@@ -48,8 +48,8 @@ export class StudyQuestGame {
    * Register all game scenes
    */
   private registerScenes(): void {
-    // TitleScene (entry point)
-    const titleScene = new TitleScene();
+    // TitleScene (entry point) - using hybrid Canvas + HTML approach
+    const titleScene = new TitleSceneHybrid();
     titleScene.onStartNewGame = (catColor: CatColor) => {
       this.goTo('town', { catColor });
     };
