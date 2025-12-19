@@ -46,8 +46,8 @@ export const FRAME_HEIGHT = 32;
 export const ANIMATION_FRAMES: Record<CatAnimationType, number> = {
   idle: 4,
   idle2: 4,
-  walk: 8,
-  run: 8,
+  walk: 7,
+  run: 7,
   sit: 4,
   sleep: 4,
   attack: 4,
