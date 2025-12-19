@@ -582,9 +582,6 @@ const electronAPI = {
       ipcRenderer.removeAllListeners('dev:hot-reload-notification');
     }
   },
-  // TODO: Implement these features in future phases
-  // files: { ... }
-  // themes: { ... }
 };
 
 contextBridge.exposeInMainWorld('scribeCat', electronAPI);

@@ -5,7 +5,7 @@
  */
 
 import { SessionPlaybackManager } from '../../services/SessionPlaybackManager.js';
-import { SupabaseStorageService } from '../../../infrastructure/services/supabase/SupabaseStorageService.js';
+import { RendererSupabaseClient } from '../../services/RendererSupabaseClient.js';
 
 export class StudyRoomAudioPlayer {
   private sessionPlaybackManager: SessionPlaybackManager;
@@ -39,15 +39,19 @@ export class StudyRoomAudioPlayer {
 
       if (recordingPath.startsWith('cloud://')) {
         const storagePath = recordingPath.replace('cloud://', '');
-        const storageService = new SupabaseStorageService();
-        const result = await storageService.getSignedUrl(storagePath, 7200);
+        // Use RendererSupabaseClient which has proper auth context
+        const client = RendererSupabaseClient.getInstance().getClient();
+        const { data, error } = await client.storage
+          .from('audio-files')
+          .createSignedUrl(storagePath, 7200);
 
-        if (result.success && result.url) {
-          audioElement.src = result.url;
-        } else {
+        if (error || !data?.signedUrl) {
+          console.error('Failed to get signed URL for audio:', error?.message || 'No URL returned');
           audioPlayerContainer.style.display = 'none';
           return false;
         }
+
+        audioElement.src = data.signedUrl;
       } else {
         audioElement.src = `file://${recordingPath}`;
       }

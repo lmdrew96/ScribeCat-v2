@@ -499,8 +499,8 @@ export class CreateRoomModal {
 
     try {
       // Create room with optional session
-      // TODO: In Phase 3, implement session copying to Supabase
-      // For now, session_id is nullable - rooms can be created without sessions
+      // Session content (notes, transcription) is already accessible to participants
+      // Audio access is handled via storage RLS policies
 
       const room = await this.studyRoomsManager.createRoom({
         name: roomName,

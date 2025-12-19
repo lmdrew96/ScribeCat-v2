@@ -150,7 +150,7 @@ export class InviteFriendsModal {
   private renderFriendItem(friend: FriendData): string {
     const displayName = friend.friendFullName || friend.friendEmail;
     const initials = this.getInitials(displayName);
-    const statusClass = 'online'; // TODO: Get real online status in future
+    const statusClass = friend.isOnline ? 'online' : 'offline';
 
     return `
       <div class="invite-friend-item" data-friend-id="${friend.friendId}">

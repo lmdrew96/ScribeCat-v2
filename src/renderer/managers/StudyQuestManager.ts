@@ -44,6 +44,11 @@ export interface StudyQuestCharacterState {
   gold: number;
   hp: number;
   maxHp: number;
+  // Stats for achievements
+  battlesWon: number;
+  battlesLost: number;
+  dungeonsCompleted: number;
+  questsCompleted: number;
 }
 
 export type CharacterChangeListener = (character: StudyQuestCharacterState | null) => void;
@@ -321,13 +326,17 @@ export class StudyQuestManager {
   private mapDbToCharacter(row: Record<string, unknown>): StudyQuestCharacterState {
     return {
       id: row.id as string,
-      userId: row.user_id as string,
+      userId: (row.user_id ?? row.userId) as string,
       name: row.name as string,
       level: row.level as number,
-      xp: row.xp as number,
+      xp: (row.xp ?? row.current_xp ?? row.currentXp) as number,
       gold: row.gold as number,
       hp: row.hp as number,
-      maxHp: row.max_hp as number,
+      maxHp: (row.max_hp ?? row.maxHp) as number,
+      battlesWon: (row.battles_won ?? row.battlesWon ?? 0) as number,
+      battlesLost: (row.battles_lost ?? row.battlesLost ?? 0) as number,
+      dungeonsCompleted: (row.dungeons_completed ?? row.dungeonsCompleted ?? 0) as number,
+      questsCompleted: (row.quests_completed ?? row.questsCompleted ?? 0) as number,
     };
   }
 
@@ -554,13 +563,11 @@ export class StudyQuestManager {
       };
     }
 
-    // Note: battlesWon, dungeonsCompleted, questsCompleted would need to be
-    // fetched from GameState or backend. For now, return what we have.
     return {
       level: this.character.level,
-      battlesWon: 0, // TODO: Track from GameState
-      dungeonsCompleted: 0, // TODO: Track from backend
-      questsCompleted: 0, // TODO: Track from backend
+      battlesWon: this.character.battlesWon,
+      dungeonsCompleted: this.character.dungeonsCompleted,
+      questsCompleted: this.character.questsCompleted,
       gold: this.character.gold,
     };
   }

@@ -10,8 +10,6 @@ import { SmartSuggestionEngine, type SuggestionAction } from '../../ai/SmartSugg
 import { ContentAnalyzer } from '../../ai/ContentAnalyzer.js';
 import { createLogger } from '../../../shared/logger.js';
 import { getIconHTML } from '../../utils/iconMap.js';
-// TODO: StudyQuest integration will be rebuilt with KAPLAY
-// import { studyQuestIntegration } from '../StudyQuestIntegration.js';
 
 const logger = createLogger('StudyModeAIToolsManager');
 
@@ -209,8 +207,12 @@ export class StudyModeAIToolsManager {
       logger.error('Failed to track AI tool usage:', error);
     }
 
-    // TODO: Track for StudyQuest rewards - will be rebuilt with KAPLAY
-    // studyQuestIntegration.recordAIToolUse();
+    // Track for StudyQuest rewards
+    if (window.studyQuestManager) {
+      window.studyQuestManager.onSummaryGenerated().catch(() => {
+        // Silently ignore if reward tracking fails
+      });
+    }
 
     // Map actions to AI tool methods
     switch (action) {
