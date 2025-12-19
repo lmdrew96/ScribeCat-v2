@@ -138,10 +138,26 @@
   flex-shrink: 0;
 }
 
+.drawer-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-heading);
+}
+
 .drawer-header h3 {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
+  margin: 0;
+  line-height: 1;
+}
+
+.drawer-header-subtitle {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -376,6 +392,12 @@
 
 .chat-welcome p:last-child {
   margin-bottom: 0;
+}
+
+.chat-welcome-text {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 500;
 }
 
 /* Chat Message Bubbles */
@@ -798,7 +820,15 @@
   line-height: 1.4;
 }
 
+.chip-empty-title {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .chip-empty-subtitle {
+  font-family: var(--font-heading);
   font-size: 12px;
   color: var(--text-tertiary);
   margin-top: 8px !important;
@@ -915,6 +945,98 @@
 .chip-suggestion-repetition .chip-suggestion-action {
   color: #8b5cf6;
   font-weight: 600;
+}
+
+/* Timestamp badge in suggestion action label */
+.chip-suggestion-time {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+/* Expandable suggestion text */
+.chip-suggestion-reason.expandable {
+  cursor: default;
+}
+
+.chip-suggestion-reason.expanded {
+  white-space: normal;
+  max-height: none;
+}
+
+/* Show more/less toggle button */
+.chip-suggestion-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 0 0 0;
+  margin-top: 4px;
+  transition: color 0.2s ease;
+}
+
+.chip-suggestion-toggle:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* Undo bar */
+.chip-undo-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin: 8px 12px 0 12px;
+  background: var(--bg-success);
+  border: 1px solid var(--border-success, var(--accent));
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-primary);
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chip-undo-bar span {
+  font-weight: 500;
+}
+
+.chip-undo-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chip-undo-button:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Confirmation toast for suggestion actions */

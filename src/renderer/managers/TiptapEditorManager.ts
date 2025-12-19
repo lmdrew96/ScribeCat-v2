@@ -209,6 +209,14 @@ export class TiptapEditorManager {
   }
 
   /**
+   * Get the underlying editor instance
+   * Useful for advanced operations like inserting content at cursor
+   */
+  getEditor() {
+    return this.editorCore.getEditor();
+  }
+
+  /**
    * Destroy the editor instance
    */
   destroy(): void {

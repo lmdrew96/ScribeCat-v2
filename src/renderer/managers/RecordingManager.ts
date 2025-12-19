@@ -627,6 +627,13 @@ export class RecordingManager {
     logger.debug('Live suggestions updated with latest content');
   }
 
+  // Track last action for undo functionality
+  private lastSuggestionAction: {
+    type: 'bookmark' | 'note';
+    bookmarkIndex?: number;
+    timestamp: number;
+  } | null = null;
+
   /**
    * Handle suggestion actions from Live AI panel
    * Called by ChatUI when user clicks a suggestion
@@ -635,11 +642,25 @@ export class RecordingManager {
     logger.info('Handling suggestion:', suggestion);
     const notificationTicker = (window as any).notificationTicker;
 
+    // Extract the spoken timestamp from suggestion context (in seconds)
+    const spokenTimestamp = suggestion.context?.timestamp;
+    // Get full text from context (not truncated)
+    const fullText = suggestion.context?.text || '';
+
     // Handle different suggestion actions
     switch (suggestion.suggestedAction) {
       case 'bookmark':
         logger.info('User wants to bookmark this moment');
-        this.addBookmark(suggestion.reason);
+        // Use spoken timestamp if available
+        this.addBookmark(suggestion.reason, spokenTimestamp);
+        // Track for undo
+        this.lastSuggestionAction = {
+          type: 'bookmark',
+          bookmarkIndex: this.bookmarks.length - 1,
+          timestamp: Date.now()
+        };
+        // Insert summary note at cursor
+        this.insertSuggestionNote(spokenTimestamp, fullText, 'bookmark');
         // Mark important point as covered if this suggestion has one
         this.markImportantPointCovered(suggestion, 'bookmark');
         break;
@@ -647,9 +668,13 @@ export class RecordingManager {
       case 'note_prompt':
       case 'notes':
         logger.info('Prompting user to add notes');
-        // Focus the notes editor
-        this.editorManager.focus();
-        notificationTicker?.success('Notes editor focused - start typing!', 2000);
+        // Insert summary note at cursor position
+        this.insertSuggestionNote(spokenTimestamp, fullText, 'note');
+        // Track for undo
+        this.lastSuggestionAction = {
+          type: 'note',
+          timestamp: Date.now()
+        };
         // Mark important point as covered (user is taking notes)
         this.markImportantPointCovered(suggestion, 'notes');
         break;
@@ -657,7 +682,15 @@ export class RecordingManager {
       case 'highlight':
         logger.info('User wants to highlight important moment');
         // Highlight is essentially the same as bookmark with a different label
-        this.addBookmark(`⭐ ${suggestion.reason || 'Important moment'}`);
+        this.addBookmark(`Important: ${fullText ? this.truncateText(fullText, 50) : 'Important moment'}`, spokenTimestamp);
+        // Track for undo
+        this.lastSuggestionAction = {
+          type: 'bookmark',
+          bookmarkIndex: this.bookmarks.length - 1,
+          timestamp: Date.now()
+        };
+        // Insert summary note at cursor
+        this.insertSuggestionNote(spokenTimestamp, fullText, 'highlight');
         // Mark important point as covered
         this.markImportantPointCovered(suggestion, 'bookmark');
         break;
@@ -699,20 +732,28 @@ export class RecordingManager {
   /**
    * Add a bookmark at the current recording position
    * Can be called via keyboard shortcut or UI button
+   * @param label Optional label for the bookmark
+   * @param overrideTimestamp Optional timestamp in seconds (used for AI suggestions with spoken-time timestamps)
    */
-  public addBookmark(label?: string): void {
+  public addBookmark(label?: string, overrideTimestamp?: number): void {
     if (!this.isRecording) {
       logger.warn('Cannot add bookmark - not recording');
       return;
     }
 
-    // Calculate current timestamp (accounting for paused time)
-    const now = Date.now();
-    let elapsedMs = now - this.startTime - this.totalPausedTime;
-    if (this.isPaused && this.pauseStartTime) {
-      elapsedMs -= (now - this.pauseStartTime);
+    let timestamp: number;
+    if (overrideTimestamp !== undefined) {
+      // Use the provided timestamp (e.g., from AI suggestion's spoken time)
+      timestamp = Math.max(0, Math.floor(overrideTimestamp));
+    } else {
+      // Calculate current timestamp (accounting for paused time)
+      const now = Date.now();
+      let elapsedMs = now - this.startTime - this.totalPausedTime;
+      if (this.isPaused && this.pauseStartTime) {
+        elapsedMs -= (now - this.pauseStartTime);
+      }
+      timestamp = Math.max(0, Math.floor(elapsedMs / 1000));
     }
-    const timestamp = Math.max(0, Math.floor(elapsedMs / 1000));
 
     // Add bookmark to list
     const bookmark = {
@@ -749,6 +790,115 @@ export class RecordingManager {
       return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Truncate text to a maximum length with ellipsis
+   */
+  private truncateText(text: string, maxLength: number): string {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength - 3) + '...';
+  }
+
+  /**
+   * Insert a summary note at cursor position in the notes editor
+   * @param timestamp Timestamp in seconds when the content was spoken
+   * @param text Full text of the important point
+   * @param type Type of suggestion action
+   */
+  private insertSuggestionNote(timestamp: number | undefined, text: string, type: 'bookmark' | 'note' | 'highlight'): void {
+    const editor = this.editorManager.getEditor();
+    if (!editor) {
+      logger.warn('Cannot insert suggestion note - editor not available');
+      return;
+    }
+
+    // Format timestamp for display
+    const formattedTime = timestamp !== undefined ? this.formatTimestamp(timestamp) : '';
+    
+    // Truncate text for the note (keep it brief but informative)
+    const briefText = text ? this.truncateText(text, 100) : '';
+    
+    // Build the note HTML based on type
+    let noteLabel: string;
+    switch (type) {
+      case 'bookmark':
+        noteLabel = 'Key point';
+        break;
+      case 'highlight':
+        noteLabel = 'Important';
+        break;
+      case 'note':
+      default:
+        noteLabel = 'Note';
+        break;
+    }
+
+    // Only insert if we have meaningful content
+    if (!briefText && !formattedTime) {
+      // Just focus the editor if no content to insert
+      this.editorManager.focus();
+      return;
+    }
+
+    // Format: [MM:SS] Key point: text
+    const noteContent = formattedTime 
+      ? `<p><strong>[${formattedTime}]</strong> ${noteLabel}: ${briefText}</p>`
+      : `<p><strong>${noteLabel}:</strong> ${briefText}</p>`;
+
+    // Insert at cursor position
+    editor.chain().focus().insertContent(noteContent).run();
+    
+    logger.info(`Inserted suggestion note at cursor: ${noteContent}`);
+  }
+
+  /**
+   * Undo the last suggestion action (bookmark or note insertion)
+   * @returns true if undo was successful, false otherwise
+   */
+  public undoLastAction(): boolean {
+    if (!this.lastSuggestionAction) {
+      logger.info('No suggestion action to undo');
+      return false;
+    }
+
+    // Only allow undo within 10 seconds of the action
+    const timeSinceAction = Date.now() - this.lastSuggestionAction.timestamp;
+    if (timeSinceAction > 10000) {
+      logger.info('Undo window expired (>10 seconds)');
+      this.lastSuggestionAction = null;
+      return false;
+    }
+
+    const action = this.lastSuggestionAction;
+    let undone = false;
+
+    // Undo bookmark if it was a bookmark action
+    if (action.type === 'bookmark' && action.bookmarkIndex !== undefined) {
+      if (action.bookmarkIndex >= 0 && action.bookmarkIndex < this.bookmarks.length) {
+        this.bookmarks.splice(action.bookmarkIndex, 1);
+        logger.info(`Removed bookmark at index ${action.bookmarkIndex}`);
+        undone = true;
+      }
+    }
+
+    // Undo the editor insertion using TipTap's built-in undo
+    const editor = this.editorManager.getEditor();
+    if (editor && editor.can().undo()) {
+      editor.commands.undo();
+      logger.info('Undid editor insertion');
+      undone = true;
+    }
+
+    // Clear the last action
+    this.lastSuggestionAction = null;
+
+    if (undone) {
+      const notificationTicker = (window as any).notificationTicker;
+      notificationTicker?.info('Action undone', 2000);
+    }
+
+    return undone;
   }
 
 }

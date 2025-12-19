@@ -75,8 +75,14 @@ export class AISuggestionChip {
     const dismissBtn = document.getElementById('suggestion-dismiss-btn');
 
     acceptBtn?.addEventListener('click', () => {
-      if (this.currentSuggestion && this.onAccept) {
-        this.onAccept(this.currentSuggestion);
+      if (this.currentSuggestion) {
+        // Convert SmartSuggestion to SuggestionTrigger-compatible format and call RecordingManager
+        this.handleSuggestionAccept(this.currentSuggestion);
+        
+        // Also call the original callback for state management
+        if (this.onAccept) {
+          this.onAccept(this.currentSuggestion);
+        }
         this.hide();
       }
     });
@@ -97,6 +103,31 @@ export class AISuggestionChip {
         this.chip?.classList.toggle('expanded');
       }
     });
+  }
+
+  /**
+   * Handle accepting a suggestion by delegating to RecordingManager
+   */
+  private handleSuggestionAccept(suggestion: SmartSuggestion): void {
+    // Convert SmartSuggestion to a format compatible with RecordingManager.handleSuggestionAction
+    const triggerLike = {
+      suggestedAction: suggestion.action, // action field maps to suggestedAction
+      reason: suggestion.description,
+      confidence: suggestion.confidence,
+      context: {
+        text: suggestion.description,
+        // SmartSuggestion doesn't have a spoken timestamp, so we don't include it
+        // The RecordingManager will use current time if timestamp is undefined
+      }
+    };
+
+    // Delegate to RecordingManager
+    const recordingManager = (window as any).recordingManager;
+    if (recordingManager?.handleSuggestionAction) {
+      recordingManager.handleSuggestionAction(triggerLike);
+    } else {
+      console.warn('RecordingManager not available for chip suggestion action');
+    }
   }
 
   /**

@@ -111,6 +111,15 @@ export class ChatUI {
         } else {
           console.warn('RecordingManager not available for suggestion action');
         }
+      },
+      onUndoClick: () => {
+        // Delegate to RecordingManager's undo functionality
+        const recordingManager = (window as any).recordingManager;
+        if (recordingManager?.undoLastAction) {
+          recordingManager.undoLastAction();
+        } else {
+          console.warn('RecordingManager not available for undo action');
+        }
       }
     });
 

@@ -541,7 +541,10 @@
         <div class="drawer-backdrop"></div>
         <div class="drawer-content">
             <div class="drawer-header">
-                <h3>Nugget</h3>
+                <div class="drawer-header-text">
+                    <h3>Nugget</h3>
+                    <p class="drawer-header-subtitle">Your AI Study Buddy</p>
+                </div>
                 <button id="close-drawer-btn" class="close-drawer-btn" title="Close chat" aria-label="Close chat">×</button>
             </div>
 
@@ -551,7 +554,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Chat
                 </button>
                 <button id="suggestions-tab-btn" class="chat-tab" data-tab="suggestions">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> Live AI
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> Suggestions
                     <span class="suggestions-badge" id="suggestions-badge" hidden>0</span>
                 </button>
             </div>
@@ -560,8 +563,8 @@
             <div id="chat-tab-content" class="chat-tab-content active">
                 <div id="chat-messages" class="chat-messages">
                     <div class="chat-welcome">
-                        <p>👋 Hi! I'm Nugget, your AI study companion. I can help you understand your transcription and notes better.</p>
-                        <p>Ask me anything about the content!</p>
+                        <p class="chat-welcome-text">Hi! I'm Nugget, your AI study companion. I can help you understand your transcription and notes better.</p>
+                        <p class="chat-welcome-text">Ask me anything about the content!</p>
                     </div>
                 </div>
 

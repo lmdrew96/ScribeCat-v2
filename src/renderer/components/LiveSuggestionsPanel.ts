@@ -12,6 +12,7 @@ import { getIconHTML } from '../utils/iconMap.js';
 export interface LiveSuggestionsOptions {
   onSuggestionClick?: (suggestion: SuggestionTrigger) => void;
   onBadgeUpdate?: (count: number) => void;
+  onUndoClick?: () => void;
 }
 
 export class LiveSuggestionsPanel {
@@ -22,6 +23,11 @@ export class LiveSuggestionsPanel {
 
   // Recording timing
   private recordingDuration: number = 0; // in minutes
+
+  // Undo state
+  private showUndoBar: boolean = false;
+  private undoTimeout: ReturnType<typeof setTimeout> | null = null;
+  private lastBreakSuggestion: number = 0;
 
   constructor(contentAnalyzer: ContentAnalyzer, options: LiveSuggestionsOptions = {}) {
     this.contentAnalyzer = contentAnalyzer;
@@ -90,12 +96,12 @@ export class LiveSuggestionsPanel {
       if (!this.isRecording) {
         return `
           <div class="chip-panel-header">
-            <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Live AI</div>
+            <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Nugget's Suggestions</div>
           </div>
           <div class="chip-panel-content">
             <div class="chip-empty-state">
               <div class="chip-empty-icon">${getIconHTML('mic', { size: 32 })}</div>
-              <p><strong>Start recording to activate Live AI</strong></p>
+              <p class="chip-empty-title">Start recording to activate suggestions</p>
               <p class="chip-empty-subtitle">I'll analyze your content in real-time and suggest helpful actions like bookmarking important moments, adding notes, and more.</p>
             </div>
           </div>
@@ -105,13 +111,14 @@ export class LiveSuggestionsPanel {
       // Recording but no suggestions yet
       return `
         <div class="chip-panel-header">
-          <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Live AI</div>
+          <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Nugget's Suggestions</div>
           <div class="chip-panel-duration">${this.formatDuration(this.recordingDuration)}</div>
         </div>
         <div class="chip-panel-content">
           <div class="chip-empty-state">
             <div class="chip-empty-icon">${getIconHTML('mic', { size: 32 })}</div>
-            <p>Keep recording! I'll suggest helpful actions as I analyze your content.</p>
+            <p class="chip-empty-title">Keep recording!</p>
+            <p class="chip-empty-subtitle">I'll suggest helpful actions as I analyze your content.</p>
           </div>
         </div>
       `;
@@ -125,23 +132,47 @@ export class LiveSuggestionsPanel {
       const { icon, label, typeClass } = this.getTriggerDisplay(trigger);
       const confidenceClass = trigger.confidence > 0.8 ? 'high' : trigger.confidence > 0.6 ? 'medium' : 'low';
 
+      // Get full text from context (not truncated reason)
+      const fullText = trigger.context?.text || '';
+      const displayText = fullText || trigger.reason;
+      const isLongText = displayText.length > 150;
+      
+      // Format timestamp if available
+      const timestamp = trigger.context?.timestamp;
+      const formattedTime = timestamp !== undefined ? this.formatTimestampSeconds(timestamp) : '';
+
       return `
         <div class="chip-suggestion ${typeClass}" data-index="${index}" data-action="${trigger.suggestedAction}">
           <div class="chip-suggestion-icon">${icon}</div>
           <div class="chip-suggestion-content">
-            <div class="chip-suggestion-action">${label}</div>
-            <div class="chip-suggestion-reason">${escapeHtml(trigger.reason)}</div>
+            <div class="chip-suggestion-action">
+              ${label}
+              ${formattedTime ? `<span class="chip-suggestion-time">[${formattedTime}]</span>` : ''}
+            </div>
+            <div class="chip-suggestion-reason ${isLongText ? 'expandable' : ''}" data-full-text="${escapeHtml(displayText)}">
+              ${isLongText ? escapeHtml(displayText.slice(0, 150)) + '...' : escapeHtml(displayText)}
+            </div>
+            ${isLongText ? `<button class="chip-suggestion-toggle" data-index="${index}">${getIconHTML('chevronDown', { size: 12 })} Show more</button>` : ''}
           </div>
           <div class="chip-suggestion-confidence ${confidenceClass}"></div>
         </div>
       `;
     }).join('');
 
+    // Undo bar HTML
+    const undoBarHtml = this.showUndoBar ? `
+      <div class="chip-undo-bar">
+        <span>Action applied</span>
+        <button class="chip-undo-button">${getIconHTML('undo', { size: 14 })} Undo</button>
+      </div>
+    ` : '';
+
     return `
       <div class="chip-panel-header">
-        <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Live AI</div>
+        <div class="chip-panel-title">${getIconHTML('sparkle', { size: 16 })} Nugget's Suggestions</div>
         <div class="chip-panel-duration">${this.formatDuration(this.recordingDuration)}</div>
       </div>
+      ${undoBarHtml}
       <div class="chip-panel-content">
         <div class="chip-panel-subtitle">Suggested actions</div>
         <div class="chip-suggestions-list">
@@ -156,15 +187,55 @@ export class LiveSuggestionsPanel {
    * Call this after inserting HTML into the DOM
    */
   public attachSuggestionListeners(container: HTMLElement): void {
+    // Attach click handlers to suggestions
     const suggestions = container.querySelectorAll('.chip-suggestion');
     suggestions.forEach((el, index) => {
       const trigger = this.currentSuggestions[index];
       if (trigger) {
-        el.addEventListener('click', () => {
+        el.addEventListener('click', (e) => {
+          // Don't trigger if clicking the toggle button
+          if ((e.target as HTMLElement).closest('.chip-suggestion-toggle')) {
+            return;
+          }
           this.handleSuggestionClick(trigger);
         });
       }
     });
+
+    // Attach expand/collapse toggle handlers
+    const toggleButtons = container.querySelectorAll('.chip-suggestion-toggle');
+    toggleButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const button = e.currentTarget as HTMLButtonElement;
+        const suggestionEl = button.closest('.chip-suggestion');
+        const reasonEl = suggestionEl?.querySelector('.chip-suggestion-reason');
+        
+        if (reasonEl && reasonEl.classList.contains('expandable')) {
+          const isExpanded = reasonEl.classList.toggle('expanded');
+          const fullText = reasonEl.getAttribute('data-full-text') || '';
+          
+          if (isExpanded) {
+            reasonEl.textContent = fullText;
+            button.innerHTML = `${getIconHTML('chevronUp', { size: 12 })} Show less`;
+          } else {
+            reasonEl.textContent = fullText.slice(0, 150) + '...';
+            button.innerHTML = `${getIconHTML('chevronDown', { size: 12 })} Show more`;
+          }
+        }
+      });
+    });
+
+    // Attach undo button handler
+    const undoButton = container.querySelector('.chip-undo-button');
+    if (undoButton) {
+      undoButton.addEventListener('click', () => {
+        this.hideUndoBar();
+        if (this.options.onUndoClick) {
+          this.options.onUndoClick();
+        }
+      });
+    }
   }
 
   /**
@@ -176,8 +247,53 @@ export class LiveSuggestionsPanel {
       this.options.onSuggestionClick(suggestion);
     }
 
-    // Show brief confirmation
-    this.showConfirmation(suggestion);
+    // Show undo bar for 3 seconds
+    this.showUndoBarWithTimeout();
+  }
+
+  /**
+   * Show the undo bar and auto-hide after 3 seconds
+   */
+  private showUndoBarWithTimeout(): void {
+    // Clear any existing timeout
+    if (this.undoTimeout) {
+      clearTimeout(this.undoTimeout);
+    }
+
+    this.showUndoBar = true;
+    
+    // Re-render to show the undo bar
+    this.triggerRerender();
+
+    // Auto-hide after 3 seconds
+    this.undoTimeout = setTimeout(() => {
+      this.hideUndoBar();
+    }, 3000);
+  }
+
+  /**
+   * Hide the undo bar
+   */
+  private hideUndoBar(): void {
+    if (this.undoTimeout) {
+      clearTimeout(this.undoTimeout);
+      this.undoTimeout = null;
+    }
+    this.showUndoBar = false;
+    this.triggerRerender();
+  }
+
+  /**
+   * Trigger a re-render of the panel
+   * This is called after showing/hiding the undo bar
+   */
+  private triggerRerender(): void {
+    // Find the suggestions panel container and update it
+    const container = document.querySelector('.chat-suggestions-panel');
+    if (container) {
+      container.innerHTML = this.renderPanelHTML();
+      this.attachSuggestionListeners(container as HTMLElement);
+    }
   }
 
   /**
@@ -285,6 +401,20 @@ export class LiveSuggestionsPanel {
     return `${mins} min`;
   }
 
+  /**
+   * Format timestamp in seconds to MM:SS or HH:MM:SS
+   */
+  private formatTimestampSeconds(seconds: number): string {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
 
   /**
    * Get current suggestions count
@@ -307,6 +437,7 @@ export class LiveSuggestionsPanel {
   public reset(): void {
     this.recordingDuration = 0;
     this.lastBreakSuggestion = 0;
+    this.hideUndoBar();
     this.clearSuggestions();
   }
 }
