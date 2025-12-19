@@ -412,7 +412,7 @@ export class IntegrationSettingsManager {
 
       listEl.innerHTML = courses.map((course: any) => `
         <div class="course-item" style="
-          display: flex; justify-content: space-between; align-items: center;
+          display: flex; justify-content: space-between;
           padding: 10px; margin-bottom: 8px; background: #1e1e1e;
           border-radius: 4px; border: 1px solid #444;
         ">

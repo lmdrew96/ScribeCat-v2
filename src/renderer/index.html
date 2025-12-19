@@ -395,7 +395,7 @@
                 </div>
                 
                 <div id="transcription-container" class="transcription-container">
-                    <div class="transcription-placeholder" id="transcription-placeholder">
+                    <div class="transcription-placeholder" id="transcription-placeholder" style="font-family: 'RonysiswadiArchitect5';">
                     </div>
                 </div>
             </div>
@@ -502,7 +502,7 @@
         </div>
 
         <!-- Bottom Status Bar -->
-        <footer class="status-bar">
+        <footer class="status-bar" style="font-family: 'RonysiswadiArchitect5';">
             <div class="status-left">
                 <span class="status-label">Status:</span>
                 <span id="recording-status" class="status-value">Idle</span>
@@ -537,7 +537,7 @@
     </button>
     
     <!-- AI Chat Drawer -->
-    <div id="ai-chat-drawer" class="ai-chat-drawer hidden">
+    <div id="ai-chat-drawer" class="ai-chat-drawer hidden" style="font-family: 'RonysiswadiArchitect5';">
         <div class="drawer-backdrop"></div>
         <div class="drawer-content">
             <div class="drawer-header">
@@ -604,7 +604,7 @@
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal hidden">
         <div class="modal-overlay"></div>
-        <div class="modal-content settings-modal">
+        <div class="modal-content settings-modal" style="font-family: 'RonysiswadiArchitect5';">
             <div class="modal-header">
                 <h2>Settings</h2>
                 <button id="close-settings-btn" class="close-btn" title="Close">×</button>
@@ -622,8 +622,8 @@
                     <div class="settings-group-content">
                         <!-- Transcription Settings Section -->
                         <section class="settings-section">
-                            <h3>Transcription Settings</h3>
-                            <p class="help-text" style="margin-bottom: 15px;">
+                            <h3 style="font-family: 'RonysiswadiArchitect5';">Transcription Settings</h3>
+                            <p class="help-text" style="margin-bottom: 15px; font-family: 'RonysiswadiArchitect5';">
                                 Configure real-time transcription parameters for improved accuracy.
                             </p>
 
@@ -649,7 +649,7 @@
                                     <option value="uk">Ukrainian</option>
                                     <option value="vi">Vietnamese</option>
                                 </select>
-                                <small class="help-text">
+                                <small class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                     Specify the language for better accuracy, or use auto-detect.
                                 </small>
                             </div>
@@ -662,7 +662,7 @@
                                     rows="3"
                                     placeholder="Enter terms separated by commas (e.g., ScribeCat, Anthropic, TypeScript, Claude)"
                                 ></textarea>
-                                <small class="help-text">
+                                <small class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                     Boost accuracy for course-specific terms, professor names, or technical jargon. Separate terms with commas. Each term must be 5-50 characters. Max 100 terms.
                                 </small>
                             </div>
@@ -672,7 +672,7 @@
                                     <input type="checkbox" id="disfluencies-checkbox" checked>
                                     <span>Filter Filler Words</span>
                                 </label>
-                                <small class="help-text">
+                                <small class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                     Remove "um", "uh", and other filler words for cleaner transcripts.
                                 </small>
                             </div>
@@ -682,7 +682,7 @@
                                     <input type="checkbox" id="punctuate-checkbox" checked>
                                     <span>Automatic Punctuation</span>
                                 </label>
-                                <small class="help-text">
+                                <small class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                     Automatically add punctuation to transcripts.
                                 </small>
                             </div>
@@ -692,7 +692,7 @@
                                     <input type="checkbox" id="format-text-checkbox" checked>
                                     <span>Smart Text Formatting</span>
                                 </label>
-                                <small class="help-text">
+                                <small class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                     Enable smart formatting for numbers, dates, and other entities.
                                 </small>
                             </div>
@@ -711,20 +711,20 @@
                     <div class="settings-group-content">
                         <!-- Google Drive Settings Section -->
                         <section class="settings-section" id="google-drive-settings">
-                            <h3>Google Drive Integration</h3>
+                            <h3 style="font-family: 'RonysiswadiArchitect5';">Google Drive Integration</h3>
                     <div class="status-row">
                         <label>Status:</label>
-                        <span id="drive-status" class="status-text">Not connected</span>
+                        <span id="drive-status" class="status-text" style="font-family: 'RonysiswadiArchitect5'; padding-bottom: 5px;">Not connected</span>
                     </div>
                     <div class="button-row">
                         <button id="connect-drive-btn" class="button button-primary" type="button">
                             Connect Google Drive
                         </button>
-                        <button id="disconnect-drive-btn" class="button button-secondary" type="button" style="display: none;">
+                        <button id="disconnect-drive-btn" class="button button-secondary" type="button" style="display: none; min-height: 34px; padding-top: 0px; padding-bottom: 0px; min-width: 75px;">
                             Disconnect
                         </button>
                     </div>
-                    <p class="help-text">
+                    <p class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                         Connect your Google Drive to automatically upload exported sessions. 
                         You'll be asked to sign in with your Google account.
                     </p>
@@ -736,7 +736,7 @@
                     
                     <!-- API Connection Method -->
                     <div class="canvas-method">
-                        <h4>Method 1: Canvas API (Recommended)</h4>
+                        <h4 style="font-family: 'RonysiswadiArchitect5';">Method 1: Canvas API (Recommended)</h4>
                         <div class="form-group">
                             <label for="canvas-url">Canvas URL:</label>
                             <input 
@@ -745,7 +745,7 @@
                                 class="text-input" 
                                 placeholder="https://canvas.instructure.com"
                             >
-                            <small class="help-text">
+                            <small class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                 Enter your institution's Canvas URL (e.g., https://canvas.university.edu)
                             </small>
                         </div>
@@ -757,13 +757,13 @@
                                 class="text-input" 
                                 placeholder="Enter your Canvas API token"
                             >
-                            <small class="help-text">
+                            <small class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                 Get your API token from Canvas: Account → Settings → New Access Token
                             </small>
                         </div>
                         <div class="status-row">
                             <label>Status:</label>
-                            <span id="canvas-status" class="status-text">Not configured</span>
+                            <span id="canvas-status" class="status-text" style="font-family: 'RonysiswadiArchitect5'; padding-bottom: 5px;">Not configured</span>
                         </div>
                         <div class="button-row">
                             <button id="test-canvas-btn" class="button button-secondary" type="button">
@@ -777,8 +777,8 @@
                     
                     <!-- Browser Extension Import Method -->
                     <div class="canvas-method" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #444;">
-                        <h4>Method 2: Browser Extension Import</h4>
-                        <p class="help-text">
+                        <h4 style="font-family: 'RonysiswadiArchitect5';">Method 2: Browser Extension Import</h4>
+                        <p class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                             If your university blocks Canvas API access, use our browser extension to import courses.
                             <a href="#" id="extension-help-link" style="color: #3498db;">Learn more</a>
                         </p>
@@ -790,7 +790,7 @@
                                 rows="4"
                                 placeholder='{"source": "ScribeCat Canvas Browser Extension", "format": "scribecat_course_import_v1", "courses": [...]}'
                             ></textarea>
-                            <small class="help-text">
+                            <small class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                 Install the extension, visit your Canvas dashboard, export courses, then paste the JSON here.
                             </small>
                         </div>
@@ -802,8 +802,8 @@
                         
                         <!-- Imported Courses List -->
                         <div id="imported-courses-container" style="margin-top: 20px; display: none;">
-                            <h5>Imported Courses (<span id="imported-courses-count">0</span>)</h5>
-                            <div id="imported-courses-list" class="courses-list"></div>
+                            <h5 style="font-family: 'RonysiswadiArchitect5';">Imported Courses (<span id="imported-courses-count">0</span>)</h5>
+                            <div id="imported-courses-list" class="courses-list" style="font-family: 'RonysiswadiArchitect5'; font-size: larger; justify-content: center;"></div>
                         </div>
                     </div>
                 </section>
@@ -820,9 +820,9 @@
                     </div>
                     <div class="settings-group-content">
                         <!-- Theme Settings Section -->
-                        <section class="settings-section">
-                            <h3>Themes</h3>
-                            <p class="help-text">
+                        <section class="settings-section" style="font-family: 'RonysiswadiArchitect5';">
+                            <h3 style="font-family: 'RonysiswadiArchitect5';">Themes</h3>
+                            <p class="help-text" style="font-family: 'RonysiswadiArchitect5';">
                                 Choose a theme that matches your mood and enhances your focus.
                                 Each theme is designed using color theory to evoke specific emotions.
                             </p>
@@ -936,7 +936,7 @@
                 </div>
 
                 <!-- Collapsible Group: Audio Configuration -->
-                <div class="settings-group" data-group="audio">
+                <div class="settings-group" data-group="audio" style="font-family: 'RonysiswadiArchitect5';">
                     <div class="settings-group-header">
                         <h2>Audio Configuration</h2>
                         <svg class="chevron-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
@@ -977,7 +977,7 @@
                 </div>
 
                 <!-- Collapsible Group: Account -->
-                <div class="settings-group" data-group="account">
+                <div class="settings-group" data-group="account" style="font-family: 'RonysiswadiArchitect5';">
                     <div class="settings-group-header">
                         <h2>Account</h2>
                         <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

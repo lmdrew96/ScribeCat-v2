@@ -269,7 +269,6 @@ export class CanvasSettingsManager {
         <div class="course-item" style="
           display: flex;
           justify-content: space-between;
-          align-items: center;
           padding: 10px;
           margin-bottom: 8px;
           background: #1e1e1e;
