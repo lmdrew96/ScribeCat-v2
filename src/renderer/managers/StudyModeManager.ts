@@ -42,6 +42,7 @@ import { KeyboardShortcutHandler } from './KeyboardShortcutHandler.js';
 import { KeyboardShortcutsOverlay } from '../components/KeyboardShortcutsOverlay.js';
 import { QuickActionsMenu } from '../components/QuickActionsMenu.js';
 import { StudySetTitleModal } from '../components/StudySetTitleModal.js';
+import { getStudyTimeTracker } from './study-mode/StudyTimeTracker.js';
 import { createLogger } from '../../shared/logger.js';
 import { getIconHTML } from '../utils/iconMap.js';
 
@@ -523,6 +524,9 @@ export class StudyModeManager {
    * Hide study mode view
    */
   public hide(): void {
+    // Stop tracking study time (saves any accumulated time)
+    getStudyTimeTracker().stopTracking();
+
     // Clear AI Chat study mode context
     const aiManager = window.aiManager;
     if (aiManager) {

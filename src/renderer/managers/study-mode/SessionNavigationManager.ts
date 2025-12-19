@@ -16,6 +16,7 @@ import { StudyModeDetailViewManager } from './StudyModeDetailViewManager.js';
 import { StudyModeAIToolsManager } from './StudyModeAIToolsManager.js';
 import { SessionSharingManager } from '../SessionSharingManager.js';
 import { StudyModeNotesEditorManager } from './StudyModeNotesEditorManager.js';
+import { getStudyTimeTracker } from './StudyTimeTracker.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('SessionNavigationManager');
@@ -74,6 +75,9 @@ export class SessionNavigationManager {
 
     // Initialize AI tools (after render completes so DOM is ready)
     this.aiToolsManager.initialize(session);
+
+    // Start tracking study time for this session
+    getStudyTimeTracker().startTracking(session.id);
 
     // Auto-enable collaboration for editors
     await this.autoEnableCollaborationIfNeeded(session);
@@ -180,6 +184,9 @@ export class SessionNavigationManager {
    * Navigate back to session list view
    */
   public backToSessionList(): void {
+    // Stop tracking study time (saves any accumulated time)
+    getStudyTimeTracker().stopTracking();
+
     // Clear AI Chat context when going back to list
     const aiManager = window.aiManager;
     if (aiManager) {
