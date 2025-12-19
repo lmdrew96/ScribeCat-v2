@@ -371,3 +371,6 @@ class AudioManagerClass {
 
 // Singleton instance
 export const AudioManager = new AudioManagerClass();
+
+// Expose globally for settings panels
+(window as unknown as { __studyquest_audio__: typeof AudioManager }).__studyquest_audio__ = AudioManager;

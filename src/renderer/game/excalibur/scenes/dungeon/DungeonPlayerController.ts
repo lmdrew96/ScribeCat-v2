@@ -41,10 +41,7 @@ export class DungeonPlayerController {
   private playerFrozen = false;
   private playerAnimations: Map<string, ex.Animation> = new Map();
   private currentPlayerAnim: 'idle' | 'walk' = 'idle';
-  
-  // Animation state tracking to prevent flickering
-  private lastAnimSwitch = 0;
-  private animSwitchCooldown = 100; // ms cooldown between animation switches
+  private currentAnimApplied = false; // Track if current animation has been applied to graphics
   
   constructor(scene: ex.Scene, config: PlayerControllerConfig) {
     this.scene = scene;
@@ -66,7 +63,7 @@ export class DungeonPlayerController {
     // Reset player state to ensure clean start
     this.playerFrozen = false;
     this.currentPlayerAnim = 'idle';
-    this.lastAnimSwitch = 0;
+    this.currentAnimApplied = false;
     this.playerAnimations.clear();
     
     // Determine start position
@@ -155,18 +152,13 @@ export class DungeonPlayerController {
       }
     }
 
-    // Switch animation based on movement state (with debounce to prevent flickering)
+    // Switch animation based on movement state
     const targetAnim = isMoving ? 'walk' : 'idle';
-    const now = Date.now();
-    if (targetAnim !== this.currentPlayerAnim && 
-        this.playerAnimations.has(targetAnim) &&
-        now - this.lastAnimSwitch > this.animSwitchCooldown) {
+    if ((targetAnim !== this.currentPlayerAnim || !this.currentAnimApplied) && 
+        this.playerAnimations.has(targetAnim)) {
       this.currentPlayerAnim = targetAnim;
-      this.lastAnimSwitch = now;
-      const anim = this.playerAnimations.get(targetAnim)!;
-      // Reset animation to first frame before switching to prevent flicker
-      anim.reset();
-      this.player.graphics.use(anim);
+      this.currentAnimApplied = true;
+      this.player.graphics.use(this.playerAnimations.get(targetAnim)!);
     }
   }
   
