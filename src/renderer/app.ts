@@ -19,7 +19,6 @@ import { CommandPalette } from './components/CommandPalette.js';
 import { CommandRegistry } from './managers/CommandRegistry.js';
 import { AISuggestionChip } from './components/AISuggestionChip.js';
 import { LayoutManager } from './managers/LayoutManager.js';
-import { WorkspaceLayoutPicker } from './components/WorkspaceLayoutPicker.js';
 import { notificationTicker } from './managers/NotificationTicker.js';
 import { ConfettiManager } from './utils/confetti.js';
 import { FocusManager, initializeA11yStyles } from './utils/FocusManager.js';
@@ -68,7 +67,6 @@ let commandPalette: CommandPalette;
 let commandRegistry: CommandRegistry;
 let aiSuggestionChip: AISuggestionChip;
 let layoutManager: LayoutManager;
-let layoutPicker: WorkspaceLayoutPicker;
 let confettiManager: ConfettiManager;
 let buttonController: ButtonController;
 let studyQuestModal: StudyQuestModal;
@@ -208,13 +206,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   layoutManager = new LayoutManager();
   layoutManager.initialize();
   (window as any).layoutManager = layoutManager;
-
-  layoutPicker = new WorkspaceLayoutPicker(layoutManager);
-  layoutPicker.initialize();
-
-  // Layout picker button
-  const openLayoutPickerBtn = document.getElementById('open-layout-picker-btn');
-  openLayoutPickerBtn?.addEventListener('click', () => layoutPicker.open());
 
   // Initialize Easter Eggs
   AppEasterEggs.initialize();

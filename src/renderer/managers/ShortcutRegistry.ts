@@ -74,14 +74,6 @@ export class ShortcutRegistry {
       implementedIn: 'CommandRegistry.ts'
     },
     {
-      id: 'cycle-focus-mode',
-      description: 'Cycle Focus Modes',
-      keys: 'Cmd+Shift+F',
-      context: 'global',
-      handler: 'cycleFocusMode',
-      implementedIn: 'app.ts'
-    },
-    {
       id: 'close-modal',
       description: 'Close Modal/Overlay/Palette',
       keys: 'Esc',

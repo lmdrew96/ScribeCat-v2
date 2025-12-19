@@ -18,14 +18,6 @@ export interface LayoutState {
   aiDrawerWidth: number; // pixels
 }
 
-export interface WorkspacePreset {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  layout: LayoutState;
-}
-
 export class LayoutManager {
   private mainContent: HTMLElement | null = null;
   private leftPanel: HTMLElement | null = null;
@@ -45,80 +37,8 @@ export class LayoutManager {
     aiDrawerWidth: 400
   };
 
-  private customLayouts: Map<string, WorkspacePreset> = new Map();
-
-  // Workspace presets
-  private presets: WorkspacePreset[] = [
-    {
-      id: 'balanced',
-      name: 'Balanced',
-      description: 'Equal space for notes and transcription',
-      icon: '⚖️',
-      layout: {
-        leftPanelWidth: 50,
-        rightPanelWidth: 50,
-        leftPanelCollapsed: false,
-        rightPanelCollapsed: false,
-        aiDrawerWidth: 400
-      }
-    },
-    {
-      id: 'recording',
-      name: 'Recording Setup',
-      description: 'Focus on transcription while taking notes',
-      icon: '🎙️',
-      layout: {
-        leftPanelWidth: 40,
-        rightPanelWidth: 60,
-        leftPanelCollapsed: false,
-        rightPanelCollapsed: false,
-        aiDrawerWidth: 400
-      }
-    },
-    {
-      id: 'review',
-      name: 'Review Layout',
-      description: 'Maximize notes for reviewing and editing',
-      icon: '📝',
-      layout: {
-        leftPanelWidth: 70,
-        rightPanelWidth: 30,
-        leftPanelCollapsed: false,
-        rightPanelCollapsed: false,
-        aiDrawerWidth: 400
-      }
-    },
-    {
-      id: 'focus-notes',
-      name: 'Focus: Notes',
-      description: 'Full screen for notes, transcription collapsed',
-      icon: '📋',
-      layout: {
-        leftPanelWidth: 100,
-        rightPanelWidth: 0,
-        leftPanelCollapsed: false,
-        rightPanelCollapsed: true,
-        aiDrawerWidth: 400
-      }
-    },
-    {
-      id: 'focus-transcription',
-      name: 'Focus: Transcription',
-      description: 'Full screen for transcription, notes collapsed',
-      icon: '🎧',
-      layout: {
-        leftPanelWidth: 0,
-        rightPanelWidth: 100,
-        leftPanelCollapsed: true,
-        rightPanelCollapsed: false,
-        aiDrawerWidth: 400
-      }
-    }
-  ];
-
   constructor() {
     this.loadLayoutFromStorage();
-    this.loadCustomLayoutsFromStorage();
   }
 
   /**
@@ -179,6 +99,9 @@ export class LayoutManager {
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
 
+    // Add resizing class to disable transitions for instant feedback
+    this.leftPanel?.classList.add('resizing');
+    this.rightPanel?.classList.add('resizing');
     this.divider?.classList.add('dragging');
   }
 
@@ -213,6 +136,9 @@ export class LayoutManager {
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
 
+    // Remove resizing class to restore smooth transitions
+    this.leftPanel?.classList.remove('resizing');
+    this.rightPanel?.classList.remove('resizing');
     this.divider?.classList.remove('dragging');
 
     // Save layout after resize
@@ -246,69 +172,6 @@ export class LayoutManager {
     }
 
     this.currentLayout = { ...layout };
-  }
-
-  /**
-   * Apply a workspace preset
-   */
-  public applyPreset(presetId: string): void {
-    const preset = this.presets.find(p => p.id === presetId) ||
-                   this.customLayouts.get(presetId);
-
-    if (!preset) {
-      console.error(`Preset not found: ${presetId}`);
-      return;
-    }
-
-    this.applyLayout(preset.layout);
-    this.saveLayoutToStorage();
-
-    // Show notification
-    const notificationTicker = (window as any).notificationTicker;
-    if (notificationTicker) {
-      notificationTicker.success(`${preset.icon} Layout: ${preset.name}`, 2000);
-    }
-  }
-
-  /**
-   * Save current layout as custom preset
-   */
-  public saveCustomLayout(name: string, description: string, icon: string): void {
-    const id = `custom-${Date.now()}`;
-    const preset: WorkspacePreset = {
-      id,
-      name,
-      description,
-      icon,
-      layout: { ...this.currentLayout }
-    };
-
-    this.customLayouts.set(id, preset);
-    this.saveCustomLayoutsToStorage();
-
-    // Show success notification
-    const notificationTicker = (window as any).notificationTicker;
-    if (notificationTicker) {
-      notificationTicker.success(`💾 Saved layout: ${name}`, 2000);
-    }
-  }
-
-  /**
-   * Delete custom layout
-   */
-  public deleteCustomLayout(id: string): void {
-    this.customLayouts.delete(id);
-    this.saveCustomLayoutsToStorage();
-  }
-
-  /**
-   * Get all workspace presets (built-in + custom)
-   */
-  public getAllPresets(): WorkspacePreset[] {
-    return [
-      ...this.presets,
-      ...Array.from(this.customLayouts.values())
-    ];
   }
 
   /**
@@ -354,33 +217,6 @@ export class LayoutManager {
       }
     } catch (error) {
       console.error('Failed to load layout from storage:', error);
-    }
-  }
-
-  /**
-   * Save custom layouts to localStorage
-   */
-  private saveCustomLayoutsToStorage(): void {
-    try {
-      const layouts = Array.from(this.customLayouts.entries());
-      localStorage.setItem('scribecat-custom-layouts', JSON.stringify(layouts));
-    } catch (error) {
-      console.error('Failed to save custom layouts:', error);
-    }
-  }
-
-  /**
-   * Load custom layouts from localStorage
-   */
-  private loadCustomLayoutsFromStorage(): void {
-    try {
-      const saved = localStorage.getItem('scribecat-custom-layouts');
-      if (saved) {
-        const layouts = JSON.parse(saved);
-        this.customLayouts = new Map(layouts);
-      }
-    } catch (error) {
-      console.error('Failed to load custom layouts:', error);
     }
   }
 }

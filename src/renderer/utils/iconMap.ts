@@ -353,7 +353,6 @@ export const ICONS = {
   smile: Smile,
   emoji: Smile,
   clipboard: ClipboardList,
-  focusMode: ClipboardList,
   shield: Shield,
   superhero: Shield,
   card: CreditCard,

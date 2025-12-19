@@ -156,7 +156,6 @@ browser-extension/       # Separate browser extension component
 **Gamification & Productivity:**
 - `AchievementsManager` - Track user milestones and badges
 - `GoalsManager` - Study goals and progress tracking
-- `FocusModeManager` - Distraction-free environment
 - `LayoutManager` - Customizable UI layouts
 - `CommandRegistry` / `ShortcutRegistry` - Keyboard shortcuts
 
