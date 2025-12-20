@@ -14,6 +14,7 @@ import { CoverageChecker } from './CoverageChecker.js';
 import {
   ImportantPoint,
   BookmarkRef,
+  WordTiming,
   IImportantPointDetector,
   ICoverageChecker
 } from './types.js';
@@ -52,20 +53,23 @@ export class ImportantPointAnalyzer {
     transcription: string,
     notes: string,
     bookmarks: BookmarkRef[],
-    currentTimestamp: number
+    currentTimestamp: number,
+    wordTimings?: WordTiming[]
   ): ImportantPoint[] {
-    // Run repetition tracker
+    // Run repetition tracker with word timings for accurate timestamps
     let points = this.repetitionTracker.analyze(
       transcription,
       currentTimestamp,
-      this.importantPoints
+      this.importantPoints,
+      wordTimings
     );
 
-    // Run emphasis detector
+    // Run emphasis detector with word timings for accurate timestamps
     points = this.emphasisDetector.analyze(
       transcription,
       currentTimestamp,
-      points
+      points,
+      wordTimings
     );
 
     // Deduplicate overlapping points from different detectors

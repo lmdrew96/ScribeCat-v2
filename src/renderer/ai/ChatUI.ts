@@ -8,6 +8,7 @@ import { renderMarkdown } from '../utils/markdown-renderer.js';
 import { getRandomCatFact } from '../utils/cat-facts.js';
 import { LiveSuggestionsPanel } from '../components/LiveSuggestionsPanel.js';
 import { ContentAnalyzer } from './ContentAnalyzer.js';
+import { WordTiming } from './analysis/types.js';
 
 export class ChatUI {
   private chatDrawer: HTMLElement | null = null;
@@ -476,11 +477,11 @@ export class ChatUI {
   /**
    * Update live suggestions with latest content
    */
-  public updateLiveSuggestions(transcription: string, notes: string, durationMinutes: number): void {
+  public updateLiveSuggestions(transcription: string, notes: string, durationMinutes: number, wordTimings?: WordTiming[]): void {
     if (!this.liveSuggestions || !this.liveSuggestionsPanel) return;
 
-    // Update suggestions
-    this.liveSuggestions.updateSuggestions(transcription, notes, durationMinutes);
+    // Update suggestions with word timings for accurate phrase timestamps
+    this.liveSuggestions.updateSuggestions(transcription, notes, durationMinutes, wordTimings);
 
     // Render panel HTML
     const html = this.liveSuggestions.renderPanelHTML();

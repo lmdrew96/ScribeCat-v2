@@ -26,6 +26,12 @@ export interface SmartSuggestion {
   dismissible: boolean;
   timestamp: Date;
   mode?: ContextMode; // Which mode this suggestion is for
+  /** Preserved context from the original trigger for accurate timestamps and text */
+  originalContext?: {
+    text?: string;
+    timestamp?: number;
+    importantPointId?: string;
+  };
 }
 
 export interface SuggestionState {
@@ -218,7 +224,13 @@ export class SmartSuggestionEngine {
       command,
       dismissible: true,
       timestamp: new Date(),
-      mode: trigger.mode
+      mode: trigger.mode,
+      // Preserve original context for accurate timestamps and text when handling actions
+      originalContext: trigger.context ? {
+        text: trigger.context.text,
+        timestamp: trigger.context.timestamp,
+        importantPointId: trigger.context.importantPointId
+      } : undefined
     };
   }
 

@@ -4,7 +4,7 @@
  * Manages AssemblyAI transcription for recording sessions.
  */
 
-import { AssemblyAITranscriptionService, TranscriptionSettings, TranscriptionError } from './AssemblyAITranscriptionService.js';
+import { AssemblyAITranscriptionService, TranscriptionSettings, TranscriptionError, TranscriptionWord } from './AssemblyAITranscriptionService.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { TranscriptionManager } from '../managers/TranscriptionManager.js';
 
@@ -114,13 +114,13 @@ export class TranscriptionModeService {
     this.assemblyAIService = new AssemblyAITranscriptionService();
     await this.assemblyAIService.initialize(apiKey, settings);
 
-    // Set up result callback
-    this.assemblyAIService.onResult((text: string, isFinal: boolean, startTime?: number, endTime?: number) => {
+    // Set up result callback - capture words for accurate phrase timestamps
+    this.assemblyAIService.onResult((text: string, isFinal: boolean, startTime?: number, endTime?: number, words?: TranscriptionWord[]) => {
       const timeInfo = startTime !== undefined
         ? `@ ${startTime.toFixed(1)}s${endTime !== undefined ? `-${endTime.toFixed(1)}s` : ''}`
         : '';
       console.log('🎤 AssemblyAI:', isFinal ? 'Final' : 'Partial', text, timeInfo);
-      this.transcriptionManager.updateFlowing(text, isFinal, startTime, endTime);
+      this.transcriptionManager.updateFlowing(text, isFinal, startTime, endTime, words);
     });
 
     // Set up error callback to display user-friendly messages

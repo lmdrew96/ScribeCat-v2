@@ -10,7 +10,7 @@
  * Implements IImportantPointDetector for future AI swap capability.
  */
 
-import { ImportantPoint, EmphasisMatch, IImportantPointDetector } from './types.js';
+import { ImportantPoint, EmphasisMatch, IImportantPointDetector, WordTiming } from './types.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('EmphasisDetector');
@@ -150,7 +150,8 @@ export class EmphasisDetector implements IImportantPointDetector {
   analyze(
     transcription: string,
     currentTimestamp: number,
-    existingPoints: ImportantPoint[]
+    existingPoints: ImportantPoint[],
+    wordTimings?: WordTiming[]
   ): ImportantPoint[] {
     // Only analyze new text
     const textToAnalyze = transcription.slice(this.processedLength);
@@ -158,7 +159,8 @@ export class EmphasisDetector implements IImportantPointDetector {
       return existingPoints;
     }
 
-    const matches = this.detectEmphasis(textToAnalyze, currentTimestamp);
+    // Pass the offset so we can calculate absolute character positions
+    const matches = this.detectEmphasis(textToAnalyze, currentTimestamp, this.processedLength, wordTimings);
     this.processedLength = transcription.length;
 
     // Convert matches to important points
@@ -216,8 +218,17 @@ export class EmphasisDetector implements IImportantPointDetector {
 
   /**
    * Detect emphasis patterns in text
+   * @param text - Text to analyze (may be a slice of full transcription)
+   * @param fallbackTimestamp - Fallback timestamp if word timings not available
+   * @param textOffset - Character offset of this text within the full transcription
+   * @param wordTimings - Word-level timing data for accurate timestamps
    */
-  private detectEmphasis(text: string, timestamp: number): EmphasisMatch[] {
+  private detectEmphasis(
+    text: string,
+    fallbackTimestamp: number,
+    textOffset: number,
+    wordTimings?: WordTiming[]
+  ): EmphasisMatch[] {
     const matches: EmphasisMatch[] = [];
 
     for (const { pattern, type, extractContent, baseConfidence } of this.EMPHASIS_PATTERNS) {
@@ -232,6 +243,11 @@ export class EmphasisDetector implements IImportantPointDetector {
           // Clean up the content
           const cleanContent = this.cleanContent(emphasizedContent);
           if (cleanContent.length >= 10) {
+            // Calculate the actual timestamp from word timings if available
+            // The match.index is relative to text, add textOffset for absolute position
+            const absolutePosition = textOffset + match.index;
+            const timestamp = this.findTimestampForPosition(absolutePosition, wordTimings) ?? fallbackTimestamp;
+            
             matches.push({
               matchedPhrase: match[1] || match[0],
               emphasisType: type,
@@ -248,6 +264,34 @@ export class EmphasisDetector implements IImportantPointDetector {
     return this.deduplicateMatches(
       matches.sort((a, b) => b.confidence - a.confidence)
     );
+  }
+
+  /**
+   * Find timestamp for a character position using word timings (binary search)
+   */
+  private findTimestampForPosition(charPosition: number, wordTimings?: WordTiming[]): number | undefined {
+    if (!wordTimings || wordTimings.length === 0) return undefined;
+
+    // Binary search for the word containing or closest to this position
+    let left = 0;
+    let right = wordTimings.length - 1;
+    let bestMatch: WordTiming | undefined;
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const word = wordTimings[mid];
+
+      if (charPosition >= word.charStart && charPosition <= word.charEnd) {
+        return word.start;
+      } else if (charPosition < word.charStart) {
+        right = mid - 1;
+      } else {
+        bestMatch = word;
+        left = mid + 1;
+      }
+    }
+
+    return bestMatch?.start;
   }
 
   /**

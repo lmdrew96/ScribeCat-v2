@@ -110,14 +110,17 @@ export class AISuggestionChip {
    */
   private handleSuggestionAccept(suggestion: SmartSuggestion): void {
     // Convert SmartSuggestion to a format compatible with RecordingManager.handleSuggestionAction
+    // Use preserved originalContext for accurate text and timestamp
     const triggerLike = {
-      suggestedAction: suggestion.action, // action field maps to suggestedAction
+      suggestedAction: suggestion.action,
       reason: suggestion.description,
       confidence: suggestion.confidence,
       context: {
-        text: suggestion.description,
-        // SmartSuggestion doesn't have a spoken timestamp, so we don't include it
-        // The RecordingManager will use current time if timestamp is undefined
+        // Use original text if available, fall back to description
+        text: suggestion.originalContext?.text || suggestion.description,
+        // Use original timestamp if available (for accurate bookmark/note placement)
+        timestamp: suggestion.originalContext?.timestamp,
+        importantPointId: suggestion.originalContext?.importantPointId
       }
     };
 

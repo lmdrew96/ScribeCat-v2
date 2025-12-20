@@ -6,6 +6,7 @@
  */
 
 import { ContentAnalyzer, SuggestionTrigger } from '../ai/ContentAnalyzer.js';
+import { WordTiming } from '../ai/analysis/types.js';
 import { escapeHtml } from '../utils/formatting.js';
 import { getIconHTML } from '../utils/iconMap.js';
 
@@ -57,14 +58,14 @@ export class LiveSuggestionsPanel {
   /**
    * Update with latest suggestions from ContentAnalyzer
    */
-  public updateSuggestions(transcription: string, notes: string, durationMinutes: number): void {
+  public updateSuggestions(transcription: string, notes: string, durationMinutes: number, wordTimings?: WordTiming[]): void {
     if (!this.isRecording) return;
 
     // Update duration
     this.recordingDuration = durationMinutes;
 
-    // Get fresh insights and suggestions for recording mode
-    const insights = this.contentAnalyzer.updateContent(transcription, notes);
+    // Get fresh insights and suggestions for recording mode, passing word timings for accurate timestamps
+    const insights = this.contentAnalyzer.updateContent(transcription, notes, wordTimings);
     const triggers = this.contentAnalyzer.getSuggestionTriggers('recording');
 
     // Break suggestions removed - they're disruptive during recording
@@ -349,6 +350,7 @@ export class LiveSuggestionsPanel {
   /**
    * Get display properties for a trigger based on its type
    * Returns icon, label, and CSS class for styling
+   * Uses distinct icons instead of colors for type identification
    */
   private getTriggerDisplay(trigger: SuggestionTrigger): { icon: string; label: string; typeClass: string } {
     const iconSize = 16;
@@ -358,23 +360,23 @@ export class LiveSuggestionsPanel {
       const isExam = trigger.context?.detectionMethod === 'exam';
       if (isExam) {
         return {
-          icon: getIconHTML('alert', { size: iconSize }),
+          icon: getIconHTML('alertTriangle', { size: iconSize }),
           label: 'Exam Material',
-          typeClass: 'chip-suggestion-exam'
+          typeClass: '' // No special color class, icon distinguishes it
         };
       }
       return {
         icon: getIconHTML('star', { size: iconSize }),
         label: 'Important Point',
-        typeClass: 'chip-suggestion-emphasis'
+        typeClass: ''
       };
     }
 
     if (trigger.type === 'topic_emphasis') {
       return {
-        icon: getIconHTML('refresh', { size: iconSize }),
+        icon: getIconHTML('key', { size: iconSize }),
         label: 'Key Concept',
-        typeClass: 'chip-suggestion-repetition'
+        typeClass: ''
       };
     }
 

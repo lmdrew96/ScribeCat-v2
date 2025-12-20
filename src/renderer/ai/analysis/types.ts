@@ -6,6 +6,23 @@
  */
 
 /**
+ * Word-level timing from AssemblyAI transcription
+ * Used to accurately timestamp detected phrases to their actual speech time
+ */
+export interface WordTiming {
+  /** The word text */
+  text: string;
+  /** Start time in seconds */
+  start: number;
+  /** End time in seconds */
+  end: number;
+  /** Character offset where this word starts in the full transcription */
+  charStart: number;
+  /** Character offset where this word ends in the full transcription */
+  charEnd: number;
+}
+
+/**
  * How an important point was detected
  */
 export type DetectionMethod = 'repetition' | 'emphasis' | 'exam';
@@ -76,11 +93,16 @@ export interface BookmarkRef {
 export interface IImportantPointDetector {
   /**
    * Analyze text and return detected important points
+   * @param transcription - Full transcription text
+   * @param currentTimestamp - Current recording time in seconds (fallback if word timings unavailable)
+   * @param existingPoints - Previously detected points
+   * @param wordTimings - Optional word-level timing data for accurate timestamps
    */
   analyze(
     transcription: string,
     currentTimestamp: number,
-    existingPoints: ImportantPoint[]
+    existingPoints: ImportantPoint[],
+    wordTimings?: WordTiming[]
   ): ImportantPoint[];
 
   /**

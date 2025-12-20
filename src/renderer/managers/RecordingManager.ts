@@ -621,8 +621,11 @@ export class RecordingManager {
     }));
     contentAnalyzer.updateBookmarks(bookmarkRefs);
 
-    // Update live suggestions with latest content and duration
-    this.chatUI.updateLiveSuggestions(transcription, notes, durationMinutes);
+    // Get word timings for accurate phrase-to-timestamp mapping
+    const wordTimings = this.transcriptionManager.getWordTimings();
+
+    // Update live suggestions with latest content, duration, and word timings
+    this.chatUI.updateLiveSuggestions(transcription, notes, durationMinutes, wordTimings);
 
     logger.debug('Live suggestions updated with latest content');
   }

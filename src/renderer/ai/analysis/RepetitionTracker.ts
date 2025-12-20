@@ -7,7 +7,7 @@
  * Implements IImportantPointDetector for future AI swap capability.
  */
 
-import { ImportantPoint, NGramEntry, IImportantPointDetector } from './types.js';
+import { ImportantPoint, NGramEntry, IImportantPointDetector, WordTiming } from './types.js';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('RepetitionTracker');
@@ -60,7 +60,8 @@ export class RepetitionTracker implements IImportantPointDetector {
   analyze(
     transcription: string,
     currentTimestamp: number,
-    existingPoints: ImportantPoint[]
+    existingPoints: ImportantPoint[],
+    wordTimings?: WordTiming[]
   ): ImportantPoint[] {
     // Find new text since last analysis
     const newText = this.getNewText(transcription);
@@ -68,8 +69,8 @@ export class RepetitionTracker implements IImportantPointDetector {
       return existingPoints;
     }
 
-    // Extract n-grams from new text
-    this.extractNGrams(newText, currentTimestamp);
+    // Extract n-grams from new text, using character offset for timestamp lookup
+    this.extractNGrams(newText, currentTimestamp, this.processedLength, wordTimings);
 
     // Update processed length
     this.processedLength = transcription.length;
@@ -94,9 +95,27 @@ export class RepetitionTracker implements IImportantPointDetector {
 
   /**
    * Extract n-grams from text and update frequency map
+   * @param text - Text to extract n-grams from
+   * @param fallbackTimestamp - Fallback timestamp if word timings unavailable
+   * @param textOffset - Character offset of this text within full transcription
+   * @param wordTimings - Word-level timing data for accurate timestamps
    */
-  private extractNGrams(text: string, timestamp: number): void {
+  private extractNGrams(
+    text: string,
+    fallbackTimestamp: number,
+    textOffset: number,
+    wordTimings?: WordTiming[]
+  ): void {
     const words = this.tokenize(text);
+    
+    // Build a map of word positions in the text for character offset lookup
+    const wordPositions: number[] = [];
+    let pos = 0;
+    for (const word of words) {
+      const idx = text.indexOf(word, pos);
+      wordPositions.push(idx >= 0 ? idx : pos);
+      pos = idx >= 0 ? idx + word.length : pos + word.length;
+    }
 
     for (const n of this.NGRAM_SIZES) {
       for (let i = 0; i <= words.length - n; i++) {
@@ -116,6 +135,11 @@ export class RepetitionTracker implements IImportantPointDetector {
         // Skip very short content words
         if (nonStopWords.every(w => w.length <= 2)) continue;
 
+        // Calculate the actual timestamp from word timings if available
+        const localCharPosition = wordPositions[i];
+        const absolutePosition = textOffset + localCharPosition;
+        const timestamp = this.findTimestampForPosition(absolutePosition, wordTimings) ?? fallbackTimestamp;
+
         // Update or create entry
         const existing = this.ngramMap.get(normalized);
         if (existing) {
@@ -133,6 +157,33 @@ export class RepetitionTracker implements IImportantPointDetector {
         }
       }
     }
+  }
+
+  /**
+   * Find timestamp for a character position using word timings (binary search)
+   */
+  private findTimestampForPosition(charPosition: number, wordTimings?: WordTiming[]): number | undefined {
+    if (!wordTimings || wordTimings.length === 0) return undefined;
+
+    let left = 0;
+    let right = wordTimings.length - 1;
+    let bestMatch: WordTiming | undefined;
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const word = wordTimings[mid];
+
+      if (charPosition >= word.charStart && charPosition <= word.charEnd) {
+        return word.start;
+      } else if (charPosition < word.charStart) {
+        right = mid - 1;
+      } else {
+        bestMatch = word;
+        left = mid + 1;
+      }
+    }
+
+    return bestMatch?.start;
   }
 
   /**

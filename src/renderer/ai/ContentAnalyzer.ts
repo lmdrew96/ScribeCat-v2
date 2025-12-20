@@ -13,7 +13,7 @@
 import { createLogger } from '../../shared/logger.js';
 import { ImportantPointAnalyzer } from './analysis/ImportantPointAnalyzer.js';
 import { AITopicAnalyzer } from './analysis/AITopicAnalyzer.js';
-import { ImportantPoint, BookmarkRef } from './analysis/types.js';
+import { ImportantPoint, BookmarkRef, WordTiming } from './analysis/types.js';
 
 const logger = createLogger('ContentAnalyzer');
 
@@ -63,6 +63,7 @@ export class ContentAnalyzer {
   private importantPointAnalyzer: ImportantPointAnalyzer;
   private aiTopicAnalyzer: AITopicAnalyzer;
   private bookmarks: BookmarkRef[] = [];
+  private wordTimings: WordTiming[] = [];
 
   // AI analysis state
   private pendingAIAnalysis: boolean = false;
@@ -110,21 +111,27 @@ export class ContentAnalyzer {
   /**
    * Update content and reanalyze
    */
-  public updateContent(transcription: string, notes: string): ContentInsights {
+  public updateContent(transcription: string, notes: string, wordTimings?: WordTiming[]): ContentInsights {
     // Defensive: Ensure we have valid strings
     this.transcriptionText = typeof transcription === 'string' ? transcription : '';
     this.notesText = typeof notes === 'string' ? notes : '';
+    
+    // Store word timings for accurate phrase-to-timestamp lookup
+    if (wordTimings) {
+      this.wordTimings = wordTimings;
+    }
 
     const insights = this.analyze();
     this.lastAnalysis = insights;
 
-    // Run important point analysis
+    // Run important point analysis with word timings for accurate timestamps
     const currentTimestamp = this.getDurationMinutes() * 60; // Convert to seconds
     this.importantPointAnalyzer.analyze(
       this.transcriptionText,
       this.notesText,
       this.bookmarks,
-      currentTimestamp
+      currentTimestamp,
+      this.wordTimings
     );
 
     // Trigger AI topic analysis asynchronously (non-blocking)
@@ -202,6 +209,49 @@ export class ContentAnalyzer {
    */
   public getImportantPointStats() {
     return this.importantPointAnalyzer.getStats();
+  }
+
+  /**
+   * Find the spoken timestamp for a character position in the transcription
+   * Uses binary search on the cached word timings for efficiency
+   * 
+   * @param charPosition - Character offset in the full transcription text
+   * @returns Timestamp in seconds, or undefined if not found
+   */
+  public findTimestampForPosition(charPosition: number): number | undefined {
+    if (this.wordTimings.length === 0) return undefined;
+
+    // Binary search for the word containing this character position
+    let left = 0;
+    let right = this.wordTimings.length - 1;
+    let bestMatch: WordTiming | undefined;
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const word = this.wordTimings[mid];
+
+      if (charPosition >= word.charStart && charPosition <= word.charEnd) {
+        // Exact match - position is within this word
+        return word.start;
+      } else if (charPosition < word.charStart) {
+        // Position is before this word
+        right = mid - 1;
+      } else {
+        // Position is after this word - this could be the closest preceding word
+        bestMatch = word;
+        left = mid + 1;
+      }
+    }
+
+    // If no exact match, return the closest preceding word's timestamp
+    return bestMatch?.start;
+  }
+
+  /**
+   * Get the current word timings (for passing to analyzers)
+   */
+  public getWordTimings(): WordTiming[] {
+    return this.wordTimings;
   }
 
   /**
@@ -614,7 +664,8 @@ export class ContentAnalyzer {
           importantPointId: point.id,
           text: point.text,
           repetitionCount: point.repetitionCount,
-          detectionMethod: point.detectionMethod
+          detectionMethod: point.detectionMethod,
+          timestamp: point.firstOccurrence
         }
       };
     }

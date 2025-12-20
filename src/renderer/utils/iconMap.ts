@@ -121,6 +121,7 @@ import {
   Medal,
   Lock,
   Crown,
+  Key,
 
   // Progress & Status
   Zap,
@@ -236,6 +237,7 @@ export const ICONS = {
   close: X,
   error: XCircle,
   alert: AlertCircle,
+  alertTriangle: AlertTriangle,
   warning: AlertTriangle,
   info: Info,
   edit: Edit,
@@ -322,6 +324,7 @@ export const ICONS = {
   lock: Lock,
   locked: Lock,
   crown: Crown,
+  key: Key,
 
   // Games
   gamepad: Gamepad2,

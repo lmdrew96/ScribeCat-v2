@@ -4,15 +4,28 @@
  */
 
 import { getRandomCatFact } from '../utils/cat-facts.js';
+import { WordTiming } from '../ai/analysis/types.js';
+
+/** Word-level timing data from AssemblyAI */
+export interface TranscriptionWord {
+  text: string;
+  start: number;  // Start time in seconds
+  end: number;    // End time in seconds
+}
 
 export class TranscriptionManager {
   private transcriptionContainer: HTMLElement;
   private lastPartialText: string = '';
-  private timestampedEntries: Array<{ startTime: number; endTime: number; text: string }> = [];
+  private timestampedEntries: Array<{ startTime: number; endTime: number; text: string; words?: TranscriptionWord[] }> = [];
   private recordingStartTime: number = 0;
   private totalPausedTime: number = 0;
   private pauseStartTime: number = 0;
   private isPaused: boolean = false;
+  
+  /** Cached word timings with character offsets - appended incrementally */
+  private wordTimingsCache: WordTiming[] = [];
+  /** Running character offset for building the cache */
+  private currentCharOffset: number = 0;
 
   constructor() {
     this.transcriptionContainer = document.getElementById('transcription-container') as HTMLElement;
@@ -29,6 +42,8 @@ export class TranscriptionManager {
     this.totalPausedTime = 0;
     this.pauseStartTime = 0;
     this.isPaused = false;
+    this.wordTimingsCache = [];
+    this.currentCharOffset = 0;
 
     // Restore placeholder with random cat fact
     const placeholder = document.createElement('div');
@@ -47,6 +62,8 @@ export class TranscriptionManager {
     this.totalPausedTime = 0;
     this.pauseStartTime = 0;
     this.isPaused = false;
+    this.wordTimingsCache = [];
+    this.currentCharOffset = 0;
   }
 
   /**
@@ -89,7 +106,7 @@ export class TranscriptionManager {
   /**
    * Update flowing transcription with partial/final results
    */
-  updateFlowing(text: string, isFinal: boolean, providedStartTime?: number, providedEndTime?: number): void {
+  updateFlowing(text: string, isFinal: boolean, providedStartTime?: number, providedEndTime?: number, words?: TranscriptionWord[]): void {
     let flowingText = this.transcriptionContainer.querySelector('.flowing-transcription') as HTMLElement;
 
     if (!flowingText) {
@@ -119,11 +136,33 @@ export class TranscriptionManager {
         providedEndTime,
         calculatedTime: this.getActiveRecordingTime(),
         duration: endTime - startTime,
+        wordCount: words?.length,
         text: text.substring(0, 50) + '...'
       });
 
-      // Store timestamped entry
-      this.timestampedEntries.push({ startTime, endTime, text });
+      // Store timestamped entry with words
+      this.timestampedEntries.push({ startTime, endTime, text, words });
+
+      // Append word timings to cache with character offsets
+      // Account for the leading space we add when rendering
+      const leadingSpaceOffset = 1;
+      if (words && words.length > 0) {
+        let localCharOffset = this.currentCharOffset + leadingSpaceOffset;
+        for (const word of words) {
+          const wordTiming: WordTiming = {
+            text: word.text,
+            start: word.start,
+            end: word.end,
+            charStart: localCharOffset,
+            charEnd: localCharOffset + word.text.length
+          };
+          this.wordTimingsCache.push(wordTiming);
+          // Move offset: word length + 1 for space between words
+          localCharOffset += word.text.length + 1;
+        }
+      }
+      // Update running offset: leading space + text length
+      this.currentCharOffset += leadingSpaceOffset + text.length;
 
       // Final text - append permanently and clear partial
       if (this.lastPartialText) {
@@ -182,5 +221,13 @@ export class TranscriptionManager {
    */
   getTimestampedEntries(): Array<{ startTime: number; endTime: number; text: string }> {
     return this.timestampedEntries;
+  }
+
+  /**
+   * Get cached word timings with character offsets
+   * Used for accurate phrase-to-timestamp lookup
+   */
+  getWordTimings(): WordTiming[] {
+    return this.wordTimingsCache;
   }
 }
