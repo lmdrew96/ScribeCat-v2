@@ -545,6 +545,17 @@ export class StudyModeManager {
   }
 
   /**
+   * Toggle study mode on/off
+   */
+  public async toggleStudyMode(): Promise<void> {
+    if (this.isActive) {
+      this.hide();
+    } else {
+      await this.show();
+    }
+  }
+
+  /**
    * Open session detail view
    */
   private async openSessionDetail(sessionId: string): Promise<void> {
