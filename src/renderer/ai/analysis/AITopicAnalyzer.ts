@@ -126,7 +126,14 @@ export class AITopicAnalyzer {
         return null;
       }
 
-      return this.parseAnalysisResponse(result.data, input.currentWordCount);
+      // result.data is a ChatResponse object with { message: string, tokensUsed: number }
+      const responseMessage = typeof result.data === 'string' ? result.data : result.data.message;
+      if (!responseMessage) {
+        logger.warn('AI chat returned empty message');
+        return null;
+      }
+
+      return this.parseAnalysisResponse(responseMessage, input.currentWordCount);
     } catch (error) {
       logger.error('Failed to call Claude for topic analysis', { error });
       return null;
