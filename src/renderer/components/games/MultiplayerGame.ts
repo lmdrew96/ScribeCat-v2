@@ -227,12 +227,12 @@ export abstract class MultiplayerGame {
       .join('');
 
     // Determine lobby state messaging
-    let headerIcon = '⏳';
+    let headerIcon = getIconHTML('loader', { size: 24 });
     let headerTitle = 'Waiting for game to start...';
     let headerSubtitle = this.getInstructions();
 
     if (!questionsReady) {
-      headerIcon = '🤖';
+      headerIcon = getIconHTML('sparkles', { size: 24 });
       headerTitle = 'Generating questions with AI...';
       headerSubtitle = 'This may take 30-60 seconds depending on question count';
     }

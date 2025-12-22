@@ -372,7 +372,7 @@ export class WelcomeModal {
     // Show notification
     const notificationTicker = (window as any).notificationTicker;
     if (notificationTicker) {
-      notificationTicker.success("🎉 You're all set! Ready to start recording and taking notes.", 4000);
+      notificationTicker.success("You're all set! Ready to start recording and taking notes.", 4000);
     }
   }
 

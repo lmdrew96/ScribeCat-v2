@@ -12,6 +12,7 @@
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { escapeHtml } from '../../utils/formatting.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 interface TimelineDay {
   date: Date;
@@ -318,7 +319,7 @@ export class TimelineView {
         <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         <div class="timeline-session-time">${time}</div>
         <div class="timeline-session-details">
-          <div class="timeline-session-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? '📚 ' : ''}${escapeHtml(session.title)}</div>
+          <div class="timeline-session-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? getIconHTML('library', { size: 14 }) + ' ' : ''}${escapeHtml(session.title)}</div>
           ${session.courseTitle ? `
             <div class="timeline-session-course">${escapeHtml(session.courseTitle)}</div>
           ` : ''}
@@ -326,7 +327,7 @@ export class TimelineView {
             ${duration} min
             ${session.hasTranscription() ? ' • Transcribed' : ''}
             ${session.notes ? ' • Has notes' : ''}
-            ${isPartOfStudySet ? ` • <span class="study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">📚 In Study Set</span>` : ''}
+            ${isPartOfStudySet ? ` • <span class="study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">${getIconHTML('library', { size: 12 })} In Study Set</span>` : ''}
           </div>
         </div>
       </div>

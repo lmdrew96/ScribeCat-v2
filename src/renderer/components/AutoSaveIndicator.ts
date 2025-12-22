@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../../shared/logger.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 const logger = createLogger('AutoSaveIndicator');
 
@@ -82,7 +83,7 @@ export class AutoSaveIndicator {
     this.currentState = SaveState.SAVED;
 
     // Update icon (checkmark)
-    this.iconElement.textContent = '✓';
+    this.iconElement.innerHTML = getIconHTML('check', { size: 14 });
     this.iconElement.className = 'auto-save-icon saved';
 
     // Update text

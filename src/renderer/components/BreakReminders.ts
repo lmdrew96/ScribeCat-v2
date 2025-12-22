@@ -520,7 +520,7 @@ export class BreakReminders {
       animation: slide-in-right 0.3s ease-out;
     `;
     toast.innerHTML = `
-      <strong>🌟 Break started!</strong>
+      <strong>${getIconHTML('star', { size: 16 })} Break started!</strong>
       <p style="margin: 4px 0 0 0; font-size: 13px;">Relax for ${breakDuration} minutes. You've earned it!</p>
     `;
     document.body.appendChild(toast);
@@ -573,7 +573,7 @@ export class BreakReminders {
     const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
     modal.innerHTML = `
-      <div style="font-size: 64px; margin-bottom: 16px;">🎉</div>
+      <div style="font-size: 64px; margin-bottom: 16px;">${getIconHTML('party-popper', { size: 64 })}</div>
       <h2 style="margin: 0 0 16px 0; color: var(--text-primary);">Study Session Complete!</h2>
       <div style="background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-md); margin-bottom: 20px;">
         <p style="margin: 0 0 12px 0; font-size: 32px; font-weight: bold; color: var(--accent);">${timeStr}</p>
@@ -582,7 +582,7 @@ export class BreakReminders {
           ${breaksTaken} break${breaksTaken !== 1 ? 's' : ''} taken
         </p>
       </div>
-      <p style="color: var(--text-secondary); margin-bottom: 20px;">Great work! You're building strong study habits. 🌟</p>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">Great work! You're building strong study habits.</p>
       <button class="primary-btn" id="close-summary" style="width: 100%;">Awesome!</button>
     `;
 

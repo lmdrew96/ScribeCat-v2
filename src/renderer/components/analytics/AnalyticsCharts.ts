@@ -10,6 +10,7 @@
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { AchievementsManager, type Achievement } from '../../managers/AchievementsManager.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 import type { StudyStats } from './types.js';
 
 export interface ChartsCallbacks {
@@ -227,7 +228,7 @@ export class AnalyticsCharts {
         <!-- Next To Unlock -->
         ${nextToUnlock.length > 0 ? `
           <div class="achievements-next">
-            <h4 class="achievements-subsection-title">🎯 Almost There</h4>
+            <h4 class="achievements-subsection-title">${getIconHTML('target', { size: 16 })} Almost There</h4>
             <div class="achievements-grid">
               ${nextToUnlock.map(achievement => this.renderAchievementBadge(achievement, false)).join('')}
             </div>
@@ -271,7 +272,7 @@ export class AnalyticsCharts {
       <div class="achievement-badge ${isLocked ? 'achievement-locked' : 'achievement-unlocked'}"
            title="${achievement.description}${isLocked ? ' - ' + this.achievementsManager.formatProgress(achievement) : ''}">
         <div class="achievement-icon" style="border-color: ${tierColor}${isLocked ? '44' : ''}">
-          ${isLocked ? '🔒' : achievement.icon}
+          ${isLocked ? getIconHTML('lock', { size: 24 }) : getIconHTML(achievement.icon, { size: 24 })}
         </div>
         <div class="achievement-content">
           <div class="achievement-tier" style="color: ${tierColor}">${this.achievementsManager.getTierName(achievement.tier)}</div>

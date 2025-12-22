@@ -379,7 +379,7 @@ export class CanvasSettingsManager {
             <li>Enable <strong>"Developer mode"</strong> (toggle in top-right corner)</li>
             <li>Click <strong>"Load unpacked"</strong> button</li>
             <li>Select the <code style="background: #1e1e1e; padding: 2px 6px; border-radius: 3px;">browser-extension</code> folder</li>
-            <li>The extension icon will appear in your toolbar! 🎉</li>
+            <li>The extension icon will appear in your toolbar!</li>
           </ol>
 
           <strong style="color: #fff;">For Firefox:</strong>

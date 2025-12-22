@@ -3,6 +3,8 @@
  * Replaces floating toast notifications with an inline ticker in the status bar
  */
 
+import { getIconHTML } from '../utils/iconMap.js';
+
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
 export interface NotificationOptions {
@@ -242,15 +244,15 @@ export class NotificationTicker {
   private getIconForType(type: NotificationType): string {
     switch (type) {
       case 'success':
-        return '✓';
+        return getIconHTML('check', { size: 14 });
       case 'error':
-        return '✗';
+        return getIconHTML('close', { size: 14 });
       case 'warning':
-        return '⚠';
+        return getIconHTML('alert-triangle', { size: 14 });
       case 'info':
-        return 'ℹ';
+        return getIconHTML('info', { size: 14 });
       default:
-        return 'ℹ';
+        return getIconHTML('info', { size: 14 });
     }
   }
 

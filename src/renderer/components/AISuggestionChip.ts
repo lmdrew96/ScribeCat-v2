@@ -6,6 +6,7 @@
  */
 
 import type { SmartSuggestion } from '../ai/SmartSuggestionEngine.js';
+import { getIconHTML } from '../utils/iconMap.js';
 
 export class AISuggestionChip {
   private chip: HTMLElement | null = null;
@@ -38,7 +39,7 @@ export class AISuggestionChip {
       <div id="ai-suggestion-chip" class="ai-suggestion-chip" style="display: none;">
         <div class="suggestion-chip-content">
           <div class="suggestion-chip-icon">
-            <span id="suggestion-icon">🤖</span>
+            <span id="suggestion-icon">${getIconHTML('sparkles', { size: 24 })}</span>
           </div>
           <div class="suggestion-chip-text">
             <div class="suggestion-chip-title" id="suggestion-title">AI Suggestion</div>
@@ -48,10 +49,10 @@ export class AISuggestionChip {
           </div>
           <div class="suggestion-chip-actions">
             <button id="suggestion-accept-btn" class="suggestion-btn suggestion-btn-accept" title="Accept">
-              ✓
+              ${getIconHTML('check', { size: 16 })}
             </button>
             <button id="suggestion-dismiss-btn" class="suggestion-btn suggestion-btn-dismiss" title="Dismiss">
-              ×
+              ${getIconHTML('close', { size: 16 })}
             </button>
           </div>
         </div>

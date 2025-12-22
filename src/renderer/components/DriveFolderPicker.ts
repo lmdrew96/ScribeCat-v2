@@ -401,7 +401,7 @@ export class DriveFolderPicker {
         if (folderList) {
           const successMsg = document.createElement('div');
           successMsg.style.cssText = 'padding: 12px; background: rgba(39, 174, 96, 0.2); border-radius: 6px; margin-bottom: 15px; color: #27ae60; text-align: center;';
-          successMsg.textContent = `✓ Folder "${folderName}" created successfully!`;
+          successMsg.textContent = `Folder "${folderName}" created successfully!`;
           folderList.parentElement?.insertBefore(successMsg, folderList);
           setTimeout(() => successMsg.remove(), 3000);
         }

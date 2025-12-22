@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class QuizGenerator extends BaseAIToolGenerator {
   /**
@@ -28,7 +29,7 @@ export class QuizGenerator extends BaseAIToolGenerator {
           session,
           contentArea,
           savedResult,
-          '📝',
+          getIconHTML('pencil', { size: 24 }),
           'Quiz Available',
           `You have a ${questionCount}-question quiz generated on {date}.`,
           () => this.renderQuiz(savedResult.data, contentArea, session),
@@ -118,7 +119,7 @@ ${transcriptionText}`;
     contentArea.innerHTML = `
       <div class="study-quiz-settings">
         <div class="quiz-settings-header">
-          <h4>📝 Quiz Settings</h4>
+          <h4>${getIconHTML('pencil', { size: 18 })} Quiz Settings</h4>
           <p>Choose how many questions you'd like in your quiz</p>
         </div>
 
@@ -172,7 +173,7 @@ ${transcriptionText}`;
         contentArea.innerHTML = `
           <div class="study-quiz">
             <div class="quiz-complete">
-              <div class="quiz-complete-icon">🎉</div>
+              <div class="quiz-complete-icon">${getIconHTML('partyPopper', { size: 48 })}</div>
               <div class="quiz-complete-title">Quiz Complete!</div>
               <div class="quiz-complete-score">${score} / ${questions.length}</div>
               <p style="color: var(--text-secondary); margin: 16px 0;">

@@ -7,6 +7,7 @@
 
 import { createLogger } from '../../shared/logger.js';
 import type { Session } from '../components/StudySessionList.js';
+import { getIconHTML, type IconKey } from '../utils/iconMap.js';
 
 const logger = createLogger('AchievementsManager');
 
@@ -20,7 +21,7 @@ export interface Achievement {
   tier: AchievementTier;
   title: string;
   description: string;
-  icon: string;
+  icon: IconKey; // Lucide icon key from iconMap
   requirement: number; // The threshold value
   unlocked: boolean;
   unlockedAt?: Date;
@@ -43,54 +44,54 @@ export class AchievementsManager {
   private initializeAchievements(): void {
     this.achievements = [
       // Study Time Milestones
-      { id: 'time-1h', category: 'time', tier: 'bronze', title: 'First Hour', description: 'Study for 1 hour total', icon: '⏱️', requirement: 60, unlocked: false, progress: 0 },
-      { id: 'time-10h', category: 'time', tier: 'silver', title: 'Time Tracker', description: 'Study for 10 hours total', icon: '⏰', requirement: 600, unlocked: false, progress: 0 },
-      { id: 'time-50h', category: 'time', tier: 'gold', title: 'Dedicated Learner', description: 'Study for 50 hours total', icon: '🕐', requirement: 3000, unlocked: false, progress: 0 },
-      { id: 'time-100h', category: 'time', tier: 'platinum', title: 'Century Club', description: 'Study for 100 hours total', icon: '💯', requirement: 6000, unlocked: false, progress: 0 },
-      { id: 'time-500h', category: 'time', tier: 'diamond', title: 'Master of Time', description: 'Study for 500 hours total', icon: '💎', requirement: 30000, unlocked: false, progress: 0 },
+      { id: 'time-1h', category: 'time', tier: 'bronze', title: 'First Hour', description: 'Study for 1 hour total', icon: 'timer', requirement: 60, unlocked: false, progress: 0 },
+      { id: 'time-10h', category: 'time', tier: 'silver', title: 'Time Tracker', description: 'Study for 10 hours total', icon: 'clock', requirement: 600, unlocked: false, progress: 0 },
+      { id: 'time-50h', category: 'time', tier: 'gold', title: 'Dedicated Learner', description: 'Study for 50 hours total', icon: 'clockHour', requirement: 3000, unlocked: false, progress: 0 },
+      { id: 'time-100h', category: 'time', tier: 'platinum', title: 'Century Club', description: 'Study for 100 hours total', icon: 'award', requirement: 6000, unlocked: false, progress: 0 },
+      { id: 'time-500h', category: 'time', tier: 'diamond', title: 'Master of Time', description: 'Study for 500 hours total', icon: 'gem', requirement: 30000, unlocked: false, progress: 0 },
 
       // Session Count Milestones
-      { id: 'sessions-10', category: 'sessions', tier: 'bronze', title: 'Getting Started', description: 'Complete 10 recording sessions', icon: '📚', requirement: 10, unlocked: false, progress: 0 },
-      { id: 'sessions-50', category: 'sessions', tier: 'silver', title: 'Regular Recorder', description: 'Complete 50 recording sessions', icon: '📖', requirement: 50, unlocked: false, progress: 0 },
-      { id: 'sessions-100', category: 'sessions', tier: 'gold', title: 'Centurion', description: 'Complete 100 recording sessions', icon: '🏆', requirement: 100, unlocked: false, progress: 0 },
-      { id: 'sessions-500', category: 'sessions', tier: 'platinum', title: 'Session Master', description: 'Complete 500 recording sessions', icon: '⭐', requirement: 500, unlocked: false, progress: 0 },
-      { id: 'sessions-1000', category: 'sessions', tier: 'diamond', title: 'Legendary', description: 'Complete 1000 recording sessions', icon: '🌟', requirement: 1000, unlocked: false, progress: 0 },
+      { id: 'sessions-10', category: 'sessions', tier: 'bronze', title: 'Getting Started', description: 'Complete 10 recording sessions', icon: 'book', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'sessions-50', category: 'sessions', tier: 'silver', title: 'Regular Recorder', description: 'Complete 50 recording sessions', icon: 'bookMarked', requirement: 50, unlocked: false, progress: 0 },
+      { id: 'sessions-100', category: 'sessions', tier: 'gold', title: 'Centurion', description: 'Complete 100 recording sessions', icon: 'trophy', requirement: 100, unlocked: false, progress: 0 },
+      { id: 'sessions-500', category: 'sessions', tier: 'platinum', title: 'Session Master', description: 'Complete 500 recording sessions', icon: 'star', requirement: 500, unlocked: false, progress: 0 },
+      { id: 'sessions-1000', category: 'sessions', tier: 'diamond', title: 'Legendary', description: 'Complete 1000 recording sessions', icon: 'sparkles', requirement: 1000, unlocked: false, progress: 0 },
 
       // Streak Achievements
-      { id: 'streak-3', category: 'streaks', tier: 'bronze', title: 'On a Roll', description: 'Maintain a 3-day recording streak', icon: '🔥', requirement: 3, unlocked: false, progress: 0 },
-      { id: 'streak-7', category: 'streaks', tier: 'silver', title: 'Week Warrior', description: 'Maintain a 7-day recording streak', icon: '📅', requirement: 7, unlocked: false, progress: 0 },
-      { id: 'streak-14', category: 'streaks', tier: 'gold', title: 'Fortnight Force', description: 'Maintain a 14-day recording streak', icon: '🌙', requirement: 14, unlocked: false, progress: 0 },
-      { id: 'streak-30', category: 'streaks', tier: 'platinum', title: 'Monthly Master', description: 'Maintain a 30-day recording streak', icon: '🎯', requirement: 30, unlocked: false, progress: 0 },
-      { id: 'streak-100', category: 'streaks', tier: 'diamond', title: 'Unstoppable', description: 'Maintain a 100-day recording streak', icon: '⚡', requirement: 100, unlocked: false, progress: 0 },
+      { id: 'streak-3', category: 'streaks', tier: 'bronze', title: 'On a Roll', description: 'Maintain a 3-day recording streak', icon: 'flame', requirement: 3, unlocked: false, progress: 0 },
+      { id: 'streak-7', category: 'streaks', tier: 'silver', title: 'Week Warrior', description: 'Maintain a 7-day recording streak', icon: 'calendar', requirement: 7, unlocked: false, progress: 0 },
+      { id: 'streak-14', category: 'streaks', tier: 'gold', title: 'Fortnight Force', description: 'Maintain a 14-day recording streak', icon: 'moon', requirement: 14, unlocked: false, progress: 0 },
+      { id: 'streak-30', category: 'streaks', tier: 'platinum', title: 'Monthly Master', description: 'Maintain a 30-day recording streak', icon: 'target', requirement: 30, unlocked: false, progress: 0 },
+      { id: 'streak-100', category: 'streaks', tier: 'diamond', title: 'Unstoppable', description: 'Maintain a 100-day recording streak', icon: 'zap', requirement: 100, unlocked: false, progress: 0 },
 
       // Marathon Sessions (based on study mode time: playback + AI tools + chat)
-      { id: 'marathon-15m', category: 'marathon', tier: 'bronze', title: 'Quick Study', description: 'Study for 15 minutes in one session', icon: '🏃', requirement: 15, unlocked: false, progress: 0 },
-      { id: 'marathon-30m', category: 'marathon', tier: 'silver', title: 'Half Hour Hero', description: 'Study for 30 minutes in one session', icon: '💪', requirement: 30, unlocked: false, progress: 0 },
-      { id: 'marathon-1h', category: 'marathon', tier: 'gold', title: 'Hour Power', description: 'Study for 1 hour in one session', icon: '🚀', requirement: 60, unlocked: false, progress: 0 },
-      { id: 'marathon-2h', category: 'marathon', tier: 'platinum', title: 'Double Down', description: 'Study for 2 hours in one session', icon: '🏅', requirement: 120, unlocked: false, progress: 0 },
-      { id: 'marathon-3h', category: 'marathon', tier: 'diamond', title: 'Marathon Master', description: 'Study for 3 hours in one session', icon: '🦸', requirement: 180, unlocked: false, progress: 0 },
+      { id: 'marathon-15m', category: 'marathon', tier: 'bronze', title: 'Quick Study', description: 'Study for 15 minutes in one session', icon: 'timer', requirement: 15, unlocked: false, progress: 0 },
+      { id: 'marathon-30m', category: 'marathon', tier: 'silver', title: 'Half Hour Hero', description: 'Study for 30 minutes in one session', icon: 'dumbbell', requirement: 30, unlocked: false, progress: 0 },
+      { id: 'marathon-1h', category: 'marathon', tier: 'gold', title: 'Hour Power', description: 'Study for 1 hour in one session', icon: 'rocket', requirement: 60, unlocked: false, progress: 0 },
+      { id: 'marathon-2h', category: 'marathon', tier: 'platinum', title: 'Double Down', description: 'Study for 2 hours in one session', icon: 'medal', requirement: 120, unlocked: false, progress: 0 },
+      { id: 'marathon-3h', category: 'marathon', tier: 'diamond', title: 'Marathon Master', description: 'Study for 3 hours in one session', icon: 'crown', requirement: 180, unlocked: false, progress: 0 },
 
       // Special Achievements
-      { id: 'first-session', category: 'special', tier: 'bronze', title: 'First Steps', description: 'Complete your first recording session', icon: '🌱', requirement: 1, unlocked: false, progress: 0 },
-      { id: 'early-bird', category: 'special', tier: 'silver', title: 'Early Bird', description: 'Record before 6 AM', icon: '🌅', requirement: 1, unlocked: false, progress: 0 },
-      { id: 'night-owl', category: 'special', tier: 'silver', title: 'Night Owl', description: 'Record after 10 PM', icon: '🦉', requirement: 1, unlocked: false, progress: 0 },
-      { id: 'weekend-warrior', category: 'special', tier: 'gold', title: 'Weekend Warrior', description: 'Use study mode on 10 different weekends', icon: '🌄', requirement: 10, unlocked: false, progress: 0 },
-      { id: 'course-dedication', category: 'special', tier: 'gold', title: 'Course Dedication', description: 'Complete 20 sessions in one course', icon: '🎓', requirement: 20, unlocked: false, progress: 0 },
+      { id: 'first-session', category: 'special', tier: 'bronze', title: 'First Steps', description: 'Complete your first recording session', icon: 'sprout', requirement: 1, unlocked: false, progress: 0 },
+      { id: 'early-bird', category: 'special', tier: 'silver', title: 'Early Bird', description: 'Record before 6 AM', icon: 'sunrise', requirement: 1, unlocked: false, progress: 0 },
+      { id: 'night-owl', category: 'special', tier: 'silver', title: 'Night Owl', description: 'Record after 10 PM', icon: 'moon', requirement: 1, unlocked: false, progress: 0 },
+      { id: 'weekend-warrior', category: 'special', tier: 'gold', title: 'Weekend Warrior', description: 'Use study mode on 10 different weekends', icon: 'mountain', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'course-dedication', category: 'special', tier: 'gold', title: 'Course Dedication', description: 'Complete 20 sessions in one course', icon: 'graduation', requirement: 20, unlocked: false, progress: 0 },
 
       // StudyQuest Achievements
-      { id: 'sq-first-steps', category: 'studyquest', tier: 'bronze', title: 'Adventurer', description: 'Create your first StudyQuest character', icon: '🗡️', requirement: 1, unlocked: false, progress: 0 },
-      { id: 'sq-level-10', category: 'studyquest', tier: 'bronze', title: 'Apprentice', description: 'Reach level 10 in StudyQuest', icon: '⬆️', requirement: 10, unlocked: false, progress: 0 },
-      { id: 'sq-level-25', category: 'studyquest', tier: 'silver', title: 'Journeyman', description: 'Reach level 25 in StudyQuest', icon: '⚔️', requirement: 25, unlocked: false, progress: 0 },
-      { id: 'sq-level-50', category: 'studyquest', tier: 'gold', title: 'Champion', description: 'Reach level 50 in StudyQuest', icon: '🏆', requirement: 50, unlocked: false, progress: 0 },
-      { id: 'sq-battles-10', category: 'studyquest', tier: 'bronze', title: 'Battle Ready', description: 'Win 10 battles in StudyQuest', icon: '⚔️', requirement: 10, unlocked: false, progress: 0 },
-      { id: 'sq-battles-50', category: 'studyquest', tier: 'silver', title: 'Warrior', description: 'Win 50 battles in StudyQuest', icon: '🛡️', requirement: 50, unlocked: false, progress: 0 },
-      { id: 'sq-battles-100', category: 'studyquest', tier: 'gold', title: 'Battle Master', description: 'Win 100 battles in StudyQuest', icon: '💪', requirement: 100, unlocked: false, progress: 0 },
-      { id: 'sq-dungeons-5', category: 'studyquest', tier: 'bronze', title: 'Dungeon Crawler', description: 'Complete 5 dungeon runs in StudyQuest', icon: '🏰', requirement: 5, unlocked: false, progress: 0 },
-      { id: 'sq-dungeons-25', category: 'studyquest', tier: 'silver', title: 'Dungeon Delver', description: 'Complete 25 dungeon runs in StudyQuest', icon: '🔥', requirement: 25, unlocked: false, progress: 0 },
-      { id: 'sq-quests-10', category: 'studyquest', tier: 'bronze', title: 'Quest Seeker', description: 'Complete 10 quests in StudyQuest', icon: '📜', requirement: 10, unlocked: false, progress: 0 },
-      { id: 'sq-quests-50', category: 'studyquest', tier: 'silver', title: 'Quest Champion', description: 'Complete 50 quests in StudyQuest', icon: '🌟', requirement: 50, unlocked: false, progress: 0 },
-      { id: 'sq-gold-1000', category: 'studyquest', tier: 'silver', title: 'Treasure Hunter', description: 'Accumulate 1000 gold in StudyQuest', icon: '💰', requirement: 1000, unlocked: false, progress: 0 },
-      { id: 'sq-gold-10000', category: 'studyquest', tier: 'gold', title: 'Rich Cat', description: 'Accumulate 10000 gold in StudyQuest', icon: '💎', requirement: 10000, unlocked: false, progress: 0 },
+      { id: 'sq-first-steps', category: 'studyquest', tier: 'bronze', title: 'Adventurer', description: 'Create your first StudyQuest character', icon: 'swords', requirement: 1, unlocked: false, progress: 0 },
+      { id: 'sq-level-10', category: 'studyquest', tier: 'bronze', title: 'Apprentice', description: 'Reach level 10 in StudyQuest', icon: 'arrowUp', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'sq-level-25', category: 'studyquest', tier: 'silver', title: 'Journeyman', description: 'Reach level 25 in StudyQuest', icon: 'swords', requirement: 25, unlocked: false, progress: 0 },
+      { id: 'sq-level-50', category: 'studyquest', tier: 'gold', title: 'Champion', description: 'Reach level 50 in StudyQuest', icon: 'trophy', requirement: 50, unlocked: false, progress: 0 },
+      { id: 'sq-battles-10', category: 'studyquest', tier: 'bronze', title: 'Battle Ready', description: 'Win 10 battles in StudyQuest', icon: 'swords', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'sq-battles-50', category: 'studyquest', tier: 'silver', title: 'Warrior', description: 'Win 50 battles in StudyQuest', icon: 'shield', requirement: 50, unlocked: false, progress: 0 },
+      { id: 'sq-battles-100', category: 'studyquest', tier: 'gold', title: 'Battle Master', description: 'Win 100 battles in StudyQuest', icon: 'dumbbell', requirement: 100, unlocked: false, progress: 0 },
+      { id: 'sq-dungeons-5', category: 'studyquest', tier: 'bronze', title: 'Dungeon Crawler', description: 'Complete 5 dungeon runs in StudyQuest', icon: 'castle', requirement: 5, unlocked: false, progress: 0 },
+      { id: 'sq-dungeons-25', category: 'studyquest', tier: 'silver', title: 'Dungeon Delver', description: 'Complete 25 dungeon runs in StudyQuest', icon: 'flame', requirement: 25, unlocked: false, progress: 0 },
+      { id: 'sq-quests-10', category: 'studyquest', tier: 'bronze', title: 'Quest Seeker', description: 'Complete 10 quests in StudyQuest', icon: 'scroll', requirement: 10, unlocked: false, progress: 0 },
+      { id: 'sq-quests-50', category: 'studyquest', tier: 'silver', title: 'Quest Champion', description: 'Complete 50 quests in StudyQuest', icon: 'sparkles', requirement: 50, unlocked: false, progress: 0 },
+      { id: 'sq-gold-1000', category: 'studyquest', tier: 'silver', title: 'Treasure Hunter', description: 'Accumulate 1000 gold in StudyQuest', icon: 'coins', requirement: 1000, unlocked: false, progress: 0 },
+      { id: 'sq-gold-10000', category: 'studyquest', tier: 'gold', title: 'Rich Cat', description: 'Accumulate 10000 gold in StudyQuest', icon: 'gem', requirement: 10000, unlocked: false, progress: 0 },
     ];
   }
 

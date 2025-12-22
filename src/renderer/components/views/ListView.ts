@@ -7,6 +7,7 @@
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { escapeHtml } from '../../utils/formatting.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 export class ListView {
   private container: HTMLElement;
@@ -113,7 +114,7 @@ export class ListView {
           <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         </td>
         <td class="list-col-title">
-          <div class="list-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? '📚 ' : ''}${escapeHtml(session.title)}</div>
+          <div class="list-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? getIconHTML('library', { size: 14 }) + ' ' : ''}${escapeHtml(session.title)}</div>
           ${session.tags.length > 0 ? `
             <div class="list-tags">
               ${session.tags.slice(0, 2).map(tag => `
@@ -138,7 +139,7 @@ export class ListView {
             ${hasTranscription ? '<span class="list-indicator" title="Transcribed">T</span>' : ''}
             ${hasNotes ? '<span class="list-indicator" title="Has notes">N</span>' : ''}
             ${hasSummary ? '<span class="list-indicator" title="Summarized">S</span>' : ''}
-            ${isPartOfStudySet ? `<span class="list-indicator study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">📚</span>` : ''}
+            ${isPartOfStudySet ? `<span class="list-indicator study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">${getIconHTML('library', { size: 12 })}</span>` : ''}
           </div>
         </td>
       </tr>

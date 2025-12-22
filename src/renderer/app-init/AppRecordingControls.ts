@@ -130,7 +130,7 @@ export class AppRecordingControls {
       const result = await this.deps.sessionResetManager.resetSession();
 
       if (result.success) {
-        notificationTicker.success('✓ New session ready!', 2000);
+        notificationTicker.success('New session ready!', 2000);
       } else {
         notificationTicker.error(result.error || 'Failed to reset session', 3000);
       }

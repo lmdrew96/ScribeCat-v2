@@ -9,6 +9,7 @@ import { renderMarkdown } from '../../../utils/markdown-renderer.js';
 import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class ConceptGenerator extends BaseAIToolGenerator {
   /**
@@ -23,7 +24,7 @@ export class ConceptGenerator extends BaseAIToolGenerator {
           session,
           contentArea,
           savedResult,
-          '💡',
+          getIconHTML('lightbulb', { size: 24 }),
           'Key Concepts Available',
           'You have key concepts generated on {date}.',
           () => this.renderConcepts(savedResult.data, contentArea, session),

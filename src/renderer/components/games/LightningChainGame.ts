@@ -382,7 +382,7 @@ export class LightningChainGame extends MultiplayerGame {
    */
   private renderAnswerReveal(question: GameQuestion, options: string[]): string {
     const timeAdjustment = this.wasCorrect ? 15 : -10;
-    const resultIcon = this.wasCorrect ? '✓' : '✗';
+    const resultIcon = this.wasCorrect ? getIconHTML('check', { size: 24 }) : getIconHTML('close', { size: 24 });
     const resultClass = this.wasCorrect ? 'correct' : 'incorrect';
     const resultMessage = this.wasCorrect
       ? `Correct! +${timeAdjustment} seconds added to team timer`
@@ -397,8 +397,8 @@ export class LightningChainGame extends MultiplayerGame {
           <div class="quiz-option ${isCorrect ? 'correct-answer' : ''} ${wasSelected && !isCorrect ? 'wrong-answer' : ''} disabled">
             <span class="option-letter">${String.fromCharCode(65 + index)}</span>
             <span class="option-text">${this.escapeHtml(option)}</span>
-            ${isCorrect ? '<span class="option-indicator">✓</span>' : ''}
-            ${wasSelected && !isCorrect ? '<span class="option-indicator">✗</span>' : ''}
+            ${isCorrect ? `<span class="option-indicator">${getIconHTML('check', { size: 16 })}</span>` : ''}
+            ${wasSelected && !isCorrect ? `<span class="option-indicator">${getIconHTML('close', { size: 16 })}</span>` : ''}
           </div>
         `;
       })

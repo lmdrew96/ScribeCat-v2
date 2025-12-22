@@ -259,7 +259,7 @@ export function getColorPickerCSS(): string {
     }
 
     .editor-color-swatch.active::after {
-      content: '✓';
+      content: '\\2713';
       position: absolute;
       top: 50%;
       left: 50%;

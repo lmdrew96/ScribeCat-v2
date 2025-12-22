@@ -1,31 +1,33 @@
-import { spawn } from 'child_process';
+import * as esbuild from 'esbuild';
 
 const isWatch = process.argv.includes('--watch');
 
-if (isWatch) {
-  // Watch mode - compile on changes
-  console.log('👀 Watching preload script for changes...');
-  const tsc = spawn('npx', ['tsc', '-p', 'tsconfig.preload.json', '--watch', '--preserveWatchOutput'], {
-    stdio: 'inherit',
-    shell: true
-  });
+/** @type {esbuild.BuildOptions} */
+const buildOptions = {
+  entryPoints: ['src/preload/preload.ts'],
+  bundle: true,
+  platform: 'node',
+  target: 'node18',
+  outfile: 'dist/preload/preload.js',
+  external: ['electron'],
+  sourcemap: true,
+  format: 'cjs',
+  logLevel: 'warning',
+};
 
-  tsc.on('error', (err) => {
-    console.error('Failed to start TypeScript compiler for preload:', err);
-    process.exit(1);
-  });
-} else {
-  // One-time build
-  const tsc = spawn('npx', ['tsc', '-p', 'tsconfig.preload.json'], {
-    stdio: 'inherit',
-    shell: true
-  });
-
-  tsc.on('close', (code) => {
-    if (code !== 0) {
-      console.error(`Preload TypeScript compilation failed with code ${code}`);
-      process.exit(code);
-    }
+async function build() {
+  if (isWatch) {
+    console.log('👀 Watching preload script for changes...');
+    const ctx = await esbuild.context(buildOptions);
+    await ctx.watch();
+    console.log('✓ Preload watch mode started');
+  } else {
+    await esbuild.build(buildOptions);
     console.log('✓ Preload build complete');
-  });
+  }
 }
+
+build().catch((err) => {
+  console.error('Preload build failed:', err);
+  process.exit(1);
+});

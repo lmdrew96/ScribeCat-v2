@@ -274,7 +274,7 @@ export class AnalyticsDashboard {
           <h3 class="analytics-section-title">Overview</h3>
           <div class="analytics-stats-grid">
             <div class="analytics-stat-card">
-              <div class="stat-icon">⏱️</div>
+              <div class="stat-icon">${getIconHTML('timer', { size: 24 })}</div>
               <div class="stat-content">
                 <div class="stat-value">${this.formatTime(totalStudyTime)}</div>
                 <div class="stat-label">Total Study Time</div>
@@ -282,7 +282,7 @@ export class AnalyticsDashboard {
             </div>
 
             <div class="analytics-stat-card">
-              <div class="stat-icon">📚</div>
+              <div class="stat-icon">${getIconHTML('book', { size: 24 })}</div>
               <div class="stat-content">
                 <div class="stat-value">${totalSessions}</div>
                 <div class="stat-label">Total Sessions</div>
@@ -290,7 +290,7 @@ export class AnalyticsDashboard {
             </div>
 
             <div class="analytics-stat-card">
-              <div class="stat-icon">📊</div>
+              <div class="stat-icon">${getIconHTML('chart', { size: 24 })}</div>
               <div class="stat-content">
                 <div class="stat-value">${this.formatTime(averageDuration)}</div>
                 <div class="stat-label">Average Duration</div>
@@ -298,7 +298,7 @@ export class AnalyticsDashboard {
             </div>
 
             <div class="analytics-stat-card">
-              <div class="stat-icon">🔥</div>
+              <div class="stat-icon">${getIconHTML('flame', { size: 24 })}</div>
               <div class="stat-content">
                 <div class="stat-value">${currentStreak}</div>
                 <div class="stat-label">Current Streak</div>
@@ -327,12 +327,12 @@ export class AnalyticsDashboard {
             ${currentStreak > 0 ? `
               <div class="streak-encouragement">
                 ${currentStreak === longestStreak && currentStreak > 1
-                  ? '🎉 You\'re on your longest streak ever! Keep it up!'
+                  ? `${getIconHTML('partyPopper', { size: 16 })} You're on your longest streak ever! Keep it up!`
                   : currentStreak >= 7
-                    ? '🌟 Amazing streak! You\'re building a strong study habit!'
+                    ? `${getIconHTML('sparkles', { size: 16 })} Amazing streak! You're building a strong study habit!`
                     : currentStreak >= 3
-                      ? '💪 Great momentum! Keep the streak going!'
-                      : '🚀 You\'re on a roll! Come back tomorrow to continue your streak!'
+                      ? `${getIconHTML('dumbbell', { size: 16 })} Great momentum! Keep the streak going!`
+                      : `${getIconHTML('rocket', { size: 16 })} You're on a roll! Come back tomorrow to continue your streak!`
                 }
               </div>
             ` : ''}

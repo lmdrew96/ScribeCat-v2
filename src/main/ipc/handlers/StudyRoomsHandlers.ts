@@ -14,7 +14,6 @@ export class StudyRoomsHandlers extends BaseHandler {
   private currentUserId: string | null = null;
   private repository: SupabaseStudyRoomsRepository;
   private sessionRepository: SupabaseSessionRepository;
-  private subscriptions: Map<string, () => void> = new Map();
 
   constructor() {
     super();
@@ -470,116 +469,16 @@ export class StudyRoomsHandlers extends BaseHandler {
       }
     });
 
-    // ============================================================================
-    // Realtime Subscriptions
-    // ============================================================================
-
-    this.handle(ipcMain, 'rooms:subscribeToInvitations', async (event) => {
-      if (!this.currentUserId) {
-        return { success: false, error: 'Not authenticated' };
-      }
-
-      try {
-        // Create a unique key for this subscription (user + sender)
-        const subscriptionKey = `invitations-${this.currentUserId}-${event.sender.id}`;
-
-        // Unsubscribe from previous subscription if exists
-        const existingUnsubscribe = this.subscriptions.get(subscriptionKey);
-        if (existingUnsubscribe) {
-          console.log(`[StudyRoomsHandlers] Unsubscribing from previous subscription: ${subscriptionKey}`);
-          existingUnsubscribe();
-          this.subscriptions.delete(subscriptionKey);
-        }
-
-        // Subscribe and send invitation events to renderer
-        const unsubscribe = this.repository.subscribeToUserInvitations(
-          this.currentUserId,
-          (invitation, eventType) => {
-            console.log(`🎯 [StudyRoomsHandlers] Invitation event received in IPC handler:`, {
-              eventType,
-              invitationId: invitation.id,
-              inviteeId: invitation.inviteeId,
-              inviterId: invitation.inviterId,
-              roomName: invitation.roomName,
-            });
-            if (!event.sender.isDestroyed()) {
-              console.log(`📤 [StudyRoomsHandlers] Forwarding invitation to renderer`);
-              event.sender.send('rooms:invitationReceived', {
-                invitation: invitation.toJSON(),
-                eventType,
-              });
-            } else {
-              console.warn(`⚠️ [StudyRoomsHandlers] Cannot forward - renderer is destroyed`);
-            }
-          }
-        );
-
-        // Store the unsubscribe function
-        this.subscriptions.set(subscriptionKey, unsubscribe);
-
-        // Clean up when window is closed
-        event.sender.on('destroyed', () => {
-          const storedUnsubscribe = this.subscriptions.get(subscriptionKey);
-          if (storedUnsubscribe) {
-            console.log(`[StudyRoomsHandlers] Cleaning up subscription on window close: ${subscriptionKey}`);
-            // Fire and forget - window is already destroyed so we can't await
-            storedUnsubscribe().catch(err =>
-              console.error(`[StudyRoomsHandlers] Error during cleanup: ${err}`)
-            );
-            this.subscriptions.delete(subscriptionKey);
-          }
-        });
-
-        return { success: true };
-      } catch (error) {
-        console.error('[StudyRoomsHandlers] Failed to subscribe to invitations:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to subscribe',
-        };
-      }
-    });
-
-    this.handle(ipcMain, 'rooms:unsubscribeFromInvitations', async () => {
-      try {
-        // Call all stored unsubscribe functions
-        const unsubscribePromises = Array.from(this.subscriptions.entries()).map(([key, unsubscribe]) => {
-          console.log(`[StudyRoomsHandlers] Unsubscribing: ${key}`);
-          return unsubscribe();
-        });
-        await Promise.all(unsubscribePromises);
-        this.subscriptions.clear();
-
-        // Also call repository unsubscribeAll as a fallback
-        await this.repository.unsubscribeAll();
-
-        return { success: true };
-      } catch (error) {
-        console.error('[StudyRoomsHandlers] Failed to unsubscribe:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to unsubscribe',
-        };
-      }
-    });
+    // NOTE: Realtime invitation subscriptions are handled directly in StudyRoomsManager
+    // via RendererSupabaseClient (WebSockets don't work in Electron's main process)
   }
 
   /**
-   * Cleanup all subscriptions (called on app quit)
+   * Cleanup repository resources (called on app quit)
    */
   public async cleanup(): Promise<void> {
-    console.log('[StudyRoomsHandlers] Cleaning up all subscriptions on app quit');
-
-    // Unsubscribe all active subscriptions
-    const unsubscribePromises = Array.from(this.subscriptions.values()).map(unsubscribe =>
-      unsubscribe()
-    );
-    await Promise.all(unsubscribePromises);
-    this.subscriptions.clear();
-
-    // Also cleanup repository channels
+    console.log('[StudyRoomsHandlers] Cleaning up on app quit');
     await this.repository.unsubscribeAll();
-
-    console.log('[StudyRoomsHandlers] All subscriptions cleaned up');
+    console.log('[StudyRoomsHandlers] Cleanup complete');
   }
 }

@@ -7,6 +7,7 @@
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { escapeHtml } from '../../utils/formatting.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 export class GridView {
   private container: HTMLElement;
@@ -98,7 +99,7 @@ export class GridView {
       <div class="grid-card" data-session-id="${session.id}">
         <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
         <div class="grid-card-header">
-          <h3 class="grid-card-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? '📚 ' : ''}${escapeHtml(session.title)}</h3>
+          <h3 class="grid-card-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? getIconHTML('library', { size: 14 }) + ' ' : ''}${escapeHtml(session.title)}</h3>
           ${session.courseTitle ? `
             <div class="grid-card-course">${escapeHtml(session.courseTitle)}</div>
           ` : ''}
@@ -114,11 +115,11 @@ export class GridView {
         ` : ''}
 
         <div class="grid-card-indicators">
-          ${hasTranscription ? '<span class="indicator" title="Has transcription">📝</span>' : ''}
-          ${hasNotes ? '<span class="indicator" title="Has notes">✍️</span>' : ''}
-          ${hasSummary ? '<span class="indicator" title="Has AI summary">🤖</span>' : ''}
-          ${session.tags.length > 0 ? '<span class="indicator" title="Has tags">🏷️</span>' : ''}
-          ${isPartOfStudySet ? `<span class="indicator study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">📚</span>` : ''}
+          ${hasTranscription ? `<span class="indicator" title="Has transcription">${getIconHTML('captions', { size: 14 })}</span>` : ''}
+          ${hasNotes ? `<span class="indicator" title="Has notes">${getIconHTML('pencil', { size: 14 })}</span>` : ''}
+          ${hasSummary ? `<span class="indicator" title="Has AI summary">${getIconHTML('bot', { size: 14 })}</span>` : ''}
+          ${session.tags.length > 0 ? `<span class="indicator" title="Has tags">${getIconHTML('bookmark', { size: 14 })}</span>` : ''}
+          ${isPartOfStudySet ? `<span class="indicator study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">${getIconHTML('library', { size: 14 })}</span>` : ''}
         </div>
 
         ${session.tags.length > 0 ? `

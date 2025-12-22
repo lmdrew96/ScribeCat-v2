@@ -43,7 +43,7 @@ export class JeopardyFinalRoundRenderer {
 
             ${fjMyWagerSubmitted ? `
               <div class="fj-wager-submitted">
-                <div class="fj-check-icon">✓</div>
+                <div class="fj-check-icon">${getIconHTML('check', { size: 24 })}</div>
                 <p>Your wager of <strong>$${fjWagers.get(currentUser?.userId || '') || 0}</strong> is locked in!</p>
                 <p class="fj-waiting-text">Waiting for other players...</p>
               </div>
@@ -73,7 +73,7 @@ export class JeopardyFinalRoundRenderer {
                   const name = p.userFullName || p.userEmail || 'Player';
                   return `
                     <div class="fj-player-status ${hasWagered ? 'wagered' : 'waiting'}">
-                      <span class="fj-status-icon">${hasWagered ? '✓' : '⏳'}</span>
+                      <span class="fj-status-icon">${hasWagered ? getIconHTML('check', { size: 16 }) : getIconHTML('loader', { size: 16 })}</span>
                       <span class="fj-player-name">${escapeHtml(name)}${p.isCurrentUser ? ' (you)' : ''}</span>
                     </div>
                   `;

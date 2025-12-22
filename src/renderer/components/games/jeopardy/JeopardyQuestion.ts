@@ -6,6 +6,7 @@
 
 import type { JeopardyGameState } from './JeopardyTypes.js';
 import { JeopardyBuzzer } from './JeopardyBuzzer.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class JeopardyQuestion {
   /**
@@ -141,7 +142,7 @@ export class JeopardyQuestion {
           </div>
 
           <div class="jeopardy-answer-feedback ${lastAnswerCorrect ? 'correct' : 'incorrect'}">
-            <div class="feedback-icon">${lastAnswerCorrect ? '✓' : '✗'}</div>
+            <div class="feedback-icon">${lastAnswerCorrect ? getIconHTML('check', { size: 32 }) : getIconHTML('close', { size: 32 })}</div>
             <div class="feedback-text">
               ${lastAnswerCorrect
                 ? `<strong>${escapeHtml(answererName)}</strong> got it right!`

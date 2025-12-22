@@ -243,7 +243,7 @@ export class HotSeatChallengeGame extends MultiplayerGame {
    * Get game icon
    */
   protected getGameIcon(): string {
-    return '🔥';
+    return getIconHTML('flame', { size: 24 });
   }
 
   // ============================================================================
@@ -268,7 +268,7 @@ export class HotSeatChallengeGame extends MultiplayerGame {
 
     return `
       <div class="hot-seat-indicator ${isCurrentUserInHotSeat ? 'current-user-turn' : ''}">
-        <div class="hot-seat-icon">🔥</div>
+        <div class="hot-seat-icon">${getIconHTML('flame', { size: 32 })}</div>
         <div class="hot-seat-info">
           <div class="hot-seat-player">
             ${isCurrentUserInHotSeat ? 'You are' : `${currentTurnPlayer.userFullName || currentTurnPlayer.userEmail.split('@')[0]} is`} in the Hot Seat
@@ -376,7 +376,7 @@ export class HotSeatChallengeGame extends MultiplayerGame {
     const hotSeatState = this.state as HotSeatGameState;
     const isCurrentUserInHotSeat = hotSeatState.currentTurnPlayer === this.state.currentUserId;
 
-    const resultIcon = this.wasCorrect ? '✓' : '✗';
+    const resultIcon = this.wasCorrect ? getIconHTML('check', { size: 20 }) : getIconHTML('close', { size: 20 });
     const resultClass = this.wasCorrect ? 'correct' : 'incorrect';
     const resultMessage = isCurrentUserInHotSeat
       ? this.wasCorrect
@@ -399,8 +399,8 @@ export class HotSeatChallengeGame extends MultiplayerGame {
           <div class="quiz-option ${isCorrect ? 'correct-answer' : ''} ${wasSelected && !isCorrect ? 'wrong-answer' : ''} disabled">
             <span class="option-letter">${String.fromCharCode(65 + index)}</span>
             <span class="option-text">${this.escapeHtml(option)}</span>
-            ${isCorrect ? '<span class="option-indicator">✓</span>' : ''}
-            ${wasSelected && !isCorrect ? '<span class="option-indicator">✗</span>' : ''}
+            ${isCorrect ? `<span class="option-indicator">${getIconHTML('check', { size: 16 })}</span>` : ''}
+            ${wasSelected && !isCorrect ? `<span class="option-indicator">${getIconHTML('close', { size: 16 })}</span>` : ''}
           </div>
         `;
       })

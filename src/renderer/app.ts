@@ -459,7 +459,7 @@ window.addEventListener('beforeunload', async () => {
     return;
   }
   console.log('📢 Showing test notification...');
-  notificationTicker.info('🎉 Test notification! If you see this, the UI is working.', 7000);
+  notificationTicker.info('Test notification! If you see this, the UI is working.', 7000);
   return '✅ Test complete';
 };
 

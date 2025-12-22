@@ -5,6 +5,8 @@
  * Shows styled modal dialogs with proper error formatting.
  */
 
+import { getIconHTML } from './iconMap.js';
+
 export class ErrorModal {
   /**
    * Show an error modal
@@ -99,7 +101,7 @@ export class ErrorModal {
     const toast = document.createElement('div');
     toast.className = 'success-toast';
     toast.innerHTML = `
-      <span class="success-icon">✓</span>
+      <span class="success-icon">${getIconHTML('check', { size: 16 })}</span>
       <span>${this.escapeHtml(message)}</span>
     `;
 

@@ -49,7 +49,7 @@ export class MultiSessionCoordinator {
         logger.info('Multi-session study set created successfully', result.session);
 
         // Show success notification
-        alert(`Study set "${title}" created successfully! 📚`);
+        alert(`Study set "${title}" created successfully!`);
 
         // Optionally, open the newly created study set
         if (result.session?.id) {

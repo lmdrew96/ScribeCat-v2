@@ -55,7 +55,7 @@ export class SetUsernameModal {
                 3-20 characters, alphanumeric, underscore, or hyphen
               </small>
               <small id="username-available" class="form-hint form-hint-success hidden">
-                ✓ Username available
+                Username available
               </small>
               <small id="username-taken" class="form-hint form-hint-error hidden">
                 Username is already taken

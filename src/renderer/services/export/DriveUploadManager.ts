@@ -45,7 +45,7 @@ export class DriveUploadManager {
       document.body.removeChild(uploadingOverlay);
 
       if (uploadResult.success) {
-        alert(`✓ File exported locally and uploaded to Google Drive:\n${folderSelection.folderPath}\n\nLocal file: ${filePath}`);
+        alert(`File exported locally and uploaded to Google Drive:\n${folderSelection.folderPath}\n\nLocal file: ${filePath}`);
       } else {
         alert(`File exported locally to:\n${filePath}\n\nGoogle Drive upload failed: ${uploadResult.error || 'Unknown error'}`);
       }
@@ -128,7 +128,7 @@ export class DriveUploadManager {
 
       // Show results
       const message = successCount > 0
-        ? `✓ ${successCount} file${successCount > 1 ? 's' : ''} uploaded to Google Drive:\n${folderSelection.folderPath}\n\n${errorCount > 0 ? `${errorCount} file${errorCount > 1 ? 's' : ''} failed to upload.` : ''}\n\nLocal files: ${outputDirectory}`
+        ? `${successCount} file${successCount > 1 ? 's' : ''} uploaded to Google Drive:\n${folderSelection.folderPath}\n\n${errorCount > 0 ? `${errorCount} file${errorCount > 1 ? 's' : ''} failed to upload.` : ''}\n\nLocal files: ${outputDirectory}`
         : `Files saved locally but upload failed for all sessions.\n\nLocal files: ${outputDirectory}`;
 
       alert(message);

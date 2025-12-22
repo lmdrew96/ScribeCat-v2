@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class StudyPlanGenerator extends BaseAIToolGenerator {
   /**
@@ -35,7 +36,7 @@ export class StudyPlanGenerator extends BaseAIToolGenerator {
           session,
           contentArea,
           savedResult,
-          '📅',
+          getIconHTML('calendar', { size: 24 }),
           'Study Plan Available',
           `You have a ${daysUntilExam}-day study plan (${totalHours}h total) generated on {date}.`,
           () => this.renderStudyPlan(savedPlan, daysUntilExam, hoursPerDay, contentArea, session),
@@ -147,7 +148,7 @@ ${transcriptionText.substring(0, 3000)}...`;
     contentArea.innerHTML = `
       <div class="study-plan-form">
         <div class="plan-form-header">
-          <h4>📅 Create Your Study Plan</h4>
+          <h4>${getIconHTML('calendar', { size: 18 })} Create Your Study Plan</h4>
           <p>Tell us about your exam, and we'll create a personalized study schedule</p>
         </div>
 
@@ -236,14 +237,14 @@ ${transcriptionText.substring(0, 3000)}...`;
     contentArea.innerHTML = `
       <div class="study-plan">
         <div class="plan-header">
-          <h4>📅 Your ${daysUntilExam}-Day Study Plan</h4>
+          <h4>${getIconHTML('calendar', { size: 18 })} Your ${daysUntilExam}-Day Study Plan</h4>
           <p>Total study time: ${totalHours} hours (${hoursPerDay}h/day)</p>
         </div>
         <div class="plan-days-grid">
           ${daysHtml}
         </div>
         <div class="plan-footer">
-          <p>💡 Tip: Check off each activity as you complete it to track your progress!</p>
+          <p>${getIconHTML('lightbulb', { size: 14 })} Tip: Check off each activity as you complete it to track your progress!</p>
         </div>
       </div>
     `;

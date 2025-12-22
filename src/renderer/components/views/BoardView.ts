@@ -10,6 +10,7 @@
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { escapeHtml } from '../../utils/formatting.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 interface BoardColumnConfig {
   id: string;
@@ -90,7 +91,7 @@ export class BoardView {
       return {
         id: courseName,
         title: isUncategorized ? 'Uncategorized' : courseName,
-        icon: isUncategorized ? '📂' : '📚',
+        icon: isUncategorized ? getIconHTML('folder', { size: 16 }) : getIconHTML('library', { size: 16 }),
         description: isUncategorized
           ? 'Sessions without a course'
           : `${categorized[courseName].length} session${categorized[courseName].length !== 1 ? 's' : ''}`
@@ -170,7 +171,7 @@ export class BoardView {
     return `
       <div class="board-card" data-session-id="${session.id}">
         <input type="checkbox" class="session-checkbox" data-session-id="${session.id}" ${!canSelect ? 'disabled' : ''}>
-        <div class="board-card-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? '📚 ' : ''}${escapeHtml(session.title)}</div>
+        <div class="board-card-title ${isStudySet ? 'study-set-title' : ''}">${isStudySet ? getIconHTML('library', { size: 14 }) + ' ' : ''}${escapeHtml(session.title)}</div>
 
         <div class="board-card-meta">
           <span>${date}</span>
@@ -178,10 +179,10 @@ export class BoardView {
         </div>
 
         <div class="board-card-indicators">
-          ${session.hasTranscription() ? '<span title="Transcribed">📝</span>' : ''}
-          ${session.notes ? '<span title="Has notes">✍️</span>' : ''}
-          ${session.summary ? '<span title="Summarized">🤖</span>' : ''}
-          ${isPartOfStudySet ? `<span class="study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">📚</span>` : ''}
+          ${session.hasTranscription() ? `<span title="Transcribed">${getIconHTML('captions', { size: 14 })}</span>` : ''}
+          ${session.notes ? `<span title="Has notes">${getIconHTML('pencil', { size: 14 })}</span>` : ''}
+          ${session.summary ? `<span title="Summarized">${getIconHTML('bot', { size: 14 })}</span>` : ''}
+          ${isPartOfStudySet ? `<span class="study-set-member" title="Part of study set: ${escapeHtml(parentStudySets.map(s => s.title).join(', '))}">${getIconHTML('library', { size: 14 })}</span>` : ''}
         </div>
 
         ${session.tags.length > 0 ? `

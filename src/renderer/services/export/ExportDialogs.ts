@@ -5,6 +5,7 @@
  */
 
 import { ExportFormat, ExportDestination, ExportOptions } from './types.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 export class ExportDialogs {
   /**
@@ -48,29 +49,29 @@ export class ExportDialogs {
         <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-color, #fff); font-size: 0.9rem;">Select Format:</h4>
         <div class="format-selection" style="display: flex; flex-direction: column; gap: 0.5rem;">
           <button class="format-btn" data-format="txt" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            📄 Plain Text (.txt)
+            ${getIconHTML('file', { size: 16 })} Plain Text (.txt)
           </button>
           <button class="format-btn" data-format="pdf" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            📕 PDF Document (.pdf)
+            ${getIconHTML('filePdf', { size: 16 })} PDF Document (.pdf)
           </button>
           <button class="format-btn" data-format="docx" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            📘 Word Document (.docx)
+            ${getIconHTML('fileWord', { size: 16 })} Word Document (.docx)
           </button>
           <button class="format-btn" data-format="html" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            🌐 HTML Page (.html)
+            ${getIconHTML('web', { size: 16 })} HTML Page (.html)
           </button>
         </div>
 
         <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-color, #fff); font-size: 0.9rem;">Select Destination:</h4>
         <div class="destination-selection" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
           <button class="dest-btn" data-destination="local" style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: pointer; text-align: left;">
-            💾 Save to Computer
+            ${getIconHTML('save', { size: 16 })} Save to Computer
           </button>
           <button class="dest-btn" data-destination="drive" ${!driveConnected ? 'disabled' : ''} style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: ${driveConnected ? 'pointer' : 'not-allowed'}; text-align: left; opacity: ${driveConnected ? '1' : '0.5'};">
-            ☁️ Upload to Google Drive${!driveConnected ? ' (Not Connected)' : ''}
+            ${getIconHTML('cloud', { size: 16 })} Upload to Google Drive${!driveConnected ? ' (Not Connected)' : ''}
           </button>
           <button class="dest-btn" data-destination="both" ${!driveConnected ? 'disabled' : ''} style="padding: 0.75rem; background: var(--secondary-color, #2a2a2a); border: none; border-radius: 4px; color: var(--text-color, #fff); cursor: ${driveConnected ? 'pointer' : 'not-allowed'}; text-align: left; opacity: ${driveConnected ? '1' : '0.5'};">
-            💾☁️ Save & Upload to Drive${!driveConnected ? ' (Not Connected)' : ''}
+            ${getIconHTML('save', { size: 16 })}${getIconHTML('cloud', { size: 16 })} Save & Upload to Drive${!driveConnected ? ' (Not Connected)' : ''}
           </button>
         </div>
 

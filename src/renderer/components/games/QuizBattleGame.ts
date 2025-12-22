@@ -9,6 +9,7 @@ import { MultiplayerGame, GameState } from './MultiplayerGame.js';
 import { GameQuestion } from '../../../domain/entities/GameQuestion.js';
 import { TimeSync } from '../../services/TimeSync.js';
 import { GameTimer } from '../../services/GameTimer.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 export class QuizBattleGame extends MultiplayerGame {
   private selectedAnswer: number | null = null;
@@ -296,7 +297,7 @@ export class QuizBattleGame extends MultiplayerGame {
       return `
         <div class="answer-feedback answer-reveal ${this.wasCorrect ? 'correct' : 'incorrect'}">
           <div class="feedback-icon">
-            ${this.wasCorrect ? '✓' : '✗'}
+            ${this.wasCorrect ? getIconHTML('check', { size: 32 }) : getIconHTML('close', { size: 32 })}
           </div>
           <div class="feedback-content">
             <div class="feedback-message ${this.wasCorrect ? 'correct-message' : 'incorrect-message'}">

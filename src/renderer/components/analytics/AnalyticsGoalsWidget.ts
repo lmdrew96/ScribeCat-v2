@@ -7,6 +7,7 @@
 import type { Session } from '../../../domain/entities/Session.js';
 import { GoalsManager, type GoalProgress } from '../../managers/GoalsManager.js';
 import { createLogger } from '../../../shared/logger.js';
+import { getIconHTML } from '../../utils/iconMap.js';
 
 const logger = createLogger('AnalyticsGoalsWidget');
 
@@ -42,7 +43,7 @@ export class AnalyticsGoalsWidget {
         <div class="analytics-section">
           <h3 class="analytics-section-title">Study Goals</h3>
           <div class="goals-empty">
-            <div class="goals-empty-icon">🎯</div>
+            <div class="goals-empty-icon">${getIconHTML('target', { size: 32 })}</div>
             <div class="goals-empty-text">Set a study time goal to track your progress!</div>
             <div class="goals-actions">
               <button class="goal-setup-btn" onclick="window.analyticsDashboard?.showGoalModal('daily')">
@@ -65,7 +66,7 @@ export class AnalyticsGoalsWidget {
           ${dailyProgress ? this.renderGoalCard(dailyProgress, 'daily') : `
             <div class="goal-card goal-placeholder">
               <div class="goal-placeholder-content">
-                <span class="goal-placeholder-icon">📅</span>
+                <span class="goal-placeholder-icon">${getIconHTML('calendar', { size: 20 })}</span>
                 <span class="goal-placeholder-text">No daily goal set</span>
               </div>
               <button class="goal-setup-btn-small" onclick="window.analyticsDashboard?.showGoalModal('daily')">
@@ -77,7 +78,7 @@ export class AnalyticsGoalsWidget {
           ${weeklyProgress ? this.renderGoalCard(weeklyProgress, 'weekly') : `
             <div class="goal-card goal-placeholder">
               <div class="goal-placeholder-content">
-                <span class="goal-placeholder-icon">📊</span>
+                <span class="goal-placeholder-icon">${getIconHTML('chart', { size: 20 })}</span>
                 <span class="goal-placeholder-text">No weekly goal set</span>
               </div>
               <button class="goal-setup-btn-small" onclick="window.analyticsDashboard?.showGoalModal('weekly')">
@@ -94,7 +95,7 @@ export class AnalyticsGoalsWidget {
    * Render individual goal card
    */
   private renderGoalCard(progress: GoalProgress, type: 'daily' | 'weekly'): string {
-    const icon = type === 'daily' ? '📅' : '📊';
+    const icon = type === 'daily' ? getIconHTML('calendar', { size: 18 }) : getIconHTML('chart', { size: 18 });
     const title = type === 'daily' ? 'Daily Goal' : 'Weekly Goal';
     const motivationalMsg = this.goalsManager.getMotivationalMessage(progress);
     const timeRemaining = this.goalsManager.getTimeRemaining(progress);
@@ -108,7 +109,7 @@ export class AnalyticsGoalsWidget {
             <span>${title}</span>
           </div>
           <button class="goal-edit-btn" onclick="window.analyticsDashboard?.showGoalModal('${type}')" title="Edit goal">
-            ✏️
+            ${getIconHTML('pencil', { size: 14 })}
           </button>
         </div>
 
@@ -126,7 +127,7 @@ export class AnalyticsGoalsWidget {
 
         <div class="goal-status">
           ${progress.isComplete
-            ? `<span class="goal-status-complete">✓ Complete</span>`
+            ? `<span class="goal-status-complete">${getIconHTML('check', { size: 14 })} Complete</span>`
             : `<span class="goal-status-remaining">${timeRemaining}</span>`
           }
           ${type === 'weekly' && !progress.isComplete && progress.daysRemaining
@@ -141,7 +142,7 @@ export class AnalyticsGoalsWidget {
 
         ${type === 'weekly' && !progress.isComplete
           ? `<div class="goal-on-track ${onTrack ? 'on-track' : 'behind-track'}">
-              ${onTrack ? '✓ On track for weekly goal' : '⚠️ Behind schedule for weekly goal'}
+              ${onTrack ? getIconHTML('check', { size: 14 }) + ' On track for weekly goal' : getIconHTML('alertTriangle', { size: 14 }) + ' Behind schedule for weekly goal'}
             </div>`
           : ''
         }

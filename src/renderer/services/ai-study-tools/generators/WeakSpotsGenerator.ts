@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class WeakSpotsGenerator extends BaseAIToolGenerator {
   /**
@@ -22,7 +23,7 @@ export class WeakSpotsGenerator extends BaseAIToolGenerator {
           session,
           contentArea,
           savedResult,
-          '⚠️',
+          getIconHTML('alertTriangle', { size: 24 }),
           'Weak Spots Available',
           'You have weak spots analysis generated on {date}.',
           () => this.renderWeakSpots(savedResult.data, contentArea, session),
@@ -118,9 +119,9 @@ ${transcriptionText}`;
    */
   private static renderWeakSpots(weakSpots: Array<{concept: string; reason: string; miniLesson: string; severity: string; session?: string}>, contentArea: HTMLElement, session?: Session): void {
     const severityIcons = {
-      high: '🔴',
-      medium: '🟡',
-      low: '🟢'
+      high: '<span class="severity-high" style="color: #ef4444;">●</span>',
+      medium: '<span class="severity-medium" style="color: #f59e0b;">●</span>',
+      low: '<span class="severity-low" style="color: #22c55e;">●</span>'
     };
 
     const severityLabels = {
@@ -138,7 +139,7 @@ ${transcriptionText}`;
       })
       .map(spot => {
         const severity = spot.severity.toLowerCase();
-        const icon = severityIcons[severity as keyof typeof severityIcons] || '🟡';
+        const icon = severityIcons[severity as keyof typeof severityIcons] || severityIcons.medium;
         const label = severityLabels[severity as keyof typeof severityLabels] || 'Review';
 
         return `
@@ -155,7 +156,7 @@ ${transcriptionText}`;
               <strong>Why it's tricky:</strong> ${escapeHtml(spot.reason)}
             </div>
             <div class="weak-spot-mini-lesson">
-              <strong>💡 Quick tip:</strong> ${escapeHtml(spot.miniLesson)}
+              <strong>${getIconHTML('lightbulb', { size: 14 })} Quick tip:</strong> ${escapeHtml(spot.miniLesson)}
             </div>
           </div>
         `;
@@ -164,7 +165,7 @@ ${transcriptionText}`;
     contentArea.innerHTML = `
       <div class="study-weak-spots">
         <div class="weak-spots-header">
-          <h4>🎯 Potential Weak Spots</h4>
+          <h4>${getIconHTML('target', { size: 18 })} Potential Weak Spots</h4>
           <p>These concepts might be challenging. Focus on these for deeper understanding.</p>
         </div>
         <div class="weak-spots-list">

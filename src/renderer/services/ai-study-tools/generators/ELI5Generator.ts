@@ -8,6 +8,7 @@ import type { Session } from '../../../../domain/entities/Session.js';
 import { BaseAIToolGenerator } from './BaseAIToolGenerator.js';
 import { AIResponseParser } from '../utils/AIResponseParser.js';
 import { escapeHtml } from '../../../utils/formatting.js';
+import { getIconHTML } from '../../../utils/iconMap.js';
 
 export class ELI5Generator extends BaseAIToolGenerator {
   /**
@@ -109,14 +110,14 @@ ${transcriptionText}`;
     contentArea.innerHTML = `
       <div class="eli5-explainer">
         <div class="eli5-header">
-          <h4>💡 Complex Concepts Made Simple</h4>
+          <h4>${getIconHTML('lightbulb', { size: 20 })} Complex Concepts Made Simple</h4>
           <p>Here are the tricky concepts explained in simple terms</p>
         </div>
         <div class="eli5-list">
           ${explanations.map(item => `
             <div class="eli5-item">
               <div class="eli5-concept">
-                <span class="eli5-icon">🔍</span>
+                <span class="eli5-icon">${getIconHTML('search', { size: 16 })}</span>
                 <span class="eli5-concept-name">${escapeHtml(item.concept)}</span>
                 ${item.session ? `<span class="eli5-session-badge">${escapeHtml(item.session)}</span>` : ''}
               </div>

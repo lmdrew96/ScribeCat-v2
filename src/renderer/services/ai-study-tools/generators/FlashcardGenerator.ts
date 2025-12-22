@@ -156,12 +156,12 @@ ${transcriptionText}`;
           <label class="setting-label">Study Mode</label>
           <div class="flashcard-mode-selector">
             <button class="flashcard-mode-btn active" data-mode="review">
-              <span class="mode-icon">🔄</span>
+              <span class="mode-icon">${getIconHTML('refresh', { size: 18 })}</span>
               <span class="mode-label">Review Mode</span>
               <span class="mode-description">Flip cards to test yourself</span>
             </button>
             <button class="flashcard-mode-btn" data-mode="learn">
-              <span class="mode-icon">📚</span>
+              <span class="mode-icon">${getIconHTML('book', { size: 18 })}</span>
               <span class="mode-label">Learn Mode</span>
               <span class="mode-description">Track mastery with feedback</span>
             </button>
@@ -337,7 +337,7 @@ ${transcriptionText}`;
         const masteryPercentage = Math.round((masteredConcepts.size / flashcards.length) * 100);
         contentArea.innerHTML = `
           <div class="learn-mode-complete">
-            <div class="learn-complete-icon">🎉</div>
+            <div class="learn-complete-icon">${getIconHTML('partyPopper', { size: 48 })}</div>
             <h4>Learning Session Complete!</h4>
             <div class="learn-stats">
               <div class="learn-stat">
@@ -394,10 +394,10 @@ ${transcriptionText}`;
 
           <div class="learn-actions">
             <button class="learn-action-btn learn-still-learning" id="still-learning-btn">
-              📝 Still Learning
+              ${getIconHTML('edit', { size: 16 })} Still Learning
             </button>
             <button class="learn-action-btn learn-know-it" id="know-it-btn">
-              ✅ Know It!
+              ${getIconHTML('check-circle', { size: 16 })} Know It!
             </button>
           </div>
 
