@@ -370,7 +370,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
     }
   }
   /** Set a specific preference key in user_profiles table */
-  async setUserPreference(userId: string, key: string, value: any): Promise<{ success: boolean; error?: string }> {
+  async setUserPreference(userId: string, key: string, value: unknown): Promise<{ success: boolean; error?: string }> {
     try {
       const prefsResult = await this.getUserPreferences(userId);
       if (!prefsResult.success) {
@@ -389,7 +389,7 @@ export class SupabaseAuthService implements ISupabaseAuthService {
     }
   }
   /** Get a specific preference key from user_profiles table */
-  async getUserPreference(userId: string, key: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  async getUserPreference(userId: string, key: string): Promise<{ success: boolean; data?: unknown; error?: string }> {
     try {
       const prefsResult = await this.getUserPreferences(userId);
       if (!prefsResult.success) {

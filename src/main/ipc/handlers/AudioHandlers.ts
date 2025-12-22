@@ -8,6 +8,7 @@ import electron from 'electron';
 import type { IpcMain } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import * as mm from 'music-metadata';
+import type { AudioMetadata } from '../../../shared/types.js';
 
 export class AudioHandlers extends BaseHandler {
   /**
@@ -20,14 +21,15 @@ export class AudioHandlers extends BaseHandler {
   /**
    * Get audio file metadata including duration
    */
-  private async getAudioMetadata(_event: Electron.IpcMainInvokeEvent, filePath: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  private async getAudioMetadata(_event: Electron.IpcMainInvokeEvent, ...args: unknown[]): Promise<{ success: boolean; data?: AudioMetadata; error?: string }> {
     try {
+      const filePath = args[0] as string;
       console.log('Getting audio metadata for:', filePath);
       
       // Parse audio metadata
       const metadata = await mm.parseFile(filePath);
       
-      const result = {
+      const result: AudioMetadata = {
         duration: metadata.format.duration || 0,
         bitrate: metadata.format.bitrate,
         sampleRate: metadata.format.sampleRate,

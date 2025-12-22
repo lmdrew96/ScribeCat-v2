@@ -346,7 +346,7 @@ export class AnalyticsCharts {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       notificationTicker.success('Analytics exported to CSV!', 3000);
     }

@@ -304,7 +304,7 @@ export class LiveSuggestionsPanel {
     const icon = this.getActionIcon(suggestion.suggestedAction);
     const label = this.getActionLabel(suggestion.suggestedAction);
 
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       notificationTicker.info(`${icon} ${label}`, 2000);
     }

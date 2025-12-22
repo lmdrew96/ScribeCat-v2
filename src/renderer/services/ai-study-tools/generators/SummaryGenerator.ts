@@ -16,7 +16,7 @@ export class SummaryGenerator extends BaseAIToolGenerator {
   static async generateAndSaveShortSummary(sessionId: string): Promise<void> {
     try {
       // Get session via IPC
-      const sessionResult = await (window as any).scribeCat.session.list();
+      const sessionResult = await window.scribeCat.session.list();
       if (!sessionResult.success || !sessionResult.sessions) {
         console.error('Failed to load sessions for short summary generation');
         return;
@@ -44,7 +44,7 @@ export class SummaryGenerator extends BaseAIToolGenerator {
 Transcription:
 ${session.transcription.fullText}`;
 
-      const result = await (window as any).scribeCat.ai.chat(prompt, [], {
+      const result = await window.scribeCat.ai.chat(prompt, [], {
         includeTranscription: false,
         includeNotes: false
       });
@@ -66,7 +66,7 @@ ${session.transcription.fullText}`;
         }
 
         // Save summary to session via IPC
-        await (window as any).scribeCat.session.updateSummary(sessionId, summary);
+        await window.scribeCat.session.updateSummary(sessionId, summary);
         console.log(`✅ Short summary saved for session ${sessionId}: ${summary}`);
 
         // Refresh study mode to show the new summary

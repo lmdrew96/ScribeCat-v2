@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize visual feedback managers
   notificationTicker.initialize();
   confettiManager = new ConfettiManager();
-  (window as any).notificationTicker = notificationTicker;
+  window.notificationTicker = notificationTicker;
   (window as any).confettiManager = confettiManager;
 
   // Initialize workspace layout manager

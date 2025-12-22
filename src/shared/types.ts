@@ -13,6 +13,91 @@ export interface IPCResponse<T = void> {
 }
 
 /**
+ * Audio metadata returned from file analysis
+ */
+export interface AudioMetadata {
+  duration: number;
+  bitrate?: number;
+  sampleRate?: number;
+  numberOfChannels?: number;
+  codec?: string;
+}
+
+/**
+ * Polish transcription options
+ */
+export interface PolishOptions {
+  grammar?: boolean;
+  punctuation?: boolean;
+  clarity?: boolean;
+  preserveMeaning?: boolean;
+}
+
+/**
+ * Summary generation options
+ */
+export interface SummaryOptions {
+  style?: string;
+  maxLength?: number;
+}
+
+/**
+ * Title generation options
+ */
+export interface TitleOptions {
+  maxLength?: number;
+  format?: string;
+}
+
+/**
+ * Message attachment for DMs
+ */
+export interface MessageAttachment {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  size?: number;
+}
+
+/**
+ * Database row for public share
+ */
+export interface PublicShareDatabaseRow {
+  id: string;
+  session_id: string;
+  created_by_user_id: string;
+  token: string;
+  password_hash: string | null;
+  expires_at: string | null;
+  view_count: number;
+  max_views: number | null;
+  created_at: string;
+  last_accessed_at: string | null;
+}
+
+/**
+ * Database format for public share
+ */
+export interface PublicShareDatabaseFormat {
+  id: string;
+  session_id: string;
+  created_by_user_id: string;
+  token: string;
+  password_hash: string | null;
+  expires_at?: string;
+  view_count: number;
+  max_views: number | null;
+  created_at: string;
+  last_accessed_at?: string;
+}
+
+/**
+ * User preference value - can be string, number, boolean, or nested object
+ */
+export type UserPreferenceValue = string | number | boolean | null | UserPreferenceValue[] | { [key: string]: UserPreferenceValue };
+
+/**
  * IPC response for recording operations
  */
 export interface RecordingStopResponse {
@@ -320,7 +405,7 @@ export interface UserProfile {
   googleId?: string;
   createdAt: Date;
   updatedAt: Date;
-  preferences?: Record<string, any>;
+  preferences?: Record<string, UserPreferenceValue>;
 }
 
 export interface AuthSession {

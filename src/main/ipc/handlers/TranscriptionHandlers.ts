@@ -1,5 +1,25 @@
 import type { IpcMain } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
+import { TranscriptionChannels } from '../../../shared/IpcChannels.js';
+
+/** AssemblyAI transcription response */
+interface AssemblyAITranscriptResult {
+  text?: string;
+  words?: Array<{ text: string; start: number; end: number; confidence: number }>;
+  utterances?: Array<{ text: string; start: number; end: number; speaker: string }>;
+  confidence?: number;
+  audio_duration?: number;
+  status: string;
+  error?: string;
+}
+
+/** AssemblyAI sentence response */
+interface AssemblyAISentence {
+  text: string;
+  start: number;
+  end: number;
+  confidence: number;
+}
 
 /**
  * Handles transcription-related IPC channels
@@ -13,7 +33,7 @@ export class TranscriptionHandlers extends BaseHandler {
 
   register(ipcMain: IpcMain): void {
     // AssemblyAI: Get temporary token
-    this.handle(ipcMain, 'transcription:assemblyai:getToken', async (event, apiKey: string) => {
+    this.handle(ipcMain, TranscriptionChannels.ASSEMBLYAI_GET_TOKEN, async (event, apiKey: string) => {
       const https = await import('https');
       
       return new Promise((resolve) => {
@@ -155,7 +175,7 @@ export class TranscriptionHandlers extends BaseHandler {
         });
 
         // Step 3: Poll for completion
-        const result = await new Promise<any>((resolve, reject) => {
+        const result = await new Promise<AssemblyAITranscriptResult>((resolve, reject) => {
           const pollInterval = 3000; // Poll every 3 seconds
           const maxAttempts = 600; // 30 minutes max
           let attempts = 0;
@@ -205,7 +225,7 @@ export class TranscriptionHandlers extends BaseHandler {
         });
 
         // Step 4: Fetch sentence-level timestamps
-        const sentences = await new Promise<any[]>((resolve, reject) => {
+        const sentences = await new Promise<AssemblyAISentence[]>((resolve, reject) => {
           const options = {
             hostname: 'api.assemblyai.com',
             path: `/v2/transcript/${transcriptId}/sentences`,

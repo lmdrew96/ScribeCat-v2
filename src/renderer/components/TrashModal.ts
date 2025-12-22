@@ -115,7 +115,7 @@ export class TrashModal {
    */
   private async loadDeletedSessions(): Promise<void> {
     try {
-      const response = await (window as any).scribeCat.session.getDeleted();
+      const response = await window.scribeCat.session.getDeleted();
 
       if (!response.success) {
         this.showError('Failed to load deleted sessions');
@@ -222,7 +222,7 @@ export class TrashModal {
       if (!confirmed) return;
 
       // Call backend to restore
-      const response = await (window as any).scribeCat.session.restore(sessionId);
+      const response = await window.scribeCat.session.restore(sessionId);
 
       if (!response.success) {
         this.showError('Failed to restore session');
@@ -263,7 +263,7 @@ export class TrashModal {
       if (!confirmed) return;
 
       // Call backend to permanently delete
-      const response = await (window as any).scribeCat.session.permanentlyDelete(sessionId);
+      const response = await window.scribeCat.session.permanentlyDelete(sessionId);
 
       if (!response.success) {
         this.showError('Failed to permanently delete session');
@@ -306,7 +306,7 @@ export class TrashModal {
       const sessionIds = this.deletedSessions.map(s => s.id);
 
       // Call backend to permanently delete all
-      const response = await (window as any).scribeCat.session.permanentlyDeleteMultiple(sessionIds);
+      const response = await window.scribeCat.session.permanentlyDeleteMultiple(sessionIds);
 
       if (!response.success) {
         this.showError('Failed to empty trash');

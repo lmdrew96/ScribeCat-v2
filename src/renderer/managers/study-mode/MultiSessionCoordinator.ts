@@ -43,7 +43,7 @@ export class MultiSessionCoordinator {
       logger.info('Creating multi-session study set', { sessionIds, title });
 
       // Call IPC to create the study set
-      const result = await (window as any).scribeCat.session.createMultiSessionStudySet(sessionIds, title);
+      const result = await window.scribeCat.session.createMultiSessionStudySet(sessionIds, title);
 
       if (result.success) {
         logger.info('Multi-session study set created successfully', result.session);

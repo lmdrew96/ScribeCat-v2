@@ -23,7 +23,7 @@ export class ChildSessionLoader {
 
     try {
       // Load all sessions first
-      const result = await (window as any).scribeCat.session.list();
+      const result = await window.scribeCat.session.list();
 
       if (result.success && result.sessions) {
         // Find child sessions in order

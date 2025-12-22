@@ -252,7 +252,7 @@ export class AnalyticsGoalsWidget {
 
     const minutes = parseInt(input.value);
     if (isNaN(minutes) || minutes < 1) {
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error('Please enter a valid number of minutes');
       }
@@ -272,7 +272,7 @@ export class AnalyticsGoalsWidget {
     // Re-render dashboard
     this.callbacks.rerenderDashboard();
 
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       const goalType = type === 'daily' ? 'Daily' : 'Weekly';
       notificationTicker.success(`${goalType} goal ${existingGoal ? 'updated' : 'set'}! Target: ${this.goalsManager.formatMinutes(minutes)}`, 3000);
@@ -296,7 +296,7 @@ export class AnalyticsGoalsWidget {
     // Re-render dashboard
     this.callbacks.rerenderDashboard();
 
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       const goalType = type === 'daily' ? 'Daily' : 'Weekly';
       notificationTicker.success(`${goalType} goal deleted`, 3000);

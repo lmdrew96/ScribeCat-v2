@@ -20,6 +20,33 @@ export interface SearchUserResult {
   hasPendingRequest: boolean;
 }
 
+/** Database row types for type safety */
+interface FriendProfileRow {
+  email?: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+}
+
+interface FriendshipRow {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  created_at: string;
+  friend_profile?: FriendProfileRow | FriendProfileRow[];
+}
+
+interface FriendRequestRow {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  sender_profile?: FriendProfileRow | FriendProfileRow[];
+  recipient_profile?: FriendProfileRow | FriendProfileRow[];
+}
+
 /**
  * Repository for managing friends and friend requests
  * Real-time subscriptions are handled directly in FriendsManager (renderer).
@@ -69,7 +96,7 @@ export class SupabaseFriendsRepository {
         return [];
       }
 
-      return data.map((row: any) => {
+      return data.map((row: FriendshipRow) => {
         const profile = Array.isArray(row.friend_profile) ? row.friend_profile[0] : row.friend_profile;
         return Friend.fromDatabase({
           id: row.id,
@@ -217,7 +244,7 @@ export class SupabaseFriendsRepository {
         return [];
       }
 
-      return data.map((row: any) => {
+      return data.map((row: FriendRequestRow) => {
         const senderProfile = Array.isArray(row.sender_profile) ? row.sender_profile[0] : row.sender_profile;
         const recipientProfile = Array.isArray(row.recipient_profile) ? row.recipient_profile[0] : row.recipient_profile;
 

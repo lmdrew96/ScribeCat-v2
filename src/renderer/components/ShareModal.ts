@@ -392,7 +392,7 @@ export class ShareModal {
    */
   private showMessage(text: string, type: 'success' | 'error'): void {
     // Use ticker notifications for better UX
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       if (type === 'success') {
         notificationTicker.success(text);

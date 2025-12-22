@@ -87,7 +87,7 @@ export class CanvasSettingsManager {
   private async testConnection(): Promise<void> {
     try {
       if (!this.canvasUrl || !this.canvasToken) {
-        const notificationTicker = (window as any).notificationTicker;
+        const notificationTicker = window.notificationTicker;
         if (notificationTicker) {
           notificationTicker.error('Please enter Canvas URL and API token');
         }
@@ -106,14 +106,14 @@ export class CanvasSettingsManager {
 
       this.canvasConfigured = true;
       this.updateUI();
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success('Canvas connected successfully!');
       }
 
     } catch (error) {
       console.error('Canvas connection failed:', error);
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error(
           `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -143,14 +143,14 @@ export class CanvasSettingsManager {
       if (tokenInput) tokenInput.value = '';
 
       this.updateUI();
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success('Canvas disconnected');
       }
 
     } catch (error) {
       console.error('Failed to disconnect Canvas:', error);
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error('Failed to disconnect');
       }
@@ -199,7 +199,7 @@ export class CanvasSettingsManager {
 
       const jsonData = jsonTextarea.value.trim();
       if (!jsonData) {
-        const notificationTicker = (window as any).notificationTicker;
+        const notificationTicker = window.notificationTicker;
         if (notificationTicker) {
           notificationTicker.error('Please paste JSON data from the browser extension');
         }
@@ -224,7 +224,7 @@ export class CanvasSettingsManager {
         await window.courseManager.refresh();
       }
 
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success(
           `Successfully imported ${result.data?.imported || 0} courses`
@@ -233,7 +233,7 @@ export class CanvasSettingsManager {
 
     } catch (error) {
       console.error('Failed to import courses:', error);
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error(
           `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -327,14 +327,14 @@ export class CanvasSettingsManager {
 
       await window.scribeCat.canvas.deleteImportedCourse(courseId);
       await this.loadImportedCourses();
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success('Course deleted');
       }
 
     } catch (error) {
       console.error('Failed to delete course:', error);
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error('Failed to delete course');
       }

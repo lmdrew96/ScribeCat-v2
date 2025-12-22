@@ -67,7 +67,7 @@ export class SyncManager {
     this.currentUserId = userId;
     // Also update the remote repository so it can save sessions
     if ('setUserId' in this.remoteRepository) {
-      (this.remoteRepository as any).setUserId(userId);
+      (this.remoteRepository as { setUserId(id: string | null): void }).setUserId(userId);
     }
   }
 

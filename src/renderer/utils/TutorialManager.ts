@@ -275,7 +275,7 @@ export class TutorialManager {
       FocusManager.announce(`Tutorial "${this.currentTutorial.name}" completed`, 'polite');
 
       // Show completion notification
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success(`✅ Tutorial Complete! ${this.currentTutorial.name}`, 3000);
       }

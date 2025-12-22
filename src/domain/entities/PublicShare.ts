@@ -5,6 +5,38 @@
  * Allows anyone with the link to view the session (read-only).
  */
 
+/**
+ * Database row format for PublicShare
+ */
+export interface PublicShareDatabaseRow {
+  id: string;
+  session_id: string;
+  created_by_user_id: string;
+  token: string;
+  password_hash: string | null;
+  expires_at: string | null;
+  view_count: number;
+  max_views: number | null;
+  created_at: string;
+  last_accessed_at: string | null;
+}
+
+/**
+ * Database output format for PublicShare
+ */
+export interface PublicShareDatabaseFormat {
+  id: string;
+  session_id: string;
+  created_by_user_id: string;
+  token: string;
+  password_hash: string | null;
+  expires_at?: string;
+  view_count: number;
+  max_views: number | null;
+  created_at: string;
+  last_accessed_at?: string;
+}
+
 export class PublicShare {
   constructor(
     public readonly id: string,
@@ -78,7 +110,7 @@ export class PublicShare {
   /**
    * Create from database row
    */
-  static fromDatabase(row: any): PublicShare {
+  static fromDatabase(row: PublicShareDatabaseRow): PublicShare {
     return new PublicShare(
       row.id,
       row.session_id,
@@ -96,7 +128,7 @@ export class PublicShare {
   /**
    * Convert to database format
    */
-  toDatabase(): any {
+  toDatabase(): PublicShareDatabaseFormat {
     return {
       id: this.id,
       session_id: this.sessionId,

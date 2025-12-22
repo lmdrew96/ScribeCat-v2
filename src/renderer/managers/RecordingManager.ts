@@ -658,7 +658,7 @@ export class RecordingManager {
     this.bookmarks.push(bookmark);
 
     // Show notification
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     const formattedTime = this.formatTimestamp(timestamp);
     notificationTicker?.success(`🔖 Bookmark added at ${formattedTime}`, 2000);
 

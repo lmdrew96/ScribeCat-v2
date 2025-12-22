@@ -22,10 +22,10 @@ export abstract class BaseHandler {
    * @param channel - The IPC channel name
    * @param handler - The handler function
    */
-  protected handle<T = any>(
+  protected handle<T = unknown>(
     ipcMain: IpcMain,
     channel: string,
-    handler: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<T>
+    handler: (event: IpcMainInvokeEvent, ...args: unknown[]) => Promise<T>
   ): void {
     ipcMain.handle(channel, async (event, ...args) => {
       try {

@@ -96,7 +96,7 @@ export class OAuthWindowManager {
         console.log('[OAuth] Callback server listening on http://localhost:3000');
       });
 
-      this.oauthCallbackServer.on('error', (err: any) => {
+      this.oauthCallbackServer.on('error', (err: NodeJS.ErrnoException) => {
         if (err.code === 'EADDRINUSE') {
           console.warn('[OAuth] Port 3000 already in use');
         } else {

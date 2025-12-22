@@ -153,7 +153,7 @@ export class NotesAutoSaveManager {
         this.indicator.showError('Save failed');
 
         // Also show error notification for critical failures
-        const notificationTicker = (window as any).notificationTicker;
+        const notificationTicker = window.notificationTicker;
         if (notificationTicker) {
           notificationTicker.error('Failed to save notes', 3000);
         }
@@ -163,7 +163,7 @@ export class NotesAutoSaveManager {
       this.indicator.showError('Save error');
 
       // Show error notification for exceptions
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error('Failed to save notes', 3000);
       }

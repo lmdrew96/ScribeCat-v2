@@ -129,7 +129,7 @@ export class DetailViewEventHandler {
           const localPath = fallbackPaths[fallbackAttempt];
           fallbackAttempt++;
 
-          const result = await (window as any).scribeCat.dialog.fileExists(localPath);
+          const result = await window.scribeCat.dialog.fileExists(localPath);
           if (result.success && result.exists) {
             audioElement.src = `file://${localPath}`;
             logger.info(`Loaded local audio from fallback path: ${localPath}`);

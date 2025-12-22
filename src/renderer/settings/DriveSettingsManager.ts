@@ -108,7 +108,7 @@ export class DriveSettingsManager {
       );
 
       if (!code) {
-        const notificationTicker = (window as any).notificationTicker;
+        const notificationTicker = window.notificationTicker;
         if (notificationTicker) {
           notificationTicker.error('Connection cancelled');
         }
@@ -128,14 +128,14 @@ export class DriveSettingsManager {
 
       this.driveConnected = true;
       this.updateUI();
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success('Google Drive connected successfully!');
       }
 
     } catch (error) {
       console.error('Google Drive connection failed:', error);
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error(
           `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -157,14 +157,14 @@ export class DriveSettingsManager {
       this.driveConnected = false;
       this.driveUserEmail = '';
       this.updateUI();
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success('Google Drive disconnected');
       }
 
     } catch (error) {
       console.error('Failed to disconnect Google Drive:', error);
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error('Failed to disconnect');
       }
@@ -192,7 +192,7 @@ export class DriveSettingsManager {
     window.scribeCat.drive.onAutoReconnected(async () => {
       await this.checkConnection();
       this.updateUI();
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success('Google Drive auto-reconnected!');
       }

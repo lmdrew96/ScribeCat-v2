@@ -196,13 +196,18 @@ export class ServiceBootstrapper {
     }
   }
 
+  /** Typed interface for electron-store methods */
+  private getStoreValue(key: string): unknown {
+    return (this.store as { get(key: string): unknown }).get(key);
+  }
+
   /**
    * Initialize Google Drive service with stored credentials
    */
   private initializeGoogleDrive(): void {
     try {
       // Load stored credentials if they exist
-      const storedCreds = (this.store as any).get('google-drive-credentials');
+      const storedCreds = this.getStoreValue('google-drive-credentials') as string | undefined;
       const driveConfig: GoogleDriveConfig = storedCreds ? JSON.parse(storedCreds) : {};
 
       // Initialize service (it will work with or without stored credentials)

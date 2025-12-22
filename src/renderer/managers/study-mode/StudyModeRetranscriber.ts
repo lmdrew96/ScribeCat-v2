@@ -57,7 +57,7 @@ export class StudyModeRetranscriber {
       const audioFilePath = await this.resolveAudioPath(session);
 
       // Call the batch transcription API
-      const result = await (window as any).scribeCat.transcription.assemblyai.batchTranscribe(
+      const result = await window.scribeCat.transcription.assemblyai.batchTranscribe(
         assemblyaiKey,
         audioFilePath
       );
@@ -133,7 +133,7 @@ export class StudyModeRetranscriber {
     const fallbackPaths = this.generateFallbackPaths(session);
 
     for (const localPath of fallbackPaths) {
-      const fileCheck = await (window as any).scribeCat.dialog.fileExists(localPath);
+      const fileCheck = await window.scribeCat.dialog.fileExists(localPath);
       if (fileCheck.success && fileCheck.exists) {
         logger.info(`Found local recording at: ${localPath}`);
         return localPath;
@@ -218,7 +218,7 @@ export class StudyModeRetranscriber {
     }
 
     // Update session transcription
-    const updateResult = await (window as any).scribeCat.session.updateTranscription(
+    const updateResult = await window.scribeCat.session.updateTranscription(
       sessionId,
       transcriptionData.text,
       'assemblyai',

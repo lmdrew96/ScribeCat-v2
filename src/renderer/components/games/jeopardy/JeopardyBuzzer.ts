@@ -108,7 +108,7 @@ export class JeopardyBuzzer {
     }
 
     console.log('[JeopardyBuzzer] Calling buzzIn API...');
-    const result = await (window as any).scribeCat.games.jeopardy.buzzIn({
+    const result = await window.scribeCat.games.jeopardy.buzzIn({
       gameSessionId: state.session.id,
       questionId: state.currentQuestion.id,
       userId: currentUser.userId,
@@ -130,7 +130,7 @@ export class JeopardyBuzzer {
    */
   async clearBuzzers(questionId: string): Promise<void> {
     try {
-      await (window as any).scribeCat.games.jeopardy.clearBuzzers(questionId);
+      await window.scribeCat.games.jeopardy.clearBuzzers(questionId);
       console.log('[JeopardyBuzzer] Buzzer presses cleared for rebuzz');
     } catch (error) {
       console.error('[JeopardyBuzzer] Failed to clear buzzer presses:', error);

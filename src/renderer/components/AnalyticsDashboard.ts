@@ -71,7 +71,7 @@ export class AnalyticsDashboard {
 
       // Show notification for newly unlocked achievements
       if (newlyUnlocked.length > 0) {
-        const notificationTicker = (window as any).notificationTicker;
+        const notificationTicker = window.notificationTicker;
         if (notificationTicker) {
           newlyUnlocked.forEach(achievement => {
             notificationTicker.success(`🏆 Achievement Unlocked: ${achievement.title}`, 5000);

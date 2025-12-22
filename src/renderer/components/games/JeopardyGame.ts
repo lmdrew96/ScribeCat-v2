@@ -238,7 +238,7 @@ export class JeopardyGame extends MultiplayerGame {
     if (showingFinalJeopardyWager) {
       this.container.innerHTML = JeopardyWager.renderFinalJeopardyWager(
         this.state, this.renderHeader.bind(this), this.renderLeaderboard.bind(this), this.escapeHtml.bind(this),
-        async () => await (window as any).scribeCat.games.completeGame(this.state.session.id)
+        async () => await window.scribeCat.games.completeGame(this.state.session.id)
       );
       JeopardyWager.attachFinalWagerListeners(this.container, this.state, (wager) => this.handleFinalJeopardyWager(wager), this.attachExitListeners.bind(this));
       return;
@@ -318,7 +318,7 @@ export class JeopardyGame extends MultiplayerGame {
 
     this.updateState({ hasAnswered: true });
 
-    const leaderboardResult = await (window as any).scribeCat.games.getGameLeaderboard(this.state.session.id);
+    const leaderboardResult = await window.scribeCat.games.getGameLeaderboard(this.state.session.id);
     if (leaderboardResult.success) {
       this.updateState({ leaderboard: leaderboardResult.leaderboard || [] });
     }
@@ -446,7 +446,7 @@ export class JeopardyGame extends MultiplayerGame {
   }
 
   private async showFJResults(): Promise<void> {
-    const leaderboardResult = await (window as any).scribeCat.games.getGameLeaderboard(this.state.session.id);
+    const leaderboardResult = await window.scribeCat.games.getGameLeaderboard(this.state.session.id);
     if (leaderboardResult.success) {
       this.updateState({ leaderboard: leaderboardResult.leaderboard || [] });
     }
@@ -454,7 +454,7 @@ export class JeopardyGame extends MultiplayerGame {
   }
 
   private async completeGame(): Promise<void> {
-    await (window as any).scribeCat.games.completeGame(this.state.session.id);
+    await window.scribeCat.games.completeGame(this.state.session.id);
   }
 
   private attachWaitingListeners(): void {

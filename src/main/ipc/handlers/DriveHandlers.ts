@@ -2,10 +2,22 @@ import electron from 'electron';
 import type { IpcMain } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import { GoogleDriveService } from '../../../infrastructure/services/drive/GoogleDriveService.js';
-import type { GoogleDriveConfig } from '../../../shared/types.js';
+import type { GoogleDriveConfig, GoogleDriveUploadOptions } from '../../../shared/types.js';
 import Store from 'electron-store';
 import { SupabaseAuthService } from '../../../infrastructure/services/supabase/SupabaseAuthService.js';
 import { encrypt, decrypt } from '../../../infrastructure/utils/encryption.js';
+
+// Type for electron-store operations
+interface ElectronStoreTyped {
+  get(key: string): unknown;
+  set(key: string, value: unknown): void;
+  delete(key: string): void;
+}
+
+// Type for GoogleDriveService with config access
+interface GoogleDriveServiceWithConfig {
+  config: { refreshToken?: string };
+}
 
 /**
  * Handles Google Drive-related IPC channels
@@ -57,7 +69,7 @@ export class DriveHandlers extends BaseHandler {
 
       // Store locally for immediate use
       const config = { refreshToken };
-      (this.store as any).set('google-drive-credentials', JSON.stringify(config));
+      (this.store as ElectronStoreTyped).set('google-drive-credentials', JSON.stringify(config));
 
       // Re-initialize Drive service with restored credentials
       const googleDriveService = this.getGoogleDriveService();
@@ -111,11 +123,11 @@ export class DriveHandlers extends BaseHandler {
       const result = await googleDriveService.exchangeCodeForTokens(code);
 
       if (result.success && googleDriveService) {
-        const refreshToken = (googleDriveService as any).config.refreshToken;
+        const refreshToken = (googleDriveService as unknown as GoogleDriveServiceWithConfig).config.refreshToken;
         const config = { refreshToken };
 
         // Store locally in electron-store for quick access
-        (this.store as any).set('google-drive-credentials', JSON.stringify(config));
+        (this.store as ElectronStoreTyped).set('google-drive-credentials', JSON.stringify(config));
 
         // Sync to Supabase user_profiles.preferences for cross-device access
         if (this.currentUserId && refreshToken) {
@@ -150,17 +162,20 @@ export class DriveHandlers extends BaseHandler {
       await googleDriveService.setCredentials(config);
       
       // Store credentials for persistence
-      (this.store as any).set('google-drive-credentials', JSON.stringify(config));
+      (this.store as ElectronStoreTyped).set('google-drive-credentials', JSON.stringify(config));
       
       return { success: true };
     });
 
     // Google Drive: Upload file
-    this.handle(ipcMain, 'drive:uploadFile', async (event, filePath: string, options?: any) => {
+    this.handle(ipcMain, 'drive:uploadFile', async (_event, ...args: unknown[]) => {
       const googleDriveService = this.getGoogleDriveService();
       if (!googleDriveService) {
         return { success: false, error: 'Google Drive not configured' };
       }
+      
+      const filePath = args[0] as string;
+      const options = args[1] as GoogleDriveUploadOptions | undefined;
       
       // GoogleDriveService.uploadFile already returns { success, fileId, webViewLink, error }
       // So we return it directly instead of wrapping it
@@ -169,12 +184,13 @@ export class DriveHandlers extends BaseHandler {
     });
 
     // Google Drive: List files
-    this.handle(ipcMain, 'drive:listFiles', async (event, folderId?: string) => {
+    this.handle(ipcMain, 'drive:listFiles', async (_event, ...args: unknown[]) => {
       const googleDriveService = this.getGoogleDriveService();
       if (!googleDriveService) {
         return { success: false, error: 'Google Drive not configured' };
       }
       
+      const folderId = args[0] as string | undefined;
       const files = await googleDriveService.listFiles(folderId);
       return { success: true, data: files };
     });
@@ -211,7 +227,7 @@ export class DriveHandlers extends BaseHandler {
       await googleDriveService.disconnect();
 
       // Clear stored credentials from local store only
-      (this.store as any).delete('google-drive-credentials');
+      (this.store as ElectronStoreTyped).delete('google-drive-credentials');
 
       console.log('✓ Google Drive disconnected locally (cloud credentials preserved for auto-reconnect)');
       return { success: true };
@@ -227,7 +243,7 @@ export class DriveHandlers extends BaseHandler {
       await googleDriveService.disconnect();
 
       // Clear stored credentials from local store
-      (this.store as any).delete('google-drive-credentials');
+      (this.store as ElectronStoreTyped).delete('google-drive-credentials');
 
       // Clear from Supabase user_profiles.preferences
       // Get current user from auth service (don't rely on instance variable)

@@ -2,7 +2,7 @@ import electron from 'electron';
 import type { IpcMain, BrowserWindow } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import { ClaudeAIService } from '../../../infrastructure/services/ai/ClaudeAIService.js';
-import type { ChatMessage } from '../../../shared/types.js';
+import type { ChatMessage, ChatOptions, PolishOptions, SummaryOptions, TitleOptions } from '../../../shared/types.js';
 
 /**
  * Handles AI-related IPC channels
@@ -45,62 +45,79 @@ export class AIHandlers extends BaseHandler {
     });
 
     // AI: Chat
-    this.handle(ipcMain, 'ai:chat', async (event, message: string, history: ChatMessage[], options?: any) => {
+    this.handle(ipcMain, 'ai:chat', async (_event, message: unknown, history: unknown, options?: unknown) => {
       const aiService = this.getAIService();
       if (!aiService) {
         return { success: false, error: 'AI service not configured. Please set an API key.' };
       }
       
-      const response = await aiService.chat(message, history, options);
+      const response = await aiService.chat(
+        message as string,
+        history as ChatMessage[],
+        options as ChatOptions | undefined
+      );
       return { success: true, data: response };
     });
 
     // AI: Chat stream
-    this.handle(ipcMain, 'ai:chatStream', async (event, message: string, history: ChatMessage[], options: any) => {
+    this.handle(ipcMain, 'ai:chatStream', async (_event, message: unknown, history: unknown, options: unknown) => {
       const aiService = this.getAIService();
       if (!aiService) {
         return { success: false, error: 'AI service not configured. Please set an API key.' };
       }
       
       const mainWindow = this.getMainWindow();
-      await aiService.chatStream(message, history, options, (chunk: string) => {
-        // Send chunk to renderer via IPC
-        mainWindow?.webContents.send('ai:chatChunk', chunk);
-      });
+      await aiService.chatStream(
+        message as string,
+        history as ChatMessage[],
+        options as ChatOptions,
+        (chunk: string) => {
+          // Send chunk to renderer via IPC
+          mainWindow?.webContents.send('ai:chatChunk', chunk);
+        }
+      );
       
       return { success: true };
     });
 
     // AI: Polish transcription
-    this.handle(ipcMain, 'ai:polishTranscription', async (event, text: string, options?: any) => {
+    this.handle(ipcMain, 'ai:polishTranscription', async (_event, text: unknown, options?: unknown) => {
       const aiService = this.getAIService();
       if (!aiService) {
         return { success: false, error: 'AI service not configured. Please set an API key.' };
       }
       
-      const result = await aiService.polishTranscription(text, options);
+      const result = await aiService.polishTranscription(text as string, options as PolishOptions | undefined);
       return { success: true, data: result };
     });
 
     // AI: Generate summary
-    this.handle(ipcMain, 'ai:generateSummary', async (event, transcription: string, notes?: string, options?: any) => {
+    this.handle(ipcMain, 'ai:generateSummary', async (_event, transcription: unknown, notes?: unknown, options?: unknown) => {
       const aiService = this.getAIService();
       if (!aiService) {
         return { success: false, error: 'AI service not configured. Please set an API key.' };
       }
       
-      const result = await aiService.generateSummary(transcription, notes, options);
+      const result = await aiService.generateSummary(
+        transcription as string,
+        notes as string | undefined,
+        options as SummaryOptions | undefined
+      );
       return { success: true, data: result };
     });
 
     // AI: Generate title
-    this.handle(ipcMain, 'ai:generateTitle', async (event, transcription: string, notes?: string, options?: any) => {
+    this.handle(ipcMain, 'ai:generateTitle', async (_event, transcription: unknown, notes?: unknown, options?: unknown) => {
       const aiService = this.getAIService();
       if (!aiService) {
         return { success: false, error: 'AI service not configured. Please set an API key.' };
       }
       
-      const result = await aiService.generateTitle(transcription, notes, options);
+      const result = await aiService.generateTitle(
+        transcription as string,
+        notes as string | undefined,
+        options as TitleOptions | undefined
+      );
       return { success: true, data: result };
     });
   }

@@ -218,7 +218,7 @@ export class SettingsManager {
 
     // Check if already unlocked
     if (isThemeUnlocked(darkThemeId) && isThemeUnlocked(lightThemeId)) {
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.info('🌈 Nyan Cat themes are already unlocked!');
       }
@@ -230,7 +230,7 @@ export class SettingsManager {
     unlockTheme(lightThemeId);
 
     // Show success notification
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       notificationTicker.success('🌈 Secret themes unlocked: Nyan Cat (Dark & Light)!', 4000);
     }
@@ -385,14 +385,14 @@ export class SettingsManager {
         await window.scribeCat.store.set('nugget-notes-settings', this.nuggetNotesSettings);
       }
 
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success('Settings saved successfully!');
       }
       this.closeSettings();
     } catch (error) {
       console.error('Failed to save settings:', error);
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error('Failed to save settings');
       }
@@ -563,7 +563,7 @@ export class SettingsManager {
       const success = await this.themeManager.loadTheme(themeId);
 
       if (!success) {
-        const notificationTicker = (window as any).notificationTicker;
+        const notificationTicker = window.notificationTicker;
         if (notificationTicker) {
           notificationTicker.error('Failed to load theme');
         }
@@ -585,13 +585,13 @@ export class SettingsManager {
         });
       }
 
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.success('Theme applied successfully!');
       }
     } catch (error) {
       console.error('Failed to select theme:', error);
-      const notificationTicker = (window as any).notificationTicker;
+      const notificationTicker = window.notificationTicker;
       if (notificationTicker) {
         notificationTicker.error('Failed to apply theme');
       }

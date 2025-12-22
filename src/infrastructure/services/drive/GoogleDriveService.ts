@@ -13,14 +13,15 @@ import {
   GoogleDriveUploadResult,
   GoogleDriveAuthResult
 } from '../../../domain/services/IGoogleDriveService.js';
-import { google } from 'googleapis';
+import { google, drive_v3 } from 'googleapis';
+import type { OAuth2Client } from 'google-auth-library';
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from '../../../config.js';
 
 export class GoogleDriveService implements IGoogleDriveService {
-  private oauth2Client: any;
-  private drive: any;
+  private oauth2Client: OAuth2Client | null = null;
+  private drive: drive_v3.Drive | null = null;
   private driveConfig: GoogleDriveConfig;
   private userEmail?: string;
 

@@ -28,7 +28,7 @@ export class JeopardyQuestion {
     const question = state.currentQuestion;
     const isCorrect = question.isCorrectAnswer(answer);
 
-    const result = await (window as any).scribeCat.games.jeopardy.submitAnswer({
+    const result = await window.scribeCat.games.jeopardy.submitAnswer({
       gameSessionId: state.session.id,
       questionId: question.id,
       userId: currentUser.userId,
@@ -54,7 +54,7 @@ export class JeopardyQuestion {
   ): Promise<{ success: boolean; error?: string }> {
     console.log('[JeopardyQuestion] Skipping question - no more answers');
 
-    const result = await (window as any).scribeCat.games.jeopardy.skipQuestion({
+    const result = await window.scribeCat.games.jeopardy.skipQuestion({
       gameSessionId,
       questionId,
     });
@@ -72,7 +72,7 @@ export class JeopardyQuestion {
    * Set current user as the current player (after correct answer)
    */
   static async setAsCurrentPlayer(gameSessionId: string, userId: string): Promise<void> {
-    await (window as any).scribeCat.games.jeopardy.setCurrentPlayer({
+    await window.scribeCat.games.jeopardy.setCurrentPlayer({
       gameSessionId,
       userId,
     });

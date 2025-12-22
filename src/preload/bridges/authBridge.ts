@@ -6,6 +6,8 @@
 
 const { ipcRenderer } = require('electron');
 
+import { AuthChannels, OAuthChannels } from '../../shared/IpcChannels.js';
+
 interface SignInWithEmailParams {
   email: string;
   password: string;
@@ -20,42 +22,42 @@ interface SignUpWithEmailParams {
 export const authBridge = {
   // Email auth
   signInWithEmail: (params: SignInWithEmailParams) =>
-    ipcRenderer.invoke('auth:signInWithEmail', params),
+    ipcRenderer.invoke(AuthChannels.SIGN_IN_WITH_EMAIL, params),
   signUpWithEmail: (params: SignUpWithEmailParams) =>
-    ipcRenderer.invoke('auth:signUpWithEmail', params),
-  signOut: () => ipcRenderer.invoke('auth:signOut'),
+    ipcRenderer.invoke(AuthChannels.SIGN_UP_WITH_EMAIL, params),
+  signOut: () => ipcRenderer.invoke(AuthChannels.SIGN_OUT),
 
   // Google OAuth
   signInWithGoogle: (codeChallenge: string) =>
-    ipcRenderer.invoke('auth:signInWithGoogle', codeChallenge),
+    ipcRenderer.invoke(AuthChannels.SIGN_IN_WITH_GOOGLE, codeChallenge),
   openOAuthWindow: (authUrl: string) =>
-    ipcRenderer.invoke('auth:openOAuthWindow', authUrl),
+    ipcRenderer.invoke(AuthChannels.OPEN_OAUTH_WINDOW, authUrl),
 
   // Session management
-  getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
-  isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated'),
-  getAccessToken: () => ipcRenderer.invoke('auth:getAccessToken'),
+  getCurrentUser: () => ipcRenderer.invoke(AuthChannels.GET_CURRENT_USER),
+  isAuthenticated: () => ipcRenderer.invoke(AuthChannels.IS_AUTHENTICATED),
+  getAccessToken: () => ipcRenderer.invoke(AuthChannels.GET_ACCESS_TOKEN),
   sessionChanged: (data: { userId: string | null; accessToken?: string; refreshToken?: string }) =>
-    ipcRenderer.invoke('auth:sessionChanged', data),
+    ipcRenderer.invoke(AuthChannels.SESSION_CHANGED, data),
 
   // Username
   checkUsernameAvailability: (username: string) =>
-    ipcRenderer.invoke('auth:checkUsernameAvailability', username),
+    ipcRenderer.invoke(AuthChannels.CHECK_USERNAME_AVAILABILITY, username),
   setUsername: (username: string) =>
-    ipcRenderer.invoke('auth:setUsername', username),
+    ipcRenderer.invoke(AuthChannels.SET_USERNAME, username),
 
   // OAuth waiting window
-  showOAuthWaitingWindow: () => ipcRenderer.invoke('oauth:showWaitingWindow'),
-  closeOAuthWaitingWindow: () => ipcRenderer.invoke('oauth:closeWaitingWindow'),
+  showOAuthWaitingWindow: () => ipcRenderer.invoke(OAuthChannels.SHOW_WAITING_WINDOW),
+  closeOAuthWaitingWindow: () => ipcRenderer.invoke(OAuthChannels.CLOSE_WAITING_WINDOW),
 
   onOAuthCodeReceived: (callback: (code: string) => void) => {
-    ipcRenderer.on('oauth:code-received', (_event: Electron.IpcRendererEvent, code: string) => callback(code));
+    ipcRenderer.on(OAuthChannels.CODE_RECEIVED, (_event: Electron.IpcRendererEvent, code: string) => callback(code));
   },
   onOAuthCancelled: (callback: () => void) => {
-    ipcRenderer.on('oauth:cancelled', () => callback());
+    ipcRenderer.on(OAuthChannels.CANCELLED, () => callback());
   },
   removeOAuthListeners: () => {
-    ipcRenderer.removeAllListeners('oauth:code-received');
-    ipcRenderer.removeAllListeners('oauth:cancelled');
+    ipcRenderer.removeAllListeners(OAuthChannels.CODE_RECEIVED);
+    ipcRenderer.removeAllListeners(OAuthChannels.CANCELLED);
   },
 };

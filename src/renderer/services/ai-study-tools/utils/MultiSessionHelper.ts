@@ -20,7 +20,7 @@ export class MultiSessionHelper {
     }
 
     try {
-      const result = await (window as any).scribeCat.session.list();
+      const result = await window.scribeCat.session.list();
 
       if (result.success && result.sessions) {
         console.log(`📋 Loaded ${result.sessions.length} total sessions from IPC`);

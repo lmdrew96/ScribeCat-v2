@@ -212,7 +212,7 @@ export class IPCCoordinator {
 
         // Update local repository (FileSessionRepository) to filter by user ID
         if ('setUserId' in this.services.sessionRepository) {
-          (this.services.sessionRepository as any).setUserId(data.userId);
+          (this.services.sessionRepository as { setUserId(id: string | null): void }).setUserId(data.userId);
         }
 
         // Update SessionHandlers with user ID for auto-claiming orphaned sessions

@@ -104,7 +104,7 @@ export class FilterSortManager {
     }
 
     // Show notification
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       const config = SORT_OPTIONS[sort];
       notificationTicker.info(`Sorted by: ${config.label}`, 2000);
@@ -143,7 +143,7 @@ export class FilterSortManager {
     this.saveState();
     this.notifyFilterChange();
 
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       notificationTicker.info('Filters cleared', 2000);
     }

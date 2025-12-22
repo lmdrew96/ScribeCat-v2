@@ -6,13 +6,15 @@
 
 const { ipcRenderer } = require('electron');
 
+import { DevChannels } from '../../shared/IpcChannels.js';
+
 export const devBridge = {
   onHotReloadNotification: (callback: (message: string) => void) => {
-    ipcRenderer.on('dev:hot-reload-notification', (_event: Electron.IpcRendererEvent, message: string) =>
+    ipcRenderer.on(DevChannels.HOT_RELOAD_NOTIFICATION, (_event: Electron.IpcRendererEvent, message: string) =>
       callback(message)
     );
   },
   removeHotReloadListener: () => {
-    ipcRenderer.removeAllListeners('dev:hot-reload-notification');
+    ipcRenderer.removeAllListeners(DevChannels.HOT_RELOAD_NOTIFICATION);
   },
 };

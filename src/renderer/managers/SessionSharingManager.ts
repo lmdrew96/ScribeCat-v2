@@ -42,7 +42,7 @@ export class SessionSharingManager {
    */
   async checkSessionAccess(sessionId: string): Promise<SessionAccessInfo> {
     try {
-      const result = await (window as any).scribeCat.share.checkAccess(sessionId);
+      const result = await window.scribeCat.share.checkAccess(sessionId);
 
       if (!result.success) {
         return {
@@ -75,7 +75,7 @@ export class SessionSharingManager {
    */
   async shareSession(params: ShareSessionParams): Promise<{ success: boolean; error?: string; share?: SessionShare }> {
     try {
-      const result = await (window as any).scribeCat.share.create(params);
+      const result = await window.scribeCat.share.create(params);
 
       if (!result.success) {
         return {
@@ -102,7 +102,7 @@ export class SessionSharingManager {
    */
   async getSessionShares(sessionId: string): Promise<{ success: boolean; shares?: SessionShare[]; error?: string }> {
     try {
-      const result = await (window as any).scribeCat.share.getSessionShares(sessionId);
+      const result = await window.scribeCat.share.getSessionShares(sessionId);
 
       if (!result.success) {
         return {
@@ -129,7 +129,7 @@ export class SessionSharingManager {
    */
   async getSharedWithMe(): Promise<{ success: boolean; sessions?: any[]; error?: string }> {
     try {
-      const result = await (window as any).scribeCat.share.getSharedWithMe();
+      const result = await window.scribeCat.share.getSharedWithMe();
 
       if (!result.success) {
         return {
@@ -156,7 +156,7 @@ export class SessionSharingManager {
    */
   async updateSharePermission(shareId: string, permissionLevel: 'viewer' | 'editor'): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await (window as any).scribeCat.share.updatePermission({ shareId, permissionLevel });
+      const result = await window.scribeCat.share.updatePermission({ shareId, permissionLevel });
 
       if (!result.success) {
         return {
@@ -180,7 +180,7 @@ export class SessionSharingManager {
    */
   async revokeAccess(shareId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await (window as any).scribeCat.share.remove({ shareId });
+      const result = await window.scribeCat.share.remove({ shareId });
 
       if (!result.success) {
         return {

@@ -8,35 +8,38 @@
  */
 
 const { ipcRenderer } = require('electron');
+import { GamesChannels, GamesJeopardyChannels } from '../../shared/IpcChannels.js';
+import type { GameConfig } from '../../domain/entities/GameSession.js';
+import type { CreateGameQuestionParams } from '../../domain/repositories/IGameRepository.js';
 
 export const gamesBridge = {
   // Game session management
-  createGameSession: (params: { roomId: string; gameType: string; config: any }) =>
-    ipcRenderer.invoke('games:create-session', params),
+  createGameSession: (params: { roomId: string; gameType: string; config: GameConfig }) =>
+    ipcRenderer.invoke(GamesChannels.CREATE_SESSION, params),
   getGameSession: (gameSessionId: string) =>
-    ipcRenderer.invoke('games:get-session', gameSessionId),
+    ipcRenderer.invoke(GamesChannels.GET_SESSION, gameSessionId),
   getActiveGameForRoom: (roomId: string) =>
-    ipcRenderer.invoke('games:get-active-game', roomId),
+    ipcRenderer.invoke(GamesChannels.GET_ACTIVE_GAME, roomId),
   startGame: (gameSessionId: string) =>
-    ipcRenderer.invoke('games:start', gameSessionId),
+    ipcRenderer.invoke(GamesChannels.START, gameSessionId),
   completeGame: (gameSessionId: string) =>
-    ipcRenderer.invoke('games:complete', gameSessionId),
+    ipcRenderer.invoke(GamesChannels.COMPLETE, gameSessionId),
   cancelGame: (gameSessionId: string) =>
-    ipcRenderer.invoke('games:cancel', gameSessionId),
+    ipcRenderer.invoke(GamesChannels.CANCEL, gameSessionId),
 
   // Questions
   nextQuestion: (gameSessionId: string) =>
-    ipcRenderer.invoke('games:next-question', gameSessionId),
-  createGameQuestions: (questions: any[]) =>
-    ipcRenderer.invoke('games:create-questions', questions),
+    ipcRenderer.invoke(GamesChannels.NEXT_QUESTION, gameSessionId),
+  createGameQuestions: (questions: CreateGameQuestionParams[]) =>
+    ipcRenderer.invoke(GamesChannels.CREATE_QUESTIONS, questions),
   getCurrentQuestion: (gameSessionId: string) =>
-    ipcRenderer.invoke('games:get-current-question', gameSessionId),
+    ipcRenderer.invoke(GamesChannels.GET_CURRENT_QUESTION, gameSessionId),
   getGameQuestions: (gameSessionId: string, includeAnswers: boolean) =>
-    ipcRenderer.invoke('games:get-questions', gameSessionId, includeAnswers),
+    ipcRenderer.invoke(GamesChannels.GET_QUESTIONS, gameSessionId, includeAnswers),
   getGameQuestion: (gameSessionId: string, questionId: string) =>
-    ipcRenderer.invoke('games:get-question', gameSessionId, questionId),
+    ipcRenderer.invoke(GamesChannels.GET_QUESTION, gameSessionId, questionId),
   getCorrectAnswer: (params: { gameSessionId: string; questionId: string; userId: string }) =>
-    ipcRenderer.invoke('games:get-correct-answer', params),
+    ipcRenderer.invoke(GamesChannels.GET_CORRECT_ANSWER, params),
 
   // Answers & scoring
   submitAnswer: (params: {
@@ -45,32 +48,32 @@ export const gamesBridge = {
     questionId: string;
     answer: string;
     timeTakenMs: number;
-  }) => ipcRenderer.invoke('games:submit-answer', params),
+  }) => ipcRenderer.invoke(GamesChannels.SUBMIT_ANSWER, params),
   getGameLeaderboard: (gameSessionId: string) =>
-    ipcRenderer.invoke('games:get-leaderboard', gameSessionId),
+    ipcRenderer.invoke(GamesChannels.GET_LEADERBOARD, gameSessionId),
   getPlayerScores: (gameSessionId: string, userId: string) =>
-    ipcRenderer.invoke('games:get-player-scores', gameSessionId, userId),
+    ipcRenderer.invoke(GamesChannels.GET_PLAYER_SCORES, gameSessionId, userId),
 
   // Jeopardy-specific methods
   jeopardy: {
     selectQuestion: (params: { gameSessionId: string; questionId: string; userId: string }) =>
-      ipcRenderer.invoke('games:jeopardy:select-question', params),
+      ipcRenderer.invoke(GamesJeopardyChannels.SELECT_QUESTION, params),
     buzzIn: (params: { gameSessionId: string; questionId: string; userId: string }) =>
-      ipcRenderer.invoke('games:jeopardy:buzz-in', params),
+      ipcRenderer.invoke(GamesJeopardyChannels.BUZZ_IN, params),
     getBuzzers: (questionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:get-buzzers', questionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.GET_BUZZERS, questionId),
     getFirstBuzzer: (questionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:get-first-buzzer', questionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.GET_FIRST_BUZZER, questionId),
     getBoard: (gameSessionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:get-board', gameSessionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.GET_BOARD, gameSessionId),
     setCurrentPlayer: (params: { gameSessionId: string; userId: string }) =>
-      ipcRenderer.invoke('games:jeopardy:set-current-player', params),
+      ipcRenderer.invoke(GamesJeopardyChannels.SET_CURRENT_PLAYER, params),
     getLowestScoringPlayer: (gameSessionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:get-lowest-scoring-player', gameSessionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.GET_LOWEST_SCORING_PLAYER, gameSessionId),
     advanceToFinal: (gameSessionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:advance-to-final', gameSessionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.ADVANCE_TO_FINAL, gameSessionId),
     isBoardComplete: (gameSessionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:is-board-complete', gameSessionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.IS_BOARD_COMPLETE, gameSessionId),
     submitAnswer: (params: {
       gameSessionId: string;
       questionId: string;
@@ -80,21 +83,21 @@ export const gamesBridge = {
       buzzerRank: number;
       wagerAmount?: number;
       timeTakenMs?: number;
-    }) => ipcRenderer.invoke('games:jeopardy:submit-answer', params),
+    }) => ipcRenderer.invoke(GamesJeopardyChannels.SUBMIT_ANSWER, params),
     skipQuestion: (params: { gameSessionId: string; questionId: string }) =>
-      ipcRenderer.invoke('games:jeopardy:skip-question', params),
+      ipcRenderer.invoke(GamesJeopardyChannels.SKIP_QUESTION, params),
     clearBuzzers: (questionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:clear-buzzers', questionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.CLEAR_BUZZERS, questionId),
     // Final Jeopardy
     submitFJWager: (params: { gameSessionId: string; userId: string; wagerAmount: number }) =>
-      ipcRenderer.invoke('games:jeopardy:submit-fj-wager', params),
+      ipcRenderer.invoke(GamesJeopardyChannels.SUBMIT_FJ_WAGER, params),
     allFJWagersSubmitted: (gameSessionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:all-fj-wagers-submitted', gameSessionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.ALL_FJ_WAGERS_SUBMITTED, gameSessionId),
     getFJWagers: (gameSessionId: string) =>
-      ipcRenderer.invoke('games:jeopardy:get-fj-wagers', gameSessionId),
+      ipcRenderer.invoke(GamesJeopardyChannels.GET_FJ_WAGERS, gameSessionId),
     getPlayerFJWager: (params: { gameSessionId: string; userId: string }) =>
-      ipcRenderer.invoke('games:jeopardy:get-player-fj-wager', params),
+      ipcRenderer.invoke(GamesJeopardyChannels.GET_PLAYER_FJ_WAGER, params),
     allFJAnswersSubmitted: (params: { gameSessionId: string; questionId: string }) =>
-      ipcRenderer.invoke('games:jeopardy:all-fj-answers-submitted', params),
+      ipcRenderer.invoke(GamesJeopardyChannels.ALL_FJ_ANSWERS_SUBMITTED, params),
   },
 };

@@ -6,6 +6,8 @@
 
 const { ipcRenderer } = require('electron');
 
+import { SessionChannels, ExportChannels } from '../../shared/IpcChannels.js';
+
 interface ExportOptions {
   includeAudio?: boolean;
   includeTranscription?: boolean;
@@ -17,15 +19,15 @@ interface ExportOptions {
 export const sessionBridge = {
   // List & query
   list: (sortOrder?: 'asc' | 'desc') =>
-    ipcRenderer.invoke('sessions:list', sortOrder),
+    ipcRenderer.invoke(SessionChannels.LIST, sortOrder),
   listWithTags: (tags: string[], sortOrder?: 'asc' | 'desc') =>
-    ipcRenderer.invoke('sessions:listWithTags', tags, sortOrder),
+    ipcRenderer.invoke(SessionChannels.LIST_WITH_TAGS, tags, sortOrder),
 
   // CRUD operations
   delete: (sessionId: string) =>
-    ipcRenderer.invoke('sessions:delete', sessionId),
+    ipcRenderer.invoke(SessionChannels.DELETE, sessionId),
   deleteMultiple: (sessionIds: string[]) =>
-    ipcRenderer.invoke('sessions:deleteMultiple', sessionIds),
+    ipcRenderer.invoke(SessionChannels.DELETE_MULTIPLE, sessionIds),
   update: (
     sessionId: string,
     updates: {
@@ -36,15 +38,15 @@ export const sessionBridge = {
       courseTitle?: string;
       courseNumber?: string;
     }
-  ) => ipcRenderer.invoke('sessions:update', sessionId, updates),
+  ) => ipcRenderer.invoke(SessionChannels.UPDATE, sessionId, updates),
 
   // Export
   export: (sessionId: string, format: string, outputPath: string, options?: ExportOptions) =>
-    ipcRenderer.invoke('session:export', sessionId, format, outputPath, options),
+    ipcRenderer.invoke(SessionChannels.EXPORT, sessionId, format, outputPath, options),
   exportWithDefaults: (sessionId: string, format: string, outputPath: string) =>
-    ipcRenderer.invoke('session:exportWithDefaults', sessionId, format, outputPath),
+    ipcRenderer.invoke(SessionChannels.EXPORT_WITH_DEFAULTS, sessionId, format, outputPath),
   getAvailableFormats: () =>
-    ipcRenderer.invoke('export:getAvailableFormats'),
+    ipcRenderer.invoke(ExportChannels.GET_AVAILABLE_FORMATS),
 
   // Content updates
   updateTranscription: (
@@ -52,35 +54,35 @@ export const sessionBridge = {
     transcriptionText: string,
     provider?: string,
     timestampedEntries?: Array<{ startTime: number; endTime: number; text: string }>
-  ) => ipcRenderer.invoke('session:updateTranscription', sessionId, transcriptionText, provider, timestampedEntries),
+  ) => ipcRenderer.invoke(SessionChannels.UPDATE_TRANSCRIPTION, sessionId, transcriptionText, provider, timestampedEntries),
   updateNotes: (sessionId: string, notes: string) =>
-    ipcRenderer.invoke('session:updateNotes', sessionId, notes),
+    ipcRenderer.invoke(SessionChannels.UPDATE_NOTES, sessionId, notes),
   updateSummary: (sessionId: string, summary: string) =>
-    ipcRenderer.invoke('session:updateSummary', sessionId, summary),
+    ipcRenderer.invoke(SessionChannels.UPDATE_SUMMARY, sessionId, summary),
 
   // Draft & metrics
   createDraft: () =>
-    ipcRenderer.invoke('session:createDraft'),
+    ipcRenderer.invoke(SessionChannels.CREATE_DRAFT),
   addStudyModeTime: (sessionId: string, seconds: number) =>
-    ipcRenderer.invoke('session:addStudyModeTime', sessionId, seconds),
+    ipcRenderer.invoke(SessionChannels.ADD_STUDY_MODE_TIME, sessionId, seconds),
   incrementAIToolUsage: (sessionId: string) =>
-    ipcRenderer.invoke('session:incrementAIToolUsage', sessionId),
+    ipcRenderer.invoke(SessionChannels.INCREMENT_AI_TOOL_USAGE, sessionId),
   incrementAIChatMessages: (sessionId: string, count: number) =>
-    ipcRenderer.invoke('session:incrementAIChatMessages', sessionId, count),
+    ipcRenderer.invoke(SessionChannels.INCREMENT_AI_CHAT_MESSAGES, sessionId, count),
 
   // Trash operations
   getDeleted: (userId?: string) =>
-    ipcRenderer.invoke('sessions:getDeleted', userId),
+    ipcRenderer.invoke(SessionChannels.GET_DELETED, userId),
   restore: (sessionId: string) =>
-    ipcRenderer.invoke('sessions:restore', sessionId),
+    ipcRenderer.invoke(SessionChannels.RESTORE, sessionId),
   restoreMultiple: (sessionIds: string[]) =>
-    ipcRenderer.invoke('sessions:restoreMultiple', sessionIds),
+    ipcRenderer.invoke(SessionChannels.RESTORE_MULTIPLE, sessionIds),
   permanentlyDelete: (sessionId: string) =>
-    ipcRenderer.invoke('sessions:permanentlyDelete', sessionId),
+    ipcRenderer.invoke(SessionChannels.PERMANENTLY_DELETE, sessionId),
   permanentlyDeleteMultiple: (sessionIds: string[]) =>
-    ipcRenderer.invoke('sessions:permanentlyDeleteMultiple', sessionIds),
+    ipcRenderer.invoke(SessionChannels.PERMANENTLY_DELETE_MULTIPLE, sessionIds),
 
   // Multi-session study sets
   createMultiSessionStudySet: (sessionIds: string[], title: string) =>
-    ipcRenderer.invoke('sessions:createMultiSessionStudySet', sessionIds, title),
+    ipcRenderer.invoke(SessionChannels.CREATE_MULTI_SESSION_STUDY_SET, sessionIds, title),
 };

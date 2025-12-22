@@ -270,7 +270,7 @@ export class TranscriptionModeService {
     }
 
     // Display notification to user
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       if (notificationType === 'error') {
         notificationTicker.error(userMessage, 10000); // 10 second duration for errors

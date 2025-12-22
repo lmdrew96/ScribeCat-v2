@@ -92,7 +92,7 @@ export class ViewModeManager {
     }
 
     // Show notification
-    const notificationTicker = (window as any).notificationTicker;
+    const notificationTicker = window.notificationTicker;
     if (notificationTicker) {
       const config = VIEW_MODES[mode];
       notificationTicker.info(`${config.icon} View: ${config.label}`, 2000);

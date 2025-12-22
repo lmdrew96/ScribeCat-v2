@@ -21,11 +21,74 @@ export enum SyncStatus {
 }
 
 /**
+ * AI tool data structures for different tool types
+ */
+export interface FlashcardData {
+  front: string;
+  back: string;
+}
+
+export interface QuizQuestionData {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+  session?: string;
+}
+
+export interface ConceptData {
+  concept: string;
+  definition: string;
+  examples?: string[];
+}
+
+export interface WeakSpotData {
+  topic: string;
+  issue: string;
+  suggestion: string;
+}
+
+export interface StudyPlanData {
+  day: number | string;
+  topic: string;
+  activities: string[];
+}
+
+export interface ConceptMapNodeData {
+  id: string;
+  label: string;
+  type?: string;
+}
+
+export interface ConceptMapEdgeData {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+export interface ConceptMapData {
+  nodes: ConceptMapNodeData[];
+  edges: ConceptMapEdgeData[];
+}
+
+/**
+ * Union type for AI tool result data
+ */
+export type AIToolData =
+  | string // summary, eli5
+  | FlashcardData[]
+  | QuizQuestionData[]
+  | ConceptData[]
+  | WeakSpotData[]
+  | StudyPlanData[]
+  | ConceptMapData;
+
+/**
  * AI tool result record for persistent storage
  */
 export interface AIToolResult {
   toolType: 'summary' | 'flashcards' | 'quiz' | 'concept' | 'weak_spots' | 'eli5' | 'study_plan' | 'concept_map';
-  data: any; // Flexible structure for each tool's data
+  data: AIToolData;
   generatedAt: Date;
   regenerationCount: number; // Track how many times this was regenerated
 }
@@ -176,7 +239,7 @@ export class Session {
   /**
    * Save AI tool result
    */
-  saveAIToolResult(toolType: AIToolResult['toolType'], data: any): void {
+  saveAIToolResult(toolType: AIToolResult['toolType'], data: AIToolData): void {
     const existingResult = this.aiToolResults[toolType];
 
     this.aiToolResults[toolType] = {

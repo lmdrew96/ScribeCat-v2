@@ -12,7 +12,7 @@ export class JeopardyBoard {
    */
   static async loadBoard(gameSessionId: string): Promise<JeopardyBoardCell[] | null> {
     console.log('[JeopardyBoard] loadBoard() - Fetching board for game:', gameSessionId);
-    const result = await (window as any).scribeCat.games.jeopardy.getBoard(gameSessionId);
+    const result = await window.scribeCat.games.jeopardy.getBoard(gameSessionId);
     console.log('[JeopardyBoard] loadBoard() - Result:', result);
 
     if (result.success && result.board) {
@@ -34,7 +34,7 @@ export class JeopardyBoard {
   ): Promise<{ success: boolean; error?: string }> {
     console.log('[JeopardyBoard] selectQuestion() called with questionId:', questionId);
 
-    const result = await (window as any).scribeCat.games.jeopardy.selectQuestion({
+    const result = await window.scribeCat.games.jeopardy.selectQuestion({
       gameSessionId,
       questionId,
       userId,

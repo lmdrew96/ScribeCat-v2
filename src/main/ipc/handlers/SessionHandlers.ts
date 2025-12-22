@@ -9,6 +9,7 @@ import { RestoreSessionUseCase } from '../../../application/use-cases/RestoreSes
 import { PermanentlyDeleteSessionUseCase } from '../../../application/use-cases/PermanentlyDeleteSessionUseCase.js';
 import { GetDeletedSessionsUseCase } from '../../../application/use-cases/GetDeletedSessionsUseCase.js';
 import { CreateMultiSessionStudySetUseCase } from '../../../application/use-cases/CreateMultiSessionStudySetUseCase.js';
+import type { ExportOptions } from '../../../shared/types.js';
 
 /**
  * Handles session-related IPC channels
@@ -77,7 +78,12 @@ export class SessionHandlers extends BaseHandler {
     });
 
     // Export handler
-    this.handle(ipcMain, 'session:export', async (event, sessionId: string, format: string, outputPath: string, options?: any) => {
+    this.handle(ipcMain, 'session:export', async (_event, ...args: unknown[]) => {
+      const sessionId = args[0] as string;
+      const format = args[1] as string;
+      const outputPath = args[2] as string;
+      const options = args[3] as ExportOptions | undefined;
+      
       const result = await this.exportSessionUseCase.execute(
         sessionId,
         format as 'txt' | 'pdf' | 'docx' | 'html',
@@ -88,7 +94,11 @@ export class SessionHandlers extends BaseHandler {
     });
 
     // Export with defaults handler
-    this.handle(ipcMain, 'session:exportWithDefaults', async (event, sessionId: string, format: string, outputPath: string) => {
+    this.handle(ipcMain, 'session:exportWithDefaults', async (_event, ...args: unknown[]) => {
+      const sessionId = args[0] as string;
+      const format = args[1] as string;
+      const outputPath = args[2] as string;
+      
       const result = await this.exportSessionUseCase.executeWithDefaults(
         sessionId,
         format as 'txt' | 'pdf' | 'docx' | 'html',

@@ -5,6 +5,11 @@
  * Pure business entity with no external dependencies.
  */
 
+/**
+ * User preference value - can be string, number, boolean, or nested object
+ */
+export type UserPreferenceValue = string | number | boolean | null | UserPreferenceValue[] | { [key: string]: UserPreferenceValue };
+
 export interface UserData {
   id: string;
   email: string;
@@ -14,7 +19,7 @@ export interface UserData {
   googleId?: string;
   createdAt: Date;
   updatedAt: Date;
-  preferences: Record<string, any>;
+  preferences: Record<string, UserPreferenceValue>;
 }
 
 export class User {
@@ -27,7 +32,7 @@ export class User {
     public readonly googleId: string | undefined,
     public readonly createdAt: Date,
     public updatedAt: Date,
-    public preferences: Record<string, any> = {}
+    public preferences: Record<string, UserPreferenceValue> = {}
   ) {}
 
   /**
@@ -68,7 +73,7 @@ export class User {
   /**
    * Set a user preference
    */
-  setPreference(key: string, value: any): void {
+  setPreference(key: string, value: UserPreferenceValue): void {
     this.preferences[key] = value;
     this.updatedAt = new Date();
   }
@@ -76,8 +81,8 @@ export class User {
   /**
    * Get a user preference
    */
-  getPreference(key: string, defaultValue?: any): any {
-    return this.preferences[key] !== undefined ? this.preferences[key] : defaultValue;
+  getPreference<T extends UserPreferenceValue>(key: string, defaultValue?: T): T | undefined {
+    return this.preferences[key] !== undefined ? (this.preferences[key] as T) : defaultValue;
   }
 
   /**

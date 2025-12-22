@@ -68,7 +68,7 @@ export class JeopardyFinalRound {
             onWagerReceived(data.user_id, data.wager_amount);
 
             // Check if all wagers are in
-            const result = await (window as any).scribeCat.games.jeopardy.allFJWagersSubmitted(gameSessionId);
+            const result = await window.scribeCat.games.jeopardy.allFJWagersSubmitted(gameSessionId);
             console.log('[JeopardyFinalRound] All FJ wagers submitted check:', result);
 
             if (result.success && result.allSubmitted) {
@@ -96,7 +96,7 @@ export class JeopardyFinalRound {
   ): Promise<{ success: boolean; error?: string }> {
     console.log(`[JeopardyFinalRound] Submitting FJ wager: $${wagerAmount}`);
 
-    const result = await (window as any).scribeCat.games.jeopardy.submitFJWager({
+    const result = await window.scribeCat.games.jeopardy.submitFJWager({
       gameSessionId,
       userId,
       wagerAmount,
@@ -164,7 +164,7 @@ export class JeopardyFinalRound {
     const isCorrect = question.isCorrectAnswer(answer);
     const wagerAmount = state.wagerAmount || 0;
 
-    const result = await (window as any).scribeCat.games.jeopardy.submitAnswer({
+    const result = await window.scribeCat.games.jeopardy.submitAnswer({
       gameSessionId: state.session.id,
       questionId: question.id,
       userId: currentUser.userId,
@@ -190,7 +190,7 @@ export class JeopardyFinalRound {
     gameSessionId: string,
     questionId: string
   ): Promise<boolean> {
-    const result = await (window as any).scribeCat.games.jeopardy.allFJAnswersSubmitted({
+    const result = await window.scribeCat.games.jeopardy.allFJAnswersSubmitted({
       gameSessionId,
       questionId,
     });
@@ -204,12 +204,12 @@ export class JeopardyFinalRound {
    */
   async checkForFinalJeopardy(gameSessionId: string): Promise<boolean> {
     try {
-      const result = await (window as any).scribeCat.games.jeopardy.isBoardComplete(gameSessionId);
+      const result = await window.scribeCat.games.jeopardy.isBoardComplete(gameSessionId);
       console.log('[JeopardyFinalRound] Board complete check:', result);
 
       if (result.success && result.isComplete) {
         console.log('[JeopardyFinalRound] Board is complete! Advancing to Final Jeopardy...');
-        const advanceResult = await (window as any).scribeCat.games.jeopardy.advanceToFinal(gameSessionId);
+        const advanceResult = await window.scribeCat.games.jeopardy.advanceToFinal(gameSessionId);
         console.log('[JeopardyFinalRound] Advance to Final result:', advanceResult);
         return true;
       }
