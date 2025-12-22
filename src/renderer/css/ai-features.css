@@ -42,41 +42,6 @@
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
 }
 
-/* Badge on floating chat button */
-.chat-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-  color: white;
-  border-radius: 12px;
-  min-width: 24px;
-  height: 24px;
-  padding: 2px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(238, 90, 111, 0.4);
-  z-index: 901;
-}
-
-.chat-badge.pulse {
-  animation: badge-pulse 2s ease-in-out infinite;
-}
-
-@keyframes badge-pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(238, 90, 111, 0.4);
-  }
-  50% {
-    transform: scale(1.1);
-    box-shadow: 0 4px 16px rgba(238, 90, 111, 0.6);
-  }
-}
-
 /* ===== AI Chat Drawer ===== */
 .ai-chat-drawer {
   position: fixed;
@@ -251,11 +216,165 @@
   display: flex;
 }
 
-/* Live suggestions panel in tab */
-#suggestions-tab-content .live-suggestions-panel {
+/* Nugget's Notes panel in tab */
+#notes-tab-content .nugget-notes-panel {
   flex: 1;
   overflow-y: auto;
   padding: 0;
+}
+
+/* ===== Nugget's Notes Panel Styles ===== */
+.nugget-notes-panel {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(118, 75, 162, 0.03) 100%);
+}
+
+.nugget-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.nugget-note-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  border-left: 3px solid var(--accent);
+  transition: all 0.2s ease;
+}
+
+.nugget-note-bubble:hover {
+  background: var(--bg-secondary);
+  transform: translateX(2px);
+}
+
+.nugget-note-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.nugget-notes-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--text-tertiary);
+}
+
+.nugget-notes-empty-icon {
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.nugget-notes-empty-icon svg {
+  stroke: var(--text-tertiary);
+}
+
+.nugget-notes-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+}
+
+.nugget-notes-empty-subtitle {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0;
+  opacity: 0.8;
+}
+
+/* Nugget's Notes in Study Mode */
+.nugget-notes-list-study {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.nugget-note-bubble-study {
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  transition: background 0.15s ease;
+}
+
+.nugget-note-bubble-study:hover {
+  background: var(--bg-secondary);
+}
+
+.nugget-notes-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: 8px 16px 16px;
+  margin: 0;
+}
+
+.nugget-notes-empty-study {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.nugget-notes-empty-study p {
+  margin: 0 0 8px 0;
+}
+
+.nugget-notes-empty-study .help-text {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.nugget-notes-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-tertiary);
+}
+
+.nugget-notes-recording-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-top: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ef4444;
+  animation: pulse-recording 2s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 /* ===== AI Features Styles ===== */

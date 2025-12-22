@@ -6,27 +6,35 @@
 
 import type { Session } from '../../../domain/entities/Session.js';
 import { AISummaryManager } from '../../services/AISummaryManager.js';
-import { SmartSuggestionEngine, type SuggestionAction } from '../../ai/SmartSuggestionEngine.js';
-import { ContentAnalyzer } from '../../ai/ContentAnalyzer.js';
 import { createLogger } from '../../../shared/logger.js';
 import { getIconHTML } from '../../utils/iconMap.js';
 
 const logger = createLogger('StudyModeAIToolsManager');
 
+/**
+ * Type for AI study tool actions
+ */
+type AIStudyToolAction = 
+  | 'summary' 
+  | 'concept' 
+  | 'flashcards' 
+  | 'quiz' 
+  | 'weak_spots' 
+  | 'eli5' 
+  | 'study_plan' 
+  | 'concept_map'
+  | 'bookmark'
+  | 'highlight'
+  | 'note_prompt';
+
 export class StudyModeAIToolsManager {
   private aiSummaryManager: AISummaryManager;
   private studyContentArea: HTMLElement | null = null;
   private aiToolsContainer: HTMLElement | null = null;
-  private suggestionEngine: SmartSuggestionEngine;
-  private contentAnalyzer: ContentAnalyzer;
   private currentSession: Session | null = null;
 
   constructor(aiSummaryManager: AISummaryManager) {
     this.aiSummaryManager = aiSummaryManager;
-
-    // Initialize AI components
-    this.contentAnalyzer = new ContentAnalyzer();
-    this.suggestionEngine = new SmartSuggestionEngine(this.contentAnalyzer);
   }
 
   /**
@@ -77,7 +85,7 @@ export class StudyModeAIToolsManager {
    */
   private generateChatHTML(): string {
     // Generate all 8 AI tool chips (learn mode merged into flashcards)
-    const allTools: SuggestionAction[] = [
+    const allTools: AIStudyToolAction[] = [
       'summary',
       'concept',
       'flashcards',
@@ -127,7 +135,7 @@ export class StudyModeAIToolsManager {
 
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
-        const action = chip.getAttribute('data-action') as SuggestionAction;
+        const action = chip.getAttribute('data-action') as AIStudyToolAction;
         if (this.currentSession) {
           this.handleToolAction(action, this.currentSession);
         }
@@ -136,22 +144,11 @@ export class StudyModeAIToolsManager {
   }
 
   /**
-   * Analyze session content and update suggestion engine
-   */
-  private analyzeSessionContent(session: Session): void {
-    // Update content analyzer with session data
-    const transcription = session.transcription || '';
-    const notes = session.notes || '';
-
-    this.contentAnalyzer.updateContent(transcription, notes);
-  }
-
-  /**
    * Get metadata for an action
    */
-  private getActionMetadata(action: SuggestionAction): { icon: string; label: string } {
+  private getActionMetadata(action: AIStudyToolAction): { icon: string; label: string } {
     const iconSize = 16;
-    const metadata: Record<SuggestionAction, { icon: string; label: string }> = {
+    const metadata: Record<AIStudyToolAction, { icon: string; label: string }> = {
       'summary': { icon: getIconHTML('file', { size: iconSize }), label: 'Summary' },
       'concept': { icon: getIconHTML('lightbulb', { size: iconSize }), label: 'Key Concepts' },
       'flashcards': { icon: getIconHTML('layers', { size: iconSize }), label: 'Flashcards' },
@@ -194,7 +191,7 @@ export class StudyModeAIToolsManager {
   /**
    * Handle AI tool action from inline chat
    */
-  private async handleToolAction(action: SuggestionAction, session: Session): Promise<void> {
+  private async handleToolAction(action: AIStudyToolAction, session: Session): Promise<void> {
     const activeContentArea = this.getActiveContentArea();
     if (!activeContentArea) return;
 

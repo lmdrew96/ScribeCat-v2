@@ -118,7 +118,7 @@ export class ClaudeAIService implements IAIService {
       ];
 
       const response = await this.client.messages.create({
-        model: this.config.model || this.defaultModel,
+        model: options?.model || this.config.model || this.defaultModel,
         max_tokens: options?.maxTokens || this.maxTokens,
         temperature: options?.temperature || 0.7,
         system: this.buildSystemPrompt(options),
@@ -162,7 +162,7 @@ export class ClaudeAIService implements IAIService {
       ];
 
       const stream = await this.client.messages.create({
-        model: this.config.model || this.defaultModel,
+        model: options?.model || this.config.model || this.defaultModel,
         max_tokens: options?.maxTokens || this.maxTokens,
         temperature: options?.temperature || 0.7,
         system: this.buildSystemPrompt(options),

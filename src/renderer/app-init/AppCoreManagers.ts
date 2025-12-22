@@ -72,6 +72,19 @@ export class AppCoreManagers {
     const notesAutoSaveManager = new NotesAutoSaveManager(editorManager);
     notesAutoSaveManager.initialize();
 
+    // Set up Nugget's Notes auto-save callback
+    aiManager.setNotesAutoSaveCallback(async (notes) => {
+      const sessionId = notesAutoSaveManager.getCurrentSessionId();
+      if (sessionId && notes.length > 0) {
+        const key = `nugget-notes-${sessionId}`;
+        await window.scribeCat.store.set(key, {
+          notes: notes,
+          savedAt: new Date().toISOString()
+        });
+        console.log(`📝 Auto-saved ${notes.length} Nugget's Notes to ${key}`);
+      }
+    });
+
     // Expose notesAutoSaveManager globally
     (window as any).notesAutoSaveManager = notesAutoSaveManager;
 
@@ -97,7 +110,8 @@ export class AppCoreManagers {
       transcriptionManager,
       notesAutoSaveManager,
       viewManager,
-      recordingManager
+      recordingManager,
+      chatUI
     );
 
     // Initialize editor

@@ -6,9 +6,8 @@
 import { ChatMessage } from '../../shared/types.js';
 import { renderMarkdown } from '../utils/markdown-renderer.js';
 import { getRandomCatFact } from '../utils/cat-facts.js';
-import { LiveSuggestionsPanel } from '../components/LiveSuggestionsPanel.js';
-import { ContentAnalyzer } from './ContentAnalyzer.js';
-import { WordTiming } from './analysis/types.js';
+import { NuggetNotesOrchestrator } from './NuggetNotesOrchestrator.js';
+import type { NuggetNote } from './NuggetNotesService.js';
 
 export class ChatUI {
   private chatDrawer: HTMLElement | null = null;
@@ -20,25 +19,22 @@ export class ChatUI {
   private closeDrawerBtn: HTMLButtonElement | null = null;
   private includeTranscriptionCheckbox: HTMLInputElement | null = null;
   private includeNotesCheckbox: HTMLInputElement | null = null;
-  private chatBadge: HTMLElement | null = null;
-  private liveSuggestionsPanel: HTMLElement | null = null;
+  private nuggetNotesPanel: HTMLElement | null = null;
 
   // Tab elements
   private chatTabBtn: HTMLButtonElement | null = null;
-  private suggestionsTabBtn: HTMLButtonElement | null = null;
+  private notesTabBtn: HTMLButtonElement | null = null;
   private chatTabContent: HTMLElement | null = null;
-  private suggestionsTabContent: HTMLElement | null = null;
-  private suggestionsBadge: HTMLElement | null = null;
+  private notesTabContent: HTMLElement | null = null;
 
   private isChatOpen: boolean = false;
-  private liveSuggestions: LiveSuggestionsPanel | null = null;
-  private contentAnalyzer: ContentAnalyzer;
-  private currentTab: 'chat' | 'suggestions' = 'chat';
+  private notesOrchestrator: NuggetNotesOrchestrator;
+  private currentTab: 'chat' | 'notes' = 'chat';
 
-  constructor(contentAnalyzer: ContentAnalyzer) {
-    this.contentAnalyzer = contentAnalyzer;
+  constructor(notesOrchestrator: NuggetNotesOrchestrator) {
+    this.notesOrchestrator = notesOrchestrator;
     this.setupUIElements();
-    this.initializeLiveSuggestions();
+    this.initializeNuggetNotesPanel();
     this.setupTabListeners();
   }
 
@@ -55,15 +51,13 @@ export class ChatUI {
     this.closeDrawerBtn = document.getElementById('close-drawer-btn') as HTMLButtonElement;
     this.includeTranscriptionCheckbox = document.getElementById('include-transcription') as HTMLInputElement;
     this.includeNotesCheckbox = document.getElementById('include-notes') as HTMLInputElement;
-    this.chatBadge = document.getElementById('chat-badge');
-    this.liveSuggestionsPanel = document.getElementById('live-suggestions-panel');
+    this.nuggetNotesPanel = document.getElementById('nugget-notes-panel');
 
     // Tab elements
     this.chatTabBtn = document.getElementById('chat-tab-btn') as HTMLButtonElement;
-    this.suggestionsTabBtn = document.getElementById('suggestions-tab-btn') as HTMLButtonElement;
+    this.notesTabBtn = document.getElementById('notes-tab-btn') as HTMLButtonElement;
     this.chatTabContent = document.getElementById('chat-tab-content');
-    this.suggestionsTabContent = document.getElementById('suggestions-tab-content');
-    this.suggestionsBadge = document.getElementById('suggestions-badge');
+    this.notesTabContent = document.getElementById('notes-tab-content');
   }
 
   /**
@@ -71,63 +65,35 @@ export class ChatUI {
    */
   private setupTabListeners(): void {
     this.chatTabBtn?.addEventListener('click', () => this.switchTab('chat'));
-    this.suggestionsTabBtn?.addEventListener('click', () => this.switchTab('suggestions'));
+    this.notesTabBtn?.addEventListener('click', () => this.switchTab('notes'));
   }
 
   /**
-   * Switch between chat and suggestions tabs
+   * Switch between chat and notes tabs
    */
-  private switchTab(tab: 'chat' | 'suggestions'): void {
+  private switchTab(tab: 'chat' | 'notes'): void {
     this.currentTab = tab;
 
     // Update tab buttons
     if (tab === 'chat') {
       this.chatTabBtn?.classList.add('active');
-      this.suggestionsTabBtn?.classList.remove('active');
+      this.notesTabBtn?.classList.remove('active');
       this.chatTabContent?.classList.add('active');
-      this.suggestionsTabContent?.classList.remove('active');
+      this.notesTabContent?.classList.remove('active');
     } else {
       this.chatTabBtn?.classList.remove('active');
-      this.suggestionsTabBtn?.classList.add('active');
+      this.notesTabBtn?.classList.add('active');
       this.chatTabContent?.classList.remove('active');
-      this.suggestionsTabContent?.classList.add('active');
+      this.notesTabContent?.classList.add('active');
     }
   }
 
   /**
-   * Initialize live suggestions panel
+   * Initialize Nugget's Notes panel
    */
-  private initializeLiveSuggestions(): void {
-    // Use the shared ContentAnalyzer instance passed in constructor
-    // This ensures we analyze the same data that AIManager is tracking
-    this.liveSuggestions = new LiveSuggestionsPanel(this.contentAnalyzer, {
-      onBadgeUpdate: (count: number) => {
-        this.updateBadge(count);
-      },
-      onSuggestionClick: (suggestion) => {
-        // Delegate to RecordingManager which has access to all necessary managers
-        const recordingManager = (window as any).recordingManager;
-        if (recordingManager?.handleSuggestionAction) {
-          recordingManager.handleSuggestionAction(suggestion);
-        } else {
-          console.warn('RecordingManager not available for suggestion action');
-        }
-      },
-      onUndoClick: () => {
-        // Delegate to RecordingManager's undo functionality
-        const recordingManager = (window as any).recordingManager;
-        if (recordingManager?.undoLastAction) {
-          recordingManager.undoLastAction();
-        } else {
-          console.warn('RecordingManager not available for undo action');
-        }
-      }
-    });
-
-    // Render initial placeholder state
-    if (this.liveSuggestions && this.liveSuggestionsPanel) {
-      const html = this.liveSuggestions.renderPanelHTML();
-      this.liveSuggestionsPanel.innerHTML = html;
+  private initializeNuggetNotesPanel(): void {
+    if (this.nuggetNotesPanel) {
+      this.notesOrchestrator.initializePanel(this.nuggetNotesPanel);
     }
   }
 
@@ -174,12 +140,6 @@ export class ChatUI {
       setTimeout(() => {
         this.chatInput?.focus();
       }, 300);
-    }
-
-    // Ensure Live AI panel has initial content (in case DOM wasn't ready during init)
-    if (this.liveSuggestions && this.liveSuggestionsPanel && !this.liveSuggestionsPanel.innerHTML) {
-      const html = this.liveSuggestions.renderPanelHTML();
-      this.liveSuggestionsPanel.innerHTML = html;
     }
 
     this.trapFocus();
@@ -415,86 +375,51 @@ export class ChatUI {
     }
   }
 
-  // ===== Live Suggestions Methods =====
+  // ===== Nugget's Notes Methods =====
 
   /**
-   * Update badge count and visibility
-   */
-  private updateBadge(count: number): void {
-    // Update main chat badge (on floating button)
-    if (this.chatBadge) {
-      if (count > 0) {
-        this.chatBadge.textContent = count.toString();
-        this.chatBadge.hidden = false;
-        this.chatBadge.classList.add('pulse');
-      } else {
-        this.chatBadge.hidden = true;
-        this.chatBadge.classList.remove('pulse');
-      }
-    }
-
-    // Update suggestions tab badge
-    if (this.suggestionsBadge) {
-      if (count > 0) {
-        this.suggestionsBadge.textContent = count.toString();
-        this.suggestionsBadge.hidden = false;
-      } else {
-        this.suggestionsBadge.hidden = true;
-      }
-    }
-  }
-
-  /**
-   * Start recording mode for live suggestions
+   * Start recording mode for Nugget's Notes
    */
   public startRecording(): void {
-    this.liveSuggestions?.startRecording();
+    this.notesOrchestrator.startRecording();
 
-    // Render initial empty state
-    if (this.liveSuggestions && this.liveSuggestionsPanel) {
-      const html = this.liveSuggestions.renderPanelHTML();
-      this.liveSuggestionsPanel.innerHTML = html;
-    }
-
-    // Auto-switch to suggestions tab when recording starts
-    this.switchTab('suggestions');
+    // Auto-switch to notes tab when recording starts
+    this.switchTab('notes');
   }
 
   /**
-   * Stop recording mode for live suggestions
+   * Stop recording mode for Nugget's Notes
+   * @param finalTranscript Optional final transcript to process before stopping
    */
-  public stopRecording(): void {
-    this.liveSuggestions?.stopRecording();
-
-    // Keep suggestions visible - they remain accessible in the tab
-    // Just update the panel with final state
-    if (this.liveSuggestions && this.liveSuggestionsPanel) {
-      const html = this.liveSuggestions.renderPanelHTML();
-      this.liveSuggestionsPanel.innerHTML = html;
-    }
+  public async stopRecording(finalTranscript?: string): Promise<void> {
+    await this.notesOrchestrator.stopRecording(finalTranscript);
   }
 
   /**
-   * Update live suggestions with latest content
+   * Update notes with transcript chunk
    */
-  public updateLiveSuggestions(transcription: string, notes: string, durationMinutes: number, wordTimings?: WordTiming[]): void {
-    if (!this.liveSuggestions || !this.liveSuggestionsPanel) return;
-
-    // Update suggestions with word timings for accurate phrase timestamps
-    this.liveSuggestions.updateSuggestions(transcription, notes, durationMinutes, wordTimings);
-
-    // Render panel HTML
-    const html = this.liveSuggestions.renderPanelHTML();
-    this.liveSuggestionsPanel.innerHTML = html;
-
-    // Attach event listeners
-    this.liveSuggestions.attachSuggestionListeners(this.liveSuggestionsPanel);
+  public async updateNotes(transcription: string, durationMinutes: number): Promise<void> {
+    await this.notesOrchestrator.processTranscriptChunk(transcription, durationMinutes);
   }
 
   /**
-   * Get live suggestions panel instance
+   * Get all generated notes
    */
-  public getLiveSuggestionsPanel(): LiveSuggestionsPanel | null {
-    return this.liveSuggestions;
+  public getAllNotes(): NuggetNote[] {
+    return this.notesOrchestrator.getAllNotes();
+  }
+
+  /**
+   * Clear all notes (for session reset)
+   */
+  public clearNotes(): void {
+    this.notesOrchestrator.reset();
+  }
+
+  /**
+   * Get the notes orchestrator instance
+   */
+  public getNotesOrchestrator(): NuggetNotesOrchestrator {
+    return this.notesOrchestrator;
   }
 }

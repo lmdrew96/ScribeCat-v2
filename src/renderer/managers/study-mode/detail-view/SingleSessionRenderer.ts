@@ -180,6 +180,7 @@ export class SingleSessionRenderer {
             <div class="session-content-tabs">
               <button class="content-tab active" data-tab="transcription">${getIconHTML('file', { size: 14 })} Transcription</button>
               <button class="content-tab" data-tab="notes">${getIconHTML('pencil', { size: 14 })} Notes</button>
+              <button class="content-tab" data-tab="nugget-notes">${getIconHTML('sparkles', { size: 14 })} Nugget's Notes</button>
               <button class="content-tab ai-tools-tab" data-tab="ai-tools">${getIconHTML('bot', { size: 14 })} Nugget Tools</button>
             </div>
 
@@ -215,6 +216,15 @@ export class SingleSessionRenderer {
               </div>
               <div class="content-panel-inner notes-edit-content hidden">
                 <!-- Notes editor will be injected here by StudyModeNotesEditorManager -->
+              </div>
+            </div>
+
+            <!-- Nugget's Notes Panel (AI-generated notes from recording) -->
+            <div class="session-content-panel" data-panel="nugget-notes">
+              <div class="content-panel-inner nugget-notes-content" data-session-id="${session.id}">
+                <div class="nugget-notes-loading">
+                  <p>Loading Nugget's Notes...</p>
+                </div>
               </div>
             </div>
 

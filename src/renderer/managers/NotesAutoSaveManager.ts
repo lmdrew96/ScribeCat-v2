@@ -221,6 +221,13 @@ export class NotesAutoSaveManager {
   }
 
   /**
+   * Get the current session ID
+   */
+  getCurrentSessionId(): string | null {
+    return this.currentSessionId;
+  }
+
+  /**
    * Save notes immediately (bypasses debounce)
    * Used for critical saves like window close
    */
@@ -274,13 +281,6 @@ export class NotesAutoSaveManager {
     }
 
     logger.debug('Auto-save manager state reset complete');
-  }
-
-  /**
-   * Get current session ID
-   */
-  getCurrentSessionId(): string | null {
-    return this.currentSessionId;
   }
 
   /**

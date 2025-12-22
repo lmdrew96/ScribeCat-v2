@@ -25,6 +25,10 @@ export interface TranscriptionAccuracySettings {
   keyterms?: string[];  // Custom vocabulary for improved accuracy
 }
 
+export interface NuggetNotesSettings {
+  enabled: boolean;
+}
+
 export class SettingsManager {
   private settingsModal: HTMLElement;
   private transcriptionSettings: TranscriptionAccuracySettings = {
@@ -34,6 +38,9 @@ export class SettingsManager {
     disfluencies: true,
     punctuate: true,
     formatText: true
+  };
+  private nuggetNotesSettings: NuggetNotesSettings = {
+    enabled: true
   };
 
   // Specialized managers
@@ -244,6 +251,12 @@ export class SettingsManager {
         this.transcriptionSettings = settings as TranscriptionAccuracySettings;
       }
 
+      // Load nugget notes settings
+      const nuggetSettings = await window.scribeCat.store.get('nugget-notes-settings');
+      if (nuggetSettings) {
+        this.nuggetNotesSettings = nuggetSettings as NuggetNotesSettings;
+      }
+
       // Update UI
       this.updateUIFromSettings();
     } catch (error) {
@@ -286,6 +299,12 @@ export class SettingsManager {
     const soundEffectsCheckbox = document.getElementById('sound-effects-checkbox') as HTMLInputElement;
     if (soundEffectsCheckbox) {
       soundEffectsCheckbox.checked = SoundManager.isEnabled();
+    }
+
+    // Set nugget notes checkbox
+    const nuggetNotesCheckbox = document.getElementById('nugget-notes-checkbox') as HTMLInputElement;
+    if (nuggetNotesCheckbox) {
+      nuggetNotesCheckbox.checked = this.nuggetNotesSettings.enabled;
     }
   }
 
@@ -355,6 +374,15 @@ export class SettingsManager {
         } else {
           SoundManager.disable();
         }
+      }
+
+      // Save nugget notes setting
+      const nuggetNotesCheckbox = document.getElementById('nugget-notes-checkbox') as HTMLInputElement;
+      if (nuggetNotesCheckbox) {
+        this.nuggetNotesSettings = {
+          enabled: nuggetNotesCheckbox.checked
+        };
+        await window.scribeCat.store.set('nugget-notes-settings', this.nuggetNotesSettings);
       }
 
       const notificationTicker = (window as any).notificationTicker;
@@ -510,6 +538,20 @@ export class SettingsManager {
    */
   getTranscriptionSettings(): TranscriptionAccuracySettings {
     return this.transcriptionSettings;
+  }
+
+  /**
+   * Check if Nugget's Notes is enabled
+   */
+  isNuggetNotesEnabled(): boolean {
+    return this.nuggetNotesSettings.enabled;
+  }
+
+  /**
+   * Get current nugget notes settings
+   */
+  getNuggetNotesSettings(): NuggetNotesSettings {
+    return this.nuggetNotesSettings;
   }
 
   /**

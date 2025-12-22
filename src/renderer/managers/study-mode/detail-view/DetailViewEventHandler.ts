@@ -39,6 +39,9 @@ export class DetailViewEventHandler {
     // Content tabs
     this.attachContentTabHandlers();
 
+    // Load Nugget's Notes for this session
+    this.loadNuggetNotes(session.id);
+
     // Action buttons
     this.attachActionButtons(session, sessionDetailContainer);
 
@@ -558,5 +561,57 @@ export class DetailViewEventHandler {
         });
       });
     });
+  }
+
+  /**
+   * Load and display Nugget's Notes for a session
+   */
+  private static async loadNuggetNotes(sessionId: string): Promise<void> {
+    const container = document.querySelector('.nugget-notes-content[data-session-id="' + sessionId + '"]');
+    if (!container) return;
+
+    try {
+      const key = `nugget-notes-${sessionId}`;
+      const savedData = await window.scribeCat.store.get(key);
+
+      if (savedData && savedData.notes && savedData.notes.length > 0) {
+        const notes = savedData.notes;
+        const notesHtml = notes.map((note: { id: string; text: string }) => `
+          <div class="nugget-note-bubble-study" data-note-id="${note.id}">
+            <span class="nugget-note-text">${this.escapeHtml(note.text)}</span>
+          </div>
+        `).join('');
+
+        container.innerHTML = `
+          <div class="nugget-notes-list-study">
+            ${notesHtml}
+          </div>
+          <p class="nugget-notes-meta">Generated during recording • ${notes.length} notes</p>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="nugget-notes-empty-study">
+            <p>No Nugget's Notes available for this session.</p>
+            <p class="help-text">Nugget's Notes are automatically generated during recording when the feature is enabled.</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      logger.error('Failed to load Nugget\'s Notes:', error);
+      container.innerHTML = `
+        <div class="nugget-notes-empty-study">
+          <p>Failed to load Nugget's Notes.</p>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Escape HTML to prevent XSS
+   */
+  private static escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }

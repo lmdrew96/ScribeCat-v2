@@ -8,6 +8,7 @@ import { TranscriptionManager } from './TranscriptionManager.js';
 import { NotesAutoSaveManager } from './NotesAutoSaveManager.js';
 import { ViewManager } from './ViewManager.js';
 import { RecordingManager } from './RecordingManager.js';
+import { ChatUI } from '../ai/ChatUI.js';
 import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('SessionResetManager');
@@ -18,19 +19,22 @@ export class SessionResetManager {
   private notesAutoSaveManager: NotesAutoSaveManager;
   private viewManager: ViewManager;
   private recordingManager: RecordingManager;
+  private chatUI: ChatUI;
 
   constructor(
     editorManager: TiptapEditorManager,
     transcriptionManager: TranscriptionManager,
     notesAutoSaveManager: NotesAutoSaveManager,
     viewManager: ViewManager,
-    recordingManager: RecordingManager
+    recordingManager: RecordingManager,
+    chatUI: ChatUI
   ) {
     this.editorManager = editorManager;
     this.transcriptionManager = transcriptionManager;
     this.notesAutoSaveManager = notesAutoSaveManager;
     this.viewManager = viewManager;
     this.recordingManager = recordingManager;
+    this.chatUI = chatUI;
   }
 
   /**
@@ -59,20 +63,43 @@ export class SessionResetManager {
         return { success: false, error };
       }
 
-      // Step 1: Save current work immediately (bypass debounce)
+      // Step 1: Save Nugget's Notes to local storage if any exist
+      const nuggetNotes = this.chatUI.getAllNotes();
+      if (nuggetNotes.length > 0) {
+        logger.debug(`Saving ${nuggetNotes.length} Nugget's Notes to local storage`);
+        try {
+          // Get current session ID from auto-save manager
+          const currentSessionId = this.notesAutoSaveManager.getCurrentSessionId();
+          if (currentSessionId) {
+            // Save notes to electron-store keyed by session ID
+            const key = `nugget-notes-${currentSessionId}`;
+            await window.scribeCat.store.set(key, {
+              notes: nuggetNotes,
+              savedAt: new Date().toISOString()
+            });
+            logger.debug(`Nugget's Notes saved with key: ${key}`);
+          }
+        } catch (error) {
+          logger.warn('Failed to save Nugget\'s Notes to local storage:', error);
+          // Continue with reset even if this fails
+        }
+      }
+
+      // Step 2: Save current work immediately (bypass debounce)
       logger.debug('Saving current work...');
       await this.notesAutoSaveManager.saveNow();
 
-      // Step 2: Clear UI content
+      // Step 3: Clear UI content
       logger.debug('Clearing UI content...');
       this.editorManager.clearNotes();
       this.transcriptionManager.clear();
+      this.chatUI.clearNotes();
 
-      // Step 3: Reset session UI elements
+      // Step 4: Reset session UI elements
       logger.debug('Resetting session UI...');
       this.viewManager.resetSessionUI();
 
-      // Step 4: Reset auto-save manager state
+      // Step 5: Reset auto-save manager state
       logger.debug('Resetting auto-save manager...');
       this.notesAutoSaveManager.reset();
 

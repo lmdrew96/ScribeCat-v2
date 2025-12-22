@@ -38,7 +38,7 @@ export class RecordingManager {
   private totalPausedTime: number = 0;
   private elapsedTimer: number | null = null;
   private vuMeterInterval: number | null = null;
-  private suggestionCheckInterval: number | null = null;
+  private notesCheckInterval: number | null = null;
   private sessionTitleInput: HTMLInputElement | null = null;
   private bookmarks: Array<{ timestamp: number; label?: string; createdAt: Date }> = [];
 
@@ -120,11 +120,11 @@ export class RecordingManager {
       logger.warn('Failed to prevent sleep (recording will continue)', error);
     }
 
-    // Start AI content analysis
-    this.aiManager.startContentAnalysis();
-    this.startSuggestionChecks();
+    // Start Nugget's Notes
+    this.aiManager.startRecording();
+    this.startNotesChecks();
 
-    // Start live AI suggestions
+    // Start live AI notes
     this.chatUI.startRecording();
 
     // Start StudyQuest session tracking for XP/gold rewards
@@ -362,12 +362,13 @@ export class RecordingManager {
         logger.warn('Failed to allow sleep', error);
       }
 
-      // Stop suggestion checks and reset AI analysis
-      this.stopSuggestionChecks();
-      this.aiManager.resetContentAnalysis();
+      // Stop notes checks and reset AI
+      this.stopNotesChecks();
+      this.aiManager.stopRecording();
 
-      // Stop live AI suggestions
-      this.chatUI.stopRecording();
+      // Stop live AI notes - pass final transcript for last note generation
+      const finalTranscript = this.transcriptionManager.getText();
+      await this.chatUI.stopRecording(finalTranscript);
 
       // Update UI
       this.viewManager.updateRecordingState(false);
@@ -407,7 +408,7 @@ export class RecordingManager {
     // Pause timers
     this.stopElapsedTimer();
     this.stopVUMeterUpdates();
-    this.stopSuggestionChecks();
+    this.stopNotesChecks();
 
     // Track pause time
     this.pauseStartTime = Date.now();
@@ -444,7 +445,7 @@ export class RecordingManager {
     // Resume timers
     this.startElapsedTimer();
     this.startVUMeterUpdates();
-    this.startSuggestionChecks();
+    this.startNotesChecks();
 
     // Update state
     this.isPaused = false;
@@ -488,10 +489,10 @@ export class RecordingManager {
       // Stop all timers and intervals
       this.stopElapsedTimer();
       this.stopVUMeterUpdates();
-      this.stopSuggestionChecks();
+      this.stopNotesChecks();
 
-      // Reset AI analysis
-      this.aiManager.resetContentAnalysis();
+      // Reset Nugget's Notes
+      this.aiManager.resetNuggetNotes();
 
       // Ensure sleep prevention is disabled during cleanup
       try {
@@ -563,173 +564,63 @@ export class RecordingManager {
   }
 
   /**
-   * Start periodic suggestion checks
+   * Start periodic notes generation checks
    */
-  private startSuggestionChecks(): void {
-    // Clear any existing interval first to prevent duplicates
-    this.stopSuggestionChecks();
+  private async startNotesChecks(): Promise<void> {
+    // Check if Nugget's Notes is enabled in settings
+    const nuggetSettings = await window.scribeCat.store.get('nugget-notes-settings');
+    if (nuggetSettings && nuggetSettings.enabled === false) {
+      logger.debug('Nugget\'s Notes disabled in settings, skipping notes checks');
+      return;
+    }
 
-    // Check for suggestions every 30 seconds
-    this.suggestionCheckInterval = window.setInterval(() => {
-      this.checkAndShowSuggestions();
+    // Clear any existing interval first to prevent duplicates
+    this.stopNotesChecks();
+
+    // Check for notes every 30 seconds
+    this.notesCheckInterval = window.setInterval(() => {
+      this.updateNuggetNotes();
     }, 30000); // 30 seconds
 
     // Do an initial check after 1 minute
     setTimeout(() => {
-      this.checkAndShowSuggestions();
+      this.updateNuggetNotes();
     }, 60000);
   }
 
   /**
-   * Stop suggestion checks
+   * Stop notes checks
    */
-  private stopSuggestionChecks(): void {
-    if (this.suggestionCheckInterval !== null) {
-      clearInterval(this.suggestionCheckInterval);
-      this.suggestionCheckInterval = null;
+  private stopNotesChecks(): void {
+    if (this.notesCheckInterval !== null) {
+      clearInterval(this.notesCheckInterval);
+      this.notesCheckInterval = null;
     }
   }
 
   /**
-   * Check for suggestions and show if available
+   * Update Nugget's Notes with latest transcript
    */
-  private checkAndShowSuggestions(): void {
+  private async updateNuggetNotes(): Promise<void> {
     // Calculate elapsed time in minutes
     const elapsed = Date.now() - this.startTime;
     const durationMinutes = elapsed / (1000 * 60);
 
-    // Get transcription and notes
+    // Get transcription
     const transcription = this.transcriptionManager.getText();
-    const notes = this.editorManager.getNotesText();
 
     // Count words for logging
     const transcriptionWords = transcription.trim().split(/\s+/).filter(w => w.length > 0).length;
-    const notesWords = notes.trim().split(/\s+/).filter(w => w.length > 0).length;
 
-    logger.debug('Checking for live AI suggestions:', {
-      durationMinutes: Math.round(durationMinutes * 10) / 10, // Round to 1 decimal
-      transcriptionWords,
-      notesWords,
-      noteRatio: transcriptionWords > 0 ? Math.round((notesWords / transcriptionWords) * 100) + '%' : '0%'
+    logger.debug('Updating Nugget\'s Notes:', {
+      durationMinutes: Math.round(durationMinutes * 10) / 10,
+      transcriptionWords
     });
 
-    // Update bookmarks in content analyzer for important point coverage checking
-    const contentAnalyzer = this.aiManager.getContentAnalyzer();
-    const bookmarkRefs = this.bookmarks.map(b => ({
-      timestamp: b.timestamp,
-      label: b.label
-    }));
-    contentAnalyzer.updateBookmarks(bookmarkRefs);
+    // Update notes via ChatUI
+    await this.chatUI.updateNotes(transcription, durationMinutes);
 
-    // Get word timings for accurate phrase-to-timestamp mapping
-    const wordTimings = this.transcriptionManager.getWordTimings();
-
-    // Update live suggestions with latest content, duration, and word timings
-    this.chatUI.updateLiveSuggestions(transcription, notes, durationMinutes, wordTimings);
-
-    logger.debug('Live suggestions updated with latest content');
-  }
-
-  // Track last action for undo functionality
-  private lastSuggestionAction: {
-    type: 'bookmark' | 'note';
-    bookmarkIndex?: number;
-    timestamp: number;
-  } | null = null;
-
-  /**
-   * Handle suggestion actions from Live AI panel
-   * Called by ChatUI when user clicks a suggestion
-   */
-  public handleSuggestionAction(suggestion: any): void {
-    logger.info('Handling suggestion:', suggestion);
-    const notificationTicker = (window as any).notificationTicker;
-
-    // Extract the spoken timestamp from suggestion context (in seconds)
-    const spokenTimestamp = suggestion.context?.timestamp;
-    // Get full text from context (not truncated)
-    const fullText = suggestion.context?.text || '';
-
-    // Handle different suggestion actions
-    switch (suggestion.suggestedAction) {
-      case 'bookmark':
-        logger.info('User wants to bookmark this moment');
-        // Use spoken timestamp if available
-        this.addBookmark(suggestion.reason, spokenTimestamp);
-        // Track for undo
-        this.lastSuggestionAction = {
-          type: 'bookmark',
-          bookmarkIndex: this.bookmarks.length - 1,
-          timestamp: Date.now()
-        };
-        // Insert summary note at cursor
-        this.insertSuggestionNote(spokenTimestamp, fullText, 'bookmark');
-        // Mark important point as covered if this suggestion has one
-        this.markImportantPointCovered(suggestion, 'bookmark');
-        break;
-
-      case 'note_prompt':
-      case 'notes':
-        logger.info('Prompting user to add notes');
-        // Insert summary note at cursor position
-        this.insertSuggestionNote(spokenTimestamp, fullText, 'note');
-        // Track for undo
-        this.lastSuggestionAction = {
-          type: 'note',
-          timestamp: Date.now()
-        };
-        // Mark important point as covered (user is taking notes)
-        this.markImportantPointCovered(suggestion, 'notes');
-        break;
-
-      case 'highlight':
-        logger.info('User wants to highlight important moment');
-        // Highlight is essentially the same as bookmark with a different label
-        this.addBookmark(`Important: ${fullText ? this.truncateText(fullText, 50) : 'Important moment'}`, spokenTimestamp);
-        // Track for undo
-        this.lastSuggestionAction = {
-          type: 'bookmark',
-          bookmarkIndex: this.bookmarks.length - 1,
-          timestamp: Date.now()
-        };
-        // Insert summary note at cursor
-        this.insertSuggestionNote(spokenTimestamp, fullText, 'highlight');
-        // Mark important point as covered
-        this.markImportantPointCovered(suggestion, 'bookmark');
-        break;
-
-      case 'break':
-        logger.info('Suggesting break to user');
-        // Pause recording
-        if (this.isRecording && !this.isPaused) {
-          this.pause();
-          notificationTicker?.success('Recording paused. Take a break!', 3000);
-        }
-        break;
-
-      case 'flashcards':
-      case 'quiz':
-      case 'summary':
-      case 'eli5':
-        logger.info(`User wants to generate ${suggestion.suggestedAction}`);
-        // These are study mode tools - save session first to use them
-        notificationTicker?.info(`Save your session to generate ${suggestion.suggestedAction} in Study Mode`, 3000);
-        break;
-
-      default:
-        logger.warn('Unknown suggestion action:', suggestion.suggestedAction);
-    }
-  }
-
-  /**
-   * Mark an important point as covered when user acts on a suggestion
-   */
-  private markImportantPointCovered(suggestion: any, coverageType: 'notes' | 'bookmark'): void {
-    if (suggestion.context?.importantPointId) {
-      const contentAnalyzer = this.aiManager.getContentAnalyzer();
-      contentAnalyzer.markPointCovered(suggestion.context.importantPointId, coverageType);
-      logger.debug(`Marked important point ${suggestion.context.importantPointId} as covered (${coverageType})`);
-    }
+    logger.debug('Nugget\'s Notes updated');
   }
 
   /**
@@ -801,107 +692,6 @@ export class RecordingManager {
   private truncateText(text: string, maxLength: number): string {
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength - 3) + '...';
-  }
-
-  /**
-   * Insert a summary note at cursor position in the notes editor
-   * @param timestamp Timestamp in seconds when the content was spoken
-   * @param text Full text of the important point
-   * @param type Type of suggestion action
-   */
-  private insertSuggestionNote(timestamp: number | undefined, text: string, type: 'bookmark' | 'note' | 'highlight'): void {
-    const editor = this.editorManager.getEditor();
-    if (!editor) {
-      logger.warn('Cannot insert suggestion note - editor not available');
-      return;
-    }
-
-    // Format timestamp for display
-    const formattedTime = timestamp !== undefined ? this.formatTimestamp(timestamp) : '';
-    
-    // Truncate text for the note (keep it brief but informative)
-    const briefText = text ? this.truncateText(text, 100) : '';
-    
-    // Build the note HTML based on type
-    let noteLabel: string;
-    switch (type) {
-      case 'bookmark':
-        noteLabel = 'Key point';
-        break;
-      case 'highlight':
-        noteLabel = 'Important';
-        break;
-      case 'note':
-      default:
-        noteLabel = 'Note';
-        break;
-    }
-
-    // Only insert if we have meaningful content
-    if (!briefText && !formattedTime) {
-      // Just focus the editor if no content to insert
-      this.editorManager.focus();
-      return;
-    }
-
-    // Format: [MM:SS] Key point: text
-    const noteContent = formattedTime 
-      ? `<p><strong>[${formattedTime}]</strong> ${noteLabel}: ${briefText}</p>`
-      : `<p><strong>${noteLabel}:</strong> ${briefText}</p>`;
-
-    // Insert at cursor position
-    editor.chain().focus().insertContent(noteContent).run();
-    
-    logger.info(`Inserted suggestion note at cursor: ${noteContent}`);
-  }
-
-  /**
-   * Undo the last suggestion action (bookmark or note insertion)
-   * @returns true if undo was successful, false otherwise
-   */
-  public undoLastAction(): boolean {
-    if (!this.lastSuggestionAction) {
-      logger.info('No suggestion action to undo');
-      return false;
-    }
-
-    // Only allow undo within 10 seconds of the action
-    const timeSinceAction = Date.now() - this.lastSuggestionAction.timestamp;
-    if (timeSinceAction > 10000) {
-      logger.info('Undo window expired (>10 seconds)');
-      this.lastSuggestionAction = null;
-      return false;
-    }
-
-    const action = this.lastSuggestionAction;
-    let undone = false;
-
-    // Undo bookmark if it was a bookmark action
-    if (action.type === 'bookmark' && action.bookmarkIndex !== undefined) {
-      if (action.bookmarkIndex >= 0 && action.bookmarkIndex < this.bookmarks.length) {
-        this.bookmarks.splice(action.bookmarkIndex, 1);
-        logger.info(`Removed bookmark at index ${action.bookmarkIndex}`);
-        undone = true;
-      }
-    }
-
-    // Undo the editor insertion using TipTap's built-in undo
-    const editor = this.editorManager.getEditor();
-    if (editor && editor.can().undo()) {
-      editor.commands.undo();
-      logger.info('Undid editor insertion');
-      undone = true;
-    }
-
-    // Clear the last action
-    this.lastSuggestionAction = null;
-
-    if (undone) {
-      const notificationTicker = (window as any).notificationTicker;
-      notificationTicker?.info('Action undone', 2000);
-    }
-
-    return undone;
   }
 
 }

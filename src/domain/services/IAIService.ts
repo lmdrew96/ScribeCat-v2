@@ -24,6 +24,8 @@ export interface ChatOptions {
   maxTokens?: number;
   /** Temperature for response randomness (0-1) */
   temperature?: number;
+  /** Model to use (claude-sonnet-4-5-20250929, claude-haiku-3-5-20241022, etc.) */
+  model?: string;
 }
 
 /**

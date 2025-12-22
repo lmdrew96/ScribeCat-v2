@@ -6,15 +6,13 @@
 import type { ChatMessage } from '../../shared/types.js';
 import { ChatUI } from './ChatUI.js';
 import { AIClient } from './AIClient.js';
-import { ContentAnalyzer } from './ContentAnalyzer.js';
-import { SmartSuggestionEngine } from './SmartSuggestionEngine.js';
+import { NuggetNotesOrchestrator } from './NuggetNotesOrchestrator.js';
 import { config } from '../../config.js';
 
 export class AIManager {
   private chatUI: ChatUI;
   private aiClient: AIClient;
-  private contentAnalyzer: ContentAnalyzer;
-  private suggestionEngine: SmartSuggestionEngine;
+  private notesOrchestrator: NuggetNotesOrchestrator;
 
   private chatHistory: ChatMessage[] = [];
   private isConfigured: boolean = false;
@@ -53,11 +51,9 @@ export class AIManager {
     this.getNotesText = getNotesText;
 
     // Initialize components
-    // Create ContentAnalyzer first so it can be shared with ChatUI
-    this.contentAnalyzer = new ContentAnalyzer();
-    this.chatUI = new ChatUI(this.contentAnalyzer);
+    this.notesOrchestrator = new NuggetNotesOrchestrator();
+    this.chatUI = new ChatUI(this.notesOrchestrator);
     this.aiClient = new AIClient();
-    this.suggestionEngine = new SmartSuggestionEngine(this.contentAnalyzer);
 
     this.setupSettingsUI();
   }
@@ -68,6 +64,7 @@ export class AIManager {
   async initialize(): Promise<void> {
     this.setupEventListeners();
     await this.loadApiKey();
+    await this.notesOrchestrator.loadSettings();
     this.initializeConnectionInBackground();
   }
 
@@ -435,78 +432,47 @@ export class AIManager {
   }
 
   /**
-   * Start a new content analysis session
+   * Start recording mode for Nugget's Notes
    */
-  public startContentAnalysis(): void {
-    this.contentAnalyzer.startSession();
-    this.suggestionEngine.reset();
-    console.log('🧠 AI Content analysis started');
+  public startRecording(): void {
+    this.notesOrchestrator.startRecording();
+    console.log('🧠 Nugget\'s Notes recording started');
   }
 
   /**
-   * Update content and get analysis
+   * Stop recording mode for Nugget's Notes
    */
-  public updateContentAnalysis(): void {
-    const transcription = this.getTranscriptionText();
-    const notes = this.getNotesText();
-
-    this.contentAnalyzer.updateContent(transcription, notes);
+  public stopRecording(): void {
+    this.notesOrchestrator.stopRecording();
+    console.log('🧠 Nugget\'s Notes recording stopped');
   }
 
   /**
-   * Get current smart suggestion
+   * Process transcript chunk for note generation
    */
-  public getSmartSuggestion(mode: 'recording' | 'study' = 'study') {
-    return this.suggestionEngine.getTopSuggestion(mode);
+  public async processTranscriptChunk(transcription: string, durationMinutes: number): Promise<void> {
+    await this.notesOrchestrator.processTranscriptChunk(transcription, durationMinutes);
   }
 
   /**
-   * Get all smart suggestions
+   * Set auto-save callback for Nugget's Notes
    */
-  public getAllSmartSuggestions(mode: 'recording' | 'study' = 'study') {
-    return this.suggestionEngine.getSuggestions(mode);
+  public setNotesAutoSaveCallback(callback: (notes: any[]) => Promise<void>): void {
+    this.notesOrchestrator.setAutoSaveCallback(callback);
   }
 
   /**
-   * Mark suggestion as shown
+   * Get all Nugget's Notes
    */
-  public markSuggestionShown(suggestionId: string): void {
-    this.suggestionEngine.markShown(suggestionId);
+  public getAllNuggetNotes(): any[] {
+    return this.notesOrchestrator.getAllNotes();
   }
 
   /**
-   * Mark suggestion as dismissed
+   * Get Nugget's Notes orchestrator
    */
-  public markSuggestionDismissed(suggestionId: string): void {
-    this.suggestionEngine.markDismissed(suggestionId);
-  }
-
-  /**
-   * Mark suggestion as accepted
-   */
-  public markSuggestionAccepted(suggestionId: string): void {
-    this.suggestionEngine.markAccepted(suggestionId);
-  }
-
-  /**
-   * Parse natural language command
-   */
-  public parseNaturalLanguageCommand(command: string) {
-    return this.suggestionEngine.parseNaturalLanguageCommand(command);
-  }
-
-  /**
-   * Get content analysis insights
-   */
-  public getContentInsights() {
-    return this.contentAnalyzer.getLastAnalysis();
-  }
-
-  /**
-   * Get ContentAnalyzer instance (for FloatingAIChip integration)
-   */
-  public getContentAnalyzer(): ContentAnalyzer {
-    return this.contentAnalyzer;
+  public getNotesOrchestrator(): NuggetNotesOrchestrator {
+    return this.notesOrchestrator;
   }
 
   /**
@@ -517,17 +483,9 @@ export class AIManager {
   }
 
   /**
-   * Get suggestion statistics
+   * Reset Nugget's Notes for new session
    */
-  public getSuggestionStats() {
-    return this.suggestionEngine.getStats();
-  }
-
-  /**
-   * Reset content analysis
-   */
-  public resetContentAnalysis(): void {
-    this.contentAnalyzer.reset();
-    this.suggestionEngine.reset();
+  public resetNuggetNotes(): void {
+    this.notesOrchestrator.reset();
   }
 }
