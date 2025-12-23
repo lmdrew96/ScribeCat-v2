@@ -233,7 +233,6 @@ export class HelpModal {
         <li><strong>Study Goals:</strong> Set daily and weekly targets</li>
         <li><strong>Streaks:</strong> Build consistency with streak tracking</li>
         <li><strong>Focus Modes:</strong> 4 modes to minimize distractions</li>
-        <li><strong>Break Reminders:</strong> Configurable study break notifications</li>
       </ul>
 
       <h2>Organization & Export</h2>
@@ -400,12 +399,6 @@ export class HelpModal {
         <li><strong>Review Focus:</strong> Optimize for session playback</li>
         <li><strong>Study Focus:</strong> AI tools prominent, minimize distractions</li>
       </ul>
-
-      <h2>Break Reminders</h2>
-      <p>
-        ScribeCat can remind you to take breaks during study sessions. Configure break intervals
-        in Study Mode settings to stay fresh and focused.
-      </p>
 
       <h2>Need More Help?</h2>
       <p>

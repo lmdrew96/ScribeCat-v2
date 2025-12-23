@@ -60,26 +60,6 @@ export class ViewContextService {
   }
 
   /**
-   * Check if break reminders should be shown in current context
-   *
-   * Break reminders are only shown in:
-   * - Study Mode (grid/list/timeline/board views)
-   * - Session Detail View (when viewing/editing a session)
-   *
-   * NOT shown in:
-   * - Main recording view
-   * - Study rooms (collaborative sessions)
-   */
-  public shouldShowBreakReminders(): boolean {
-    const currentView = this.getCurrentView();
-    const shouldShow = currentView === 'study-mode' || currentView === 'detail-view';
-
-    logger.debug(`Break reminder check: view=${currentView}, shouldShow=${shouldShow}`);
-
-    return shouldShow;
-  }
-
-  /**
    * Check if user is in a study room (collaborative)
    */
   public isInStudyRoom(): boolean {

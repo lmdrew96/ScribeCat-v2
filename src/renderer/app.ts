@@ -25,7 +25,6 @@ import { FocusManager, initializeA11yStyles } from './utils/FocusManager.js';
 import { WelcomeModal } from './components/WelcomeModal.js';
 import { TutorialManager } from './utils/TutorialManager.js';
 import { SoundManager, initializeSoundSystem, enableGlobalSoundEffects } from './audio/SoundManager.js';
-import { BreakReminders, initializeBreakReminders } from './components/BreakReminders.js';
 import { initToolbarUpgrades } from './components/editor/ToolbarIconUpgrader.js';
 import { initEmojiPicker } from './components/editor/EmojiPicker.js';
 import { initializeShortcutValidation } from './managers/ShortcutRegistry.js';
@@ -264,9 +263,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeSoundSystem();
   enableGlobalSoundEffects();
 
-  // Initialize break reminders
-  initializeBreakReminders(coreManagers.recordingManager);
-
   // Show welcome modal on first launch
   setTimeout(() => WelcomeModal.show(), 1000);
 
@@ -275,7 +271,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   (window as any).WelcomeModal = WelcomeModal;
   (window as any).TutorialManager = TutorialManager;
   (window as any).SoundManager = SoundManager;
-  (window as any).BreakReminders = BreakReminders;
 
   // Set up hot reload notification listener
   setupHotReloadListener();

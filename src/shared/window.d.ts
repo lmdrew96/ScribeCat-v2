@@ -254,7 +254,6 @@ declare global {
     FocusManager?: any;
     WelcomeModal?: any;
     SoundManager?: any;
-    BreakReminders?: any;
   }
 }
 
