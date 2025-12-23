@@ -147,9 +147,10 @@ export class HeaderActionsMenu {
         ${
           isSignedIn
             ? `
-          <button class="header-menu-item" data-action="studyquest" role="menuitem">
+          <button class="header-menu-item header-menu-item-disabled" data-action="studyquest" role="menuitem">
             ${getIconHTML('gamepad', { size: 18 })}
             <span>StudyQuest RPG</span>
+            <span class="header-menu-badge header-menu-badge-coming-soon">Coming Soon</span>
           </button>
         `
             : ''
@@ -220,11 +221,21 @@ export class HeaderActionsMenu {
     items.forEach((item) => {
       item.addEventListener('click', (e) => {
         const action = (item as HTMLElement).dataset.action;
+        // Allow clicking disabled StudyQuest button to prompt for passcode
+        if (action === 'studyquest') {
+          e.preventDefault();
+          e.stopPropagation();
+          this.handleAction(action);
+          return;
+        }
         this.handleAction(action);
         e.stopPropagation();
       });
     });
   }
+
+  // Dev passcode for StudyQuest access (hidden from regular users)
+  private static readonly STUDYQUEST_DEV_PASSCODE = 'scribecat2025';
 
   /**
    * Handle menu item action
@@ -234,7 +245,7 @@ export class HeaderActionsMenu {
 
     switch (action) {
       case 'studyquest':
-        this.dependencies.onStudyQuest();
+        this.promptStudyQuestAccess();
         break;
       case 'signin':
         this.dependencies.onSignIn();
@@ -255,6 +266,134 @@ export class HeaderActionsMenu {
         this.dependencies.onHelp();
         break;
     }
+  }
+
+  /**
+   * Prompt for dev passcode to access StudyQuest
+   */
+  private promptStudyQuestAccess(): void {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'studyquest-passcode-overlay';
+    overlay.innerHTML = `
+      <div class="studyquest-passcode-modal">
+        <h3>StudyQuest is coming soon!</h3>
+        <p>Enter dev passcode to access:</p>
+        <input type="password" id="studyquest-passcode-input" placeholder="Passcode" autocomplete="off" />
+        <div class="studyquest-passcode-buttons">
+          <button id="studyquest-passcode-cancel" class="btn-secondary">Cancel</button>
+          <button id="studyquest-passcode-submit" class="btn-primary">Access</button>
+        </div>
+      </div>
+    `;
+
+    // Add styles
+    const style = document.createElement('style');
+    style.id = 'studyquest-passcode-styles';
+    style.textContent = `
+      .studyquest-passcode-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      }
+      .studyquest-passcode-modal {
+        background: var(--bg-primary);
+        border: var(--border-thick) solid var(--border-color-neo);
+        border-radius: var(--radius-neo);
+        box-shadow: var(--shadow-neo);
+        padding: 24px;
+        min-width: 300px;
+        text-align: center;
+      }
+      .studyquest-passcode-modal h3 {
+        margin: 0 0 8px 0;
+        color: var(--text-primary);
+      }
+      .studyquest-passcode-modal p {
+        margin: 0 0 16px 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+      .studyquest-passcode-modal input {
+        width: 100%;
+        padding: 10px 12px;
+        border: var(--border-thin) solid var(--border-color-neo);
+        border-radius: var(--radius-neo-sm);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: 14px;
+        margin-bottom: 16px;
+        box-sizing: border-box;
+      }
+      .studyquest-passcode-modal input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .studyquest-passcode-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+      .studyquest-passcode-buttons button {
+        padding: 8px 20px;
+        border-radius: var(--radius-neo-sm);
+        font-weight: 600;
+        cursor: pointer;
+        border: var(--border-thin) solid var(--border-color-neo);
+      }
+      .studyquest-passcode-buttons .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+      .studyquest-passcode-buttons .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+    `;
+
+    if (!document.getElementById('studyquest-passcode-styles')) {
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#studyquest-passcode-input') as HTMLInputElement;
+    const cancelBtn = overlay.querySelector('#studyquest-passcode-cancel') as HTMLButtonElement;
+    const submitBtn = overlay.querySelector('#studyquest-passcode-submit') as HTMLButtonElement;
+
+    const closeModal = () => {
+      overlay.remove();
+    };
+
+    const submitPasscode = () => {
+      if (input.value === HeaderActionsMenu.STUDYQUEST_DEV_PASSCODE) {
+        closeModal();
+        this.dependencies.onStudyQuest();
+      } else if (input.value) {
+        input.value = '';
+        input.placeholder = 'Invalid passcode - try again';
+        input.focus();
+      }
+    };
+
+    cancelBtn.addEventListener('click', closeModal);
+    submitBtn.addEventListener('click', submitPasscode);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitPasscode();
+      if (e.key === 'Escape') closeModal();
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+
+    input.focus();
   }
 
   /**

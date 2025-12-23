@@ -192,6 +192,33 @@
   box-shadow: 2px 2px 0 var(--border-color-neo);
 }
 
+/* Coming Soon badge */
+.header-menu-badge-coming-soon {
+  background-color: var(--accent, #6366f1);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+/* Disabled menu item */
+.header-menu-item-disabled {
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.header-menu-item-disabled:hover {
+  background-color: var(--bg-secondary);
+  transform: none;
+}
+
+.header-menu-item-disabled svg {
+  stroke: var(--text-tertiary);
+}
+
+.header-menu-item-disabled:hover svg {
+  stroke: var(--text-tertiary);
+}
+
 /* Animation for opening */
 @keyframes menu-slide-in {
   from {
