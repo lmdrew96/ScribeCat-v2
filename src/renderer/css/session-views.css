@@ -41,13 +41,13 @@
   background: var(--bg-tertiary, #3d3d3d);
   color: var(--text-primary, #ffffff);
   border-color: var(--border-color-neo);
-  transform: translate(-2px, -2px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .view-mode-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: none;
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .view-mode-btn.active {
@@ -102,13 +102,13 @@
   background: var(--bg-tertiary, #3d3d3d);
   color: var(--text-primary, #ffffff);
   border-color: var(--accent, #00bcd4);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .timeline-nav-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .timeline-month-year {
@@ -175,8 +175,8 @@
 .timeline-day-has-sessions:hover {
   background: var(--bg-quaternary, #4d4d4d);
   border-color: var(--border-color-neo);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-sm);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .timeline-day-number {
@@ -330,8 +330,8 @@
 
 .grid-card:hover {
   border-color: var(--accent, #00bcd4);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .grid-card-header {
@@ -630,8 +630,8 @@
 
 .board-card:hover {
   border-color: var(--accent, #00bcd4);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .board-card-title {

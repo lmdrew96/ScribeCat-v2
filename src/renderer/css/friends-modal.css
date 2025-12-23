@@ -90,8 +90,8 @@
 
 .friend-item:hover {
   background: var(--bg-tertiary, #3d3d3d);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .friend-avatar {
@@ -213,8 +213,8 @@
 
 .request-item:hover {
   background: var(--bg-tertiary, #3d3d3d);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .request-avatar {
@@ -296,7 +296,7 @@
 .find-friends-search input:focus {
   outline: none;
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-sm);
 }
 
@@ -318,8 +318,8 @@
 
 .search-result-item:hover {
   background: var(--bg-tertiary, #3d3d3d);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .search-result-avatar {
@@ -552,8 +552,8 @@
 
 .message-item:hover {
   background: var(--bg-tertiary, #3d3d3d);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .message-item.unread {
@@ -826,8 +826,8 @@
 }
 
 .attachment-item:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-sm);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .attachment-item img {

@@ -50,37 +50,48 @@
   --font-heading: 'RonysiswadiArchitect5', sans-serif;
   --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 
-  /* ===== Neobrutalism Design System ===== */
+  /* ===== Modern Design System (Softened Neobrutalism) ===== */
 
-  /* Border Thickness */
-  --border-thin: 2px;
-  --border-medium: 3px;
-  --border-thick: 4px;
+  /* Border Thickness - Slimmer for modern feel */
+  --border-thin: 1px;
+  --border-medium: 2px;
+  --border-thick: 2px;
 
-  /* Border color - defaults to white/light for dark themes */
-  --border-color-neo: rgba(255, 255, 255, 0.9);
+  /* Border color - softer, more subtle */
+  --border-color-neo: rgba(255, 255, 255, 0.25);
 
-  /* Chunky Rounded Corners */
+  /* Smooth Rounded Corners - keeping the chunky personality */
   --radius-neo-sm: 8px;
   --radius-neo-md: 12px;
   --radius-neo-lg: 16px;
   --radius-neo-xl: 20px;
   --radius-neo-pill: 100px;
 
-  /* Hard Offset Shadows (no blur) - use slightly darker for dark themes */
-  --shadow-neo-sm: 3px 3px 0 rgba(0, 0, 0, 0.5);
-  --shadow-neo-md: 4px 4px 0 rgba(0, 0, 0, 0.5);
-  --shadow-neo-lg: 6px 6px 0 rgba(0, 0, 0, 0.5);
-  --shadow-neo-xl: 8px 8px 0 rgba(0, 0, 0, 0.5);
+  /* Modern Soft Shadows - slight offset with blur for depth */
+  --shadow-neo-sm: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-neo-md: 0 4px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
+  --shadow-neo-lg: 0 8px 24px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-neo-xl: 0 12px 32px rgba(0, 0, 0, 0.25), 0 6px 12px rgba(0, 0, 0, 0.15);
+
+  /* Active/pressed state shadow - minimal, tight */
+  --shadow-neo-pressed: 0 1px 2px rgba(0, 0, 0, 0.15);
+  
+  /* Hover lift shadow - slightly elevated */
+  --shadow-neo-hover: 0 6px 20px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12);
+
+  /* Glow effect for focus states */
+  --shadow-glow: 0 0 0 3px rgba(var(--accent-rgb, 0, 122, 204), 0.25);
 }
 
-/* Light themes need pure black borders and shadows for maximum contrast */
+/* Light themes - slightly stronger shadows for definition */
 [data-theme-variant="light"] {
-  --border-color-neo: #000000;
-  --shadow-neo-sm: 3px 3px 0 #000000;
-  --shadow-neo-md: 4px 4px 0 #000000;
-  --shadow-neo-lg: 6px 6px 0 #000000;
-  --shadow-neo-xl: 8px 8px 0 #000000;
+  --border-color-neo: rgba(0, 0, 0, 0.12);
+  --shadow-neo-sm: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-neo-md: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-neo-lg: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-neo-xl: 0 12px 32px rgba(0, 0, 0, 0.15), 0 6px 12px rgba(0, 0, 0, 0.1);
+  --shadow-neo-pressed: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-neo-hover: 0 6px 20px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* ===== Custom Fonts ===== */

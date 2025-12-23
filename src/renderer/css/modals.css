@@ -48,7 +48,7 @@
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease;
-  border: var(--border-thick) solid var(--border-color-neo);
+  border: var(--border-thin) solid var(--border-color-neo);
   z-index: 1 !important;
 }
 
@@ -69,12 +69,12 @@
 
 .modal-header {
   padding: 20px 24px;
-  border-bottom: var(--border-medium) solid var(--border-color-neo);
+  border-bottom: var(--border-thin) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: space-between;
   background-color: var(--accent);
-  border-radius: calc(var(--radius-neo-xl) - 4px) calc(var(--radius-neo-xl) - 4px) 0 0;
+  border-radius: calc(var(--radius-neo-xl) - 2px) calc(var(--radius-neo-xl) - 2px) 0 0;
 }
 
 .modal-header h2 {
@@ -107,7 +107,7 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-neo-md);
-  border: var(--border-medium) solid var(--border-color-neo);
+  border: var(--border-thin) solid var(--border-color-neo);
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 24px;
@@ -117,20 +117,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: all 0.15s ease;
   box-shadow: var(--shadow-neo-sm);
 }
 
 .close-btn:hover {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .close-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: scale(0.95);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .modal-body {
@@ -151,12 +151,11 @@
 .modal-body::-webkit-scrollbar-thumb {
   background: var(--bg-tertiary);
   border-radius: var(--radius-neo-sm);
-  border: var(--border-thin) solid var(--border-color-neo);
 }
 
 .modal-footer {
   padding: 20px;
-  border-top: var(--border-medium) solid var(--border-color-neo);
+  border-top: var(--border-thin) solid var(--border-color-neo);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -170,7 +169,7 @@
 /* Collapsible Settings Groups - Neobrutalism Style */
 .settings-group {
   margin-bottom: 20px;
-  border: var(--border-medium) solid var(--border-color-neo);
+  border: var(--border-thin) solid var(--border-color-neo);
   border-radius: var(--radius-neo-lg);
   background-color: var(--bg-secondary);
   overflow: hidden;
@@ -186,8 +185,8 @@
   user-select: none;
   transition: background-color 0.15s ease;
   background-color: var(--bg-tertiary);
-  border-bottom: var(--border-thin) solid var(--border-color-neo);
-  border-left: 5px solid var(--accent);
+  border-bottom: none;
+  border-left: 4px solid var(--accent);
 }
 
 /* Alternating accent colors for settings groups */
@@ -327,18 +326,18 @@
   padding: 12px 14px;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  border: var(--border-medium) solid var(--border-color-neo);
+  border: var(--border-thin) solid var(--border-color-neo);
   border-radius: var(--radius-neo-md);
   font-size: 14px;
   font-family: 'Courier New', monospace;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.15s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .text-input:focus {
   outline: none;
-  box-shadow: var(--shadow-neo-sm), inset 2px 2px 0 rgba(0, 0, 0, 0.1);
-  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-glow), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
 }
 
 .text-input:read-only {
@@ -537,13 +536,13 @@
 
 .primary-btn:hover {
   background-color: var(--accent-hover);
-  transform: translate(-3px, -3px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .primary-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 /* Secondary buttons are more rectangular */
@@ -556,13 +555,13 @@
 
 .secondary-btn:hover {
   background-color: var(--accent-secondary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .secondary-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 /* Danger/destructive button variant */
@@ -611,16 +610,16 @@
 .tab-btn:hover {
   color: var(--text-primary);
   background-color: var(--bg-tertiary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .tab-btn.active {
   color: white;
   background-color: var(--accent);
   font-weight: 700;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .tab-btn.active::after {

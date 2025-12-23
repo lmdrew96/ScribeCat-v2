@@ -145,13 +145,13 @@
 .btn-exit:hover {
   background: var(--danger-color, #ef5350);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .btn-exit:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 /* Progress Bar */
@@ -223,8 +223,8 @@
 }
 
 .leaderboard-item:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .leaderboard-item.current-user {
@@ -394,8 +394,8 @@
 }
 
 .waiting-participant:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .participant-avatar {
@@ -635,8 +635,8 @@
 
 .quiz-option:hover:not(.disabled) {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .quiz-option.selected {
@@ -1980,8 +1980,8 @@
 
 .bingo-cell:hover:not(.free-space) {
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .bingo-cell.marked {
@@ -2139,8 +2139,8 @@
 
 .btn-flip:hover {
   background: var(--accent-hover);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .flashcard-controls {
@@ -2185,8 +2185,8 @@
 .btn-understanding.needs-review:hover {
   border-color: #f59e0b;
   background: #fef3c7;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .btn-understanding.understood {
@@ -2197,8 +2197,8 @@
 .btn-understanding.understood:hover {
   border-color: #22c55e;
   background: #dcfce7;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .flashcard-next p {
@@ -2246,8 +2246,8 @@
 
 .game-type-card:hover {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .game-type-card.selected {
@@ -2325,8 +2325,8 @@
 .count-btn:hover,
 .difficulty-btn:hover {
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .count-btn.selected,
@@ -2439,8 +2439,8 @@
 
 .close-game-btn:hover {
   background: var(--accent-hover);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* Responsive */

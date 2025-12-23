@@ -54,12 +54,12 @@
 .floating-toolbar-btn:hover {
   background: var(--bg-tertiary, #3d3d3d);
   border-color: var(--border-color-neo);
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .floating-toolbar-btn:active {
-  transform: translate(1px, 1px);
+  transform: translateY(1px);
   box-shadow: none;
 }
 
@@ -105,8 +105,8 @@
 /* Light Theme */
 [data-theme*="light"] .floating-toolbar-content {
   background: #ffffff;
-  border-color: #000000;
-  box-shadow: 4px 4px 0 #000000;
+  border-color: var(--border-color-neo);
+  box-shadow: var(--shadow-neo-md);
 }
 
 [data-theme*="light"] .floating-toolbar-btn {
@@ -115,8 +115,8 @@
 
 [data-theme*="light"] .floating-toolbar-btn:hover {
   background: #f5f5f5;
-  border-color: #000000;
-  box-shadow: 2px 2px 0 #000000;
+  border-color: var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 [data-theme*="light"] .floating-toolbar-btn.active {

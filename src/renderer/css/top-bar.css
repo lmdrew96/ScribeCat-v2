@@ -106,13 +106,13 @@
 
 .record-btn:hover {
   background-color: var(--record-hover);
-  transform: translate(-3px, -3px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .record-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .record-btn.recording {
@@ -159,13 +159,13 @@
 
 .pause-btn:hover:not(:disabled) {
   background-color: var(--accent);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .pause-btn:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .pause-btn:disabled {
@@ -209,13 +209,13 @@
 .bookmark-btn:hover:not(:disabled) {
   background-color: var(--accent-tertiary, #f59e0b);
   color: var(--text-on-accent, #000);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .bookmark-btn:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .bookmark-btn:disabled {
@@ -315,13 +315,13 @@
 .icon-btn:hover {
   background-color: var(--accent);
   color: white;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .icon-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .settings-icon,
@@ -350,6 +350,6 @@
   min-width: 20px;
   text-align: center;
   border: var(--border-thin) solid var(--border-color-neo);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
   z-index: 10;
 }

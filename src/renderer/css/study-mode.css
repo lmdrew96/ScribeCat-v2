@@ -157,8 +157,8 @@
 .control-btn:hover {
   background: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .btn-icon {
@@ -399,7 +399,7 @@
 .filter-input:focus {
   outline: none;
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-sm);
 }
 
@@ -421,14 +421,14 @@
 }
 
 .filter-select:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-sm);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .filter-select:focus {
   outline: none;
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-sm);
 }
 
@@ -529,8 +529,8 @@
 
 .session-card:hover {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* Session Card Header */
@@ -585,8 +585,8 @@
 .edit-title-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-sm);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .course-badge-container {
@@ -1083,8 +1083,8 @@
 }
 
 .retry-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .report-btn {
@@ -1102,8 +1102,8 @@
 
 .report-btn:hover {
   background-color: var(--bg-tertiary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* Success State */
@@ -1200,8 +1200,8 @@
 .edit-notes-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .save-notes-btn {
@@ -1211,8 +1211,8 @@
 }
 
 .save-notes-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .cancel-edit-notes-btn {
@@ -1224,8 +1224,8 @@
 .cancel-edit-notes-btn:hover {
   background-color: var(--record-color);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* Notes Content Areas */
@@ -1931,8 +1931,8 @@
 .modal-close-btn:hover {
   background: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-sm);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .modal-body {
@@ -1982,7 +1982,7 @@
 .study-set-title-input:focus {
   outline: none;
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-sm);
 }
 
@@ -2008,8 +2008,8 @@
 
 .reorder-session-item:hover {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .reorder-session-item.dragging {
@@ -2089,8 +2089,8 @@
 
 .btn-secondary:hover {
   background: var(--bg-tertiary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .btn-primary {
@@ -2098,8 +2098,8 @@
 }
 
 .btn-primary:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* Notification Styles */

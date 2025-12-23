@@ -105,13 +105,13 @@
 }
 
 .btn-primary:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .btn-primary:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .btn-secondary {
@@ -122,13 +122,13 @@
 
 .btn-secondary:hover {
   background: var(--bg-tertiary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .btn-secondary:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 /* Rooms Container */
@@ -166,8 +166,8 @@
 
 .room-card:hover {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .room-card-header {
@@ -290,8 +290,8 @@
 
 .invitation-card:hover {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .invitation-header {

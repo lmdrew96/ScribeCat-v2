@@ -101,8 +101,8 @@
 
 .collaborator-item:hover {
   background: var(--background-primary, #151515);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .collaborator-item.user-inactive {
@@ -321,8 +321,8 @@
 .collaboration-sidebar-close:hover {
   background: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .collaboration-sidebar-content {

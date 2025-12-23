@@ -1,5 +1,5 @@
 import electron from 'electron';
-import type { IpcMain, BrowserWindow } from 'electron';
+import type { IpcMain, BrowserWindow, SaveDialogOptions } from 'electron';
 import { BaseHandler } from '../BaseHandler.js';
 import * as os from 'os';
 import * as path from 'path';
@@ -17,7 +17,8 @@ export class DialogHandlers extends BaseHandler {
 
   register(ipcMain: IpcMain): void {
     // Dialog: Show save dialog
-    this.handle(ipcMain, 'dialog:showSaveDialog', async (event, options) => {
+    this.handle(ipcMain, 'dialog:showSaveDialog', async (_event, ...args: unknown[]) => {
+      const options = args[0] as SaveDialogOptions;
       const mainWindow = this.getMainWindow();
       if (!mainWindow) {
         return { success: false, error: 'Main window not available' };
@@ -33,7 +34,8 @@ export class DialogHandlers extends BaseHandler {
     });
 
     // Dialog: Delete file
-    this.handle(ipcMain, 'dialog:deleteFile', async (event, filePath: string) => {
+    this.handle(ipcMain, 'dialog:deleteFile', async (_event, ...args: unknown[]) => {
+      const filePath = args[0] as string;
       try {
         fs.unlinkSync(filePath);
         return { success: true };
@@ -46,7 +48,8 @@ export class DialogHandlers extends BaseHandler {
     });
 
     // Dialog: Check if file exists
-    this.handle(ipcMain, 'dialog:fileExists', async (event, filePath: string) => {
+    this.handle(ipcMain, 'dialog:fileExists', async (_event, ...args: unknown[]) => {
+      const filePath = args[0] as string;
       try {
         return { success: true, exists: fs.existsSync(filePath) };
       } catch (error) {

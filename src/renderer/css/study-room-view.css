@@ -42,8 +42,8 @@
 .study-room-header .back-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .room-title-info {
@@ -147,8 +147,8 @@
 
 .participant-item:hover {
   background: var(--bg-tertiary, #3d3d3d);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .participant-avatar {
@@ -385,8 +385,8 @@
 
 .audio-control-btn:hover {
   background: var(--accent-hover);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .audio-control-btn .play-icon,
@@ -497,8 +497,8 @@
 
 .speed-btn:hover {
   background: var(--bg-tertiary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .speed-btn.active {
@@ -528,8 +528,8 @@
 .content-tab:hover {
   background: var(--bg-quaternary, #1d1d1d);
   color: var(--text-primary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .content-tab.active {
@@ -664,8 +664,8 @@
 .chat-toggle-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .chat-toggle-btn .toggle-icon {
@@ -740,8 +740,8 @@
 
 .chat-message:hover {
   background: var(--bg-tertiary, #3d3d3d);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .chat-message.own-message {
@@ -828,8 +828,8 @@
 }
 
 .message-delete-btn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* Typing Indicator */
@@ -926,7 +926,7 @@
 .chat-input:focus {
   outline: none;
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-sm);
 }
 
@@ -953,13 +953,13 @@
 
 .chat-send-btn:hover:not(:disabled) {
   background: var(--accent-hover);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .chat-send-btn:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .chat-send-btn:disabled {
@@ -1029,8 +1029,8 @@
 
 .invite-friend-item:hover {
   background: var(--bg-tertiary, #3d3d3d);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .friend-avatar-container {
@@ -1124,8 +1124,8 @@
 
 .btn-error:hover {
   background: #dc2626;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* ============================================================================
@@ -1161,13 +1161,13 @@
   font-weight: 600;
   transition: all 0.15s ease;
   position: relative;
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 #session-notes .study-editor-toolbar .toolbar-btn:hover:not(:disabled) {
   background-color: var(--bg-quaternary, #1d1d1d);
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 var(--border-color-neo);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 #session-notes .study-editor-toolbar .toolbar-btn.active {
@@ -1227,12 +1227,12 @@
   cursor: pointer;
   border: var(--border-thin) solid var(--border-color-neo);
   transition: all 0.15s ease;
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 #session-notes .study-editor-toolbar .color-swatch:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--border-color-neo);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* Font Size Selector */
@@ -1247,12 +1247,12 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 #session-notes .study-font-size-select:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 var(--border-color-neo);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 #session-notes .study-font-size-select:focus {

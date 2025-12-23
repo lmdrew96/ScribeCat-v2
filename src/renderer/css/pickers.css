@@ -33,8 +33,8 @@
 
 .breadcrumb-item:hover {
   background-color: var(--bg-primary);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .breadcrumb-item.active {
@@ -133,13 +133,13 @@
 .folder-select-btn:hover {
   background-color: var(--accent);
   color: white;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .folder-select-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .folder-picker-actions {

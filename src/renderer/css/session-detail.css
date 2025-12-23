@@ -94,8 +94,8 @@
 .edit-title-btn-detail:hover {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .session-detail-meta {
@@ -136,13 +136,13 @@
 .session-action-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .session-action-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .session-action-btn .action-icon {
@@ -220,13 +220,13 @@
 }
 
 .audio-control-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .audio-control-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .audio-control-btn.playing {
@@ -391,8 +391,8 @@
 }
 
 .speed-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .speed-btn.active {
@@ -575,7 +575,7 @@
 
 .search-input-container:focus-within {
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-sm);
 }
 
@@ -665,8 +665,8 @@
 .search-nav-btn:hover:not(:disabled) {
   background-color: var(--accent);
   color: white;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .search-nav-btn:disabled {
@@ -757,8 +757,8 @@
 .study-tool-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .study-tool-btn:hover .tool-label {
@@ -766,8 +766,8 @@
 }
 
 .study-tool-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .study-tool-btn.active {
@@ -994,8 +994,8 @@
 .flashcard-nav-btn:hover:not(:disabled) {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .flashcard-nav-btn:disabled {
@@ -1017,8 +1017,8 @@
 
 .flashcard:hover {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .flashcard.flipped {
@@ -1140,8 +1140,8 @@
 .quiz-option:hover:not(.selected):not(.correct):not(.incorrect) {
   background-color: var(--bg-primary);
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .quiz-option.selected {
@@ -1185,8 +1185,8 @@
 }
 
 .quiz-next-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .quiz-complete {
@@ -1231,8 +1231,8 @@
 }
 
 .quiz-restart-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* Quiz Settings Selector */
@@ -1281,8 +1281,8 @@
 .quiz-count-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .quiz-count-btn:hover .count-number,
@@ -1388,8 +1388,8 @@
 }
 
 .weak-spot-item:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .weak-spot-header {
@@ -1539,7 +1539,7 @@
 .plan-form-select:focus {
   outline: none;
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-sm);
 }
 
@@ -1557,8 +1557,8 @@
 }
 
 .plan-form-submit:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .study-plan {
@@ -1603,8 +1603,8 @@
 }
 
 .plan-day-card:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .plan-day-header {
@@ -1777,8 +1777,8 @@
 
 .learn-card:hover {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .learn-card-content {
@@ -1833,8 +1833,8 @@
 .learn-action-btn.learning:hover {
   background-color: #f1c40f;
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .learn-action-btn.know-it {
@@ -1845,8 +1845,8 @@
 .learn-action-btn.know-it:hover {
   background-color: var(--success);
   color: #ffffff;
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .learn-complete {
@@ -1911,8 +1911,8 @@
 }
 
 .learn-restart-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 /* ELI5 Explainer Display */
@@ -1958,8 +1958,8 @@
 }
 
 .eli5-item:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .eli5-concept {
@@ -2073,8 +2073,8 @@
 }
 
 .map-subtopic:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .map-subtopic-name {
@@ -2145,13 +2145,13 @@
 }
 
 .scroll-to-top-btn:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .scroll-to-top-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: var(--shadow-neo-sm);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .scroll-to-top-btn.visible {

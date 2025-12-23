@@ -60,7 +60,7 @@
 .share-form select:focus {
   outline: none;
   border-color: var(--accent);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-sm);
 }
 
@@ -127,8 +127,8 @@
 
 .share-item:hover {
   border-color: var(--accent);
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .share-user {
@@ -232,8 +232,8 @@
 }
 
 .invitation-item:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .invitation-info {

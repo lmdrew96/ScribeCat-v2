@@ -89,13 +89,14 @@
 }
 
 .course-select-dropdown:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .course-select-dropdown:focus {
   outline: none;
-  box-shadow: var(--shadow-neo-md);
+  box-shadow: var(--shadow-glow);
+  border-color: var(--accent);
 }
 
 /* Session Title Input - Neobrutalism Style */
@@ -116,13 +117,13 @@
 }
 
 .session-title-input:hover {
-  box-shadow: var(--shadow-neo-sm), inset 2px 2px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-neo-sm), inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .session-title-input:focus {
   outline: none;
-  box-shadow: var(--shadow-neo-sm), inset 2px 2px 0 rgba(0, 0, 0, 0.1);
-  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-glow), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
 }
 
 .session-title-input::placeholder {
@@ -181,15 +182,15 @@
 .toolbar-btn:hover {
   background-color: var(--bg-tertiary);
   border-color: var(--border-color-neo);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
-  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-neo-sm);
+  transform: translateY(-1px);
 }
 
 .toolbar-btn.active {
   background-color: var(--accent);
   color: white;
   border-color: var(--border-color-neo);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* Button Icons */
@@ -1479,8 +1480,8 @@
 }
 
 .transcription-entry:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 @keyframes slideIn {

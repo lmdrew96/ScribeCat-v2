@@ -34,7 +34,7 @@
 .search-input-wrapper:focus-within {
   border-color: var(--accent, #00bcd4);
   background: var(--bg-tertiary, #3d3d3d);
-  transform: translate(-2px, -2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-neo-md);
 }
 
@@ -78,8 +78,8 @@
 .search-clear-btn:hover {
   background: var(--bg-quaternary, #1d1d1d);
   color: var(--text-primary, #ffffff);
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* ===== Search Suggestions Dropdown ===== */
@@ -139,8 +139,8 @@
 .clear-recent-btn:hover {
   background: var(--accent);
   color: #ffffff;
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 .search-suggestion-item {

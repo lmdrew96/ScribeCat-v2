@@ -122,8 +122,8 @@ button:not(.no-ripple) {
 /* Neobrutalism shadow reduction on press */
 .primary-btn.pressing,
 .secondary-btn.pressing {
-  box-shadow: var(--shadow-neo-sm) !important;
-  transform: translate(2px, 2px) !important;
+  box-shadow: var(--shadow-neo-pressed) !important;
+  transform: translateY(1px) scale(0.98) !important;
 }
 
 /* ========== Icon Button Enhancements ========== */

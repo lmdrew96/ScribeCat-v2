@@ -21,13 +21,13 @@
 .header-menu-btn:hover {
   background-color: var(--accent);
   color: var(--text-on-accent, #fff);
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-neo-md);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-neo-hover);
 }
 
 .header-menu-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--border-color-neo);
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-neo-pressed);
 }
 
 .header-menu-btn[aria-expanded="true"] {
